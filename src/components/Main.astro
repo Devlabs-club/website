@@ -4,6 +4,7 @@ import LinkButton from './LinkButton.astro';
 import HeadingBig from './text/HeadingBig.astro';
 import Highlight from './text/Highlight.astro';
 import GradientBlob from './GradientBlob.astro';
+import Paragraph from './text/Paragraph.astro';
 ---
 
 <section class="container mx-auto relative md:pl-6 md:min-h-screen grid md:grid-cols-5 grid-cols-1 border border-dashed border-gray-700 mb-24">
@@ -12,10 +13,12 @@ import GradientBlob from './GradientBlob.astro';
     <div class="md:min-h-screen relative col-span-3 md:p-0 px-12 py-20 md:w-5/6">
         <div class="md:min-h-screen md:pt-0 pt-16 flex flex-col md:gap-16 gap-12 justify-center md:items-start items-center md:text-left text-center">
             <div class="flex flex-col gap-6 md:items-start items-center">
-                <WrappedText size="normal" className=''>300+ members and growing!</WrappedText>  
-                <HeadingBig>want to learn how to <Highlight>build products</Highlight> people love?</HeadingBig>
+                <WrappedText size="normal" className=''>Arizona's Launchpad for Startups</WrappedText>  
+                <HeadingBig>We're not just hosting events — we're <Highlight>building companies</Highlight>.</HeadingBig>
+                <Paragraph>Backed by mentors, driven by builders, rooted in Phoenix.</Paragraph>
+                <Paragraph>This is DevLabs. The Hacker House. The Incubator. The Movement.</Paragraph>
             </div>
-            <LinkButton>join devlabs (it's fun)</LinkButton>
+            <LinkButton>join the movement</LinkButton>
         </div>
     </div>
 
