@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ApplicationForm from '../components/ApplicationForm';
+---
+
+<Layout title="Apply - Join Our Incubator">
+  <main class="min-h-screen bg-neutral-950">
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
+          Apply to Join Our <span class="text-orange-500">Incubator</span>
+        </h1>
+        <p class="mt-5 max-w-xl mx-auto text-xl text-gray-300">
+          Take the first step towards building something amazing. Fill out the form below to start your journey with us.
+        </p>
+      </div>
+      
+      <ApplicationForm client:load />
+    </div>
+  </main>
+</Layout>
+
+<style>
+  :global(body) {
+    background-color: #111;
+  }
+</style> 
