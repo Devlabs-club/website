@@ -43,8 +43,8 @@ const CustomVideoPlayer = () => {
       setIsExpanded(true);
       // Small delay to allow animation to complete before playing
       setTimeout(() => {
-        videoRef.current.play();
-        setIsPlaying(true);
+      videoRef.current.play();
+      setIsPlaying(true);
       }, 300);
     }
   };

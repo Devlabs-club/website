@@ -3,7 +3,22 @@ import { connectDB, Application } from '../../lib/mongodb';
 
 export const POST: APIRoute = async ({ request }) => {
     try {
+        // Try to connect to the database
         await connectDB();
+
+        // Check if Application model is available (will be null during static build)
+        if (!Application) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Database connection not available'
+            }), {
+                status: 503, // Service Unavailable
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
         const data = await request.json();
         const isFinalSubmission = data.progress === 4; // Check if this is the final submission
 
@@ -84,7 +99,22 @@ export const POST: APIRoute = async ({ request }) => {
 
 export const GET: APIRoute = async ({ url }) => {
     try {
+        // Try to connect to the database
         await connectDB();
+
+        // Check if Application model is available (will be null during static build)
+        if (!Application) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Database connection not available'
+            }), {
+                status: 503, // Service Unavailable
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+
         const email = url.searchParams.get('email');
 
         if (!email) {

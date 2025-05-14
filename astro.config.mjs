@@ -7,4 +7,6 @@ export default defineConfig({
   integrations: [tailwind(), react()],
   site: "https://sohamd22.github.io/",
   base: "/devlabs-website",
+  output: "hybrid",
+  adapter: cloudflare(),
 });
