@@ -19,16 +19,21 @@ import Cards from '../components/Cards.astro';
 import ContactForm from '../components/ContactForm.astro';
 
 import GradientBlob from '../components/GradientBlob.astro';
+import HeroSection from '../components/HeroSection.astro';
+import Polaroid from '../components/Polaroid.astro';
 
 ---
 
 <Layout title="DevLabs">
 	<Header />
+    <HeroSection />
 
-    <Main />
 
-    <CenteredSection id="about" className="mb-24">
+
+    <div id="about" class="container mx-auto relative flex flex-col items-center mb-24 border-x border-dashed border-gray-700">
         <GradientBlob top="" right="" left="0" scale="1.5" />
+        <Polaroid image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file=" rotate="8deg" top="60%" right="5%" />
+        <Polaroid image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file=" rotate="-12deg" top="10%" left="10%" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20">
             <WrappedText size="normal" className=''>our story</WrappedText>
@@ -40,20 +45,17 @@ import GradientBlob from '../components/GradientBlob.astro';
             </div>
             <Paragraph>Devlabs started as ASU's most ambitious club. Today, we're becoming Arizona's answer to Buildspace & Y Combinator — a hacker house where world-class products are born. Not limited to students. Open to anyone who builds. We're raising a new generation of Arizona founders.</Paragraph>
         </div>
-
-        <div class="box-border overflow-hidden w-full">
-            <Scroll direction="horizontal-right">
-                <Cards items={[["personalized music companion", "/projects/autochords.png"], ["predicts and analyzes price", "/projects/blik.png"], ["ai chess bot", "/projects/chess.png"], ["text to video generator", "/projects/edcomposer.png"], ["mockup concert website", "/projects/elements.png"], ["ai note taking app", "/projects/notty.png"], ["super mario maker replica", "/projects/pyrio.png"], ["shopping companion", "/projects/shopwise.png"], ["browser video tools", "/projects/videotools.png"]]} className='aspect-square' imageClass='' />
-            </Scroll>
-        </div>
-    </CenteredSection>
+ 
+    </div>
 
     <CenteredSection id="mission" className="mb-24">
         <GradientBlob top="-400px" left="-300px" right="" scale="1.5" />
+        <Polaroid image="https://dhanush.wtf/media/spch2uan9ni.jpg?file=" rotate="-7deg" top="20%" right="10%" />
+        <Polaroid image="https://dhanush.wtf/media/7ww23hq0p6f.jpg?file=" rotate="10deg" top="70%" left="15%" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
             <WrappedText size="normal" className=''>what we do</WrappedText>
-            <Heading>we don't just host events. we <Highlight>accelerate ambition</Highlight>.</Heading>
+            <Heading>we are a community. we're <Highlight>Arizona's startup engine</Highlight>.</Heading>
             <div class="flex flex-col gap-4 items-center">
                 <Paragraph>Incubator-style builder cohorts</Paragraph>
                 <Paragraph>Mentorship from top-tier founders and VCs</Paragraph>
@@ -75,13 +77,15 @@ import GradientBlob from '../components/GradientBlob.astro';
 
     <CenteredSection id="vision" className="mb-24">
         <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
+        <Polaroid image="https://dhanush.wtf/media/udqhwdp2kcn.jpg?file=" rotate="-15deg" top="25%" left="10%" />
+        <Polaroid image="https://dhanush.wtf/media/uzp4y1ct1g.jpg?file=" rotate="6deg" top="65%" right="15%" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>our vision</WrappedText>
-            <Heading>we're not a club anymore. we're <Highlight>Arizona's startup engine</Highlight>.</Heading>
+            <Heading>We are building the <Highlight>launchpad</Highlight> for Arizona's next <Highlight> 100 startups.</Highlight></Heading>
             <div class="flex flex-col gap-6 items-center">
-                <Paragraph>Our goal?</Paragraph>
-                <div class="flex flex-col gap-4 items-start">
+                            <WrappedText size="normal" className=''>our vision</WrappedText>
+
+                <div class="flex flex-col gap-4 items-center">
                     <Paragraph>Build Arizona's first full-time incubator for real builders</Paragraph>
                     <Paragraph>Launch a hacker house in PHX</Paragraph>
                     <Paragraph>Fund and support 50+ startups in the next 3 years</Paragraph>
@@ -91,47 +95,7 @@ import GradientBlob from '../components/GradientBlob.astro';
         </div>
     </CenteredSection>
 
-    <CenteredSection id="contact" className="mb-24">
-        <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
-
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>let's build this together</WrappedText>
-            <Heading>we're looking for <Highlight>investors, mentors, and partners</Highlight>.</Heading>
-            <Paragraph>Not just to fund DevLabs — but to seed the next wave of Arizona startups.</Paragraph>
-            <Paragraph>Be part of something bold. Something generational.</Paragraph>
-            <ContactForm />
-        </div>
-    </CenteredSection>
-
-    <CenteredSection id="join" className="md:pt-40 md:pb-52 pt-20 pb-40 overflow-hidden">
-        <GradientBlob top="0" left="5%" right="" scale="1.5" />
-        <div class="w-1/2 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center">
-            <WrappedText size="normal" className=''>our impact so far</WrappedText>
-            <HeadingBig>building Arizona's <Highlight>startup movement</Highlight></HeadingBig>
-            <div class="flex flex-col gap-8 items-center w-full">
-                <div class="grid grid-cols-2 gap-4 text-left">
-                    <div>
-                        <p class="text-2xl font-bold">450+</p>
-                        <p class="text-gray-400">Active Members</p>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">10+</p>
-                        <p class="text-gray-400">High-Impact Events</p>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">170+</p>
-                        <p class="text-gray-400">Hackers at DevHacks</p>
-                    </div>
-                    <div>
-                        <p class="text-2xl font-bold">$3,000+</p>
-                        <p class="text-gray-400">Builder Grants</p>
-                    </div>
-                </div>
-                <Paragraph>Mentors from VCs, YC alumni, and Arizona's top founders</Paragraph>
-            </div>
-            <LinkButton>join the movement</LinkButton>
-        </div>
-    </CenteredSection>
+     
 
     <Navbar />
 </Layout>

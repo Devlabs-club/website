@@ -1,11 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ApplicationForm from '../components/ApplicationForm';
+import Polaroid from '../components/Polaroid.astro';
 ---
 
 <Layout title="Apply - Join Our Incubator">
-  <main class="min-h-screen bg-neutral-950">
-    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+  <main class="min-h-screen bg-neutral-950 relative overflow-hidden">
+  
+    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 relative z-0">
       <div class="text-center mb-12">
         <h1 class="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
           Apply to Join Our <span class="text-orange-500">Incubator</span>
@@ -17,6 +19,32 @@ import ApplicationForm from '../components/ApplicationForm';
       
       <ApplicationForm client:load />
     </div>
+
+    <!-- Decorative Polaroids -->
+    <Polaroid 
+      image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" 
+      rotate="8deg" 
+      top="5%" 
+      right="15%" 
+    />
+    <Polaroid 
+      image="https://dhanush.wtf/media/another-image.jpg" 
+      rotate="-12deg" 
+      top="30%" 
+      left="5%" 
+    />
+    <Polaroid 
+      image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" 
+      rotate="15deg" 
+      top="60%" 
+      right="8%" 
+    />
+    <Polaroid 
+      image="https://dhanush.wtf/media/another-image.jpg" 
+      rotate="-5deg" 
+      top="75%" 
+      left="12%" 
+    />
   </main>
 </Layout>
 

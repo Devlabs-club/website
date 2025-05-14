@@ -1,0 +1,135 @@
+---
+import WrappedText from './text/WrappedText.astro';
+import HeadingBig from './text/HeadingBig.astro';
+import Paragraph from './text/Paragraph.astro';
+import Highlight from './text/Highlight.astro';
+import LinkButton from './LinkButton.astro';
+import Polaroid from './Polaroid.astro';
+import CustomVideoPlayer from './CustomVideoPlayer';
+---
+
+<section class="relative w-full flex flex-col items-center justify-center min-h-screen bg-neutral-950">
+  <div class="container mx-auto relative border-l border-r border-dashed border-gray-700 min-h-screen flex flex-col items-center justify-center px-4 md:px-8 lg:px-16">
+    <!-- Orange radial background gradient -->
+    <div class="absolute inset-0 pointer-events-none z-0" aria-hidden="true"
+      style="background: radial-gradient(ellipse at 10% 30%, rgba(255,153,0,0.10) 0%, transparent 70%); mix-blend-mode: screen;" />
+    
+    <!-- Gradient Spheres -->
+    <div class="absolute inset-0 overflow-hidden">
+      <!-- Primary sphere -->
+      <div class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <!-- Secondary spheres -->
+      <div class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]" />
+      <div class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]" />
+    </div>
+
+    <Polaroid image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" rotate="5deg" top="15%" right="5%" />
+    <Polaroid image="https://dhanush.wtf/media/lvl3cogtiqg.jpg?file=" rotate="-5deg" top="35%" left="5%" />
+
+    <!-- Content -->
+    <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-3xl mx-auto mt-24 text-center">
+      <div class="mb-5 mt-10">
+        <WrappedText size="normal" className="relative glow-text-sm">Arizona's Premier Startup Incubator</WrappedText>
+      </div>  
+      <HeadingBig class="glow-text-lg">
+        the <Highlight>hacker house </Highlight>where we launch <Highlight>founders </Highlight>
+      </HeadingBig>
+      <div class="mt-10 mb-5">
+        <Paragraph class="glow-text-sm">
+          <span class="text-gray-400 font-normal block max-w-2xl mx-auto">
+            Devlabs is a <span class="text-orange-300 font-bold">6 week program</span> where we fly in the best builders from across the country to <span class="text-orange-300 font-bold">Phoenix</span> to become <span class="text-orange-300 font-bold">top founders</span>
+          </span>
+        </Paragraph>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center my-8">
+        <div class="glow-button">
+          <LinkButton link="/devlabs-website/apply">join the community</LinkButton>
+        </div>
+      </div>
+    </div>
+
+  <!-- Video Section -->
+  <div class="relative w-full flex justify-center mt-12 z-10 px-4 sm:px-6 lg:px-8">
+    <CustomVideoPlayer client:load />
+  </div>
+
+</section>
+
+<style>
+/* Noise texture */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Gradient Spheres */
+.sphere-gradient {
+  background: radial-gradient(circle at center, rgba(255, 153, 0, 0.15) 0%, transparent 70%);
+  filter: blur(60px);
+  border-radius: 50%;
+  animation: float 8s ease-in-out infinite;
+}
+
+.sphere-gradient-sm {
+  background: radial-gradient(circle at center, rgba(255, 153, 0, 0.1) 0%, transparent 70%);
+  filter: blur(40px);
+  border-radius: 50%;
+  animation: float 12s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(20px, -20px);
+  }
+}
+
+/* Glowing effects */
+.glow-text-sm {
+  text-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+}
+
+.glow-text-lg {
+  text-shadow: 0 0 20px rgba(255, 153, 0, 0.4);
+}
+
+.glow-border {
+  box-shadow: 0 0 20px rgba(255, 153, 0, 0.1);
+  transition: box-shadow 0.3s ease;
+}
+
+.glow-border:hover {
+  box-shadow: 0 0 30px rgba(255, 153, 0, 0.2);
+}
+
+.glow-button {
+  box-shadow: 0 0 15px rgba(255, 153, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.glow-button:hover {
+  box-shadow: 0 0 25px rgba(255, 153, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Add custom styles for the new video player look */
+.bg-gradient-to-b {
+  background: linear-gradient(to bottom, #e0e7ff 0%, #f0f6ff 60%, #fff 100%);
+}
+</style>
+
+<Fragment>
+<style>
+/* Polaroid overlay (using an <a> element with a data-src attribute) – (using a CSS custom property (--polaroid-src) and a pseudo‑element (::after) to render the image (using a background‑image) inside the polaroid.) */
+ .polaroid-overlay { --polaroid-src: attr(data-src); }
+ .polaroid-overlay::before, .polaroid-overlay::after { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
+ .polaroid-overlay::before { top: 10%; left: 10%; --rotate: -5deg; }
+ .polaroid-overlay::after { top: 20%; right: 10%; --rotate: 5deg; }
+ /* Polaroid "frame" (using ::before) */
+ .polaroid-overlay::before { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
+ /* Polaroid "img" (using ::after) – (using a CSS custom property (--polaroid-src) (from the <a> element's data-src attribute) to render the image (using a background‑image) inside the polaroid.) */
+ .polaroid-overlay::after { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
+ .polaroid-overlay::after { background-image: var(--polaroid-src); background-size: cover; }
+</style>
+</Fragment> 

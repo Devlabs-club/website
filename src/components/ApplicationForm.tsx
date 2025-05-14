@@ -222,7 +222,7 @@ const ApplicationForm = () => {
 
   if (isSubmitted) {
     return (
-      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center">
+      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8   flex items-center justify-center">
         <div className="bg-neutral-900 shadow-2xl p-8 rounded-2xl border-2 border-dashed border-orange-700 text-center relative overflow-hidden">
           {/* Orange radial gradient overlay */}
           <div
@@ -583,7 +583,7 @@ const ApplicationForm = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-neutral-950 overflow-hidden">
+    <div className="relative    bg-neutral-950 overflow-hidden">
       {/* Orange radial gradient overlay */}
       <div
         aria-hidden="true"

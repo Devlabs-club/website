@@ -10,3 +10,14 @@ const { id, className } = Astro.props;
 <section id={id} class=`container mx-auto relative border border-dashed border-gray-700 flex flex-col items-center ${className}`>
     <slot />
 </section>
+
+<style>
+    section :global(.polaroid) {
+        z-index: 1;
+    }
+    
+    section :global(> div) {
+        position: relative;
+        z-index: 10;
+    }
+</style>
