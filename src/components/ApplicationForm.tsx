@@ -222,12 +222,22 @@ const ApplicationForm = () => {
 
   if (isSubmitted) {
     return (
-      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-white shadow-xl rounded-lg p-6 text-center">
-          <div className="mb-6">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center justify-center">
+        <div className="bg-neutral-900 shadow-2xl p-8 rounded-2xl border-2 border-dashed border-orange-700 text-center relative overflow-hidden">
+          {/* Orange radial gradient overlay */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0"
+            style={{
+              background:
+                "radial-gradient(ellipse at 30% 20%, rgba(255,153,0,0.10) 0%, transparent 70%)",
+              mixBlendMode: "screen",
+            }}
+          />
+          <div className="mb-6 relative z-10">
+            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-orange-900/30 border-2 border-orange-500 shadow-lg">
               <svg
-                className="h-6 w-6 text-green-600"
+                className="h-8 w-8 text-orange-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -241,16 +251,17 @@ const ApplicationForm = () => {
               </svg>
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl font-bold text-white mb-4 relative z-10">
             Application Submitted Successfully!
           </h2>
-          <p className="text-gray-600 mb-6">
-            Thank you for applying to DevLabs. We will review your application
-            and get back to you soon.
+          <p className="text-gray-300 mb-6 relative z-10">
+            Thank you for applying to{" "}
+            <span className="text-orange-400 font-semibold">DevLabs</span>. We
+            will review your application and get back to you soon.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-950 transition-colors duration-200 relative z-10"
           >
             Submit Another Application
           </button>
@@ -264,12 +275,9 @@ const ApplicationForm = () => {
       case 1:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">
-              Personal Information
-            </h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Name
                 </label>
                 <Controller
@@ -291,7 +299,7 @@ const ApplicationForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Gender
                 </label>
                 <Controller
@@ -320,7 +328,7 @@ const ApplicationForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Age
                 </label>
                 <Controller
@@ -343,7 +351,7 @@ const ApplicationForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Email
                 </label>
                 <Controller
@@ -365,7 +373,7 @@ const ApplicationForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Phone
                 </label>
                 <Controller
@@ -387,7 +395,7 @@ const ApplicationForm = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300">
+                <label className="block text-sm font-medium text-gray-400 mb-2">
                   Country
                 </label>
                 <Controller
@@ -414,9 +422,8 @@ const ApplicationForm = () => {
       case 2:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">About You</h2>
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Tell us about yourself
               </label>
               <Controller
@@ -439,7 +446,7 @@ const ApplicationForm = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 What do you want to build?
               </label>
               <Controller
@@ -466,11 +473,8 @@ const ApplicationForm = () => {
       case 3:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">
-              Additional Information
-            </h2>
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 How did you find out about us?
               </label>
               <Controller
@@ -497,7 +501,7 @@ const ApplicationForm = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Twitter Handle (optional)
               </label>
               <Controller
@@ -515,7 +519,7 @@ const ApplicationForm = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Proof of Work (optional)
               </label>
               <Controller
@@ -537,9 +541,8 @@ const ApplicationForm = () => {
       case 4:
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Final Thoughts</h2>
             <div>
-              <label className="block text-sm font-medium text-gray-300">
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Anything else you'd like to tell us?
               </label>
               <Controller
@@ -563,6 +566,22 @@ const ApplicationForm = () => {
     }
   };
 
+  // Add a function to get the step title
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1:
+        return "Personal Information";
+      case 2:
+        return "About You";
+      case 3:
+        return "Additional Information";
+      case 4:
+        return "Final Thoughts";
+      default:
+        return "";
+    }
+  };
+
   return (
     <div className="relative min-h-screen w-full bg-neutral-950 overflow-hidden">
       {/* Orange radial gradient overlay */}
@@ -571,79 +590,48 @@ const ApplicationForm = () => {
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(ellipse at 10% 30%, rgba(255,153,0,0.18) 0%, transparent 70%)",
+            "radial-gradient(ellipse at 10% 30%, rgba(255,153,0,0.10) 0%, transparent 70%)",
           mixBlendMode: "screen",
         }}
       />
-      <div className="relative z-10 max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex items-center min-h-screen">
+      <div className="relative z-10 max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex items-center ">
         <div
-          className="w-full bg-neutral-900 shadow-2xl rounded-2xl p-8 border border-neutral-800 ring-2 ring-orange-500/20 ring-offset-2 ring-offset-neutral-950 backdrop-blur-md"
-          style={{ boxShadow: "0 0 40px 0 #ff990033" }}
+          className="w-full bg-neutral-900 shadow-2xl rounded-2xl p-8 border-2 border-dashed border-gray-700   "
+          style={{}}
         >
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-extrabold text-white">
-                Application <span className="text-orange-500">Form</span>
-              </h1>
-              {saveStatus && (
-                <span
-                  className={`text-sm ${
-                    saveStatus === "saved"
-                      ? "text-green-400"
-                      : saveStatus === "saving"
-                      ? "text-orange-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {saveStatus === "saved"
-                    ? "✓ Saved"
-                    : saveStatus === "saving"
-                    ? "Saving..."
-                    : "Error saving"}
-                </span>
-              )}
-            </div>
-
+            <h1 className="text-3xl font-bold text-white mb-4">
+              {getStepTitle()}
+            </h1>
             <div className="relative pt-1">
-              <div className="flex mb-2 items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-orange-500 bg-orange-500/10">
-                    Progress
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-semibold inline-block text-orange-400">
-                    {currentStep}/{totalSteps}
-                  </span>
-                </div>
-              </div>
               <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-neutral-800">
                 <div
                   style={{ width: `${(currentStep / totalSteps) * 100}%` }}
                   className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
                 />
               </div>
+              <div className="flex mb-2 items-center justify-end">
+                <div className="text-right">
+                  <span className="text-xs font-semibold inline-block text-orange-400">
+                    {currentStep}/{totalSteps}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {currentStep === totalSteps && (
+          {currentStep === totalSteps && Object.keys(errors).length > 0 && (
             <div className="mb-6 p-4 bg-neutral-800 border border-orange-700 rounded-md">
               <h3 className="text-sm font-bold text-orange-400 mb-2">
                 Validation Status:
               </h3>
-              {Object.keys(errors).length > 0 ? (
-                <ul className="list-disc pl-5 space-y-1">
-                  {Object.entries(errors).map(([field, error]) => (
-                    <li key={field} className="text-sm text-red-400">
-                      {field}: {error.message}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-green-400">
-                  All required fields are valid!
-                </p>
-              )}
+              <ul className="list-disc pl-5 space-y-1">
+                {Object.entries(errors).map(([field, error]) => (
+                  <li key={field} className="text-sm text-red-400">
+                    {field}: {error.message}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 
