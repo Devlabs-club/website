@@ -31,14 +31,14 @@ import GradientBlob from '../components/GradientBlob.astro';
         <GradientBlob top="" right="" left="0" scale="1.5" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20">
-            <WrappedText size="normal" className=''>what do we do?</WrappedText>
-            <Heading>we're an <img src="/devlabs-website/asu.png" alt="ASU" class="xl:h-11 md:h-8 h-6 mb-2 inline-block"> club that hosts meetings <Highlight>every week</Highlight></Heading>
+            <WrappedText size="normal" className=''>our story</WrappedText>
+            <Heading>born in a dorm room. now <Highlight>building a movement</Highlight>.</Heading>
             <div class="flex flex-wrap gap-2 justify-center">
-                <WrappedText size="large" className="border-orange-300 text-orange-300">in-person socializing</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">1 hour/week</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">free snacks and goodies</WrappedText>
+                <WrappedText size="large" className="border-orange-300 text-orange-300">hacker house</WrappedText>
+                <WrappedText size="large" className="border-orange-300 text-orange-300">startup incubator</WrappedText>
+                <WrappedText size="large" className="border-orange-300 text-orange-300">builder community</WrappedText>
             </div>
-            <Paragraph>we teach students how to build exciting projects from start to finish while fostering a collaborative and innovative environment for all skill levels.</Paragraph>
+            <Paragraph>Devlabs started as ASU's most ambitious club. Today, we're becoming Arizona's answer to Buildspace & Y Combinator — a hacker house where world-class products are born. Not limited to students. Open to anyone who builds. We're raising a new generation of Arizona founders.</Paragraph>
         </div>
 
         <div class="box-border overflow-hidden w-full">
@@ -52,10 +52,15 @@ import GradientBlob from '../components/GradientBlob.astro';
         <GradientBlob top="-400px" left="-300px" right="" scale="1.5" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>why're we doing this?</WrappedText>
-            <Heading>we want to make computer science <Highlight>fun to learn</Highlight>.</Heading>
-            <Paragraph>we provide a friendly space where students can learn coding through fun, hands-on projects with like-minded peers. we aim to simplify the complex process of building from scratch and build a love for technology in our members.</Paragraph>
-            <Paragraph>all it takes is a <a href="https://asu.campuslabs.com/engage/organization/devlabs" class="text-white underline">single click</a> to be part of it.</Paragraph>
+            <WrappedText size="normal" className=''>what we do</WrappedText>
+            <Heading>we don't just host events. we <Highlight>accelerate ambition</Highlight>.</Heading>
+            <div class="flex flex-col gap-4 items-center">
+                <Paragraph>Incubator-style builder cohorts</Paragraph>
+                <Paragraph>Mentorship from top-tier founders and VCs</Paragraph>
+                <Paragraph>Demo nights. Hackathons. Startup showcases.</Paragraph>
+                <Paragraph>Early funding access for promising ideas</Paragraph>
+                <Paragraph>We turn raw builders into real founders.</Paragraph>
+            </div>
         </div>
     </CenteredSection>
 
@@ -63,17 +68,37 @@ import GradientBlob from '../components/GradientBlob.astro';
 
     <Team members={[["soham daga", "/team/soham.jpg", "vice president"],
      ["dhanush vardhan", "/team/dhanush.jpg", "president"], ["bhoomi singhani", "/team/bhoomi.jpeg", "vp of operations"],
-     ["chakshu jain", "/team/chakshu.JPG", "vp of finance"], ["aryan keluskar", "/team/aryan.png", "industry director"],
+     ["chakshu jain", "/team/chakshu.JPG", "vp of finance"], ["aryan keluskar", "/team/aryan.png", "industry officer"],
      ["adwait more", "/team/adwait.jpg", "marketing director"], ["devansh gupta", "/team/devansh.png", "industry officer"],
      ["aditya bohra", "/team/aditya.jpg", "marketing officer"], ["riya ubhe", "/team/riya.jpg", "marketing officer"],
      ["anay shirolkar", "/team/anay.jpg", "marketing officer"]]}/>
+
+    <CenteredSection id="vision" className="mb-24">
+        <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
+
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
+            <WrappedText size="normal" className=''>our vision</WrappedText>
+            <Heading>we're not a club anymore. we're <Highlight>Arizona's startup engine</Highlight>.</Heading>
+            <div class="flex flex-col gap-6 items-center">
+                <Paragraph>Our goal?</Paragraph>
+                <div class="flex flex-col gap-4 items-start">
+                    <Paragraph>Build Arizona's first full-time incubator for real builders</Paragraph>
+                    <Paragraph>Launch a hacker house in PHX</Paragraph>
+                    <Paragraph>Fund and support 50+ startups in the next 3 years</Paragraph>
+                </div>
+                <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
+            </div>
+        </div>
+    </CenteredSection>
 
     <CenteredSection id="contact" className="mb-24">
         <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
 
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>want to talk to us?</WrappedText>
-            <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
+            <WrappedText size="normal" className=''>let's build this together</WrappedText>
+            <Heading>we're looking for <Highlight>investors, mentors, and partners</Highlight>.</Heading>
+            <Paragraph>Not just to fund DevLabs — but to seed the next wave of Arizona startups.</Paragraph>
+            <Paragraph>Be part of something bold. Something generational.</Paragraph>
             <ContactForm />
         </div>
     </CenteredSection>
@@ -81,18 +106,30 @@ import GradientBlob from '../components/GradientBlob.astro';
     <CenteredSection id="join" className="md:pt-40 md:pb-52 pt-20 pb-40 overflow-hidden">
         <GradientBlob top="0" left="5%" right="" scale="1.5" />
         <div class="w-1/2 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center">
-            <WrappedText size="normal" className=''>300+ members and growing!</WrappedText>
-            <HeadingBig>ready to build <Highlight>the future</Highlight>?</HeadingBig>
+            <WrappedText size="normal" className=''>our impact so far</WrappedText>
+            <HeadingBig>building Arizona's <Highlight>startup movement</Highlight></HeadingBig>
             <div class="flex flex-col gap-8 items-center w-full">
-                <Paragraph>We're ready, all thanks to our sponsors.</Paragraph>
-               
+                <div class="grid grid-cols-2 gap-4 text-left">
+                    <div>
+                        <p class="text-2xl font-bold">450+</p>
+                        <p class="text-gray-400">Active Members</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">10+</p>
+                        <p class="text-gray-400">High-Impact Events</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">170+</p>
+                        <p class="text-gray-400">Hackers at DevHacks</p>
+                    </div>
+                    <div>
+                        <p class="text-2xl font-bold">$3,000+</p>
+                        <p class="text-gray-400">Builder Grants</p>
+                    </div>
+                </div>
+                <Paragraph>Mentors from VCs, YC alumni, and Arizona's top founders</Paragraph>
             </div>
-             <div class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6 justify-center items-center gap-6 w-full">
-                <img src="/devlabs-website/sponsors/cloudflare.svg" alt="Cloudflare" class="inline-block h-8 md:h-12 px-2">
-                <img src="/devlabs-website/sponsors/devfolio.svg" alt="Devfolio" class="inline-block h-8 md:h-11 px-2">
-            </div>
-            
-            <LinkButton>join devlabs (it's fun)</LinkButton>
+            <LinkButton>join the movement</LinkButton>
         </div>
     </CenteredSection>
 
