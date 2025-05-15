@@ -1,33 +1,22 @@
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-// Make sure the MONGODB_URI environment variable is defined
-const MONGODB_URI = 'mongodb+srv://dhanushkalaiselvan:Y1IEElftFdcd9tnT@cluster0.vp3cm52.mongodb.net/';
+dotenv.config();
+
+// Use environment variable for MongoDB URI
+const MONGODB_URI = process.env.MONGODB_URI;
 if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-// Detect if we're in a server context where we can connect to MongoDB
-// This helps avoid connection attempts during static build
-const isServer = typeof process !== 'undefined';
-const isBrowser = typeof window !== 'undefined';
-// const isStaticBuild = isServer && !isBrowser && process.env.NODE_ENV === 'production';
-const isStaticBuild = false;
+// Global caching mechanism
+let cached = global.mongoose || { conn: null, promise: null };
 
-// Global caching mechanism that works in Node.js environments
-const globalObj: any = isServer && typeof global !== 'undefined' ? global : {};
-let cached = globalObj.mongoose || { conn: null, promise: null };
-
-if (isServer && !globalObj.mongoose) {
-    globalObj.mongoose = cached;
+if (!global.mongoose) {
+    global.mongoose = cached;
 }
 
 async function connectDB() {
-    // Skip DB connection during static builds
-    if (isStaticBuild) {
-        console.log('Static build detected, skipping DB connection');
-        return null;
-    }
-
     // Use cached connection if available
     if (cached.conn) {
         return cached.conn;
@@ -39,9 +28,7 @@ async function connectDB() {
             bufferCommands: false,
         };
 
-        cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-            return mongoose;
-        });
+        cached.promise = mongoose.connect(MONGODB_URI, opts);
     }
 
     try {
@@ -73,21 +60,12 @@ const applicationSchema = new mongoose.Schema({
     updatedAt: { type: Date, default: Date.now }
 });
 
-// Declare model variable - will be defined at runtime only
-let Application: any = null;
-
-// Try to initialize model, but only in runtime environments
-if (!isStaticBuild) {
-    try {
-        // Use optional chaining to safely check if model exists
-        Application = mongoose.models?.Application ||
-            (mongoose.connection.readyState !== 0
-                ? mongoose.model('Application', applicationSchema)
-                : null);
-    } catch (error) {
-        console.error('MongoDB model initialization error:', error);
-        // Continue without the model - the API endpoints will handle this
-    }
+// Initialize model safely for serverless environment
+let Application;
+try {
+    Application = mongoose.models.Application || mongoose.model('Application', applicationSchema);
+} catch (error) {
+    console.error('MongoDB model initialization error:', error);
 }
 
 export { connectDB, Application }; 
