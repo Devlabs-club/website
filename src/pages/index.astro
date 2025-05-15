@@ -19,129 +19,100 @@ import Cards from "../components/Cards.astro";
 import ContactForm from "../components/ContactForm.astro";
 
 import GradientBlob from "../components/GradientBlob.astro";
+import HeroSection from "../components/HeroSection.astro";
+import Polaroid from "../components/Polaroid.astro";
 ---
 
 <Layout title="DevLabs">
   <Header />
+  <HeroSection />
 
-  <Main />
-
-  <CenteredSection id="about" className="mb-24">
+  <div
+    id="about"
+    class="container mx-auto relative flex flex-col items-center mb-24 border-x border-dashed border-gray-700"
+  >
     <GradientBlob top="" right="" left="0" scale="1.5" />
+    <Polaroid
+      image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file="
+      rotate="8deg"
+      top="60%"
+      right="5%"
+    />
+    <Polaroid
+      image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file="
+      rotate="-12deg"
+      top="10%"
+      left="10%"
+    />
 
     <div
       class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20"
     >
-      <WrappedText size="normal" className="">what do we do?</WrappedText>
+      <WrappedText size="normal" className="">our story</WrappedText>
       <Heading
-        >we're an <img
-          src="/devlabs-website/asu.png"
-          alt="ASU"
-          class="xl:h-11 md:h-8 h-6 mb-2 inline-block"
-        /> club that hosts meetings <Highlight>every week</Highlight></Heading
+        >born in a dorm room. now <Highlight>building a movement</Highlight
+        >.</Heading
       >
       <div class="flex flex-wrap gap-2 justify-center">
         <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >in-person socializing</WrappedText
+          >hacker house</WrappedText
         >
         <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >1 hour/week</WrappedText
+          >startup incubator</WrappedText
         >
         <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >free snacks and goodies</WrappedText
+          >builder community</WrappedText
         >
       </div>
       <Paragraph
-        >we teach students how to build exciting projects from start to finish
-        while fostering a collaborative and innovative environment for all skill
-        levels.</Paragraph
+        >Devlabs started as ASU's most ambitious club. Today, we're becoming
+        Arizona's answer to Buildspace & Y Combinator — a hacker house where
+        world-class products are born. Not limited to students. Open to anyone
+        who builds. We're raising a new generation of Arizona founders.</Paragraph
       >
     </div>
-
-    <!-- <div class="box-border overflow-hidden w-full">
-      <Scroll direction="horizontal-right">
-        <Cards
-          items={[
-            ["personalized music companion", "/projects/autochords.png"],
-            ["predicts and analyzes price", "/projects/blik.png"],
-            ["ai chess bot", "/projects/chess.png"],
-            ["text to video generator", "/projects/edcomposer.png"],
-            ["mockup concert website", "/projects/elements.png"],
-            ["ai note taking app", "/projects/notty.png"],
-            ["super mario maker replica", "/projects/pyrio.png"],
-            ["shopping companion", "/projects/shopwise.png"],
-            ["browser video tools", "/projects/videotools.png"],
-          ]}
-          className="aspect-square"
-          imageClass=""
-        />
-      </Scroll>
-    </div> -->
-  </CenteredSection>
+  </div>
 
   <CenteredSection id="mission" className="mb-24">
     <GradientBlob top="-400px" left="-300px" right="" scale="1.5" />
+    <Polaroid
+      image="https://dhanush.wtf/media/spch2uan9ni.jpg?file="
+      rotate="-7deg"
+      top="20%"
+      right="10%"
+    />
+    <Polaroid
+      image="https://dhanush.wtf/media/7ww23hq0p6f.jpg?file="
+      rotate="10deg"
+      top="70%"
+      left="15%"
+    />
 
     <div
       class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
     >
-      <WrappedText size="normal" className="">why're we doing this?</WrappedText
-      >
+      <WrappedText size="normal" className="">what we do</WrappedText>
       <Heading
-        >we want to make computer science <Highlight>fun to learn</Highlight
+        >we are a community. we're <Highlight
+          >Arizona's startup engine</Highlight
         >.</Heading
       >
-      <Paragraph
-        >we provide a friendly space where students can learn coding through
-        fun, hands-on projects with like-minded peers. we aim to simplify the
-        complex process of building from scratch and build a love for technology
-        in our members.</Paragraph
-      >
-      <Paragraph
-        >all it takes is a <a
-          href="https://asu.campuslabs.com/engage/organization/devlabs"
-          class="text-white underline">single click</a
-        > to be part of it.</Paragraph
-      >
+      <div class="flex flex-col gap-4 items-center">
+        <Paragraph>Incubator-style builder cohorts</Paragraph>
+        <Paragraph>Mentorship from top-tier founders and VCs</Paragraph>
+        <Paragraph>Demo nights. Hackathons. Startup showcases.</Paragraph>
+        <Paragraph>Early funding access for promising ideas</Paragraph>
+        <Paragraph>We turn raw builders into real founders.</Paragraph>
+      </div>
     </div>
   </CenteredSection>
 
   <!-- <Events /> -->
 
-  <CenteredSection id="devhacks" className="mb-24">
-    <GradientBlob top="" right="" left="0" scale="1.5" />
-
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <WrappedText size="normal" className="">our annual hackathon</WrappedText>
-      <Heading
-        ><Highlight>DevHacks</Highlight> - where innovation meets code</Heading
-      >
-      <Paragraph
-        >Join us for an exciting 48-hour hackathon where you'll collaborate with fellow
-        developers to build innovative solutions. Open to all skill levels, with amazing
-        prizes and networking opportunities!</Paragraph
-      >
-      <div class="flex flex-wrap gap-2 justify-center">
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >48 hours</WrappedText
-        >
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >great prizes</WrappedText
-        >
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >all skill levels</WrappedText
-        >
-      </div>
-      <LinkButton link="http://localhost:3000/register">register for devhacks</LinkButton>
-    </div>
-  </CenteredSection>
-
   <Team
     members={[
-      ["soham daga", "/team/soham.jpg", "vice president"],
       ["dhanush vardhan", "/team/dhanush.jpg", "president"],
+      ["soham daga", "/team/soham.jpg", "vice president"],
       ["bhoomi singhani", "/team/bhoomi.jpeg", "vp of operations"],
       ["chakshu jain", "/team/chakshu.JPG", "vp of finance"],
       ["aryan keluskar", "/team/aryan.png", "industry director"],
@@ -151,13 +122,51 @@ import GradientBlob from "../components/GradientBlob.astro";
       ["anay shirolkar", "/team/anay.jpg", "marketing officer"],
       ["dev thakkar", "/team/dev.jpeg", "events officer"],
       ["khushal saini", "/team/khushal.jpeg", "videographer"],
-      // ["sreeram sreedhar", "/team/sreeram.jpg", "photographer"],
+      ["sreeram sreedhar", "/team/sreeram.jpg", "photographer"],
       ["debo bannerjee", "/team/debo.jpeg", "video editor"],
       ["tanish parsana", "/team/tanish.jpg", "industry officer"],
       ["yuvam bhargav", "/team/yuvam.jpeg", "industry officer"],
-      // ["shiv patel", "/team/shiv.jpg", "finance officer"],
     ]}
   />
+
+  <CenteredSection id="vision" className="mb-24">
+    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
+    <Polaroid
+      image="https://dhanush.wtf/media/udqhwdp2kcn.jpg?file="
+      rotate="-15deg"
+      top="25%"
+      left="10%"
+    />
+    <Polaroid
+      image="https://dhanush.wtf/media/uzp4y1ct1g.jpg?file="
+      rotate="6deg"
+      top="65%"
+      right="15%"
+    />
+
+    <div
+      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
+    >
+      <Heading
+        >We are building the <Highlight>launchpad</Highlight> for Arizona's next
+        <Highlight> 100 startups.</Highlight></Heading
+      >
+      <div class="flex flex-col gap-6 items-center">
+        <WrappedText size="normal" className="">our vision</WrappedText>
+
+        <div class="flex flex-col gap-4 items-center">
+          <Paragraph
+            >Build Arizona's first full-time incubator for real builders</Paragraph
+          >
+          <Paragraph>Launch a hacker house in PHX</Paragraph>
+          <Paragraph
+            >Fund and support 50+ startups in the next 3 years</Paragraph
+          >
+        </div>
+        <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
+      </div>
+    </div>
+  </CenteredSection>
 
   <CenteredSection id="contact" className="mb-24">
     <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
@@ -168,40 +177,6 @@ import GradientBlob from "../components/GradientBlob.astro";
       <WrappedText size="normal" className="">want to talk to us?</WrappedText>
       <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
       <ContactForm />
-    </div>
-  </CenteredSection>
-
-  <CenteredSection
-    id="join"
-    className="md:pt-40 md:pb-52 pt-20 pb-40 overflow-hidden"
-  >
-    <GradientBlob top="0" left="5%" right="" scale="1.5" />
-    <div
-      class="w-1/2 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center"
-    >
-      <WrappedText size="normal" className=""
-        >300+ members and growing!</WrappedText
-      >
-      <HeadingBig>ready to build <Highlight>the future</Highlight>?</HeadingBig>
-      <div class="flex flex-col gap-8 items-center w-full">
-        <Paragraph>We're ready, all thanks to our sponsors.</Paragraph>
-      </div>
-      <div
-        class="flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-6 justify-center items-center gap-6 w-full"
-      >
-        <img
-          src="/devlabs-website/sponsors/cloudflare.svg"
-          alt="Cloudflare"
-          class="inline-block h-8 md:h-12 px-2"
-        />
-        <img
-          src="/devlabs-website/sponsors/devfolio.svg"
-          alt="Devfolio"
-          class="inline-block h-8 md:h-11 px-2"
-        />
-      </div>
-
-      <LinkButton>join devlabs (it's fun)</LinkButton>
     </div>
   </CenteredSection>
 
