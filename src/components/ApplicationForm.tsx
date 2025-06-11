@@ -642,7 +642,8 @@ const ApplicationForm = () => {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {renderStep()}
+            {/* Wrap each step with a keyed container to force remount on step change */}
+            <div key={`step-${currentStep}`}>{renderStep()}</div>
 
             <div className="flex justify-between pt-6">
               <button
