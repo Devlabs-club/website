@@ -1,45 +1,53 @@
 ---
-// Company data with logos and names
+// Company data with logos, names, and website URLs
 const companies = [
   {
     name: 'PHX Ventures',
     logo: '/sponsors/phxventures.webp',
-    alt: 'PHX Ventures'
+    alt: 'PHX Ventures',
+    url: 'https://phxventures.com'
   },
   {
     name: 'AZVC',
     logo: '/sponsors/azvc.png', 
-    alt: 'AZVC'
+    alt: 'AZVC',
+    url: 'https://azvc.com'
   },
   {
     name: 'Plug and Play',
     logo: '/sponsors/plugandplay.png',
-    alt: 'Plug and Play Ventures'
+    alt: 'Plug and Play Ventures',
+    url: 'https://www.plugandplaytechcenter.com'
   },
   {
     name: 'Arizona Commerce Authority',
     logo: '/sponsors/aca.png',
-    alt: 'Arizona Commerce Authority'
+    alt: 'Arizona Commerce Authority',
+    url: 'https://www.azcommerce.com'
   },
   {
     name: 'ASU',
     logo: '/asu.png',
-    alt: 'Arizona State University'
+    alt: 'Arizona State University',
+    url: 'https://www.asu.edu'
   },
   {
     name: 'Product Hunt',
     logo: '/sponsors/ph.png',
-    alt: 'Product Hunt'
+    alt: 'Product Hunt',
+    url: 'https://www.producthunt.com'
   },
   {
     name: 'LoLoft',
     logo: '/sponsors/loloft.png',
-    alt: 'LoLoft'
+    alt: 'LoLoft',
+    url: 'https://loloft.com'
   },
   {
     name: 'Cloudflare',
     logo: '/sponsors/cloudflare.svg',
-    alt: 'Cloudflare'
+    alt: 'Cloudflare',
+    url: 'https://www.cloudflare.com'
   },
 ];
 ---
@@ -61,25 +69,37 @@ const companies = [
     <!-- Single marquee row -->
     <div class="flex animate-marquee" style="--duration: 35s;">
       {companies.map((company) => (
-        <div class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0">
+        <a 
+          href={company.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0 cursor-pointer"
+          title={`Visit ${company.name}`}
+        >
           <img 
             src={company.logo} 
             alt={company.alt}
             class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
             loading="lazy"
           />
-        </div>
+        </a>
       ))}
       {/* Duplicate for seamless loop */}
       {companies.map((company) => (
-        <div class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0">
+        <a 
+          href={company.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0 cursor-pointer"
+          title={`Visit ${company.name}`}
+        >
           <img 
             src={company.logo} 
             alt={company.alt}
             class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
             loading="lazy"
           />
-        </div>
+        </a>
       ))}
     </div>
   </div>
