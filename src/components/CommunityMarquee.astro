@@ -1,0 +1,150 @@
+---
+// Community member data
+const communityMembers = [
+  { name: "Alex Chen", role: "Full Stack", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" },
+  { name: "Sarah Kim", role: "UI/UX Designer", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face" },
+  { name: "Marcus Rodriguez", role: "Backend Dev", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" },
+  { name: "Emma Thompson", role: "Product Manager", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face" },
+  { name: "David Park", role: "DevOps Engineer", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face" },
+  { name: "Lisa Wang", role: "Frontend Dev", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face" },
+  { name: "James Wilson", role: "Data Scientist", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face" },
+  { name: "Maria Garcia", role: "Mobile Dev", avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=150&h=150&fit=crop&crop=face" },
+  { name: "Ryan Johnson", role: "AI Engineer", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" },
+  { name: "Sophie Brown", role: "QA Engineer", avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face" },
+  { name: "Kevin Lee", role: "Security Engineer", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" },
+  { name: "Amanda Davis", role: "Cloud Architect", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face" },
+];
+---
+
+<div class="relative w-full h-full overflow-hidden">
+  <!-- Optimized 3D Marquee Container -->
+  <div class="relative flex h-full w-full items-center justify-center overflow-hidden [perspective:200px]">
+    <div
+      class="flex flex-row items-center gap-6 justify-center"
+      style="transform: translateZ(-30px) rotateX(10deg) rotateY(-3deg) rotateZ(5deg);"
+    >
+      <!-- Column 1 -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 60s;">
+        {communityMembers.slice(0, 4).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Column 2 (Reversed) -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 70s; animation-direction: reverse;">
+        {communityMembers.slice(4, 8).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Column 3 -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 65s;">
+        {communityMembers.slice(8, 12).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Column 4 (Reversed) -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 75s; animation-direction: reverse;">
+        {communityMembers.slice(0, 4).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Column 5 -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 68s;">
+        {communityMembers.slice(4, 8).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Column 6 (Reversed) -->
+      <div class="flex flex-col gap-4 animate-marquee-vertical" style="animation-duration: 72s; animation-direction: reverse;">
+        {communityMembers.slice(8, 12).map((member, idx) => (
+          <div class="flex flex-col items-center gap-2 p-3 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm opacity-70 min-w-[120px]">
+            <img 
+              src={member.avatar} 
+              alt={member.name}
+              class="w-10 h-10 rounded-full object-cover border border-white/10"
+              loading="lazy"
+            />
+            <div class="text-center">
+              <h4 class="text-xs font-medium text-white/50">{member.name}</h4>
+              <p class="text-xs text-gray-600">{member.role}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Optimized animations with will-change for better performance */
+  .animate-marquee-vertical {
+    will-change: transform;
+    transform: translateZ(0); /* Force hardware acceleration */
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee-vertical {
+      animation: none !important;
+    }
+  }
+</style> 

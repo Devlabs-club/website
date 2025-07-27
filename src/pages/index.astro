@@ -1,11 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
 import Main from '../components/Main.astro';
 import Events from '../components/Events.astro';
 import Team from '../components/Team.astro';
 import CenteredSection from '../components/CenteredSection.astro';
-import Navbar from '../components/Navbar.astro';
+
 
 import WrappedText from '../components/text/WrappedText.astro';
 import Heading from '../components/text/Heading.astro';
@@ -21,52 +20,90 @@ import ContactForm from '../components/ContactForm.astro';
 import GradientBlob from '../components/GradientBlob.astro';
 import HeroSection from '../components/HeroSection.astro';
 import Polaroid from '../components/Polaroid.astro';
+import CompanyMarquee from '../components/CompanyMarquee.astro';
 
 ---
 
-<Layout title="DevLabs">
-	<Header />
+<Layout title="Devlabs">
     <HeroSection />
+ 
 
-
-
-    <div id="about" class="container mx-auto relative flex flex-col items-center mb-24 border-x border-dashed border-gray-700">
+    <div id="about" class="relative flex flex-col items-center mb-24">
         <GradientBlob top="" right="" left="0" scale="1.5" />
         <Polaroid image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file=" rotate="8deg" top="60%" right="5%" />
         <Polaroid image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file=" rotate="-12deg" top="10%" left="10%" />
 
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20">
-            <WrappedText size="normal" className=''>our story</WrappedText>
-            <Heading>born in a dorm room. now <Highlight>building a movement</Highlight>.</Heading>
-            <div class="flex flex-wrap gap-2 justify-center">
-                <WrappedText size="large" className="border-orange-300 text-orange-300">hacker house</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">startup incubator</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">builder community</WrappedText>
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20 relative z-20">
+            <WrappedText size="normal" className=''>about</WrappedText>
+            <Heading>What is <Highlight>DevLabs</Highlight>?</Heading>
+            
+            <Paragraph>Devlabs started as a small college club at Arizona State University, built by students passionate about tech and entrepreneurship. Since then, we've grown into so much more. Today, we're a thriving ecosystem:</Paragraph>
+            
+            <div class="flex flex-col gap-6 items-center">
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">a student launchpad to build and grow startups</WrappedText>
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">a talent network for mid-sized companies</WrappedText>
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">an investment hub where VCs spot early founders</WrappedText>
+                </div>
+              
             </div>
-            <Paragraph>Devlabs started as ASU's most ambitious club. Today, we're becoming Arizona's answer to Buildspace & Y Combinator — a hacker house where world-class products are born. Not limited to students. Open to anyone who builds. We're raising a new generation of Arizona founders.</Paragraph>
+            
         </div>
  
     </div>
 
-    <CenteredSection id="mission" className="mb-24">
-        <GradientBlob top="-400px" left="-300px" right="" scale="1.5" />
-        <Polaroid image="https://dhanush.wtf/media/spch2uan9ni.jpg?file=" rotate="-7deg" top="20%" right="10%" />
-        <Polaroid image="https://dhanush.wtf/media/7ww23hq0p6f.jpg?file=" rotate="10deg" top="70%" left="15%" />
-
+    <!-- Our Numbers Section -->
+    <CenteredSection id="numbers" className="mb-24">
+        <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
+        
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>what we do</WrappedText>
-            <Heading>we are a community. we're <Highlight>Arizona's startup engine</Highlight>.</Heading>
-            <div class="flex flex-col gap-4 items-center">
-                <Paragraph>Incubator-style builder cohorts</Paragraph>
-                <Paragraph>Mentorship from top-tier founders and VCs</Paragraph>
-                <Paragraph>Demo nights. Hackathons. Startup showcases.</Paragraph>
-                <Paragraph>Early funding access for promising ideas</Paragraph>
-                <Paragraph>We turn raw builders into real founders.</Paragraph>
+            <WrappedText size="normal" className=''>our numbers</WrappedText>
+            <Heading>The <Highlight>impact</Highlight> we're making</Heading>
+            
+            <div class="grid md:grid-cols-3 grid-cols-1 gap-8 w-full max-w-4xl">
+                <!-- Member Count -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">300+</div>
+                    <div class="text-lg font-semibold text-white">Active Members</div>
+                    <Paragraph className="text-sm">Students building the future</Paragraph>
+                </div>
+                
+                <!-- Projects Built -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">50+</div>
+                    <div class="text-lg font-semibold text-white">Projects Built</div>
+                    <Paragraph className="text-sm">From ideas to real products</Paragraph>
+                </div>
+                
+                <!-- Startups Launched -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">12+</div>
+                    <div class="text-lg font-semibold text-white">Startups Launched</div>
+                    <Paragraph className="text-sm">By our alumni founders</Paragraph>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 grid-cols-1 gap-8 w-full max-w-3xl mt-8">
+                <!-- Events Hosted -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-5xl md:text-6xl font-black text-orange-300">25+</div>
+                    <div class="text-lg font-semibold text-white">Events Hosted</div>
+                    <Paragraph className="text-sm">Hackathons, workshops, and demo nights</Paragraph>
+                </div>
+                
+                <!-- Funding Raised -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-5xl md:text-6xl font-black text-orange-300">$500K+</div>
+                    <div class="text-lg font-semibold text-white">Funding Raised</div>
+                    <Paragraph className="text-sm">By our startup alumni</Paragraph>
+                </div>
             </div>
         </div>
     </CenteredSection>
 
-    <!-- <Events /> -->
+   
+
+<!--     
 
     <Team members={[["soham daga", "/team/soham.jpg", "vice president"],
      ["dhanush vardhan", "/team/dhanush.jpg", "president"], ["bhoomi singhani", "/team/bhoomi.jpeg", "vp of operations"],
@@ -93,10 +130,28 @@ import Polaroid from '../components/Polaroid.astro';
                 <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
             </div>
         </div>
+    </CenteredSection> -->
+
+    <CenteredSection id="contact" className="mb-24">
+        <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
+
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
+            <WrappedText size="normal" className=''>want to talk to us?</WrappedText>
+            <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
+            <ContactForm />
+        </div>
     </CenteredSection>
 
-     
-
-    <Navbar />
 </Layout>
+
+<style>
+  /* Ensure polaroids in about section are below text but above background */
+  #about .polaroid {
+    z-index: 5;
+  }
+  
+  #about > div {
+    z-index: 20;
+  }
+</style>
 

@@ -2,15 +2,24 @@
 import Layout from '../layouts/Layout.astro';
 import ApplicationForm from '../components/ApplicationForm';
 import Polaroid from '../components/Polaroid.astro';
+import Highlight from '../components/text/Highlight.astro';
 ---
 
 <Layout title="Apply - Join Our Incubator">
-  <main class="min-h-screen bg-neutral-950 relative overflow-hidden">
+  <main class="min-h-screen relative overflow-hidden">
+    <!-- Gradient Spheres - same as HeroSection -->
+    <div class="absolute inset-0 overflow-hidden">
+      <!-- Primary sphere -->
+      <div class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <!-- Secondary spheres -->
+      <div class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]" />
+      <div class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]" />
+    </div>
   
-    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8 relative z-0">
+    <div class="max-w-7xl mx-auto py-24 md:py-32 pb-12 px-4 sm:px-6 lg:px-8 relative z-10">
       <div class="text-center mb-12">
         <h1 class="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl">
-          Apply to Join Our <span class="text-orange-500">Incubator</span>
+          Apply to Join Our <Highlight>Community</Highlight>
         </h1>
         <p class="mt-5 max-w-xl mx-auto text-xl text-gray-300">
           Take the first step towards building something amazing. Fill out the form below to start your journey with us.
@@ -51,5 +60,38 @@ import Polaroid from '../components/Polaroid.astro';
 <style>
   :global(body) {
     background-color: #111;
+  }
+  
+  /* Ensure polaroids are below content but above background */
+  main :global(.polaroid) {
+    z-index: 5;
+  }
+  
+  main > div {
+    z-index: 20;
+  }
+
+  /* Gradient Spheres - same as HeroSection */
+  .sphere-gradient {
+    background: radial-gradient(circle at center, rgba(255, 153, 0, 0.15) 0%, transparent 70%);
+    filter: blur(60px);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .sphere-gradient-sm {
+    background: radial-gradient(circle at center, rgba(255, 153, 0, 0.1) 0%, transparent 70%);
+    filter: blur(40px);
+    border-radius: 50%;
+    animation: float 12s ease-in-out infinite reverse;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(20px, -20px);
+    }
   }
 </style> 

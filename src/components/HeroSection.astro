@@ -5,15 +5,12 @@ import Paragraph from './text/Paragraph.astro';
 import Highlight from './text/Highlight.astro';
 import LinkButton from './LinkButton.astro';
 import Polaroid from './Polaroid.astro';
-import CustomVideoPlayer from './CustomVideoPlayer';
+import DevLabsCollage from './DevLabsCollage.astro';
+import CompanyMarquee from './CompanyMarquee.astro';
 ---
 
-<section class="relative w-full flex flex-col items-center justify-center min-h-screen bg-neutral-950">
-  <div class="container mx-auto relative border-l border-r border-dashed border-gray-700 min-h-screen flex flex-col items-center justify-center px-4 md:px-8 lg:px-16">
-    <!-- Orange radial background gradient -->
-    <div class="absolute inset-0 pointer-events-none z-0" aria-hidden="true"
-      style="background: radial-gradient(ellipse at 10% 30%, rgba(255,153,0,0.10) 0%, transparent 70%); mix-blend-mode: screen;" />
-    
+<section class="relative w-full flex flex-col items-center justify-center min-h-screen">
+  <div class="relative min-h-screen flex flex-col items-center justify-center px-4 md:px-8 lg:px-16">
     <!-- Gradient Spheres -->
     <div class="absolute inset-0 overflow-hidden">
       <!-- Primary sphere -->
@@ -23,44 +20,47 @@ import CustomVideoPlayer from './CustomVideoPlayer';
       <div class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]" />
     </div>
 
-    <Polaroid image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" rotate="5deg" top="15%" right="5%" />
-    <Polaroid image="https://dhanush.wtf/media/lvl3cogtiqg.jpg?file=" rotate="-5deg" top="35%" left="5%" />
+    <!-- Polaroids - positioned outside overflow container -->
+    <div class="absolute inset-0 pointer-events-none">
+      <Polaroid image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" rotate="5deg" top="15%" right="5%" />
+      <Polaroid image="https://dhanush.wtf/media/lvl3cogtiqg.jpg?file=" rotate="-5deg" top="30%" left="5%" />
+    </div>
 
     <!-- Content -->
-    <div class="relative z-10 flex flex-col items-center justify-center w-full max-w-3xl mx-auto mt-24 text-center">
-      <div class="mb-5 mt-10">
+    <div class="content relative z-5 flex flex-col items-center justify-center w-full max-w-3xl mx-auto mt-12 sm:mt-16 md:mt-24 text-center px-4 sm:px-6">
+      <div class="mb-4 sm:mb-5 mt-6 sm:mt-10">
         <WrappedText size="normal" className="relative glow-text-sm">Arizona's Premier Startup Incubator</WrappedText>
       </div>  
       <HeadingBig class="glow-text-lg">
-        the <Highlight>hacker house </Highlight>where we launch <Highlight>founders </Highlight>
+        the <Highlight>community</Highlight><br class="sm:hidden" />
+        where we launch <Highlight>founders</Highlight>
       </HeadingBig>
-      <div class="mt-10 mb-5">
+      <div class="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-5">
         <Paragraph class="glow-text-sm">
-          <span class="text-gray-400 font-normal block max-w-2xl mx-auto">
-            Devlabs is a <span class="text-orange-300 font-bold">6 week program</span> where we fly in the best builders from across the country to <span class="text-orange-300 font-bold">Phoenix</span> to become <span class="text-orange-300 font-bold">top founders</span>
+          <span class="text-gray-400 font-normal block max-w-2xl mx-auto px-2 sm:px-0">
+            Creating a community of <span class="text-orange-300 font-bold">tech</span> and<br class="sm:hidden" />
+            <span class="text-orange-300 font-bold">entrepreneur-minded</span> ready to<br class="sm:hidden" />
+            <span class="text-orange-300 font-bold">build</span>, <span class="text-orange-300 font-bold">launch</span>, and <span class="text-orange-300 font-bold">grow</span> together.
           </span>
         </Paragraph>
       </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center my-8">
+      <div class="flex flex-col sm:flex-row gap-4 justify-center my-6 sm:my-8">
         <div class="glow-button">
-          <LinkButton link="/devlabs-website/apply">join the community</LinkButton>
+          <LinkButton link="apply">join the community</LinkButton>
         </div>
       </div>
     </div>
 
-  <!-- Video Section -->
-  <div class="relative w-full flex justify-center mt-12 z-10 px-4 sm:px-6 lg:px-8">
-    <CustomVideoPlayer client:load />
-  </div>
+    <!-- Company Marquee Section -->
+    <div class="relative z-10 w-full mt-16">
+      <CompanyMarquee />
+    </div>
+
+   
 
 </section>
 
 <style>
-/* Noise texture */
-.bg-noise {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-}
-
 /* Gradient Spheres */
 .sphere-gradient {
   background: radial-gradient(circle at center, rgba(255, 153, 0, 0.15) 0%, transparent 70%);
@@ -83,6 +83,15 @@ import CustomVideoPlayer from './CustomVideoPlayer';
   50% {
     transform: translate(20px, -20px);
   }
+}
+
+/* Polaroid positioning for hero section */
+section :global(.polaroid) {
+  z-index: 20;
+}
+
+section :global(.content) {
+  z-index: 5;
 }
 
 /* Glowing effects */

@@ -43,8 +43,8 @@ const CustomVideoPlayer = () => {
       setIsExpanded(true);
       // Small delay to allow animation to complete before playing
       setTimeout(() => {
-      videoRef.current.play();
-      setIsPlaying(true);
+        videoRef.current.play();
+        setIsPlaying(true);
       }, 300);
     }
   };
@@ -101,8 +101,8 @@ const CustomVideoPlayer = () => {
         }`}
         playsInline
         preload="metadata"
-        src="/devlabs-website/main-video.mp4"
-        poster="/devlabs-website/cover-image.jpg"
+        src="main-video.mp4"
+        poster="cover-image.jpg"
         onPause={() => setIsPlaying(false)}
         onPlay={() => setIsPlaying(true)}
         onEnded={() => {
@@ -110,7 +110,7 @@ const CustomVideoPlayer = () => {
           setIsExpanded(false);
         }}
       >
-        <source src="/devlabs-website/main-video.mp4" type="video/mp4" />
+        <source src="main-video.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
     </div>

@@ -1,4 +1,7 @@
 ---
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
+
 interface Props {
 	title: string;
 }
@@ -28,7 +31,17 @@ const { title } = Astro.props;
 		<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
 	</head>
 	<body class="text-gray-400 overflow-x-hidden">
+		<!-- Fixed background with full-width gradient -->
+		<div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
+			<!-- Full-width gradient overlay -->
+			<div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
+			<!-- Noise texture -->
+			<div class="absolute inset-0 bg-noise opacity-40"></div>
+		</div>
+		
+		<Navbar />
 		<slot />
+		<Footer />
 	</body>
 </html>
 <style is:global>
@@ -38,6 +51,14 @@ const { title } = Astro.props;
 
 	body {
 		background-color: #080808;
-		background-image: url('/devlabs-website/noise.png');
+	}
+
+	.bg-noise {
+		background-image: url('/noise.png');
+		background-size: 200px 200px;
+		background-repeat: repeat;
+		background-position: center;
+		width: 100vw;
+		height: 100vh;
 	}
 </style>
