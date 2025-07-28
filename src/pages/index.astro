@@ -1,9 +1,10 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import Header from "../components/Header.astro";
-import Team from "../components/Team.astro";
-import CenteredSection from "../components/CenteredSection.astro";
-import Navbar from "../components/Navbar.astro";
+import Layout from '../layouts/Layout.astro';
+import Main from '../components/Main.astro';
+import Events from '../components/Events.astro';
+import Team from '../components/Team.astro';
+import CenteredSection from '../components/CenteredSection.astro';
+
 
 import WrappedText from "../components/text/WrappedText.astro";
 import Heading from "../components/text/Heading.astro";
@@ -12,150 +13,97 @@ import Paragraph from "../components/text/Paragraph.astro";
 
 import ContactForm from "../components/ContactForm.astro";
 
-import GradientBlob from "../components/GradientBlob.astro";
-import HeroSection from "../components/HeroSection.astro";
-import Polaroid from "../components/Polaroid.astro";
+import LinkButton from '../components/LinkButton.astro';
+import Scroll from '../components/Scroll.astro';
+import Cards from '../components/Cards.astro';
 
-const stats = [
-  ["1 year", "in motion"],
-  ["500+", "community members"],
-  ["15", "club sponsors"],
-  ["15", "core organizers"],
-  ["170+", "hackers at devhacks'25"],
-  ["1", "pioneering mission"],
-  ["12", "public events hosted"],
-  ["$25,000+", "invested into founders"],
-];
+import GradientBlob from '../components/GradientBlob.astro';
+import HeroSection from '../components/HeroSection.astro';
+import Polaroid from '../components/Polaroid.astro';
+import CompanyMarquee from '../components/CompanyMarquee.astro';
 
-const faqs = [
-  [
-    "what is devlabs?",
-    "DevLabs started as ASU's most ambitious club and is now Arizona's answer to Y Combinator. We are a founder-led community and ecosystem, not just another college club. We run a hacker house, a startup incubator, and a builder community to help raise a new generation of Arizona founders.",
-  ],
-  [
-    "what is the devlabs hacker house?",
-    "It's a 6-week, high-energy residency for 15 early-stage founders in Phoenix. Founders live, learn, and build side-by-side, culminating in a Demo Day in front of VCs, angels, and ecosystem leaders. Think Y Combinator, but scrappy, local, and all in on Arizona. The next one is from June 20 - August 1, 2025.",
-  ],
-  [
-    "who can join?",
-    "We are open to anyone who builds. While we started at ASU, we are not limited to students. We welcome all ambitious builders who want to create world-class products. If you're building, you belong.",
-  ],
-  [
-    "how is devlabs different?",
-    "We are community-first and founders-led. This isn't a university program with red tape. We are run by raw builders and tactical mentors, with a culture of execution. We take risks, break things, and learn fast.",
-  ],
-  [
-    "what's the mission?",
-    "Our one mission is to grow, serve, and build Arizona's next-generation startup ecosystem. We're here to launch 100+ startups from Phoenix to the world, from dorm rooms to demo days.",
-  ],
-];
 ---
 
-<Layout title="DevLabs">
-  <Header />
-  <HeroSection />
+<Layout title="Devlabs">
+    <HeroSection />
+ 
 
-  <div
-    id="about"
-    class="container mx-auto relative flex flex-col items-center mb-24 border-x border-dashed border-gray-700"
-  >
-    <GradientBlob top="" right="" left="0" scale="1.5" />
-    <Polaroid
-      image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file="
-      rotate="8deg"
-      top="60%"
-      right="5%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file="
-      rotate="-12deg"
-      top="10%"
-      left="10%"
-    />
+    <div id="about" class="relative flex flex-col items-center mb-24">
+        <GradientBlob top="" right="" left="0" scale="1.5" />
+        <Polaroid image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file=" rotate="8deg" top="60%" right="5%" />
+        <Polaroid image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file=" rotate="-12deg" top="10%" left="10%" />
 
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20"
-    >
-      <WrappedText size="normal" className="">our story</WrappedText>
-      <Heading
-        >born in a dorm room. now <Highlight>building a movement</Highlight
-        >.</Heading
-      >
-      <div class="flex flex-wrap gap-2 justify-center">
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >hacker house</WrappedText
-        >
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >startup incubator</WrappedText
-        >
-        <WrappedText size="large" className="border-orange-300 text-orange-300"
-          >builder community</WrappedText
-        >
-      </div>
-      <Paragraph
-        >Devlabs started as ASU's most ambitious club. Today, we're becoming
-        Arizona's answer to Buildspace & Y Combinator — a hacker house where
-        world-class products are born. Not limited to students. Open to anyone
-        who builds. We're raising a new generation of Arizona founders.</Paragraph
-      >
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20 relative z-20">
+            <WrappedText size="normal" className=''>about</WrappedText>
+            <Heading>What is <Highlight>DevLabs</Highlight>?</Heading>
+            
+            <Paragraph>Devlabs started as a small college club at Arizona State University, built by students passionate about tech and entrepreneurship. Since then, we've grown into so much more. Today, we're a thriving ecosystem:</Paragraph>
+            
+            <div class="flex flex-col gap-6 items-center">
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">a student launchpad to build and grow startups</WrappedText>
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">a talent network for mid-sized companies</WrappedText>
+                    <WrappedText size="large" className="border-orange-300 text-orange-300">an investment hub where VCs spot early founders</WrappedText>
+                </div>
+              
+            </div>
+            
+        </div>
+ 
     </div>
-  </div>
 
-  <CenteredSection id="stats" className="mb-24">
-    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
-    
-    <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-      <WrappedText size="normal" className="">our impact</WrappedText>
-      <Heading>the numbers speak for <Highlight>themselves</Highlight>.</Heading>
-      
-      <div class="grid md:grid-cols-4 grid-cols-2 gap-4 w-full">
-        {stats.map(([number, label]) => (
-          <div class="flex flex-col items-center p-6 border border-dashed border-gray-700 hover:border-orange-500 transition-colors duration-300 group">
-            <span class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-orange-500 to-orange-300 bg-clip-text text-transparent transition-colors duration-300">{number}</span>
-            <span class="text-sm md:text-base text-gray-400 mt-2 text-center group-hover:text-orange-300 transition-colors duration-300">{label}</span>
-          </div>
-        ))}
-      </div>
+    <!-- Our Numbers Section -->
+    <CenteredSection id="numbers" className="mb-24">
+        <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
+        
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
+            <WrappedText size="normal" className=''>our numbers</WrappedText>
+            <Heading>The <Highlight>impact</Highlight> we're making</Heading>
+            
+            <div class="grid md:grid-cols-3 grid-cols-1 gap-8 w-full max-w-4xl">
+                <!-- Member Count -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">350+</div>
+                    <div class="text-lg font-semibold text-white">Active Members</div>
+                    <Paragraph className="text-sm">Students building the future</Paragraph>
+                </div>
+                
+                <!-- Projects Built -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">50+</div>
+                    <div class="text-lg font-semibold text-white">Projects Built</div>
+                    <Paragraph className="text-sm">From ideas to real products</Paragraph>
+                </div>
+                
+                <!-- Startups Launched -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-6xl md:text-7xl font-black text-orange-300">12+</div>
+                    <div class="text-lg font-semibold text-white">Startups Launched</div>
+                    <Paragraph className="text-sm">By our alumni founders</Paragraph>
+                </div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 grid-cols-1 gap-8 w-full max-w-3xl mt-8">
+                <!-- Events Hosted -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-5xl md:text-6xl font-black text-orange-300">25+</div>
+                    <div class="text-lg font-semibold text-white">Events Hosted</div>
+                    <Paragraph className="text-sm">Hackathons, workshops, and demo nights</Paragraph>
+                </div>
+                
+                <!-- Funding Raised -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="text-5xl md:text-6xl font-black text-orange-300">$500K+</div>
+                    <div class="text-lg font-semibold text-white">Funding Raised</div>
+                    <Paragraph className="text-sm">By our startup alumni</Paragraph>
+                </div>
+            </div>
+        </div>
+    </CenteredSection>
 
-      <Paragraph>we're here to launch 100+ startups from Phoenix to the world.</Paragraph>
-    </div>
-  </CenteredSection>
+   
 
-  <CenteredSection id="mission" className="mb-24">
-    <GradientBlob top="-400px" left="-300px" right="" scale="1.5" />
-    <Polaroid
-      image="https://dhanush.wtf/media/spch2uan9ni.jpg?file="
-      rotate="-7deg"
-      top="20%"
-      right="10%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/7ww23hq0p6f.jpg?file="
-      rotate="10deg"
-      top="70%"
-      left="15%"
-    />
-
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <WrappedText size="normal" className="">what we do</WrappedText>
-      <Heading
-        >we are a community. we're <Highlight
-          >Arizona's startup engine</Highlight
-        >.</Heading
-      >
-      <div class="flex flex-col gap-4 items-center">
-        <Paragraph>Incubator-style builder cohorts</Paragraph>
-        <Paragraph>Mentorship from top-tier founders and VCs</Paragraph>
-        <Paragraph>Demo nights. Hackathons. Startup showcases.</Paragraph>
-        <Paragraph>Early funding access for promising ideas</Paragraph>
-        <Paragraph>We turn raw builders into real founders.</Paragraph>
-      </div>
-    </div>
-  </CenteredSection>
-
-  <!-- <Events /> -->
+<!--     
 
   <Team
     members={[
@@ -203,81 +151,36 @@ const faqs = [
       <div class="flex flex-col gap-6 items-center">
         <WrappedText size="normal" className="">our vision</WrappedText>
 
-        <div class="flex flex-col gap-4 items-center">
-          <Paragraph
-            >Build Arizona's first full-time incubator for real builders</Paragraph
-          >
-          <Paragraph>Launch a hacker house in PHX</Paragraph>
-          <Paragraph
-            >Fund and support 50+ startups in the next 3 years</Paragraph
-          >
-        </div>
-        <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
-      </div>
-    </div>
-  </CenteredSection>
-
-  <CenteredSection id="faq" className="mb-24">
-    <GradientBlob top="-400px" left="-350px" right="" scale="1.5" />
-
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <WrappedText size="normal" className="">FAQ</WrappedText>
-      <Heading>have questions? we have <Highlight>answers</Highlight>.</Heading>
-      <div class="w-full flex flex-col gap-4">
-        {
-          faqs.map(([question, answer]) => (
-            <details class="group faq-item border-b border-dashed border-gray-700 py-4 last:border-b-0">
-              <summary class="flex items-center justify-between cursor-pointer list-none">
-                <h3 class="text-lg md:text-xl font-medium text-gray-200 group-hover:text-white text-left">
-                  {question}
-                </h3>
-                <div class="relative flex items-center justify-center w-4 h-4 ml-4 flex-shrink-0">
-                  <div class="w-full h-0.5 bg-gray-400 rounded-full" />
-                  <div class="absolute w-full h-0.5 bg-gray-400 rounded-full transition-transform duration-300 rotate-90 group-open:scale-x-0" />
+                <div class="flex flex-col gap-4 items-center">
+                    <Paragraph>Build Arizona's first full-time incubator for real builders</Paragraph>
+                    <Paragraph>Launch a hacker house in PHX</Paragraph>
+                    <Paragraph>Fund and support 50+ startups in the next 3 years</Paragraph>
                 </div>
-              </summary>
-              <div class="mt-4 text-left">
-                <p class="text-gray-400 md:text-lg text-base font-normal leading-relaxed">
-                  {answer}
-                </p>
-              </div>
-            </details>
-          ))
-        }
-      </div>
-    </div>
-  </CenteredSection>
+                <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
+            </div>
+        </div>
+    </CenteredSection> -->
 
-  <CenteredSection id="contact" className="mb-24">
-    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
+    <CenteredSection id="contact" className="mb-24">
+        <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
 
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <WrappedText size="normal" className="">want to talk to us?</WrappedText>
-      <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
-      <ContactForm />
-    </div>
-  </CenteredSection>
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
+            <WrappedText size="normal" className=''>want to talk to us?</WrappedText>
+            <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
+            <ContactForm />
+        </div>
+    </CenteredSection>
 
-  <Navbar />
 </Layout>
 
-<script>
-  const detailsElements =
-    document.querySelectorAll<HTMLDetailsElement>(".faq-item");
+<style>
+  /* Ensure polaroids in about section are below text but above background */
+  #about .polaroid {
+    z-index: 5;
+  }
+  
+  #about > div {
+    z-index: 20;
+  }
+</style>
 
-  detailsElements.forEach((targetDetail) => {
-    targetDetail.addEventListener("toggle", () => {
-      if (targetDetail.open) {
-        detailsElements.forEach((detail) => {
-          if (detail !== targetDetail) {
-            detail.open = false;
-          }
-        });
-      }
-    });
-  });
-</script>

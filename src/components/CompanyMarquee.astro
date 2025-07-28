@@ -1,0 +1,161 @@
+---
+// Company data with logos, names, and website URLs
+const companies = [
+  {
+    name: 'PHX Ventures',
+    logo: '/sponsors/phxventures.webp',
+    alt: 'PHX Ventures',
+    url: 'https://phxventures.com'
+  },
+  {
+    name: 'AZVC',
+    logo: '/sponsors/azvc.png', 
+    alt: 'AZVC',
+    url: 'https://azvc.com'
+  },
+  {
+    name: 'Plug and Play',
+    logo: '/sponsors/plugandplay.png',
+    alt: 'Plug and Play Ventures',
+    url: 'https://www.plugandplaytechcenter.com'
+  },
+  {
+    name: 'Arizona Commerce Authority',
+    logo: '/sponsors/aca.png',
+    alt: 'Arizona Commerce Authority',
+    url: 'https://www.azcommerce.com'
+  },
+  {
+    name: 'ASU',
+    logo: '/asu.png',
+    alt: 'Arizona State University',
+    url: 'https://www.asu.edu'
+  },
+  {
+    name: 'Product Hunt',
+    logo: '/sponsors/ph.png',
+    alt: 'Product Hunt',
+    url: 'https://www.producthunt.com'
+  },
+  {
+    name: 'LoLoft',
+    logo: '/sponsors/loloft.png',
+    alt: 'LoLoft',
+    url: 'https://loloft.com'
+  },
+  {
+    name: 'Cloudflare',
+    logo: '/sponsors/cloudflare.svg',
+    alt: 'Cloudflare',
+    url: 'https://www.cloudflare.com'
+  },
+];
+---
+
+<div class="w-full py-12 relative overflow-hidden">
+  <!-- Subtle background elements -->
+  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none"></div>
+  
+
+  
+  <!-- Trusted by text with hero-appropriate styling -->
+  <div class="text-center mb-12 relative z-20">
+    <p class="text-gray-400 text-xs font-semibold tracking-[0.2em] uppercase mb-2 glow-text-sm">Trusted by Leading Teams</p>
+    <div class="w-24 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent mx-auto"></div>
+  </div>
+
+  <!-- Marquee container with better spacing -->
+  <div class="relative max-w-7xl mx-auto overflow-hidden">
+    <!-- Single marquee row -->
+    <div class="flex animate-marquee" style="--duration: 35s;">
+      {companies.map((company) => (
+        <a 
+          href={company.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0 cursor-pointer"
+          title={`Visit ${company.name}`}
+        >
+          <img 
+            src={company.logo} 
+            alt={company.alt}
+            class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
+            loading="lazy"
+          />
+        </a>
+      ))}
+      {/* Duplicate for seamless loop */}
+      {companies.map((company) => (
+        <a 
+          href={company.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="flex items-center justify-center mx-10 min-w-[120px] h-16 group flex-shrink-0 cursor-pointer"
+          title={`Visit ${company.name}`}
+        >
+          <img 
+            src={company.logo} 
+            alt={company.alt}
+            class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
+            loading="lazy"
+          />
+        </a>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee var(--duration, 35s) linear infinite;
+    display: flex;
+    width: max-content;
+  }
+
+  /* Pause animation on hover for better UX */
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  /* Smooth easing for better animation */
+  .animate-marquee,
+  .animate-marquee-reverse {
+    animation-timing-function: linear;
+  }
+
+  /* Reduce motion for accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee,
+    .animate-marquee-reverse {
+      animation: none;
+    }
+  }
+
+  /* Add subtle shadow to logo containers */
+  .group:hover {
+    filter: drop-shadow(0 8px 32px rgba(249, 115, 22, 0.15));
+  }
+
+  /* Clean logos without filters */
+  .group img {
+    transition: all 0.5s ease;
+  }
+
+  .group:hover img {
+    transform: scale(1.1);
+  }
+
+  /* Glow effect matching hero section */
+  .glow-text-sm {
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+  }
+</style>

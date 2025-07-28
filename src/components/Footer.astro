@@ -1,0 +1,291 @@
+---
+// DevLabs Footer Component
+import LinkButton from './LinkButton.astro';
+
+const teamMembers = [
+  ['dhanush vardhan', '/team/dhanush.jpg', 'president'],  
+  ['bhoomi singhani', '/team/bhoomi.jpeg', 'vice president'],
+  ['soham daga', '/team/soham.jpg', 'vp of tech'],
+  ['chakshu jain', '/team/chakshu.JPG', 'vp of finance'],
+  ['tanish parsana', '/team/tanish.jpg', 'vp of industry'],
+  ['adwait more', '/team/adwait.jpg', 'marketing director'],
+  ['aditya bohra', '/team/aditya.jpg', 'marketing officer'],
+  ['riya ubhe', '/team/riya.jpg', 'marketing officer'],
+  ['anay shirolkar', '/team/anay.jpg', 'marketing officer'],
+  ['dev thakkar', '/team/dev.jpeg', 'events officer'],
+  ['khushal saini', '/team/khushal.jpeg', 'videographer'],
+  ['sreeram sreedhar', '/team/sreeram.jpg', 'photographer'],
+  ['debo bannerjee', '/team/debo.jpeg', 'video editor'],
+  ['yuvam bhargav', '/team/yuvam.jpeg', 'finance officer'],
+  ['aryan keluskar', '/team/aryan.png', 'industry officer'],
+  ['pranay athipathala', '/team/pranay.jpg', 'industry officer'],
+];
+---
+
+<footer class="relative w-full text-white overflow-hidden bg-gradient-to-b from-transparent via-black/20 to-black/40">
+  <!-- Background decorative elements -->
+   
+  <!-- Floating gradient orbs -->
+  <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+  
+  <!-- Enhanced Background Community Marquee -->
+  <div class="absolute inset-0 opacity-30 overflow-hidden">
+    <div class="relative w-full h-full">
+      <!-- 4-row grid with many columns for full width coverage -->
+      <div class="absolute inset-0 flex items-center justify-center [perspective:300px]">
+        <div class="grid grid-rows-4 gap-4 w-full max-w-7xl" style="transform: translateZ(-50px) rotateX(15deg) rotateY(-5deg) rotateZ(3deg);">
+          
+          <!-- Row 1: Forward animation -->
+          <div class="flex gap-4 animate-marquee-horizontal" style="animation-duration: 60s;">
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+            {/* Duplicate for seamless loop */}
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Row 2: Reverse animation -->
+          <div class="flex gap-4 animate-marquee-horizontal" style="animation-duration: 65s; animation-direction: reverse;">
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+            {/* Duplicate for seamless loop */}
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Row 3: Forward animation -->
+          <div class="flex gap-4 animate-marquee-horizontal" style="animation-duration: 70s;">
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+            {/* Duplicate for seamless loop */}
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Row 4: Reverse animation -->
+          <div class="flex gap-4 animate-marquee-horizontal" style="animation-duration: 75s; animation-direction: reverse;">
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+            {/* Duplicate for seamless loop */}
+            {teamMembers.map(([name, image, role]) => (
+              <div class="flex flex-col items-center gap-2 p-2 rounded-xl bg-white/8 border border-white/15 backdrop-blur-sm opacity-60 min-w-[100px] hover:opacity-80 transition-opacity flex-shrink-0">
+                <img 
+                  src={image}
+                  alt={name}
+                  class="w-8 h-8 rounded-full object-cover border border-white/20"
+                  loading="lazy"
+                />
+                <div class="text-center">
+                  <h4 class="text-xs font-medium text-white/70 capitalize">{name}</h4>
+                  <p class="text-xs text-gray-500">{role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Main footer content -->
+  <div class="relative z-10">
+    <div class="mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 md:pt-20">
+      
+      <!-- Logo and CTA section -->
+      <div class="text-center mb-16 sm:mb-20">
+        <!-- Logo section with improved styling -->
+        <div class="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-12 w-full sm:w-4/5 mx-auto opacity-60 transition-opacity duration-500">
+          <div class="relative">
+            <img src="logo.svg" alt="Devlabs" class="h-20 w-20 sm:h-20 sm:w-20 md:h-28 md:w-28 lg:h-32 lg:w-32 xl:h-36 xl:w-36 drop-shadow-lg" />
+            <div class="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-transparent rounded-full blur-sm"></div>
+          </div>
+          <h2 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] font-black tracking-tight leading-none">
+            <span class="bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent drop-shadow-lg font-normal">
+              Devlabs
+            </span>
+          </h2>
+        </div>
+      </div>
+      
+      <!-- Stats section -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-16 sm:mb-20">
+        <div class="text-center group">
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold text-orange-400 mb-2 group-hover:text-orange-300 transition-colors">350+</div>
+          <div class="text-sm sm:text-base text-gray-300">Active Members</div>
+        </div>
+        <div class="text-center group">
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold text-orange-400 mb-2 group-hover:text-orange-300 transition-colors">50+</div>
+          <div class="text-sm sm:text-base text-gray-300">Projects Built</div>
+        </div>
+        <div class="text-center group">
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold text-orange-400 mb-2 group-hover:text-orange-300 transition-colors">12+</div>
+          <div class="text-sm sm:text-base text-gray-300">Startups Launched</div>
+        </div>
+        <div class="text-center group">
+          <div class="text-3xl sm:text-4xl md:text-5xl font-bold text-orange-400 mb-2 group-hover:text-orange-300 transition-colors">$500K+</div>
+          <div class="text-sm sm:text-base text-gray-300">Funding Raised</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bottom bar with improved design -->
+    <div class="border-t border-white/10 bg-gradient-to-r from-black/40 via-black/30 to-black/40 backdrop-blur-md w-full">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="flex flex-col lg:flex-row justify-between items-center gap-6 lg:gap-8">
+          
+          <!-- Copyright and location -->
+          <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 text-gray-400 text-sm sm:text-base">
+            <span class="font-medium">© 2025 Devlabs ASU</span>
+            <span class="hidden sm:block text-orange-400">•</span>
+            <span class="flex items-center gap-2 sm:gap-3">
+              <img src="asu.png" alt="ASU" class="h-4 sm:h-5 opacity-80" />
+              <span class="text-sm sm:text-base">Phoenix, Arizona</span>
+            </span>
+          </div>
+          
+          <!-- Social links with improved styling -->
+          <div class="flex items-center gap-4 sm:gap-6 md:gap-8">
+            <!-- Discord -->
+            <a href="https://discord.gg/4XPKg2nWcj" class="group flex items-center gap-2 sm:gap-3 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105">
+              <div class="relative">
+                <img src="socials/discord.svg" alt="Discord" class="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+                <div class="absolute inset-0 bg-orange-500/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </div>
+              <span class="text-sm sm:text-base font-medium hidden sm:block">350+ members</span>
+              <span class="text-sm sm:hidden">Discord</span>
+            </a>
+            
+            <!-- Instagram -->
+            <a href="https://www.instagram.com/devlabs.asu/" class="group flex items-center gap-2 sm:gap-3 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105">
+              <div class="relative">
+                <img src="socials/instagram.svg" alt="Instagram" class="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+                <div class="absolute inset-0 bg-pink-500/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </div>
+              <span class="text-sm sm:text-base font-medium hidden sm:block">Follow</span>
+              <span class="text-sm sm:hidden">Insta</span>
+            </a>
+            
+            <!-- Email -->
+            <a href="mailto:people@devlabs.club" class="group flex items-center gap-2 sm:gap-3 text-gray-400 hover:text-white transition-all duration-300 hover:scale-105">
+              <div class="relative">
+                <img src="socials/gmail.svg" alt="Email" class="w-5 h-5 sm:w-6 sm:h-6 group-hover:scale-110 transition-transform" />
+                <div class="absolute inset-0 bg-red-500/20 rounded-full blur-sm opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              </div>
+              <span class="text-sm sm:text-base font-medium hidden sm:block">Email</span>
+              <span class="text-sm sm:hidden">Mail</span>
+            </a>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  @keyframes marquee-horizontal {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  
+  .animate-marquee-horizontal {
+    animation: marquee-horizontal var(--duration, 60s) linear infinite;
+    display: flex;
+    width: max-content;
+  }
+  
+  .animate-marquee-horizontal:hover {
+    animation-play-state: paused;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee-horizontal {
+      animation: none;
+    }
+  }
+</style> 

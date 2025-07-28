@@ -4,7 +4,7 @@ const { image, rotate = "0deg", top = "10%", left = "auto", right = "auto" } = A
 ---
 
 <div
-  class="polaroid hidden md:flex"
+  class="polaroid"
   style={`--rotate: ${rotate}; --image-url: url(${image}); top: ${top}; left: ${left}; right: ${right};`}
   aria-hidden="true"
 ></div>
@@ -12,17 +12,50 @@ const { image, rotate = "0deg", top = "10%", left = "auto", right = "auto" } = A
 <style>
 .polaroid {
   position: absolute;
-  width: 170px;
-  height: 190px;
-  padding: 8px 8px 16px 8px;
+  width: 100px;
+  height: 120px;
+  padding: 4px 4px 8px 4px;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   transform: rotate(var(--rotate));
-  z-index: 100;
+  z-index: 20;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  opacity: 0.9;
+  display: block;
+}
+
+@media (min-width: 640px) {
+  .polaroid {
+    width: 120px;
+    height: 140px;
+    padding: 6px 6px 12px 6px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+    opacity: 0.8;
+    z-index: 30;
+  }
+}
+
+/* Mobile-specific styles for better visibility */
+@media (max-width: 639px) {
+  .polaroid {
+    opacity: 1;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+@media (min-width: 768px) {
+  .polaroid {
+    width: 170px;
+    height: 190px;
+    padding: 8px 8px 16px 8px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    opacity: 1;
+    z-index: 100;
+  }
 }
 
 .polaroid::after {

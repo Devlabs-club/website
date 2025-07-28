@@ -18,31 +18,31 @@ import GradientBlob from './GradientBlob.astro';
                 <div class="carousel w-full">
                     <div class="carousel-inner relative w-full overflow-hidden">
                         <div class="carousel-item relative float-left w-full">
-                            <img src="  /events/placeholder1.jpg" class="block w-full" alt="DevHacks 2025">
+                            <img src="events/placeholder1.jpg" class="block w-full" alt="DevHacks 2025">
                             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">DevHacks 2025: 150+ Hackers. 50+ Projects. $2K in Prizes.</p>
+                                <p class="text-white">DevHacks 2025: 180+ Hackers. 50+ Projects. $2K in Prizes.</p>
                             </div>
                         </div>
                         <div class="carousel-item relative float-left w-full">
-                            <img src="/events/placeholder2.jpg" class="block w-full" alt="DevSpace Cohort">
+                            <img src="events/placeholder2.jpg" class="block w-full" alt="DevSpace Cohort">
                             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                                 <p class="text-white">DevSpace Cohort: 6 Weeks. 1 Winner. Infinite Learnings.</p>
                             </div>
                         </div>
                         <div class="carousel-item relative float-left w-full">
-                            <img src="/events/placeholder3.jpg" class="block w-full" alt="Mentorship Night">
+                            <img src="events/placeholder3.jpg" class="block w-full" alt="Mentorship Night">
                             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                                 <p class="text-white">Mentorship Night at ASU</p>
                             </div>
                         </div>
                         <div class="carousel-item relative float-left w-full">
-                            <img src="/events/placeholder4.jpg" class="block w-full" alt="Demo Day">
+                            <img src="events/placeholder4.jpg" class="block w-full" alt="Demo Day">
                             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                                 <p class="text-white">Full House Demo Day</p>
                             </div>
                         </div>
                         <div class="carousel-item relative float-left w-full">
-                            <img src="/events/placeholder5.jpg" class="block w-full" alt="Code Sprint">
+                            <img src="events/placeholder5.jpg" class="block w-full" alt="Code Sprint">
                             <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
                                 <p class="text-white">Code Sprint Night</p>
                             </div>
@@ -62,7 +62,7 @@ import GradientBlob from './GradientBlob.astro';
     </div>
 
     <div class="bg-clip-padding md:sticky md:top-0 box-border overflow-hidden col-span-2 border border-dashed border-gray-700">
-        <img src="/events/hitoai2.jpg" alt="Tech Event" class="min-h-full min-w-full object-cover mix-blend-multiply">
+        <img src="events/hitoai2.jpg" alt="Tech Event" class="min-h-full min-w-full object-cover mix-blend-multiply">
     </div>
 </section>
 
@@ -136,6 +136,6 @@ import GradientBlob from './GradientBlob.astro';
     showSlide(0);
     
     // Add click handlers for prev/next buttons
-    document.querySelector('.carousel-control-prev').addEventListener('click', prevSlide);
-    document.querySelector('.carousel-control-next').addEventListener('click', nextSlide);
+    document.querySelector('.carousel-control-prev')?.addEventListener('click', prevSlide);
+    document.querySelector('.carousel-control-next')?.addEventListener('click', nextSlide);
 </script>

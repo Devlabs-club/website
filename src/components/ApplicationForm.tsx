@@ -223,21 +223,11 @@ const ApplicationForm = () => {
   if (isSubmitted) {
     return (
       <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8   flex items-center justify-center">
-        <div className="bg-neutral-900 shadow-2xl p-8 rounded-2xl border-2 border-dashed border-orange-700 text-center relative overflow-hidden">
-          {/* Orange radial gradient overlay */}
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at 30% 20%, rgba(255,153,0,0.10) 0%, transparent 70%)",
-              mixBlendMode: "screen",
-            }}
-          />
+        <div className="bg-black/20 backdrop-blur-sm p-8 rounded-2xl border border-gray-700/50 text-center relative overflow-hidden">
           <div className="mb-6 relative z-10">
-            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-orange-900/30 border-2 border-orange-500 shadow-lg">
+            <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gray-800/50 border border-gray-600">
               <svg
-                className="h-8 w-8 text-orange-400"
+                className="h-8 w-8 text-gray-300"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -256,12 +246,12 @@ const ApplicationForm = () => {
           </h2>
           <p className="text-gray-300 mb-6 relative z-10">
             Thank you for applying to{" "}
-            <span className="text-orange-400 font-semibold">DevLabs</span>. We
+            <span className="text-gray-200 font-semibold">DevLabs</span>. We
             will review your application and get back to you soon.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-950 transition-colors duration-200 relative z-10"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-colors duration-200 relative z-10"
           >
             Submit Another Application
           </button>
@@ -583,20 +573,10 @@ const ApplicationForm = () => {
   };
 
   return (
-    <div className="relative    bg-neutral-950 overflow-hidden">
-      {/* Orange radial gradient overlay */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(ellipse at 10% 30%, rgba(255,153,0,0.10) 0%, transparent 70%)",
-          mixBlendMode: "screen",
-        }}
-      />
+    <div className="relative overflow-hidden">
       <div className="relative z-10 max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex items-center ">
         <div
-          className="w-full bg-neutral-900 shadow-2xl rounded-2xl p-8 border-2 border-dashed border-gray-700   "
+          className="w-full bg-black/20 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 transition-all duration-500 ease-in-out"
           style={{}}
         >
           <div className="mb-8">
@@ -604,15 +584,15 @@ const ApplicationForm = () => {
               {getStepTitle()}
             </h1>
             <div className="relative pt-1">
-              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-neutral-800">
+              <div className="overflow-hidden h-1 mb-4 text-xs flex rounded bg-gray-800/50">
                 <div
                   style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+                  className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-orange-500/60 transition-all duration-500"
                 />
               </div>
               <div className="flex mb-2 items-center justify-end">
                 <div className="text-right">
-                  <span className="text-xs font-semibold inline-block text-orange-400">
+                  <span className="text-xs font-semibold inline-block text-gray-400">
                     {currentStep}/{totalSteps}
                   </span>
                 </div>
@@ -621,13 +601,13 @@ const ApplicationForm = () => {
           </div>
 
           {currentStep === totalSteps && Object.keys(errors).length > 0 && (
-            <div className="mb-6 p-4 bg-neutral-800 border border-orange-700 rounded-md">
-              <h3 className="text-sm font-bold text-orange-400 mb-2">
+            <div className="mb-6 p-4 bg-black/30 backdrop-blur-sm border border-gray-600 rounded-md">
+              <h3 className="text-sm font-bold text-gray-300 mb-2">
                 Validation Status:
               </h3>
               <ul className="list-disc pl-5 space-y-1">
                 {Object.entries(errors).map(([field, error]) => (
-                  <li key={field} className="text-sm text-red-400">
+                  <li key={field} className="text-sm text-red-300">
                     {field}: {error.message}
                   </li>
                 ))}
@@ -636,8 +616,8 @@ const ApplicationForm = () => {
           )}
 
           {submitError && (
-            <div className="mb-6 p-4 bg-neutral-800 border border-orange-700 rounded-md">
-              <p className="text-sm text-red-400">{submitError}</p>
+            <div className="mb-6 p-4 bg-black/30 backdrop-blur-sm border border-gray-600 rounded-md">
+              <p className="text-sm text-red-300">{submitError}</p>
             </div>
           )}
 
@@ -649,7 +629,7 @@ const ApplicationForm = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-                className={`px-4 py-2 border border-orange-500 rounded-md shadow-sm text-sm font-medium text-orange-400 bg-neutral-950 hover:bg-orange-950 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-950 transition-colors duration-200 ${
+                className={`px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-black/20 hover:bg-gray-800/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95 ${
                   currentStep === 1 ? "invisible" : ""
                 }`}
               >
@@ -660,35 +640,42 @@ const ApplicationForm = () => {
                 <button
                   type="button"
                   onClick={async () => {
-                    // Validate current step before proceeding
-                    const fieldsToValidate: FormField[] = (() => {
-                      switch (currentStep) {
-                        case 1:
-                          return [
-                            "name",
-                            "gender",
-                            "age",
-                            "email",
-                            "phone",
-                            "country",
-                          ];
-                        case 2:
-                          return ["about", "projectIdea"];
-                        case 3:
-                          return ["referralSource"];
-                        default:
-                          return [];
-                      }
-                    })();
+                    try {
+                      // Validate current step before proceeding
+                      const fieldsToValidate: FormField[] = (() => {
+                        switch (currentStep) {
+                          case 1:
+                            return [
+                              "name",
+                              "gender",
+                              "age",
+                              "email",
+                              "phone",
+                              "country",
+                            ];
+                          case 2:
+                            return ["about", "projectIdea"];
+                          case 3:
+                            return ["referralSource"];
+                          default:
+                            return [];
+                        }
+                      })();
 
-                    const isValid = await trigger(fieldsToValidate);
-                    if (isValid) {
-                      // Save progress before moving to next step
-                      await saveProgress();
-                      setCurrentStep((prev) => Math.min(totalSteps, prev + 1));
+                      const isValid = await trigger(fieldsToValidate);
+                      if (isValid) {
+                        // Move to next step immediately for smooth UX
+                        setCurrentStep((prev) =>
+                          Math.min(totalSteps, prev + 1)
+                        );
+                        // Save progress in background (non-blocking)
+                        saveProgress().catch(console.error);
+                      }
+                    } catch (error) {
+                      console.error("Error moving to next step:", error);
                     }
                   }}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-950 transition-colors duration-200"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
                 >
                   Next
                 </button>
@@ -696,7 +683,7 @@ const ApplicationForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || !isValid}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-neutral-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Application"}
                 </button>

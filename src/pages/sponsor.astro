@@ -1,0 +1,81 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CenteredSection from '../components/CenteredSection.astro';
+import WrappedText from '../components/text/WrappedText.astro';
+import Heading from '../components/text/Heading.astro';
+import Paragraph from '../components/text/Paragraph.astro';
+import Highlight from '../components/text/Highlight.astro';
+import GradientBlob from '../components/GradientBlob.astro';
+---
+
+<Layout title="Sponsor Devlabs - Support Student Innovation">
+    <!-- Hero Section with Image -->
+    <CenteredSection id="hero" className="mb-24">
+        <GradientBlob top="" right="" left="0" scale="1.5" />
+        <GradientBlob top="60%" left="-15%" right="" scale="1.2" />
+        
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20">
+            <!-- Image with dashed border and opacity -->
+            <div class="w-full max-w-4xl mx-auto relative">
+                <div class="w-full h-[450px] md:h-[550px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30">
+                    <img src="events/devhack1.jpg" alt="Devlabs Event" class="w-full h-full object-cover opacity-70 rounded-2xl" />
+                </div>
+            </div>
+            
+            <Heading>Support the Next Generation of <Highlight>Student Founders</Highlight></Heading>
+            <Paragraph className="text-lg md:text-xl max-w-3xl mx-auto">
+                At Devlabs, we empower student builders through hands-on programs like DevHouse, DevHacks, and Build Nights. By sponsoring DevLabs, you're not just funding events — you're fueling innovation and backing Arizona's next wave of startups.
+            </Paragraph>
+
+            <div class="flex flex-wrap gap-2 justify-center">
+                <WrappedText size="large" className="border-orange-300 text-orange-300">amplify brand</WrappedText>
+                <WrappedText size="large" className="border-orange-300 text-orange-300">support builders</WrappedText>
+                <WrappedText size="large" className="border-orange-300 text-orange-300">shape ecosystem</WrappedText>
+            </div>
+        </div>
+    </CenteredSection>
+
+    <!-- CTA Section -->
+    <CenteredSection id="cta" className="mb-24">
+        <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
+        
+        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-8 md:pb-32 py-8">
+            <WrappedText size="normal" className="">get in touch</WrappedText>
+            <Heading>Ready to Partner with Us?</Heading>
+            <Paragraph className="max-w-2xl">
+                Let's discuss how your sponsorship can make a real impact on Arizona's student innovation ecosystem. We'll work together to create a partnership that benefits both your brand and our community.
+            </Paragraph>
+            
+            <!-- Contact Buttons -->
+            <div class="flex flex-col sm:flex-row gap-6 mt-8">
+                <a href="mailto:people@devlabs.club" 
+                   class="group relative px-8 py-4 
+                          bg-gradient-to-br from-orange-500/20 via-orange-400/15 to-orange-300/10
+                          backdrop-blur-xl border border-orange-400/30 
+                          text-white font-bold text-lg rounded-xl 
+                          transition-all duration-500 hover:scale-105
+                          shadow-[0_8px_32px_rgba(255,153,0,0.2)] 
+                          hover:shadow-[0_16px_48px_rgba(255,153,0,0.4)]
+                          hover:border-orange-300/50 hover:bg-gradient-to-br hover:from-orange-500/30 hover:via-orange-400/20 hover:to-orange-300/15
+                          before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
+                    <span class="relative z-10 drop-shadow-sm">Email Us</span>
+                    <div class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"></div>
+                </a>
+                
+                <a href="https://discord.gg/4XPKg2nWcj" 
+                   class="group relative px-8 py-4 
+                          bg-gradient-to-br from-white/10 via-white/5 to-transparent
+                          backdrop-blur-lg border border-white/20 
+                          text-white font-bold text-lg rounded-xl 
+                          transition-all duration-500 hover:scale-105
+                          shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
+                          hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
+                          hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
+                          before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
+                    <span class="relative z-10 drop-shadow-sm">Join Discord</span>
+                    <div class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"></div>
+                </a>
+            </div>
+        </div>
+    </CenteredSection>
+</Layout>
