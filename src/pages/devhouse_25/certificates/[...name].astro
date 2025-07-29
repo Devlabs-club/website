@@ -1,0 +1,64 @@
+---
+import CertificateLayout from '../../../layouts/CertificateLayout.astro';
+import { connectDB, Application } from '../../../lib/mongodb';
+
+const { name } = Astro.params;
+
+if (!name) {
+  return Astro.redirect('/404');
+}
+
+const searchName = name.replace(/_/g, ' ');
+
+// Connect to database and fetch participant
+await connectDB();
+const participant = await Application.findOne({
+  name: { $regex: `^${searchName}$`, $options: 'i' }
+});
+
+if (!participant) {
+  return Astro.redirect('/404');
+}
+---
+
+<CertificateLayout title={`${participant.name} - DevHouse 25 Certificate`}>
+  <div class="min-h-screen bg-black text-white py-24">
+    <div class="max-w-4xl mx-auto px-4">
+      
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-white mb-4">
+          Certificate of Participation
+        </h1>
+        <p class="text-xl text-gray-300">{participant.name}</p>
+      </div>
+
+      <!-- Certificate Viewer -->
+      <div class="bg-white rounded-lg p-4 mb-8">
+        <iframe 
+          src={`/api/certificates/devhouse_25/${name}`}
+          class="w-full h-[600px] border-0 rounded"
+          title="Certificate"
+        ></iframe>
+      </div>
+      
+      <!-- Download Button -->
+      <div class="text-center mb-8">
+        <a 
+          href={`/api/certificates/devhouse_25/${name}?download=true`}
+          class="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+          download
+        >
+          Download Certificate
+        </a>
+      </div>
+
+      <!-- Project Idea Section -->
+      <div class="bg-gray-900 rounded-lg p-6">
+        <h3 class="text-2xl font-bold text-orange-400 mb-4">Project Idea</h3>
+        <p class="text-gray-300 leading-relaxed">{participant.projectIdea}</p>
+      </div>
+      
+    </div>
+  </div>
+</CertificateLayout>
