@@ -7,4 +7,4 @@ interface Props {
 const { size, className } = Astro.props;
 ---
 
-{size == "large" ? <span class={`text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl w-max font-normal p-2 sm:p-3 border border-dashed bg-black/80 backdrop-blur-sm opacity-90 ${className}`}><slot /></span> : <span class="text-xs sm:text-sm md:text-base w-max font-semibold p-1 sm:p-2 bg-gradient-to-r from-orange-500 to-orange-300 text-black"><slot /></span>}
+{size == "large" ? <span class={`text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl w-max font-normal p-2 sm:p-3 border border-dashed bg-black/80 backdrop-blur-sm opacity-90 ${className}`}><slot /></span> : <span class={`text-xs sm:text-sm md:text-base w-max font-semibold p-1 sm:p-2 bg-gradient-to-r from-orange-500 to-orange-300 text-black ${className}`}><slot /></span>

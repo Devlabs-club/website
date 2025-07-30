@@ -1,0 +1,198 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { connectDB, Application } from "../../../lib/mongodb";
+import GradientBlob from "../../../components/GradientBlob.astro";
+import WrappedText from "../../../components/text/WrappedText.astro";
+import Heading from "../../../components/text/Heading.astro";
+import Paragraph from "../../../components/text/Paragraph.astro";
+import Highlight from "../../../components/text/Highlight.astro";
+
+const { name } = Astro.params;
+
+if (!name) {
+  return Astro.redirect("/404");
+}
+
+const searchName = name.replace(/_/g, " ");
+
+// Connect to database and fetch participant
+await connectDB();
+const participant = await Application.findOne({
+  name: { $regex: `^${searchName}$`, $options: "i" },
+});
+
+if (!participant) {
+  return Astro.redirect("/404");
+}
+---
+
+<Layout title={`${participant.name} - DevHouse 25 Certificate`}>
+  <div class="min-h-screen relative overflow-hidden">
+    <!-- Background Gradient Spheres -->
+    <div class="absolute inset-0 overflow-hidden">
+      <div
+        class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+      >
+      </div>
+      <div
+        class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]"
+      >
+      </div>
+      <div
+        class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]"
+      >
+      </div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto pt-24 px-4 sm:px-6 lg:px-8">
+      <!-- Header Section -->
+      <div class="text-center mb-16">
+        <div class="mb-4 sm:mb-5 mt-6 sm:mt-10">
+          <WrappedText size="normal" className="text-[1rem]">
+            DevHouse
+            <span class="handwriting-font text-white ml-2"
+              >Class of '25</span
+            >
+          </WrappedText>
+        </div>
+        <Heading>Certificate of <Highlight>Achievement</Highlight></Heading>
+        <div class="mt-4 mb-4">
+          <Paragraph className="text-xl mt-6">
+            Congratulations to <span class="text-orange-300 font-semibold"
+              >{participant.name}</span
+            >
+          </Paragraph>
+        </div>
+
+        <!-- Certificate Viewer with Glassmorphism -->
+        <div
+          class="bg-black/20 backdrop-blur-sm rounded-2xl p-6 mb-12 border border-gray-700/50 shadow-2xl"
+        >
+          <div class="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+            <iframe
+              src={`/api/certificates/devhouse_25/${name}`}
+              class="w-full h-[600px] border-0 rounded-lg shadow-lg"
+              title="Certificate"></iframe>
+          </div>
+        </div>
+
+        <!-- Download Button with Enhanced Styling -->
+        <div class="text-center mb-12 ">
+          <a
+            href={`/api/certificates/devhouse_25/${name}?download=true`}
+            class="group relative inline-block px-8 py-4
+                 bg-gradient-to-br from-orange-500/20 via-orange-400/15 to-orange-300/10
+                 backdrop-blur-xl border border-orange-400/30
+                 text-white font-bold text-lg rounded-xl
+                 transition-all duration-500 hover:scale-105
+                 shadow-[0_8px_32px_rgba(255,153,0,0.2)]
+                 hover:shadow-[0_16px_48px_rgba(255,153,0,0.4)]
+                 hover:border-orange-300/50 hover:bg-gradient-to-br hover:from-orange-500/30 hover:via-orange-400/20 hover:to-orange-300/15
+                 before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+            download
+          >
+            <span class="relative z-10 drop-shadow-sm"
+              >Download Certificate</span
+            >
+            <div
+              class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"
+            >
+            </div>
+          </a>
+        </div>
+
+        <!-- Project Idea Section with Enhanced Design -->
+        <div
+          class="bg-black/20 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 shadow-2xl"
+        >
+          <div class="flex items-center gap-3 mb-6">
+            <div
+              class="w-8 h-8 bg-orange-500/20 rounded-full flex items-center justify-center"
+            >
+              <svg
+                class="w-5 h-5 text-orange-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white">Project Idea</h3>
+          </div>
+          <div
+            class="bg-black/30 backdrop-blur-sm rounded-xl p-6 border border-gray-600/30"
+          >
+            <p class="text-gray-300 leading-relaxed text-lg">
+              {participant.projectIdea}
+            </p>
+          </div>
+        </div>
+
+        <!-- Additional Info Section -->
+        <div class="mt-12 text-center">
+          <div class="mb-4 sm:mb-5 mt-6 sm:mt-10">
+            <WrappedText
+              size="large"
+              className="border-orange-300 text-orange-300"
+              >DevHouse 25 Participant</WrappedText
+            >
+          </div>
+          <p class="text-gray-400 mt-4 text-sm">
+            This certificate verifies participation in DevHouse 25, a student
+            innovation program at Arizona State University.
+          </p>
+        </div>
+      </div>
+
+      <style>
+        /* Gradient Spheres - same as HeroSection */
+        .sphere-gradient {
+          background: radial-gradient(
+            circle at center,
+            rgba(255, 153, 0, 0.15) 0%,
+            transparent 70%
+          );
+          filter: blur(60px);
+          border-radius: 50%;
+          animation: float 8s ease-in-out infinite;
+        }
+
+        .sphere-gradient-sm {
+          background: radial-gradient(
+            circle at center,
+            rgba(255, 153, 0, 0.1) 0%,
+            transparent 70%
+          );
+          filter: blur(40px);
+          border-radius: 50%;
+          animation: float 12s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+          0%,
+          100% {
+            transform: translate(0, 0);
+          }
+          50% {
+            transform: translate(20px, -20px);
+          }
+        }
+
+        /* Handwriting Font */
+        .handwriting-font {
+          font-family: "Caveat", cursive;
+          font-weight: 500;
+          font-size: 2rem;
+          transform: rotate(-2deg);
+          display: inline-block;
+        }
+      </style>
+    </div>
+  </div>
+</Layout>
