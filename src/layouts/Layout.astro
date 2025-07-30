@@ -1,9 +1,9 @@
 ---
-import Navbar from '../components/Navbar.astro';
-import Footer from '../components/Footer.astro';
+import Navbar from "../components/Navbar.astro";
+import Footer from "../components/Footer.astro";
 
 interface Props {
-	title: string;
+  title: string;
 }
 
 const { title } = Astro.props;
@@ -11,59 +11,65 @@ const { title } = Astro.props;
 
 <!doctype html>
 <html lang="en" class="scroll-smooth overflow-x-hidden">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content="Astro description" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<link rel="icon" type="image/svg+xml" href="/logo.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<link rel="icon" type="image/svg+xml" href="/logo.svg" />
-		<meta property="og:image" content="/events/DevHacks6.jpg" />
-		<meta property="og:description" 
-			content="DevLabs is Arizona’s most fastest growing builder community—powering the next generation of founders through hacker houses, startup cohorts, and high-energy events. We’ve hosted 10+ events, backed 50+ startups, and built a 450+ strong network of makers, hackers, and dreamers. This is where Arizona builds" 
-		/>
-		<title>{title}</title>
-		<link
-			rel="icon"
-			href="/logo.svg"
-			type="image/x-icon"
-		/>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="description" content="Astro description" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta property="og:image" content="/events/DevHacks6.jpg" />
+    <meta
+      property="og:description"
+      content="DevLabs is Arizona’s most fastest growing builder community—powering the next generation of founders through hacker houses, startup cohorts, and high-energy events. We’ve hosted 10+ events, backed 50+ startups, and built a 450+ strong network of makers, hackers, and dreamers. This is where Arizona builds"
+    />
+    <title>{title}</title>
+    <link rel="icon" href="/logo.svg" type="image/x-icon" />
 
-		<meta name="keywords" content="DevLabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub" />
+    <meta
+      name="keywords"
+      content="DevLabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub"
+    />
 
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-	</head>
-	<body class="text-gray-400 overflow-x-hidden">
-		<!-- Fixed background with full-width gradient -->
-		<div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
-			<!-- Full-width gradient overlay -->
-			<div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
-			<!-- Noise texture -->
-			<div class="absolute inset-0 bg-noise opacity-40"></div>
-		</div>
-		
-		<Navbar />
-		<slot />
-		<Footer />
-	</body>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Caveat:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="text-gray-400 overflow-x-hidden">
+    <!-- Fixed background with full-width gradient -->
+    <div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
+      <!-- Full-width gradient overlay -->
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"
+      >
+      </div>
+      <!-- Noise texture -->
+      <div class="absolute inset-0 bg-noise opacity-40"></div>
+    </div>
+
+    <Navbar />
+    <slot />
+    <Footer />
+  </body>
 </html>
 <style is:global>
-	html {
-		font-family: Manrope, sans-serif;
-	}
+  html {
+    font-family: Manrope, sans-serif;
+  }
 
-	body {
-		background-color: #080808;
-	}
+  body {
+    background-color: #080808;
+  }
 
-	.bg-noise {
-		background-image: url('/noise.png');
-		background-size: 200px 200px;
-		background-repeat: repeat;
-		background-position: center;
-		width: 100vw;
-		height: 100vh;
-	}
+  .bg-noise {
+    background-image: url("/noise.png");
+    background-size: 200px 200px;
+    background-repeat: repeat;
+    background-position: center;
+    width: 100vw;
+    height: 100vh;
+  }
 </style>
