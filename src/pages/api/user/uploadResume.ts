@@ -2,7 +2,8 @@ import type { APIRoute } from 'astro';
 import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
-import { uploadResumeToCloudinary } from '../../../lib/cloudinary.ts';
+import { uploadResumeToCloudinary, deleteResumeFromCloudinary } from '../../../lib/cloudinary.ts';
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -77,6 +78,22 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Check if file has only 1 page
+    const pdfBuffer = await file.arrayBuffer();
+    const pdfData = await pdf(Buffer.from(pdfBuffer));
+    if (pdfData.numpages !== 1) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'Only single-page PDF files are allowed'
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Validate file size (2MB max)
     const maxSize = 2 * 1024 * 1024; // 2MB
     if (file.size > maxSize) {
@@ -98,6 +115,37 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Generate safe filename using user ID
     const safeFilename = `${decoded.userId}-${Date.now()}`;
+
+    // Get current user to check for existing resume
+    const currentUser = await User.findById(decoded.userId);
+    if (!currentUser) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'User not found' 
+        }),
+        { 
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Delete old resume from Cloudinary if it exists
+    if (currentUser.resumeUrl) {
+      console.log('Deleting old resume from Cloudinary:', currentUser.resumeUrl);
+      try {
+        const deleteResult = await deleteResumeFromCloudinary(currentUser.resumeUrl);
+        if (deleteResult) {
+          console.log('Successfully deleted old resume from Cloudinary');
+        } else {
+          console.log('Failed to delete old resume, but continuing with upload');
+        }
+      } catch (deleteError) {
+        console.error('Error deleting old resume:', deleteError);
+        // Continue with upload even if deletion fails
+      }
+    }
 
     // Upload to Cloudinary
     let resumeUrl;
@@ -131,10 +179,10 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'User not found' 
+          message: 'Failed to update user record' 
         }),
         { 
-          status: 404,
+          status: 500,
           headers: { 'Content-Type': 'application/json' }
         }
       );

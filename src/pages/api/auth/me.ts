@@ -60,8 +60,6 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    console.log('User found with resumeUrl:', user.resumeUrl); // Debug log
-
     // Return user data
     return new Response(
       JSON.stringify({

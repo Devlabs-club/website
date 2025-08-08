@@ -56,10 +56,10 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
 
   if (loading) {
     return (
-      <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-96 bg-white/5 rounded-lg flex items-center justify-center border border-white/10">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-gray-600">Loading PDF...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
+          <p className="text-gray-400">Loading PDF...</p>
         </div>
       </div>
     );
@@ -68,21 +68,21 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
   return (
     <div className="w-full">
       {/* PDF Controls */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 border-b rounded-t-lg">
+      <div className="flex items-center justify-between p-4 bg-white/5 border-b border-white/10 rounded-t-lg backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600 font-medium">Resume Preview</span>
+          <span className="text-sm text-gray-300 font-medium">Resume Preview</span>
         </div>
         
         <div className="flex items-center space-x-2">
           <button
             onClick={downloadPDF}
-            className="px-3 py-1 bg-blue-600 text-white border rounded-md hover:bg-blue-700 transition-colors text-sm"
+            className="px-3 py-1 bg-orange-500 text-white border border-orange-500 rounded-md hover:bg-orange-600 transition-colors text-sm"
           >
             Download
           </button>
           <button
             onClick={openInNewTab}
-            className="px-3 py-1 bg-white border rounded-md hover:bg-gray-50 text-sm"
+            className="px-3 py-1 bg-white/10 border border-white/20 text-gray-300 rounded-md hover:bg-white/20 text-sm transition-colors"
           >
             Open in New Tab
           </button>
@@ -90,7 +90,7 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
       </div>
 
       {/* PDF Document */}
-      <div className="bg-gray-100 rounded-b-lg overflow-hidden">
+      <div className="bg-white/5 rounded-b-lg overflow-hidden border border-white/10 border-t-0">
         <iframe
           src={iframeSrc}
           width="100%"
@@ -107,20 +107,20 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
         />
         
         {error && (
-          <div className="absolute inset-0 bg-red-50 border border-red-200 rounded-lg flex items-center justify-center">
-            <div className="text-center text-red-600">
+          <div className="absolute inset-0 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center backdrop-blur-sm">
+            <div className="text-center text-red-300">
               <p className="font-medium">PDF Viewer Error</p>
               <p className="text-sm mb-4">{error}</p>
               <div className="space-x-2">
                 <button
                   onClick={openInNewTab}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
                 >
                   Open in New Tab
                 </button>
                 <button
                   onClick={downloadPDF}
-                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
                 >
                   Download PDF
                 </button>
@@ -217,18 +217,28 @@ function DashboardContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-neutral-950 text-gray-400">
+      {/* Fixed background with noise texture */}
+      <div className="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
+        <div className="absolute inset-0 bg-noise opacity-40"></div>
+      </div>
+
+      {/* Floating gradient orbs */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+
+      <nav className="relative z-20 bg-white/10 shadow-sm border-b border-white/10 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <a href="/" className="flex items-center">
-                <img src="/logo.svg" alt="DevLabs" className="h-8 w-auto" />
-                <span className="ml-2 text-xl font-bold text-gray-900">DevLabs</span>
+              <a href="/" className="flex items-center group">
+                <img src="/logo.svg" alt="DevLabs" className="h-8 w-auto group-hover:scale-110 transition-transform duration-200" />
+                <span className="ml-2 text-xl font-bold text-white">DevLabs</span>
               </a>
             </div>
             <div className="flex items-center">
-              <a href="/" className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium">
+              <a href="/" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                 Home
               </a>
             </div>
@@ -236,44 +246,44 @@ function DashboardContent() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
             </div>
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold mb-4">Resume Management</h2>
+              <div className="backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20 p-8 shadow-2xl">
+                <h2 className="text-2xl font-bold mb-6 text-white">Resume Management</h2>
                 
                 {resumeUrl ? (
                   <div className="space-y-6">
                     {/* Resume Header with Download */}
-                    <div className="flex justify-between items-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex justify-between items-center p-4 bg-green-500/20 border border-green-500/30 rounded-lg backdrop-blur-sm">
                       <div>
-                        <h3 className="font-semibold text-green-800 text-lg">📄 Your Resume</h3>
-                        <p className="text-sm text-gray-600">Resume successfully uploaded and ready to view</p>
+                        <h3 className="font-semibold text-green-300 text-lg">📄 Your Resume</h3>
+                        <p className="text-sm text-gray-400">Resume successfully uploaded and ready to view</p>
                       </div>
                       <a 
                         href={resumeUrl} 
                         download
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
                       >
                         ⬇️ Download
                       </a>
                     </div>
 
                     {/* PDF Viewer */}
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="border border-white/20 rounded-lg overflow-hidden">
                       <PDFViewer resumeUrl={resumeUrl} />
                     </div>
 
                     {/* Update Form */}
-                    <div className="border-t pt-6">
-                      <h4 className="text-lg font-medium mb-4">Update Resume</h4>
+                    <div className="border-t border-white/10 pt-6">
+                      <h4 className="text-lg font-medium mb-4 text-white">Update Resume</h4>
                       <form onSubmit={handleResumeUpload} className="space-y-4">
                         <div>
-                          <label htmlFor="resume" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label htmlFor="resume" className="block text-sm font-medium text-gray-300 mb-2">
                             Upload New Resume (PDF only, max 2MB)
                           </label>
                           <input
@@ -281,12 +291,13 @@ function DashboardContent() {
                             id="resume"
                             name="resume"
                             accept=".pdf"
-                            className="block w-full text-sm text-gray-500
+                            className="block w-full text-sm text-gray-400
                               file:mr-4 file:py-2 file:px-4
                               file:rounded-full file:border-0
                               file:text-sm file:font-semibold
-                              file:bg-blue-50 file:text-blue-700
-                              hover:file:bg-blue-100"
+                              file:bg-orange-500/20 file:text-orange-300
+                              hover:file:bg-orange-500/30 file:transition-colors
+                              bg-white/10 border border-white/20 rounded-lg p-2"
                             disabled={uploading}
                             required
                           />
@@ -295,23 +306,32 @@ function DashboardContent() {
                         <button
                           type="submit"
                           disabled={uploading}
-                          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                          className="w-full bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-6 rounded-lg 
+                                   hover:from-orange-400 hover:to-orange-300 disabled:opacity-50 disabled:cursor-not-allowed 
+                                   transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] font-semibold"
                         >
-                          {uploading ? 'Uploading...' : 'Update Resume'}
+                          {uploading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              Uploading...
+                            </div>
+                          ) : (
+                            'Update Resume'
+                          )}
                         </button>
                       </form>
                     </div>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-400 mb-6">
                       Upload your resume to enhance your DevLabs profile.
                     </p>
 
                     {/* Initial Upload Form */}
                     <form onSubmit={handleResumeUpload} className="space-y-4">
                       <div>
-                        <label htmlFor="resume" className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="resume" className="block text-sm font-medium text-gray-300 mb-2">
                           Upload Resume (PDF only, max 2MB)
                         </label>
                         <input
@@ -319,12 +339,13 @@ function DashboardContent() {
                           id="resume"
                           name="resume"
                           accept=".pdf"
-                          className="block w-full text-sm text-gray-500
+                          className="block w-full text-sm text-gray-400
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
                             file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100"
+                            file:bg-orange-500/20 file:text-orange-300
+                            hover:file:bg-orange-500/30 file:transition-colors
+                            bg-white/10 border border-white/20 rounded-lg p-2"
                           disabled={uploading}
                           required
                         />
@@ -333,9 +354,18 @@ function DashboardContent() {
                       <button
                         type="submit"
                         disabled={uploading}
-                        className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                        className="w-full bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-6 rounded-lg 
+                                 hover:from-orange-400 hover:to-orange-300 disabled:opacity-50 disabled:cursor-not-allowed 
+                                 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] font-semibold"
                       >
-                        {uploading ? 'Uploading...' : 'Upload Resume'}
+                        {uploading ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                            Uploading...
+                          </div>
+                        ) : (
+                          'Upload Resume'
+                        )}
                       </button>
                     </form>
                   </div>
@@ -343,10 +373,10 @@ function DashboardContent() {
 
                 {/* Message Display */}
                 {message && (
-                  <div className={`mt-4 p-4 rounded-md ${
+                  <div className={`mt-4 p-4 rounded-md backdrop-blur-sm ${
                     messageType === 'success' 
-                      ? 'bg-green-50 border border-green-200 text-green-700' 
-                      : 'bg-red-50 border border-red-200 text-red-700'
+                      ? 'bg-green-500/20 border border-green-500/30 text-green-300' 
+                      : 'bg-red-500/20 border border-red-500/30 text-red-300'
                   }`}>
                     {message}
                   </div>
@@ -362,8 +392,26 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <AuthProvider>
-      <DashboardContent />
-    </AuthProvider>
+    <>
+      <style>{`
+        html {
+          font-family: Manrope, sans-serif;
+        }
+
+        body {
+          background-color: #080808;
+        }
+
+        .bg-noise {
+          background-image: url("/noise.png");
+          background-size: 200px 200px;
+          background-repeat: repeat;
+          background-position: center;
+        }
+      `}</style>
+      <AuthProvider>
+        <DashboardContent />
+      </AuthProvider>
+    </>
   );
 }
