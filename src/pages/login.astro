@@ -1,0 +1,39 @@
+---
+import LoginPage from '../components/LoginPage';
+
+const title = 'Login - DevLabs';
+const description = 'Login to your DevLabs account';
+---
+
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto">
+            <div class="text-center mb-8">
+                <a href="/" class="inline-block">
+                    <img src="/logo.svg" alt="DevLabs" class="h-12 mx-auto mb-4" />
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">Welcome Back</h1>
+                <p class="text-gray-600 mt-2">Sign in to your DevLabs account</p>
+            </div>
+
+            <LoginPage client:load />
+
+            <div class="text-center mt-6">
+                <a href="/" class="text-blue-600 hover:text-blue-800">
+                    ← Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
