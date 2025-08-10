@@ -21,13 +21,31 @@ const formSchema = z.object({
     .min(50, "Please describe your project idea (minimum 50 characters)"),
   referralSource: z.string().min(1, "Please tell us how you found us"),
   twitterHandle: z.string().optional(),
+  // Optional links and background fields
+  linkedin: z.string().url().or(z.literal("")).optional(),
+  personalWebsite: z.string().url().or(z.literal("")).optional(),
+  portfolio: z.string().url().or(z.literal("")).optional(),
+  github: z.string().url().or(z.literal("")).optional(),
+  primarySkills: z.string().optional(),
+  currentRole: z.string().optional(),
+  coolestThing: z.string().optional(),
+  favoriteLink: z.string().url().or(z.literal("")).optional(),
+  hackathonStory: z.string().optional(),
   additionalInfo: z.string().optional(),
   proofOfWork: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-const ApplicationForm = () => {
+interface ApplicationFormProps {
+  prefill?: Partial<FormData>;
+  variant?: "single" | "multi";
+}
+
+const ApplicationForm: React.FC<ApplicationFormProps> = ({
+  prefill,
+  variant = "multi",
+}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveStatus, setSaveStatus] = useState(
     null as "saved" | "saving" | "error" | null
@@ -38,7 +56,7 @@ const ApplicationForm = () => {
     null as FormData | null
   );
   const [submitError, setSubmitError] = useState(null as string | null);
-  const totalSteps = 4;
+  const totalSteps = variant === "single" ? 1 : 4;
 
   type FormField = keyof FormData;
 
@@ -63,12 +81,67 @@ const ApplicationForm = () => {
       projectIdea: "",
       referralSource: "",
       twitterHandle: "",
+      linkedin: "",
+      personalWebsite: "",
+      portfolio: "",
+      github: "",
+      primarySkills: "",
+      currentRole: "",
+      coolestThing: "",
+      favoriteLink: "",
+      hackathonStory: "",
       additionalInfo: "",
       proofOfWork: "",
     },
   });
 
   const formData = watch();
+  // Single-page UX helpers
+  const [openSections, setOpenSections] = useState({
+    personal: true,
+    about: true,
+    additional: false,
+    final: false,
+  });
+
+  const toggleSection = (key: keyof typeof openSections) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const completedRequiredCount = (() => {
+    const required: (keyof FormData)[] = [
+      "name",
+      "gender",
+      "age",
+      "email",
+      "phone",
+      "country",
+      "about",
+      "projectIdea",
+      "referralSource",
+    ];
+    return required.reduce((acc, key) => {
+      const val = formData[key];
+      if (val === undefined || val === null) return acc;
+      if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
+      return acc + (String(val).trim().length > 0 ? 1 : 0);
+    }, 0);
+  })();
+  const totalRequiredCount = 9;
+
+  // Prefill fields from props if provided
+  useEffect(() => {
+    if (!prefill) return;
+    Object.entries(prefill).forEach(([key, value]) => {
+      if (value == null) return;
+      if (key in formSchema.shape) {
+        setValue(key as keyof FormData, value as any, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: false,
+        });
+      }
+    });
+  }, [prefill, setValue]);
 
   // Check if form data has actually changed
   useEffect(() => {
@@ -197,7 +270,11 @@ const ApplicationForm = () => {
       const response = await fetch("/api/application", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, progress: totalSteps }),
+        body: JSON.stringify({
+          ...data,
+          // Ensure final submission in single-page variant
+          progress: variant === "single" ? 4 : totalSteps,
+        }),
       });
 
       const result = await response.json();
@@ -457,6 +534,51 @@ const ApplicationForm = () => {
                 </p>
               )}
             </div>
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Current Role (optional)
+                </label>
+                <Controller
+                  name="currentRole"
+                  control={control}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    >
+                      <option value="">Select role</option>
+                      <option value="student">Student</option>
+                      <option value="working-professional">
+                        Working Professional
+                      </option>
+                      <option value="founder">Founder</option>
+                      <option value="freelancer">Freelancer</option>
+                      <option value="other">Other</option>
+                    </select>
+                  )}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Primary Skills (optional)
+                </label>
+                <Controller
+                  name="primarySkills"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="Tech, Design, Marketing, Ops, etc."
+                    />
+                  )}
+                />
+              </div>
+            </div>
           </div>
         );
 
@@ -492,6 +614,62 @@ const ApplicationForm = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
+                Links (optional)
+              </label>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <Controller
+                  name="linkedin"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="LinkedIn URL"
+                    />
+                  )}
+                />
+                <Controller
+                  name="personalWebsite"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="Personal Website URL"
+                    />
+                  )}
+                />
+                <Controller
+                  name="portfolio"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="Portfolio URL"
+                    />
+                  )}
+                />
+                <Controller
+                  name="github"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="GitHub URL"
+                    />
+                  )}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Twitter Handle (optional)
               </label>
               <Controller
@@ -503,6 +681,24 @@ const ApplicationForm = () => {
                     type="text"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     placeholder="@username"
+                  />
+                )}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Favorite Project/Tweet/Video Link (optional)
+              </label>
+              <Controller
+                name="favoriteLink"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="url"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="https://..."
                   />
                 )}
               />
@@ -533,6 +729,44 @@ const ApplicationForm = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
+                What’s the coolest thing you’ve ever built or worked on?
+                (optional)
+              </label>
+              <Controller
+                name="coolestThing"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Even if it failed — tell us the story!"
+                  />
+                )}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Have you been to any hackathons/conferences? Tell us your story!
+                (optional)
+              </label>
+              <Controller
+                name="hackathonStory"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Share your experiences and learnings..."
+                  />
+                )}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
                 Anything else you'd like to tell us?
               </label>
               <Controller
@@ -556,6 +790,464 @@ const ApplicationForm = () => {
     }
   };
 
+  // For single-page variant, render all steps in sequence
+  const renderAll = () => {
+    return (
+      <div className="space-y-10">
+        {/* Personal Information */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-white">
+              Personal information
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Tell us a bit about you. Name and email are sufficient to save
+              progress.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Name
+              </label>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  />
+                )}
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.name.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Gender
+              </label>
+              <Controller
+                name="gender"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer-not-to-say">Prefer not to say</option>
+                  </select>
+                )}
+              />
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.gender.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Age
+              </label>
+              <Controller
+                name="age"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  />
+                )}
+              />
+              {errors.age && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.age.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Email
+              </label>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="email"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  />
+                )}
+              />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Phone
+              </label>
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="tel"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  />
+                )}
+              />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Country
+              </label>
+              <Controller
+                name="country"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  />
+                )}
+              />
+              {errors.country && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.country.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* About You */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-white">About you</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Share what you’re into and what you want to build.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Tell us about yourself
+            </label>
+            <Controller
+              name="about"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share your background, interests, and what drives you..."
+                />
+              )}
+            />
+            {errors.about && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.about.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              What do you want to build?
+            </label>
+            <Controller
+              name="projectIdea"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Describe your project idea in detail..."
+                />
+              )}
+            />
+            {errors.projectIdea && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.projectIdea.message}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Current Role (optional)
+              </label>
+              <Controller
+                name="currentRole"
+                control={control}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  >
+                    <option value="">Select role</option>
+                    <option value="student">Student</option>
+                    <option value="working-professional">
+                      Working Professional
+                    </option>
+                    <option value="founder">Founder</option>
+                    <option value="freelancer">Freelancer</option>
+                    <option value="other">Other</option>
+                  </select>
+                )}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Primary Skills (optional)
+              </label>
+              <Controller
+                name="primarySkills"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Tech, Design, Marketing, Ops, etc."
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Information */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-white">
+              Additional information
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Links and optional context to help us get to know your work.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              How did you find out about us?
+            </label>
+            <Controller
+              name="referralSource"
+              control={control}
+              render={({ field }) => (
+                <select
+                  {...field}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                >
+                  <option value="">Select an option</option>
+                  <option value="social-media">Social Media</option>
+                  <option value="friend">Friend</option>
+                  <option value="search">Search Engine</option>
+                  <option value="other">Other</option>
+                </select>
+              )}
+            />
+            {errors.referralSource && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.referralSource.message}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Links (optional)
+            </label>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <Controller
+                name="linkedin"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="url"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="https://linkedin.com/in/yourname"
+                  />
+                )}
+              />
+              <Controller
+                name="personalWebsite"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="url"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="https://yourname.com"
+                  />
+                )}
+              />
+              <Controller
+                name="portfolio"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="url"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="https://portfolio.site/you"
+                  />
+                )}
+              />
+              <Controller
+                name="github"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="url"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="https://github.com/you"
+                  />
+                )}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Twitter Handle (optional)
+            </label>
+            <Controller
+              name="twitterHandle"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="@username"
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Favorite Project/Tweet/Video Link (optional)
+            </label>
+            <Controller
+              name="favoriteLink"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="url"
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="https://..."
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Proof of Work (optional)
+            </label>
+            <Controller
+              name="proofOfWork"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share links to your previous work, GitHub repositories, or portfolio..."
+                />
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Final Thoughts */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Final thoughts</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Anything else you’d like to share before submitting.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              What’s the coolest thing you’ve ever built or worked on?
+              (optional)
+            </label>
+            <Controller
+              name="coolestThing"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Even if it failed — tell us the story!"
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Have you been to any hackathons/conferences? Tell us your story!
+              (optional)
+            </label>
+            <Controller
+              name="hackathonStory"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share your experiences and learnings..."
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Anything else you'd like to tell us?
+            </label>
+            <Controller
+              name="additionalInfo"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share any additional information that might be relevant..."
+                />
+              )}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Add a function to get the step title
   const getStepTitle = () => {
     switch (currentStep) {
@@ -572,13 +1264,10 @@ const ApplicationForm = () => {
     }
   };
 
-  return (
-    <div className="relative overflow-hidden">
-      <div className="relative z-10 max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8 flex items-center ">
-        <div
-          className="w-full bg-black/20 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 transition-all duration-500 ease-in-out"
-          style={{}}
-        >
+  const multiStepUi = (
+    <div className="relative">
+      <div className="relative z-10 max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="w-full p-0">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-4">
               {getStepTitle()}
@@ -601,7 +1290,7 @@ const ApplicationForm = () => {
           </div>
 
           {currentStep === totalSteps && Object.keys(errors).length > 0 && (
-            <div className="mb-6 p-4 bg-black/30 backdrop-blur-sm border border-gray-600 rounded-md">
+            <div className="mb-6 p-4 bg-neutral-900/50 border border-gray-700 rounded-md">
               <h3 className="text-sm font-bold text-gray-300 mb-2">
                 Validation Status:
               </h3>
@@ -616,20 +1305,19 @@ const ApplicationForm = () => {
           )}
 
           {submitError && (
-            <div className="mb-6 p-4 bg-black/30 backdrop-blur-sm border border-gray-600 rounded-md">
+            <div className="mb-6 p-4 bg-neutral-900/50 border border-gray-700 rounded-md">
               <p className="text-sm text-red-300">{submitError}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-            {/* Wrap each step with a keyed container to force remount on step change */}
             <div key={`step-${currentStep}`}>{renderStep()}</div>
 
             <div className="flex justify-between pt-6">
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
-                className={`px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-black/20 hover:bg-gray-800/50 hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95 ${
+                className={`px-4 py-2 border border-gray-700 rounded-md text-sm font-medium text-gray-300 hover:bg-neutral-900 hover:text-white transition-all ${
                   currentStep === 1 ? "invisible" : ""
                 }`}
               >
@@ -641,7 +1329,6 @@ const ApplicationForm = () => {
                   type="button"
                   onClick={async () => {
                     try {
-                      // Validate current step before proceeding
                       const fieldsToValidate: FormField[] = (() => {
                         switch (currentStep) {
                           case 1:
@@ -664,18 +1351,16 @@ const ApplicationForm = () => {
 
                       const isValid = await trigger(fieldsToValidate);
                       if (isValid) {
-                        // Move to next step immediately for smooth UX
                         setCurrentStep((prev) =>
                           Math.min(totalSteps, prev + 1)
                         );
-                        // Save progress in background (non-blocking)
                         saveProgress().catch(console.error);
                       }
                     } catch (error) {
                       console.error("Error moving to next step:", error);
                     }
                   }}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                  className="px-4 py-2 rounded-md text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 transition"
                 >
                   Next
                 </button>
@@ -683,7 +1368,7 @@ const ApplicationForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || !isValid}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95"
+                  className="px-4 py-2 rounded-md text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Application"}
                 </button>
@@ -694,6 +1379,51 @@ const ApplicationForm = () => {
       </div>
     </div>
   );
+
+  const singlePageUi = (
+    <div className="relative">
+      {/* Sticky progress bar */}
+      <div className="sticky top-16 z-20 bg-transparent/0 backdrop-blur-0">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="h-1 bg-gray-800/50 rounded">
+            <div
+              className="h-1 bg-orange-500/70 rounded transition-all duration-300"
+              style={{
+                width: `${Math.round(
+                  (completedRequiredCount / totalRequiredCount) * 100
+                )}%`,
+              }}
+            />
+          </div>
+          <div className="mt-1 text-right text-xs text-gray-400">
+            {completedRequiredCount}/{totalRequiredCount} required fields
+            complete
+          </div>
+        </div>
+      </div>
+      <div className="relative z-10 max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {submitError && (
+          <div className="mb-6 p-4 bg-neutral-900/50 border border-gray-700 rounded-md">
+            <p className="text-sm text-red-300">{submitError}</p>
+          </div>
+        )}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
+          {renderAll()}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting || !isValid}
+              className="w-full md:w-auto px-6 py-3 rounded-md text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Application"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  return variant === "single" ? singlePageUi : multiStepUi;
 };
 
 export default ApplicationForm;
