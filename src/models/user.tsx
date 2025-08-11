@@ -8,6 +8,8 @@ export interface IUser {
   password: string;
   role: 'user' | 'admin';
   resumeUrl?: string;
+  oauthProvider?: 'google' | null; // OAuth provider type
+  oauthId?: string; // OAuth provider user ID
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -30,7 +32,10 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: [true, 'Please provide a password'],
+    required: function() {
+      // Password is only required for non-OAuth users
+      return !this.oauthProvider;
+    },
     minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't include password in queries by default
   },
@@ -40,6 +45,15 @@ const userSchema = new mongoose.Schema({
     default: 'user',
   },
   resumeUrl: {
+    type: String,
+    default: null,
+  },
+  oauthProvider: {
+    type: String,
+    enum: ['google', null],
+    default: null,
+  },
+  oauthId: {
     type: String,
     default: null,
   },
@@ -57,8 +71,8 @@ const userSchema = new mongoose.Schema({
 
 // Hash password before saving
 userSchema.pre('save', async function (next) {
-  // Only hash if password is modified
-  if (!this.isModified('password')) {
+  // Only hash if password is modified and exists (for non-OAuth users)
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
 
@@ -73,6 +87,10 @@ userSchema.pre('save', async function (next) {
 
 // Method to compare password
 userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  // For OAuth users without passwords, return false
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
