@@ -1,5 +1,6 @@
 ---
 import RegisterPage from '../components/RegisterPage';
+import Highlight from '../components/text/Highlight.astro';
 
 const title = 'Register - DevLabs';
 const description = 'Create your DevLabs account';
@@ -22,35 +23,53 @@ const description = 'Create your DevLabs account';
 </head>
 
 <body class="bg-neutral-950 text-gray-400 min-h-screen overflow-x-hidden">
-    <!-- Fixed background with noise texture -->
-    <div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
-        <div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
-        <div class="absolute inset-0 bg-noise opacity-40"></div>
-    </div>
-
-    <!-- Floating gradient orbs -->
-    <div class="absolute top-1/4 right-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
-    <div class="absolute bottom-1/4 left-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-
-    <div class="relative z-10 container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto">
-            <div class="text-center mb-8">
-                <a href="/" class="inline-block group">
-                    <img src="/logo.svg" alt="DevLabs" class="h-12 mx-auto mb-4 group-hover:scale-110 transition-transform duration-200" />
-                </a>
-                <h1 class="text-3xl font-bold text-white mb-2">Join DevLabs</h1>
-                <p class="text-gray-400">Create your account to get started</p>
+    <main class="min-h-screen relative overflow-hidden">
+        <!-- Gradient Spheres -->
+        <div class="absolute inset-0 overflow-hidden">
+            <!-- Primary sphere -->
+            <div
+                class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            >
             </div>
-
-            <RegisterPage client:load />
-
-            <div class="text-center mt-6">
-                <a href="/" class="text-orange-400 hover:text-orange-300 transition-colors duration-200 flex items-center justify-center gap-2">
-                    <span>←</span> Back to Home
-                </a>
+            <!-- Secondary spheres -->
+            <div
+                class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]"
+            >
+            </div>
+            <div
+                class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]"
+            >
             </div>
         </div>
-    </div>
+
+        <div
+            class="max-w-7xl mx-auto py-24 md:py-32 pb-12 px-4 sm:px-6 lg:px-8 relative z-10"
+        >
+            <div class="text-center mb-12">
+                <a href="/" class="inline-block group mb-8">
+                    <img src="/logo.svg" alt="DevLabs" class="h-12 mx-auto group-hover:scale-110 transition-transform duration-200" />
+                </a>
+                <h1
+                    class="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl"
+                >
+                    Join Our <Highlight>Community</Highlight>
+                </h1>
+                <p class="mt-5 max-w-xl mx-auto text-xl text-gray-300">
+                    Create your account to get started and become part of our amazing developer community.
+                </p>
+            </div>
+
+            <div class="max-w-md mx-auto">
+                <RegisterPage client:load />
+
+                <div class="text-center mt-6">
+                    <a href="/" class="text-orange-400 hover:text-orange-300 transition-colors duration-200 flex items-center justify-center gap-2">
+                        <span>←</span> Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>
 
@@ -60,13 +79,39 @@ const description = 'Create your DevLabs account';
     }
 
     body {
-        background-color: #080808;
+        background-color: #111;
     }
 
-    .bg-noise {
-        background-image: url("/noise.png");
-        background-size: 200px 200px;
-        background-repeat: repeat;
-        background-position: center;
+    /* Gradient Spheres */
+    .sphere-gradient {
+        background: radial-gradient(
+            circle at center,
+            rgba(255, 153, 0, 0.15) 0%,
+            transparent 70%
+        );
+        filter: blur(60px);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+
+    .sphere-gradient-sm {
+        background: radial-gradient(
+            circle at center,
+            rgba(255, 153, 0, 0.1) 0%,
+            transparent 70%
+        );
+        filter: blur(40px);
+        border-radius: 50%;
+        animation: float 12s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+        0%,
+        100% {
+            transform: translate(0, 0);
+        }
+        50% {
+            transform: translate(20px, -20px);
+        }
     }
 </style>
