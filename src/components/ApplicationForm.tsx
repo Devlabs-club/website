@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getNames } from "country-list";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,13 +7,12 @@ import * as z from "zod";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   gender: z.string().min(1, "Please select your gender"),
-  age: z
-    .number()
-    .min(16, "You must be at least 16 years old")
-    .max(100, "Please enter a valid age"),
+  dob: z
+    .string()
+    .min(1, "Please enter your date of birth"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  country: z.string().min(1, "Please select your country"),
+  country: z.string().min(1, "Please select your country of citizenship"),
   projectIdea: z
     .string()
     .min(50, "Please describe your project idea (minimum 50 characters)"),
@@ -31,6 +31,9 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+// Get country names for dropdown
+const countryOptions = Object.values(getNames());
 
 interface ApplicationFormProps {
   prefill?: Partial<FormData>;
@@ -68,10 +71,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     defaultValues: {
       name: "",
       gender: "",
-      age: undefined,
+  dob: "",
       email: "",
       phone: "",
-      country: "",
+  country: "",
       projectIdea: "",
       referralSource: "",
       twitterHandle: "",
@@ -93,7 +96,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     const required: (keyof FormData)[] = [
       "name",
       "gender",
-      "age",
+  "dob",
       "email",
       "phone",
       "country",
@@ -203,7 +206,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             return (
               formData.name &&
               formData.gender &&
-              formData.age &&
+              formData.dob &&
               formData.email &&
               formData.phone &&
               formData.country
@@ -372,23 +375,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Age
+                  Date of birth
                 </label>
                 <Controller
-                  name="age"
+                  name="dob"
                   control={control}
                   render={({ field }) => (
                     <input
                       {...field}
-                      type="number"
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      type="date"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     />
                   )}
                 />
-                {errors.age && (
+                {errors.dob && (
                   <p className="mt-1 text-sm text-red-400">
-                    {errors.age.message}
+                    {errors.dob.message}
                   </p>
                 )}
               </div>
@@ -439,17 +441,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Country
+                  Country of citizenship
                 </label>
                 <Controller
                   name="country"
                   control={control}
                   render={({ field }) => (
-                    <input
+                    <select
                       {...field}
-                      type="text"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    />
+                    >
+                      <option value="">Select country</option>
+                      {countryOptions.map((country) => {
+                        const countryStr = String(country);
+                        return (
+                          <option key={countryStr} value={countryStr}>
+                            {countryStr}
+                          </option>
+                        );
+                      })}
+                    </select>
                   )}
                 />
                 {errors.country && (
@@ -755,23 +766,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Age
+                Date of birth
               </label>
               <Controller
-                name="age"
+                name="dob"
                 control={control}
                 render={({ field }) => (
                   <input
                     {...field}
-                    type="number"
-                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    type="date"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   />
                 )}
               />
-              {errors.age && (
+              {errors.dob && (
                 <p className="mt-1 text-sm text-red-400">
-                  {errors.age.message}
+                  {errors.dob.message}
                 </p>
               )}
             </div>
@@ -819,17 +829,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Country
+                Country of citizenship
               </label>
               <Controller
                 name="country"
                 control={control}
                 render={({ field }) => (
-                  <input
+                  <select
                     {...field}
-                    type="text"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  />
+                  >
+                    <option value="">Select country</option>
+                    {countryOptions.map((country) => {
+                      const countryStr = String(country);
+                      return (
+                        <option key={countryStr} value={countryStr}>
+                          {countryStr}
+                        </option>
+                      );
+                    })}
+                  </select>
                 )}
               />
               {errors.country && (
@@ -1158,7 +1177,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                             return [
                               "name",
                               "gender",
-                              "age",
+                              "dob",
                               "email",
                               "phone",
                               "country",
