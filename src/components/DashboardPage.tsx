@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { AuthProvider, useAuth } from './auth_manager';
-import { UserProfile } from './UserProfile';
+import React, { useState, useEffect } from "react";
+import { AuthProvider, useAuth } from "./auth_manager";
+import { UserProfile } from "./UserProfile";
+import ApplicationForm from "./ApplicationForm";
 
 // Simple PDF Viewer Component using iframe with enhanced features
 function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [iframeSrc, setIframeSrc] = useState<string>('');
+  const [iframeSrc, setIframeSrc] = useState<string>("");
 
   useEffect(() => {
     const setupPDFViewer = async () => {
@@ -15,19 +16,19 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
         setError(null);
 
         // Test if the PDF URL is accessible
-        const response = await fetch(resumeUrl, { method: 'HEAD' });
+        const response = await fetch(resumeUrl, { method: "HEAD" });
         if (!response.ok) {
-          throw new Error('PDF not accessible');
+          throw new Error("PDF not accessible");
         }
 
         // Use Google Drive viewer for better PDF rendering
         const encodedUrl = encodeURIComponent(resumeUrl);
         const viewerUrl = `https://docs.google.com/viewer?url=${encodedUrl}&embedded=true`;
-        
+
         setIframeSrc(viewerUrl);
         setLoading(false);
       } catch (err) {
-        console.error('Error setting up PDF viewer:', err);
+        console.error("Error setting up PDF viewer:", err);
         // Fallback to direct iframe if Google viewer fails
         setIframeSrc(resumeUrl);
         setError(null); // Clear error since we have a fallback
@@ -41,17 +42,17 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
   }, [resumeUrl]);
 
   const downloadPDF = () => {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = resumeUrl;
-    link.download = 'resume.pdf';
-    link.target = '_blank';
+    link.download = "resume.pdf";
+    link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const openInNewTab = () => {
-    window.open(resumeUrl, '_blank');
+    window.open(resumeUrl, "_blank");
   };
 
   if (loading) {
@@ -70,9 +71,11 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
       {/* PDF Controls */}
       <div className="flex items-center justify-between p-4 bg-white/5 border-b border-white/10 rounded-t-lg backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-300 font-medium">Resume Preview</span>
+          <span className="text-sm text-gray-300 font-medium">
+            Resume Preview
+          </span>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <button
             onClick={downloadPDF}
@@ -95,17 +98,17 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
           src={iframeSrc}
           width="100%"
           height="600"
-          style={{ border: 'none' }}
+          style={{ border: "none" }}
           className="w-full"
           title="Resume PDF"
           onLoad={() => setLoading(false)}
           onError={() => {
-            setError('Failed to load PDF in viewer');
+            setError("Failed to load PDF in viewer");
             // Fallback to direct URL
             setIframeSrc(resumeUrl);
           }}
         />
-        
+
         {error && (
           <div className="absolute inset-0 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center justify-center backdrop-blur-sm">
             <div className="text-center text-red-300">
@@ -137,27 +140,29 @@ function DashboardContent() {
   const { user, loading } = useAuth();
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState<string>('');
-  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [message, setMessage] = useState<string>("");
+  const [messageType, setMessageType] = useState<"success" | "error">(
+    "success"
+  );
 
   useEffect(() => {
     if (user) {
       // Get user's current resume URL
-      fetch('/api/auth/me', {
-        credentials: 'include', // Include cookies for authentication
+      fetch("/api/auth/me", {
+        credentials: "include", // Include cookies for authentication
         headers: {
-          'Content-Type': 'application/json',
-        }
+          "Content-Type": "application/json",
+        },
       })
-        .then(res => res.json())
-        .then(data => {
-          console.log('User data from /api/auth/me:', data); // Debug log
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("User data from /api/auth/me:", data); // Debug log
           if (data.success && data.user && data.user.resumeUrl) {
             setResumeUrl(data.user.resumeUrl);
           }
         })
-        .catch(error => {
-          console.error('Error fetching user data:', error);
+        .catch((error) => {
+          console.error("Error fetching user data:", error);
         });
     }
   }, [user]);
@@ -165,42 +170,42 @@ function DashboardContent() {
   const handleResumeUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setUploading(true);
-    setMessage('');
+    setMessage("");
 
     const formData = new FormData(e.currentTarget);
-    const file = formData.get('resume') as File;
+    const file = formData.get("resume") as File;
 
     if (!file) {
-      setMessage('Please select a file');
-      setMessageType('error');
+      setMessage("Please select a file");
+      setMessageType("error");
       setUploading(false);
       return;
     }
 
     try {
-      const response = await fetch('/api/user/uploadResume', {
-        method: 'POST',
+      const response = await fetch("/api/user/uploadResume", {
+        method: "POST",
         body: formData,
-        credentials: 'include', // Include cookies for authentication
+        credentials: "include", // Include cookies for authentication
       });
 
       const result = await response.json();
-      console.log('Upload response:', result); // Debug log
+      console.log("Upload response:", result); // Debug log
 
       if (result.success) {
         setResumeUrl(result.resumeUrl);
-        setMessage('Resume uploaded successfully!');
-        setMessageType('success');
+        setMessage("Resume uploaded successfully!");
+        setMessageType("success");
         // Reset form
         (e.target as HTMLFormElement).reset();
       } else {
-        setMessage(result.message || 'Upload failed');
-        setMessageType('error');
+        setMessage(result.message || "Upload failed");
+        setMessageType("error");
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      setMessage('Upload failed. Please try again.');
-      setMessageType('error');
+      console.error("Upload error:", error);
+      setMessage("Upload failed. Please try again.");
+      setMessageType("error");
     } finally {
       setUploading(false);
     }
@@ -210,62 +215,60 @@ function DashboardContent() {
     return null;
   }
   if (!user) {
-    if (typeof window !== 'undefined') {
-      window.location.href = '/login';
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
     }
     return null;
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-gray-400">
-      {/* Fixed background with noise texture */}
-      <div className="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
-        <div className="absolute inset-0 bg-noise opacity-40"></div>
-      </div>
-
-      {/* Floating gradient orbs */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-1/4 right-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-
-      <nav className="relative z-20 bg-white/10 shadow-sm border-b border-white/10 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <a href="/" className="flex items-center group">
-                <img src="/logo.svg" alt="DevLabs" className="h-8 w-auto group-hover:scale-110 transition-transform duration-200" />
-                <span className="ml-2 text-xl font-bold text-white">DevLabs</span>
-              </a>
+    <div className="min-h-screen text-gray-400">
+      <main className="relative z-10 max-w-7xl mx-auto py-24 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {/* Header */}
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-extrabold text-white tracking-tight">
+                Dashboard
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">
+                Manage your profile and resume
+              </p>
             </div>
-            <div className="flex items-center">
-              <a href="/" className="text-gray-400 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200">
-                Home
+            <div className="flex gap-2">
+              <a
+                href="/"
+                className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-gray-200 hover:bg-white/20 transition"
+              >
+                Back to Home
               </a>
             </div>
           </div>
-        </div>
-      </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
             </div>
-            <div className="lg:col-span-2">
-              <div className="backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20 p-8 shadow-2xl">
-                <h2 className="text-2xl font-bold mb-6 text-white">Resume Management</h2>
-                
+            <div className="lg:col-span-2 space-y-8">
+              <div className="p-8 rounded-xl border border-white/10 bg-neutral-900/60">
+                <h2 className="text-2xl font-bold mb-6 text-white">
+                  Resume Management
+                </h2>
+
                 {resumeUrl ? (
                   <div className="space-y-6">
                     {/* Resume Header with Download */}
                     <div className="flex justify-between items-center p-4 bg-green-500/20 border border-green-500/30 rounded-lg backdrop-blur-sm">
                       <div>
-                        <h3 className="font-semibold text-green-300 text-lg">📄 Your Resume</h3>
-                        <p className="text-sm text-gray-400">Resume successfully uploaded and ready to view</p>
+                        <h3 className="font-semibold text-green-300 text-lg">
+                          📄 Your Resume
+                        </h3>
+                        <p className="text-sm text-gray-400">
+                          Resume successfully uploaded and ready to view
+                        </p>
                       </div>
-                      <a 
-                        href={resumeUrl} 
+                      <a
+                        href={resumeUrl}
                         download
                         className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
                       >
@@ -280,10 +283,15 @@ function DashboardContent() {
 
                     {/* Update Form */}
                     <div className="border-t border-white/10 pt-6">
-                      <h4 className="text-lg font-medium mb-4 text-white">Update Resume</h4>
+                      <h4 className="text-lg font-medium mb-4 text-white">
+                        Update Resume
+                      </h4>
                       <form onSubmit={handleResumeUpload} className="space-y-4">
                         <div>
-                          <label htmlFor="resume" className="block text-sm font-medium text-gray-300 mb-2">
+                          <label
+                            htmlFor="resume"
+                            className="block text-sm font-medium text-gray-300 mb-2"
+                          >
                             Upload New Resume (PDF only, max 2MB)
                           </label>
                           <input
@@ -316,7 +324,7 @@ function DashboardContent() {
                               Uploading...
                             </div>
                           ) : (
-                            'Update Resume'
+                            "Update Resume"
                           )}
                         </button>
                       </form>
@@ -331,7 +339,10 @@ function DashboardContent() {
                     {/* Initial Upload Form */}
                     <form onSubmit={handleResumeUpload} className="space-y-4">
                       <div>
-                        <label htmlFor="resume" className="block text-sm font-medium text-gray-300 mb-2">
+                        <label
+                          htmlFor="resume"
+                          className="block text-sm font-medium text-gray-300 mb-2"
+                        >
                           Upload Resume (PDF only, max 2MB)
                         </label>
                         <input
@@ -364,7 +375,7 @@ function DashboardContent() {
                             Uploading...
                           </div>
                         ) : (
-                          'Upload Resume'
+                          "Upload Resume"
                         )}
                       </button>
                     </form>
@@ -373,14 +384,30 @@ function DashboardContent() {
 
                 {/* Message Display */}
                 {message && (
-                  <div className={`mt-4 p-4 rounded-md backdrop-blur-sm ${
-                    messageType === 'success' 
-                      ? 'bg-green-500/20 border border-green-500/30 text-green-300' 
-                      : 'bg-red-500/20 border border-red-500/30 text-red-300'
-                  }`}>
+                  <div
+                    className={`mt-4 p-4 rounded-md backdrop-blur-sm ${
+                      messageType === "success"
+                        ? "bg-green-500/20 border border-green-500/30 text-green-300"
+                        : "bg-red-500/20 border border-red-500/30 text-red-300"
+                    }`}
+                  >
                     {message}
                   </div>
                 )}
+              </div>
+
+              {/* Application Questionnaire Panel - Single Page */}
+              <div className="p-8 rounded-xl border border-white/10 bg-neutral-900/60">
+                <h2 className="text-2xl font-bold mb-6 text-white">
+                  Application Form
+                </h2>
+                <ApplicationForm
+                  variant="single"
+                  prefill={{
+                    name: user?.name || "",
+                    email: user?.email || "",
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -393,22 +420,6 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <>
-      <style>{`
-        html {
-          font-family: Manrope, sans-serif;
-        }
-
-        body {
-          background-color: #080808;
-        }
-
-        .bg-noise {
-          background-image: url("/noise.png");
-          background-size: 200px 200px;
-          background-repeat: repeat;
-          background-position: center;
-        }
-      `}</style>
       <AuthProvider>
         <DashboardContent />
       </AuthProvider>
