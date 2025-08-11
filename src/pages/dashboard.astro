@@ -1,0 +1,15 @@
+---
+import DashboardPage from "../components/DashboardPage";
+import Layout from "../layouts/Layout.astro";
+
+const title = "Dashboard - DevLabs";
+---
+
+<Layout title={title}>
+  <DashboardPage client:load />
+  <style>
+    .page-spacing {
+      padding-top: 6rem;
+    }
+  </style>
+</Layout>

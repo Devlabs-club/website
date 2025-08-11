@@ -1,0 +1,83 @@
+---
+// Simple Astro component for auth controls (no React context needed)
+---
+
+<div class="flex items-center gap-2" id="auth-controls">
+  <!-- Login Button -->
+  <a
+    href="/login"
+    class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
+  >
+    Login
+  </a>
+  
+  <!-- Sign Up Button -->
+  <a
+    href="/register"
+    class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
+  >
+    Sign Up
+  </a>
+</div>
+
+<script>
+  // Client-side script to handle authentication state
+  document.addEventListener('DOMContentLoaded', function() {
+    const authControls = document.getElementById('auth-controls');
+    
+    if (authControls) {
+      // Check if user is logged in (you can customize this logic)
+      const checkAuthStatus = async () => {
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            credentials: 'include',
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              // User is logged in - show dashboard and logout
+              authControls.innerHTML = `
+                <a
+                  href="/dashboard"
+                  class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
+                >
+                  Dashboard
+                </a>
+                <button
+                  onclick="handleLogout()"
+                  class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1 bg-transparent border-none cursor-pointer"
+                >
+                  Logout
+                </button>
+              `;
+            }
+          }
+        } catch (error) {
+          console.log('Auth check failed:', error);
+          // Keep default login/signup buttons
+        }
+      };
+      
+      // Global logout function
+      window.handleLogout = async () => {
+        try {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+          });
+          // Redirect to login or home page
+          window.location.href = '/login';
+        } catch (error) {
+          console.error('Logout failed:', error);
+          // Even if the API call fails, redirect
+          window.location.href = '/login';
+        }
+      };
+      
+      // Check auth status on page load
+      checkAuthStatus();
+    }
+  });
+</script>

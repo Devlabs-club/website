@@ -1,0 +1,14 @@
+---
+import ApplicationForm from "./ApplicationForm";
+
+interface Props {
+  variant?: "single" | "multi";
+  prefill?: Record<string, any>;
+}
+
+const { variant = "multi", prefill } = Astro.props as Props;
+// Cast to any to satisfy TS when using Astro client directives
+const Form = ApplicationForm as any;
+---
+
+<Form client:load variant={variant} prefill={prefill} />

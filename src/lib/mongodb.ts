@@ -5,18 +5,26 @@ dotenv.config();
 
 // Use environment variable for MongoDB URI
 const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_ADMIN_URI = process.env.ADMIN_MONGO_URI;
 if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
 }
-
-// Global caching mechanism
-let cached = global.mongoose || { conn: null, promise: null };
-
-if (!global.mongoose) {
-    global.mongoose = cached;
+if (!MONGODB_ADMIN_URI) {
+    throw new Error('Please define the ADMIN_MONGO_URI environment variable');
 }
 
-async function connectDB() {
+// Global caching mechanism
+let cached = global.certificate_connection || { conn: null, promise: null };
+let cachedAdmin = global.admin_connection || { conn: null, promise: null };
+
+if (!global.certificate_connection) {
+    global.certificate_connection = cached;
+}
+if (!global.admin_connection) {
+    global.admin_connection = cachedAdmin;
+}
+
+async function makeConnection(mongo_url) {
     // Use cached connection if available
     if (cached.conn) {
         return cached.conn;
@@ -28,7 +36,7 @@ async function connectDB() {
             bufferCommands: false,
         };
 
-        cached.promise = mongoose.connect(MONGODB_URI, opts);
+        cached.promise = mongoose.connect(mongo_url, opts);
     }
 
     try {
@@ -39,6 +47,14 @@ async function connectDB() {
     }
 
     return cached.conn;
+}
+
+async function connectDB() {
+    return makeConnection(MONGODB_URI);
+}
+
+async function connectAdminDB() {
+    return makeConnection(MONGODB_ADMIN_URI);
 }
 
 // Define schema - this is safe even during static build
@@ -53,6 +69,16 @@ const applicationSchema = new mongoose.Schema({
     projectIdea: { type: String, required: true },
     referralSource: { type: String, required: true },
     twitterHandle: { type: String },
+    // New optional profile/link and background fields
+    linkedin: { type: String },
+    personalWebsite: { type: String },
+    portfolio: { type: String },
+    github: { type: String },
+    primarySkills: { type: String },
+    currentRole: { type: String },
+    coolestThing: { type: String },
+    favoriteLink: { type: String },
+    hackathonStory: { type: String },
     additionalInfo: { type: String },
     proofOfWork: { type: String },
     progress: { type: Number, default: 0 },
@@ -68,4 +94,4 @@ try {
     console.error('MongoDB model initialization error:', error);
 }
 
-export { connectDB, Application }; 
+export { connectDB, connectAdminDB, Application }; 
