@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { getNames } from "country-list";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,16 +7,12 @@ import * as z from "zod";
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   gender: z.string().min(1, "Please select your gender"),
-  age: z
-    .number()
-    .min(16, "You must be at least 16 years old")
-    .max(100, "Please enter a valid age"),
+  dob: z
+    .string()
+    .min(1, "Please enter your date of birth"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  about: z
-    .string()
-    .min(50, "Please tell us more about yourself (minimum 50 characters)"),
-  country: z.string().min(1, "Please select your country"),
+  country: z.string().min(1, "Please select your country of citizenship"),
   projectIdea: z
     .string()
     .min(50, "Please describe your project idea (minimum 50 characters)"),
@@ -26,8 +23,6 @@ const formSchema = z.object({
   personalWebsite: z.string().url().or(z.literal("")).optional(),
   portfolio: z.string().url().or(z.literal("")).optional(),
   github: z.string().url().or(z.literal("")).optional(),
-  primarySkills: z.string().optional(),
-  currentRole: z.string().optional(),
   coolestThing: z.string().optional(),
   favoriteLink: z.string().url().or(z.literal("")).optional(),
   hackathonStory: z.string().optional(),
@@ -36,6 +31,9 @@ const formSchema = z.object({
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+// Get country names for dropdown
+const countryOptions = Object.values(getNames());
 
 interface ApplicationFormProps {
   prefill?: Partial<FormData>;
@@ -73,11 +71,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     defaultValues: {
       name: "",
       gender: "",
-      age: undefined,
+  dob: "",
       email: "",
       phone: "",
-      about: "",
-      country: "",
+  country: "",
       projectIdea: "",
       referralSource: "",
       twitterHandle: "",
@@ -85,8 +82,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       personalWebsite: "",
       portfolio: "",
       github: "",
-      primarySkills: "",
-      currentRole: "",
       coolestThing: "",
       favoriteLink: "",
       hackathonStory: "",
@@ -96,37 +91,24 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   });
 
   const formData = watch();
-  // Single-page UX helpers
-  const [openSections, setOpenSections] = useState({
-    personal: true,
-    about: true,
-    additional: false,
-    final: false,
-  });
 
-  const toggleSection = (key: keyof typeof openSections) =>
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const completedRequiredCount = (() => {
-    const required: (keyof FormData)[] = [
-      "name",
-      "gender",
-      "age",
-      "email",
-      "phone",
-      "country",
-      "about",
-      "projectIdea",
-      "referralSource",
-    ];
-    return required.reduce((acc, key) => {
-      const val = formData[key];
-      if (val === undefined || val === null) return acc;
-      if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
-      return acc + (String(val).trim().length > 0 ? 1 : 0);
-    }, 0);
-  })();
-  const totalRequiredCount = 9;
+  const required: (keyof FormData)[] = [
+    "name",
+    "gender",
+    "dob",
+    "email",
+    "phone",
+    "country",
+    "projectIdea",
+    "referralSource",
+  ];
+  const completedRequiredCount = required.reduce((acc, key) => {
+    const val = formData[key];
+    if (val === undefined || val === null) return acc;
+    if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
+    return acc + (String(val).trim().length > 0 ? 1 : 0);
+  }, 0);
+  const totalRequiredCount = required.length;
 
   // Prefill fields from props if provided
   useEffect(() => {
@@ -158,31 +140,28 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     if (hasChanged) {
       setPreviousFormData(formData);
     }
-  }, [formData]);
+  }, [formData, previousFormData]);
 
-  // Load saved data
+  // Load saved data (Note: localStorage not available in Claude artifacts)
   useEffect(() => {
     const loadSavedData = async () => {
-      const email = localStorage.getItem("applicationEmail");
-      if (email) {
-        try {
+      // Simulate loading saved data - in real app this would use localStorage
+      try {
+        const email = localStorage.getItem("applicationEmail");
+        if (email) {
           const response = await fetch(`/api/application?email=${email}`);
           const { data } = await response.json();
           if (data) {
             Object.entries(data).forEach(([key, value]) => {
-              // Skip non-form fields or null/undefined values
               if (key in formSchema.shape && value != null) {
-                setValue(
-                  key as keyof FormData,
-                  value as string | number | undefined
-                );
+                setValue(key as keyof FormData, value as string | number | undefined);
               }
             });
             setCurrentStep(data.progress || 1);
           }
-        } catch (error) {
-          console.error("Error loading saved data:", error);
         }
+      } catch (error) {
+        console.error("Error loading saved data:", error);
       }
     };
 
@@ -203,8 +182,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         if (response.ok) {
           setSaveStatus("saved");
           setTimeout(() => setSaveStatus(null), 2000);
-          // Store email in localStorage to retrieve later
-          localStorage.setItem("applicationEmail", formData.email);
+          // localStorage.setItem("applicationEmail", formData.email);
         } else {
           setSaveStatus("error");
         }
@@ -226,13 +204,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             return (
               formData.name &&
               formData.gender &&
-              formData.age &&
+              formData.dob &&
               formData.email &&
               formData.phone &&
               formData.country
             );
           case 2:
-            return formData.about && formData.projectIdea;
+            return formData.projectIdea;
           case 3:
             return formData.referralSource;
           case 4:
@@ -263,8 +241,21 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     try {
       // Validate all fields before submission
       const isValid = await trigger();
+
+      console.log("Form Data: ", JSON.stringify(data));
+      console.log("Is Valid: ", isValid);
+
       if (!isValid) {
-        throw new Error("Please fill out all required fields correctly");
+        // Only show missing fields that are actually in the schema
+        const missingFields = required.filter((key) => {
+          const val = formData[key];
+          return val === undefined || val === null || String(val).trim().length === 0;
+        });
+        if (missingFields.length > 0) {
+          throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+        } else {
+          throw new Error("Please fill out all required fields correctly");
+        }
       }
 
       const response = await fetch("/api/application", {
@@ -272,12 +263,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          // Ensure final submission in single-page variant
           progress: variant === "single" ? 4 : totalSteps,
         }),
       });
 
       const result = await response.json();
+
+      console.log("Submission Result: ", result);
 
       if (response.ok) {
         localStorage.setItem("applicationEmail", data.email);
@@ -299,7 +291,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   if (isSubmitted) {
     return (
-      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8   flex items-center justify-center">
+      <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="bg-black/20 backdrop-blur-sm p-8 rounded-2xl border border-gray-700/50 text-center relative overflow-hidden">
           <div className="mb-6 relative z-10">
             <div className="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-gray-800/50 border border-gray-600">
@@ -396,23 +388,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Age
+                  Date of birth
                 </label>
                 <Controller
-                  name="age"
+                  name="dob"
                   control={control}
                   render={({ field }) => (
                     <input
                       {...field}
-                      type="number"
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      type="date"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     />
                   )}
                 />
-                {errors.age && (
+                {errors.dob && (
                   <p className="mt-1 text-sm text-red-400">
-                    {errors.age.message}
+                    {errors.dob.message}
                   </p>
                 )}
               </div>
@@ -463,17 +454,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Country
+                  Country of citizenship
                 </label>
                 <Controller
                   name="country"
                   control={control}
                   render={({ field }) => (
-                    <input
+                    <select
                       {...field}
-                      type="text"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    />
+                    >
+                      <option value="">Select country</option>
+                      {countryOptions.map((country) => {
+                        const countryStr = String(country);
+                        return (
+                          <option key={countryStr} value={countryStr}>
+                            {countryStr}
+                          </option>
+                        );
+                      })}
+                    </select>
                   )}
                 />
                 {errors.country && (
@@ -489,29 +489,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       case 2:
         return (
           <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Tell us about yourself
-              </label>
-              <Controller
-                name="about"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share your background, interests, and what drives you..."
-                  />
-                )}
-              />
-              {errors.about && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.about.message}
-                </p>
-              )}
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
                 What do you want to build?
@@ -534,50 +511,56 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 </p>
               )}
             </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Current Role (optional)
-                </label>
-                <Controller
-                  name="currentRole"
-                  control={control}
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    >
-                      <option value="">Select role</option>
-                      <option value="student">Student</option>
-                      <option value="working-professional">
-                        Working Professional
-                      </option>
-                      <option value="founder">Founder</option>
-                      <option value="freelancer">Freelancer</option>
-                      <option value="other">Other</option>
-                    </select>
-                  )}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Primary Skills (optional)
-                </label>
-                <Controller
-                  name="primarySkills"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="text"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="Tech, Design, Marketing, Ops, etc."
-                    />
-                  )}
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                What's the coolest thing you've ever built or worked on? (optional)
+              </label>
+              <Controller
+                name="coolestThing"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Even if it failed — tell us the story!"
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Have you been to any hackathons/conferences? Tell us your story! (optional)
+              </label>
+              <Controller
+                name="hackathonStory"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Share your experiences and learnings..."
+                  />
+                )}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Anything else you'd like to tell us?
+              </label>
+              <Controller
+                name="additionalInfo"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    rows={4}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="Share any additional information that might be relevant..."
+                  />
+                )}
+              />
             </div>
           </div>
         );
@@ -611,99 +594,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 </p>
               )}
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Links (optional)
-              </label>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <Controller
-                  name="linkedin"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="LinkedIn URL"
-                    />
-                  )}
-                />
-                <Controller
-                  name="personalWebsite"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="Personal Website URL"
-                    />
-                  )}
-                />
-                <Controller
-                  name="portfolio"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="Portfolio URL"
-                    />
-                  )}
-                />
-                <Controller
-                  name="github"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="GitHub URL"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Twitter Handle (optional)
-              </label>
-              <Controller
-                name="twitterHandle"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="@username"
-                  />
-                )}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Favorite Project/Tweet/Video Link (optional)
-              </label>
-              <Controller
-                name="favoriteLink"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="url"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://..."
-                  />
-                )}
-              />
-            </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
                 Proof of Work (optional)
@@ -729,55 +619,89 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                What’s the coolest thing you’ve ever built or worked on?
-                (optional)
+                Twitter Handle (optional)
               </label>
               <Controller
-                name="coolestThing"
+                name="twitterHandle"
                 control={control}
                 render={({ field }) => (
-                  <textarea
+                  <input
                     {...field}
-                    rows={4}
+                    type="text"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Even if it failed — tell us the story!"
+                    placeholder="@username"
                   />
                 )}
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                Have you been to any hackathons/conferences? Tell us your story!
-                (optional)
+                Links (optional)
               </label>
-              <Controller
-                name="hackathonStory"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share your experiences and learnings..."
-                  />
-                )}
-              />
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <Controller
+                  name="linkedin"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="https://linkedin.com/in/yourname"
+                    />
+                  )}
+                />
+                <Controller
+                  name="personalWebsite"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="https://yourname.com"
+                    />
+                  )}
+                />
+                <Controller
+                  name="portfolio"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="https://portfolio.site/you"
+                    />
+                  )}
+                />
+                <Controller
+                  name="github"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="https://github.com/you"
+                    />
+                  )}
+                />
+              </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                Anything else you'd like to tell us?
+                Favorite Project/Tweet/Video Link (optional)
               </label>
               <Controller
-                name="additionalInfo"
+                name="favoriteLink"
                 control={control}
                 render={({ field }) => (
-                  <textarea
+                  <input
                     {...field}
-                    rows={4}
+                    type="url"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share any additional information that might be relevant..."
+                    placeholder="https://..."
                   />
                 )}
               />
@@ -790,7 +714,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     }
   };
 
-  // For single-page variant, render all steps in sequence
+  // For single-page variant, render all steps in one view
   const renderAll = () => {
     return (
       <div className="space-y-10">
@@ -855,23 +779,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Age
+                Date of birth
               </label>
               <Controller
-                name="age"
+                name="dob"
                 control={control}
                 render={({ field }) => (
                   <input
                     {...field}
-                    type="number"
-                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    type="date"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   />
                 )}
               />
-              {errors.age && (
+              {errors.dob && (
                 <p className="mt-1 text-sm text-red-400">
-                  {errors.age.message}
+                  {errors.dob.message}
                 </p>
               )}
             </div>
@@ -919,17 +842,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Country
+                Country of citizenship
               </label>
               <Controller
                 name="country"
                 control={control}
                 render={({ field }) => (
-                  <input
+                  <select
                     {...field}
-                    type="text"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  />
+                  >
+                    <option value="">Select country</option>
+                    {countryOptions.map((country) => {
+                      const countryStr = String(country);
+                      return (
+                        <option key={countryStr} value={countryStr}>
+                          {countryStr}
+                        </option>
+                      );
+                    })}
+                  </select>
                 )}
               />
               {errors.country && (
@@ -946,30 +878,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <div>
             <h2 className="text-xl font-semibold text-white">About you</h2>
             <p className="text-sm text-gray-400 mt-1">
-              Share what you’re into and what you want to build.
+              Share what you're into and what you want to build.
             </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Tell us about yourself
-            </label>
-            <Controller
-              name="about"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share your background, interests, and what drives you..."
-                />
-              )}
-            />
-            {errors.about && (
-              <p className="mt-1 text-sm text-red-400">
-                {errors.about.message}
-              </p>
-            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -993,48 +903,56 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               </p>
             )}
           </div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Current Role (optional)
-              </label>
-              <Controller
-                name="currentRole"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  >
-                    <option value="">Select role</option>
-                    <option value="student">Student</option>
-                    <option value="working-professional">
-                      Working Professional
-                    </option>
-                    <option value="founder">Founder</option>
-                    <option value="freelancer">Freelancer</option>
-                    <option value="other">Other</option>
-                  </select>
-                )}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Primary Skills (optional)
-              </label>
-              <Controller
-                name="primarySkills"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Tech, Design, Marketing, Ops, etc."
-                  />
-                )}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              What's the coolest thing you've ever built or worked on? (optional)
+            </label>
+            <Controller
+              name="coolestThing"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Even if it failed — tell us the story!"
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Have you been to any hackathons/conferences? Tell us your story! (optional)
+            </label>
+            <Controller
+              name="hackathonStory"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share your experiences and learnings..."
+                />
+              )}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Anything else you'd like to tell us?
+            </label>
+            <Controller
+              name="additionalInfo"
+              control={control}
+              render={({ field }) => (
+                <textarea
+                  {...field}
+                  rows={4}
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="Share any additional information that might be relevant..."
+                />
+              )}
+            />
           </div>
         </div>
 
@@ -1073,6 +991,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 {errors.referralSource.message}
               </p>
             )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Twitter Handle (optional)
+            </label>
+            <Controller
+              name="twitterHandle"
+              control={control}
+              render={({ field }) => (
+                <input
+                  {...field}
+                  type="text"
+                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  placeholder="@username"
+                />
+              )}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -1131,23 +1066,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Twitter Handle (optional)
-            </label>
-            <Controller
-              name="twitterHandle"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="text"
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="@username"
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
               Favorite Project/Tweet/Video Link (optional)
             </label>
             <Controller
@@ -1176,69 +1094,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   rows={4}
                   className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   placeholder="Share links to your previous work, GitHub repositories, or portfolio..."
-                />
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Final Thoughts */}
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Final thoughts</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Anything else you’d like to share before submitting.
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              What’s the coolest thing you’ve ever built or worked on?
-              (optional)
-            </label>
-            <Controller
-              name="coolestThing"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Even if it failed — tell us the story!"
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Have you been to any hackathons/conferences? Tell us your story!
-              (optional)
-            </label>
-            <Controller
-              name="hackathonStory"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share your experiences and learnings..."
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Anything else you'd like to tell us?
-            </label>
-            <Controller
-              name="additionalInfo"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share any additional information that might be relevant..."
                 />
               )}
             />
@@ -1335,13 +1190,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                             return [
                               "name",
                               "gender",
-                              "age",
+                              "dob",
                               "email",
                               "phone",
                               "country",
                             ];
                           case 2:
-                            return ["about", "projectIdea"];
+                            return ["projectIdea"];
                           case 3:
                             return ["referralSource"];
                           default:

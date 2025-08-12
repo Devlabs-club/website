@@ -10,14 +10,6 @@
   >
     Login
   </a>
-  
-  <!-- Sign Up Button -->
-  <a
-    href="/register"
-    class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
-  >
-    Sign Up
-  </a>
 </div>
 
 <script>
@@ -36,15 +28,9 @@
           
           if (response.ok) {
             const data = await response.json();
-            if (data.success && data.user) {
-              // User is logged in - show dashboard and logout
+            if (data.user) {
+              // User is logged in - show only logout
               authControls.innerHTML = `
-                <a
-                  href="/dashboard"
-                  class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
-                >
-                  Dashboard
-                </a>
                 <button
                   onclick="handleLogout()"
                   class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1 bg-transparent border-none cursor-pointer"
@@ -56,12 +42,12 @@
           }
         } catch (error) {
           console.log('Auth check failed:', error);
-          // Keep default login/signup buttons
+          // Keep default login button
         }
       };
       
       // Global logout function
-      window.handleLogout = async () => {
+      (window as any).handleLogout = async () => {
         try {
           await fetch('/api/auth/logout', {
             method: 'POST',

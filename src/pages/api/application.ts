@@ -29,7 +29,8 @@ export const POST: APIRoute = async ({ request }) => {
             // For updates, only validate required fields if it's a final submission
             if (isFinalSubmission) {
                 // Validate all required fields for final submission
-                const requiredFields = ['name', 'gender', 'age', 'email', 'phone', 'about', 'country', 'projectIdea', 'referralSource'];
+                const requiredFields = ['name', 'gender', 'dob', 'email', 'phone', 'country', 'projectIdea', 'referralSource'];
+                console.log("Required Fields: ", requiredFields);
                 const missingFields = requiredFields.filter(field => !data[field]);
                 if (missingFields.length > 0) {
                     return new Response(JSON.stringify({
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
             // For new applications, only validate required fields if it's a final submission
             if (isFinalSubmission) {
                 // Validate all required fields for final submission
-                const requiredFields = ['name', 'gender', 'age', 'email', 'phone', 'about', 'country', 'projectIdea', 'referralSource'];
+                const requiredFields = ['name', 'gender', 'dob', 'email', 'phone', 'country', 'projectIdea', 'referralSource'];
                 const missingFields = requiredFields.filter(field => !data[field]);
                 if (missingFields.length > 0) {
                     return new Response(JSON.stringify({

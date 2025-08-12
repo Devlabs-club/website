@@ -15,7 +15,7 @@ import AuthControlsAstro from './AuthControlsAstro.astro';
             <div id="active-highlight" class="absolute bg-gradient-to-r from-orange-500 to-orange-400 rounded-full h-8 transition-all duration-300 ease-out opacity-0 pointer-events-none" style="transform: rotate(-2deg);"></div>
             
             <a href="/" class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="story">story</a>
-            <a href="/apply"  class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="join-us">join us</a>
+            <a href="/register" id="join-us-link" class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="join-us">join us</a>
             <a href="/events" class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="events">events</a>
             <a href="/sponsor" class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="sponsor">sponsor</a>
             <a href="/find-talent" class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1" data-section="find-talent">find talent</a>
@@ -52,7 +52,7 @@ import AuthControlsAstro from './AuthControlsAstro.astro';
             <!-- Mobile Navigation links -->
             <div class="space-y-3">
                 <a href="/" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="story">story</a>
-                <a href="/apply" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="join-us">join us</a>
+                <a href="/register" id="join-us-link-mobile" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="join-us">join us</a>
                 <a href="/events" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="events">events</a>
                 <a href="/sponsor" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="sponsor">sponsor</a>
                 <a href="/find-talent" class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10" data-section="find-talent">find talent</a>
@@ -138,6 +138,51 @@ document.addEventListener('DOMContentLoaded', function() {
     const highlight = document.getElementById('active-highlight');
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
+    const joinUsLink = document.getElementById('join-us-link');
+    const joinUsLinkMobile = document.getElementById('join-us-link-mobile');
+    
+    // Function to update join us links based on auth status
+    const updateJoinUsLinks = async () => {
+        try {
+            const response = await fetch('/api/auth/me', {
+                method: 'GET',
+                credentials: 'include',
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.user) {
+                    // User is logged in - point to dashboard
+                    if (joinUsLink) {
+                        joinUsLink.setAttribute('href', '/dashboard');
+                    }
+                    if (joinUsLinkMobile) {
+                        joinUsLinkMobile.setAttribute('href', '/dashboard');
+                    }
+                } else {
+                    // User is not logged in - point to registration
+                    if (joinUsLink) {
+                        joinUsLink.setAttribute('href', '/register');
+                    }
+                    if (joinUsLinkMobile) {
+                        joinUsLinkMobile.setAttribute('href', '/register');
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Auth check failed:', error);
+            // Default to registration page
+            if (joinUsLink) {
+                joinUsLink.setAttribute('href', '/register');
+            }
+            if (joinUsLinkMobile) {
+                joinUsLinkMobile.setAttribute('href', '/register');
+            }
+        }
+    };
+    
+    // Update join us links on page load
+    updateJoinUsLinks();
     
     // Mobile menu toggle functionality
     if (mobileMenuBtn && mobileMenu) {

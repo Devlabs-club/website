@@ -61,10 +61,29 @@ async function connectAdminDB() {
 const applicationSchema = new mongoose.Schema({
     name: { type: String, required: true },
     gender: { type: String, required: true },
-    age: { type: Number, required: true },
+    dob: { 
+        type: Date, 
+        required: true,
+        // Ensure date is stored as yyyy-mm-dd (ISO 8601 date only, no time)
+        set: (val: string | Date) => {
+            if (typeof val === 'string') {
+                // Accepts 'yyyy-mm-dd' or ISO string, strips time if present
+                return new Date(val.split('T')[0]);
+            }
+            if (val instanceof Date) {
+                // Zero out time part
+                return new Date(val.getFullYear(), val.getMonth(), val.getDate());
+            }
+            return val;
+        },
+        get: (val: Date) => {
+            if (!val) return val;
+            // Format as yyyy-mm-dd
+            return val.toISOString().split('T')[0];
+        }
+    },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
-    about: { type: String, required: true },
     country: { type: String, required: true },
     projectIdea: { type: String, required: true },
     referralSource: { type: String, required: true },
@@ -84,6 +103,9 @@ const applicationSchema = new mongoose.Schema({
     progress: { type: Number, default: 0 },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
+}, {
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 // Initialize model safely for serverless environment
