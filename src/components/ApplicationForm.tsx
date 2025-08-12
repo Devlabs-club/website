@@ -92,25 +92,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   const formData = watch();
 
-  const completedRequiredCount = (() => {
-    const required: (keyof FormData)[] = [
-      "name",
-      "gender",
-  "dob",
-      "email",
-      "phone",
-      "country",
-      "projectIdea",
-      "referralSource",
-    ];
-    return required.reduce((acc, key) => {
-      const val = formData[key];
-      if (val === undefined || val === null) return acc;
-      if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
-      return acc + (String(val).trim().length > 0 ? 1 : 0);
-    }, 0);
-  })();
-  const totalRequiredCount = 8;
+  const required: (keyof FormData)[] = [
+    "name",
+    "gender",
+    "dob",
+    "email",
+    "phone",
+    "country",
+    "projectIdea",
+    "referralSource",
+  ];
+  const completedRequiredCount = required.reduce((acc, key) => {
+    const val = formData[key];
+    if (val === undefined || val === null) return acc;
+    if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
+    return acc + (String(val).trim().length > 0 ? 1 : 0);
+  }, 0);
+  const totalRequiredCount = required.length;
 
   // Prefill fields from props if provided
   useEffect(() => {
@@ -149,19 +147,19 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     const loadSavedData = async () => {
       // Simulate loading saved data - in real app this would use localStorage
       try {
-        // const email = localStorage.getItem("applicationEmail");
-        // if (email) {
-        //   const response = await fetch(`/api/application?email=${email}`);
-        //   const { data } = await response.json();
-        //   if (data) {
-        //     Object.entries(data).forEach(([key, value]) => {
-        //       if (key in formSchema.shape && value != null) {
-        //         setValue(key as keyof FormData, value as string | number | undefined);
-        //       }
-        //     });
-        //     setCurrentStep(data.progress || 1);
-        //   }
-        // }
+        const email = localStorage.getItem("applicationEmail");
+        if (email) {
+          const response = await fetch(`/api/application?email=${email}`);
+          const { data } = await response.json();
+          if (data) {
+            Object.entries(data).forEach(([key, value]) => {
+              if (key in formSchema.shape && value != null) {
+                setValue(key as keyof FormData, value as string | number | undefined);
+              }
+            });
+            setCurrentStep(data.progress || 1);
+          }
+        }
       } catch (error) {
         console.error("Error loading saved data:", error);
       }
@@ -243,8 +241,21 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     try {
       // Validate all fields before submission
       const isValid = await trigger();
+
+      console.log("Form Data: ", JSON.stringify(data));
+      console.log("Is Valid: ", isValid);
+
       if (!isValid) {
-        throw new Error("Please fill out all required fields correctly");
+        // Only show missing fields that are actually in the schema
+        const missingFields = required.filter((key) => {
+          const val = formData[key];
+          return val === undefined || val === null || String(val).trim().length === 0;
+        });
+        if (missingFields.length > 0) {
+          throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+        } else {
+          throw new Error("Please fill out all required fields correctly");
+        }
       }
 
       const response = await fetch("/api/application", {
@@ -258,8 +269,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
       const result = await response.json();
 
+      console.log("Submission Result: ", result);
+
       if (response.ok) {
-        // localStorage.setItem("applicationEmail", data.email);
+        localStorage.setItem("applicationEmail", data.email);
         setIsSubmitted(true);
       } else {
         throw new Error(result.error || "Failed to submit application");
