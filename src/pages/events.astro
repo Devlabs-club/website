@@ -21,7 +21,8 @@ const events = [
     },
     highlights: ['Residential Program', 'Daily Standups', 'Project Showcase', 'Investor Demo Day'],
     date: 'Summer 2025',
-    status: 'upcoming'
+    status: 'completed',
+    link: 'https://www.gpec.org/news/press-releases/devlabs-launches-hacker-house/'
   },
   {
     id: 'devhacks',
@@ -37,7 +38,8 @@ const events = [
     },
     highlights: ['48-Hour Build', 'Mentor Support', 'Pitch Competition', 'Cash Prizes'],
     date: 'Spring 2025',
-    status: 'completed'
+    status: 'completed',
+    link: 'https://entrepreneurship.engineering.asu.edu/2025/06/devhacks-2025-ignites-innovation-at-arizona-state-university/'
   },
   {
     id: 'devspace',
@@ -53,7 +55,8 @@ const events = [
     },
     highlights: ['Networking Sessions', 'Technical Workshops', 'Startup Pitches', 'Mentorship Opportunities'],
     date: 'Fall 2024',
-    status: 'completed'
+    status: 'completed',
+    link: ''
   },
  
 ];
@@ -80,7 +83,7 @@ const events = [
             <!-- Events Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
                 {events.map((event, index) => (
-                    <div class="group relative bg-gradient-to-br from-white/5 via-white/3 to-transparent border border-white/10 backdrop-blur-sm rounded-3xl p-6 hover:border-orange-400/30 hover:bg-gradient-to-br hover:from-orange-500/10 hover:via-orange-400/5 hover:to-transparent transition-all duration-500 hover:scale-[1.02] hover:shadow-xl hover:shadow-orange-500/20">
+                 <a target="_blank" href={event.link}>   <div class="group relative bg-gradient-to-br from-white/5 via-white/3 to-transparent border border-white/10 backdrop-blur-sm rounded-3xl p-6 hover:border-orange-400/30 hover:bg-gradient-to-br hover:from-orange-500/10 hover:via-orange-400/5 hover:to-transparent transition-all duration-500 hover:scale-[1.02] hover:shadow-orange-500/20">
                         <!-- Event Image -->
                         <div class="relative mb-6 overflow-hidden rounded-2xl">
                             <img 
@@ -143,6 +146,7 @@ const events = [
                         <!-- Hover Glow Effect -->
                         <div class="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
                     </div>
+                    </a>
                 ))}
             </div>
 

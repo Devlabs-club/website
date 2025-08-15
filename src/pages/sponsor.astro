@@ -36,7 +36,7 @@ import GradientBlob from '../components/GradientBlob.astro';
     </CenteredSection>
 
     <!-- CTA Section -->
-    <CenteredSection id="cta" className="mb-24">
+    <CenteredSection id="cta" className="mb-24 ">
         <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
         
         <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-8 md:pb-32 py-8">
@@ -47,34 +47,10 @@ import GradientBlob from '../components/GradientBlob.astro';
             </Paragraph>
             
             <!-- Contact Buttons -->
-            <div class="flex flex-col sm:flex-row gap-6 mt-8">
-                <a href="mailto:people@devlabs.club" 
-                   class="group relative px-8 py-4 
-                          bg-gradient-to-br from-orange-500/20 via-orange-400/15 to-orange-300/10
-                          backdrop-blur-xl border border-orange-400/30 
-                          text-white font-bold text-lg rounded-xl 
-                          transition-all duration-500 hover:scale-105
-                          shadow-[0_8px_32px_rgba(255,153,0,0.2)] 
-                          hover:shadow-[0_16px_48px_rgba(255,153,0,0.4)]
-                          hover:border-orange-300/50 hover:bg-gradient-to-br hover:from-orange-500/30 hover:via-orange-400/20 hover:to-orange-300/15
-                          before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
-                    <span class="relative z-10 drop-shadow-sm">Email Us</span>
-                    <div class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"></div>
-                </a>
+            <div class="flex flex-col sm:flex-row gap-6 mt-4 mb-8">
+                <WrappedText size="large" className="border-orange-300 text-orange-300 bg-transparent font hover:bg-orange-300 hover:text-black "><a href="mailto:people@devlabs.club" class="font-bold text-xl md:text-2xl">email us</a></WrappedText>
+               
                 
-                <a href="https://discord.gg/4XPKg2nWcj" 
-                   class="group relative px-8 py-4 
-                          bg-gradient-to-br from-white/10 via-white/5 to-transparent
-                          backdrop-blur-lg border border-white/20 
-                          text-white font-bold text-lg rounded-xl 
-                          transition-all duration-500 hover:scale-105
-                          shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
-                          hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
-                          hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
-                          before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
-                    <span class="relative z-10 drop-shadow-sm">Join Discord</span>
-                    <div class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"></div>
-                </a>
             </div>
         </div>
     </CenteredSection>
