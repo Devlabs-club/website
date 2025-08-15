@@ -5,8 +5,8 @@ import User from '../../../../models/user.tsx';
 import { generateToken } from '../../../../lib/auth.ts';
 
 // Initialize WorkOS client with proper configuration
-const workos = new WorkOS("sk_test_a2V5XzAxSzJDMENGV0dFQTNKWDJCVkNQWkg5WFEyLFFaVkpXUXY4a2x3UWtlaVlyUTBQb1JSZVQ", {
-  clientId: "client_01JNFBPCY5P5YYHJ8NKJ89XF3G",
+const workos = new WorkOS(process.env.WORKOS_API_KEY!, {
+  clientId: process.env.WORKOS_CLIENT_ID!,
 });
 
 export const GET: APIRoute = async ({ request, redirect, url }) => {
