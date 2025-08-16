@@ -78,14 +78,14 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Check if file has only 1 page
+    // Check if file has only 2 page
     const pdfBuffer = await file.arrayBuffer();
     const pdfData = await pdf(Buffer.from(pdfBuffer));
-    if (pdfData.numpages !== 1) {
+    if (pdfData.numpages !== 2) {
       return new Response(
         JSON.stringify({
           success: false,
-          message: 'Only single-page PDF files are allowed'
+          message: 'PDFs files with more than 2 pages are not allowed'
         }),
         {
           status: 400,

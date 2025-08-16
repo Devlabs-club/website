@@ -14,18 +14,18 @@
 
 <script>
   // Client-side script to handle authentication state
-  document.addEventListener('DOMContentLoaded', function() {
-    const authControls = document.getElementById('auth-controls');
-    
+  document.addEventListener("DOMContentLoaded", function () {
+    const authControls = document.getElementById("auth-controls");
+
     if (authControls) {
       // Check if user is logged in (you can customize this logic)
       const checkAuthStatus = async () => {
         try {
-          const response = await fetch('/api/auth/me', {
-            method: 'GET',
-            credentials: 'include',
+          const response = await fetch("/api/auth/me", {
+            method: "GET",
+            credentials: "include",
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             if (data.user) {
@@ -41,27 +41,27 @@
             }
           }
         } catch (error) {
-          console.log('Auth check failed:', error);
+          console.log("Auth check failed:", error);
           // Keep default login button
         }
       };
-      
+
       // Global logout function
       (window as any).handleLogout = async () => {
         try {
-          await fetch('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
           });
           // Redirect to login or home page
-          window.location.href = '/login';
+          window.location.href = "/login";
         } catch (error) {
-          console.error('Logout failed:', error);
+          console.error("Logout failed:", error);
           // Even if the API call fails, redirect
-          window.location.href = '/login';
+          window.location.href = "/login";
         }
       };
-      
+
       // Check auth status on page load
       checkAuthStatus();
     }

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./auth_manager";
 import { UserProfile } from "./UserProfile";
 import ApplicationForm from "./ApplicationForm";
+import { WrappedText } from "./text/WrappedText";
 
 // Simple PDF Viewer Component using iframe with enhanced features
 function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
@@ -144,6 +145,46 @@ function DashboardContent() {
   const [messageType, setMessageType] = useState<"success" | "error">(
     "success"
   );
+  const [hasApplicationChanges, setHasApplicationChanges] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "error" | "warning" | "success";
+  } | null>(null);
+  const [currentResumeFile, setCurrentResumeFile] = useState<File | null>(null);
+  const applicationFormRef = useRef<HTMLDivElement>(null);
+
+  // Toast notification function
+  const showToast = (
+    message: string,
+    type: "error" | "warning" | "success"
+  ) => {
+    setToast({ message, type });
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  // Resume upload function that can be called from ApplicationForm
+  const uploadResumeFile = async (file: File): Promise<void> => {
+    const formData = new FormData();
+    formData.append("resume", file);
+
+    const response = await fetch("/api/user/uploadResume", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Resume upload failed");
+    }
+
+    // Update the resume URL state
+    setResumeUrl(result.resumeUrl);
+    setCurrentResumeFile(null);
+    setHasApplicationChanges(false);
+  };
 
   useEffect(() => {
     if (user) {
@@ -164,6 +205,9 @@ function DashboardContent() {
         .catch((error) => {
           console.error("Error fetching user data:", error);
         });
+
+      // Reset application changes flag when user loads/changes
+      setHasApplicationChanges(false);
     }
   }, [user]);
 
@@ -182,6 +226,23 @@ function DashboardContent() {
       return;
     }
 
+    // Always require application changes when uploading a resume
+    if (!hasApplicationChanges) {
+      showToast(
+        "Please update your application profile before uploading a resume",
+        "error"
+      );
+      // Auto-scroll to application form
+      setTimeout(() => {
+        applicationFormRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+      setUploading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/user/uploadResume", {
         method: "POST",
@@ -196,8 +257,11 @@ function DashboardContent() {
         setResumeUrl(result.resumeUrl);
         setMessage("Resume uploaded successfully!");
         setMessageType("success");
-        // Reset form
+        showToast("Resume uploaded successfully! 🎉", "success");
+        // Reset form and application changes flag
         (e.target as HTMLFormElement).reset();
+        setCurrentResumeFile(null);
+        setHasApplicationChanges(false);
       } else {
         setMessage(result.message || "Upload failed");
         setMessageType("error");
@@ -223,66 +287,48 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen text-gray-400">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg border backdrop-blur-sm transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-red-500/20 border-red-500/30 text-red-300"
+              : toast.type === "warning"
+              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+              : "bg-green-500/20 border-green-500/30 text-green-300"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              {toast.type === "error" && <span className="text-lg">❌</span>}
+              {toast.type === "warning" && <span className="text-lg">⚠️</span>}
+              {toast.type === "success" && <span className="text-lg">✅</span>}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="flex-shrink-0 text-lg hover:opacity-70 transition-opacity"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="relative z-10 max-w-7xl mx-auto py-24 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-extrabold text-white tracking-tight">
-                Dashboard
-              </h1>
-              <p className="text-sm text-gray-400 mt-1">
-                Manage your profile and resume
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <a
-                href="/"
-                className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-gray-200 hover:bg-white/20 transition"
-              >
-                Back to Home
-              </a>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
             </div>
             <div className="lg:col-span-2 space-y-8">
-              <div className="p-8 rounded-xl border border-white/10 bg-neutral-900/60">
-                <h2 className="text-2xl font-bold mb-6 text-white">
-                  Resume Management
-                </h2>
-
+              <div className="p-8 border-2 border-dashed border-gray-500/50 ">
                 {resumeUrl ? (
                   <div className="space-y-6">
-                    {/* Resume Header with Download */}
-                    <div className="flex justify-between items-center p-4 bg-green-500/20 border border-green-500/30 rounded-lg backdrop-blur-sm">
-                      <div>
-                        <h3 className="font-semibold text-green-300 text-lg">
-                          📄 Your Resume
-                        </h3>
-                        <p className="text-sm text-gray-400">
-                          Resume successfully uploaded and ready to view
-                        </p>
-                      </div>
-                      <a
-                        href={resumeUrl}
-                        download
-                        className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                      >
-                        ⬇️ Download
-                      </a>
-                    </div>
-
-                    {/* PDF Viewer */}
-                    <div className="border border-white/20 rounded-lg overflow-hidden">
-                      <PDFViewer resumeUrl={resumeUrl} />
-                    </div>
-
                     {/* Update Form */}
-                    <div className="border-t border-white/10 pt-6">
+                    <div className="border-b border-white/10 pt-6">
                       <h4 className="text-lg font-medium mb-4 text-white">
                         Update Resume
                       </h4>
@@ -299,6 +345,10 @@ function DashboardContent() {
                             id="resume"
                             name="resume"
                             accept=".pdf"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setCurrentResumeFile(file);
+                            }}
                             className="block w-full text-sm text-gray-400
                               file:mr-4 file:py-2 file:px-4
                               file:rounded-full file:border-0
@@ -311,23 +361,30 @@ function DashboardContent() {
                           />
                         </div>
 
-                        <button
-                          type="submit"
-                          disabled={uploading}
-                          className="w-full bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-6 rounded-lg 
-                                   hover:from-orange-400 hover:to-orange-300 disabled:opacity-50 disabled:cursor-not-allowed 
-                                   transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] font-semibold"
+                        <WrappedText
+                          size="large"
+                          className="border-orange-300 text-orange-300 bg-transparent block"
                         >
-                          {uploading ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                              Uploading...
-                            </div>
-                          ) : (
-                            "Update Resume"
-                          )}
-                        </button>
+                          <button
+                            type="submit"
+                            disabled={uploading}
+                            className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                          >
+                            {uploading ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                                Uploading...
+                              </div>
+                            ) : (
+                              "Update Resume"
+                            )}
+                          </button>
+                        </WrappedText>
                       </form>
+                    </div>
+                    {/* PDF Viewer */}
+                    <div className="border border-white/20 rounded-lg overflow-hidden">
+                      <PDFViewer resumeUrl={resumeUrl} />
                     </div>
                   </div>
                 ) : (
@@ -350,6 +407,10 @@ function DashboardContent() {
                           id="resume"
                           name="resume"
                           accept=".pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setCurrentResumeFile(file);
+                          }}
                           className="block w-full text-sm text-gray-400
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
@@ -362,22 +423,25 @@ function DashboardContent() {
                         />
                       </div>
 
-                      <button
-                        type="submit"
-                        disabled={uploading}
-                        className="w-full bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-6 rounded-lg 
-                                 hover:from-orange-400 hover:to-orange-300 disabled:opacity-50 disabled:cursor-not-allowed 
-                                 transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-[1.02] font-semibold"
+                      <WrappedText
+                        size="large"
+                        className="border-orange-300 text-orange-300 bg-transparent block"
                       >
-                        {uploading ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                            Uploading...
-                          </div>
-                        ) : (
-                          "Upload Resume"
-                        )}
-                      </button>
+                        <button
+                          type="submit"
+                          disabled={uploading}
+                          className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                        >
+                          {uploading ? (
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              Uploading...
+                            </div>
+                          ) : (
+                            "Upload Resume"
+                          )}
+                        </button>
+                      </WrappedText>
                     </form>
                   </div>
                 )}
@@ -397,7 +461,10 @@ function DashboardContent() {
               </div>
 
               {/* Application Questionnaire Panel - Single Page */}
-              <div className="p-8 rounded-xl border border-white/10 bg-neutral-900/60">
+              <div
+                ref={applicationFormRef}
+                className="p-8 border-2 border-dashed border-gray-500/50 "
+              >
                 <h2 className="text-2xl font-bold mb-6 text-white">
                   Application Form
                 </h2>
@@ -407,6 +474,9 @@ function DashboardContent() {
                     name: user?.name || "",
                     email: user?.email || "",
                   }}
+                  onFormChange={setHasApplicationChanges}
+                  resumeFile={currentResumeFile}
+                  onResumeUpload={uploadResumeFile}
                 />
               </div>
             </div>

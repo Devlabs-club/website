@@ -3,13 +3,12 @@ import { getNames } from "country-list";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { WrappedText } from "./text/WrappedText";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   gender: z.string().min(1, "Please select your gender"),
-  dob: z
-    .string()
-    .min(1, "Please enter your date of birth"),
+  dob: z.string().min(1, "Please enter your date of birth"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   country: z.string().min(1, "Please select your country of citizenship"),
@@ -38,11 +37,17 @@ const countryOptions = Object.values(getNames());
 interface ApplicationFormProps {
   prefill?: Partial<FormData>;
   variant?: "single" | "multi";
+  onFormChange?: (hasChanges: boolean) => void;
+  resumeFile?: File | null;
+  onResumeUpload?: (file: File) => Promise<void>;
 }
 
 const ApplicationForm: React.FC<ApplicationFormProps> = ({
   prefill,
   variant = "multi",
+  onFormChange,
+  resumeFile,
+  onResumeUpload,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveStatus, setSaveStatus] = useState(
@@ -54,7 +59,21 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     null as FormData | null
   );
   const [submitError, setSubmitError] = useState(null as string | null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "error" | "warning" | "success";
+  } | null>(null);
   const totalSteps = variant === "single" ? 1 : 4;
+
+  // Toast notification function
+  const showToast = (
+    message: string,
+    type: "error" | "warning" | "success"
+  ) => {
+    setToast({ message, type });
+    // Auto-hide toast after 5 seconds
+    setTimeout(() => setToast(null), 5000);
+  };
 
   type FormField = keyof FormData;
 
@@ -71,10 +90,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     defaultValues: {
       name: "",
       gender: "",
-  dob: "",
+      dob: "",
       email: "",
       phone: "",
-  country: "",
+      country: "",
       projectIdea: "",
       referralSource: "",
       twitterHandle: "",
@@ -139,8 +158,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
     if (hasChanged) {
       setPreviousFormData(formData);
+      // Notify parent component about form changes
+      onFormChange?.(true);
     }
-  }, [formData, previousFormData]);
+  }, [formData, previousFormData, onFormChange]);
 
   // Load saved data (Note: localStorage not available in Claude artifacts)
   useEffect(() => {
@@ -154,7 +175,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           if (data) {
             Object.entries(data).forEach(([key, value]) => {
               if (key in formSchema.shape && value != null) {
-                setValue(key as keyof FormData, value as string | number | undefined);
+                setValue(key as keyof FormData, value as string | undefined);
               }
             });
             setCurrentStep(data.progress || 1);
@@ -249,12 +270,35 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         // Only show missing fields that are actually in the schema
         const missingFields = required.filter((key) => {
           const val = formData[key];
-          return val === undefined || val === null || String(val).trim().length === 0;
+          return (
+            val === undefined || val === null || String(val).trim().length === 0
+          );
         });
         if (missingFields.length > 0) {
-          throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
+          // Convert field names to user-friendly labels
+          const fieldLabels: Record<string, string> = {
+            name: "Name",
+            gender: "Gender",
+            dob: "Date of Birth",
+            email: "Email",
+            phone: "Phone Number",
+            country: "Country",
+            projectIdea: "Project Idea",
+            referralSource: "How you found us",
+          };
+
+          const missingLabels = missingFields.map(
+            (field) => fieldLabels[field] || field
+          );
+          const message = `Please fill in the following required fields: ${missingLabels.join(
+            ", "
+          )}`;
+          showToast(message, "warning");
+          throw new Error(message);
         } else {
-          throw new Error("Please fill out all required fields correctly");
+          const message = "Please fill out all required fields correctly";
+          showToast(message, "warning");
+          throw new Error(message);
         }
       }
 
@@ -273,6 +317,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
       if (response.ok) {
         localStorage.setItem("applicationEmail", data.email);
+
+        // If there's a resume file to upload and onResumeUpload function is provided
+        if (resumeFile && onResumeUpload) {
+          try {
+            await onResumeUpload(resumeFile);
+            showToast(
+              "Application and resume submitted successfully! 🎉",
+              "success"
+            );
+          } catch (resumeError) {
+            console.error("Resume upload failed:", resumeError);
+            showToast(
+              "Application submitted successfully! Resume upload failed - please try uploading it separately.",
+              "warning"
+            );
+          }
+        } else {
+          showToast("Application submitted successfully! 🎉", "success");
+        }
+
         setIsSubmitted(true);
       } else {
         throw new Error(result.error || "Failed to submit application");
@@ -322,7 +386,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             onClick={() => window.location.reload()}
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-orange-500/80 hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-black transition-colors duration-200 relative z-10"
           >
-            Submit Another Application
+            Edit Application
           </button>
         </div>
       </div>
@@ -333,7 +397,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
@@ -397,7 +461,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     <input
                       {...field}
                       type="date"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white [color-scheme:dark]"
                     />
                   )}
                 />
@@ -434,17 +498,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 <label className="block text-sm font-medium text-gray-400 mb-2">
                   Phone
                 </label>
-                <Controller
-                  name="phone"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="tel"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    />
-                  )}
-                />
+                <div className="mt-1 flex">
+                  <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-neutral-700 bg-neutral-800 text-gray-300 text-sm">
+                    +1
+                  </span>
+                  <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="tel"
+                        className="flex-1 block w-full rounded-none rounded-r-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                        placeholder="(555) 123-4567"
+                      />
+                    )}
+                  />
+                </div>
                 {errors.phone && (
                   <p className="mt-1 text-sm text-red-400">
                     {errors.phone.message}
@@ -488,32 +558,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                What do you want to build?
-              </label>
-              <Controller
-                name="projectIdea"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Describe your project idea in detail..."
-                  />
-                )}
-              />
-              {errors.projectIdea && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.projectIdea.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                What's the coolest thing you've ever built or worked on? (optional)
+                What's the coolest thing you've ever built or worked on?
+                (optional)
               </label>
               <Controller
                 name="coolestThing"
@@ -530,7 +579,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                Have you been to any hackathons/conferences? Tell us your story! (optional)
+                Have you been to any hackathons/conferences? Tell us your story!
+                (optional)
               </label>
               <Controller
                 name="hackathonStory"
@@ -545,29 +595,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Anything else you'd like to tell us?
-              </label>
-              <Controller
-                name="additionalInfo"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share any additional information that might be relevant..."
-                  />
-                )}
-              />
-            </div>
           </div>
         );
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
                 How did you find out about us?
@@ -616,7 +649,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
       case 4:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
                 Twitter Handle (optional)
@@ -688,23 +721,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Favorite Project/Tweet/Video Link (optional)
-              </label>
-              <Controller
-                name="favoriteLink"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="url"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://..."
-                  />
-                )}
-              />
             </div>
           </div>
         );
@@ -788,7 +804,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   <input
                     {...field}
                     type="date"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white [color-scheme:dark]"
                   />
                 )}
               />
@@ -823,17 +839,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Phone
               </label>
-              <Controller
-                name="phone"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="tel"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  />
-                )}
-              />
+              <div className="mt-1 flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-neutral-700 bg-neutral-800 text-gray-300 text-sm">
+                  +1
+                </span>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="tel"
+                      className="flex-1 block w-full rounded-none rounded-r-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="(555) 123-4567"
+                    />
+                  )}
+                />
+              </div>
               {errors.phone && (
                 <p className="mt-1 text-sm text-red-400">
                   {errors.phone.message}
@@ -876,36 +898,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         {/* About You */}
         <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
           <div>
-            <h2 className="text-xl font-semibold text-white">About you</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Share what you're into and what you want to build.
-            </p>
-          </div>
-          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              What do you want to build?
-            </label>
-            <Controller
-              name="projectIdea"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Describe your project idea in detail..."
-                />
-              )}
-            />
-            {errors.projectIdea && (
-              <p className="mt-1 text-sm text-red-400">
-                {errors.projectIdea.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              What's the coolest thing you've ever built or worked on? (optional)
+              What's the coolest thing you've ever built or worked on?
+              (optional)
             </label>
             <Controller
               name="coolestThing"
@@ -922,7 +917,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Have you been to any hackathons/conferences? Tell us your story! (optional)
+              Have you been to any hackathons/conferences? Tell us your story!
+              (optional)
             </label>
             <Controller
               name="hackathonStory"
@@ -933,23 +929,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   rows={4}
                   className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   placeholder="Share your experiences and learnings..."
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Anything else you'd like to tell us?
-            </label>
-            <Controller
-              name="additionalInfo"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share any additional information that might be relevant..."
                 />
               )}
             />
@@ -1034,22 +1013,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     {...field}
                     type="url"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://yourname.com"
+                    placeholder="https://portfolio.site.com"
                   />
                 )}
               />
-              <Controller
-                name="portfolio"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="url"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://portfolio.site/you"
-                  />
-                )}
-              />
+
               <Controller
                 name="github"
                 control={control}
@@ -1064,23 +1032,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Favorite Project/Tweet/Video Link (optional)
-            </label>
-            <Controller
-              name="favoriteLink"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="url"
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="https://..."
-                />
-              )}
-            />
-          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Proof of Work (optional)
@@ -1121,6 +1073,36 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   const multiStepUi = (
     <div className="relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg border backdrop-blur-sm transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-red-500/20 border-red-500/30 text-red-300"
+              : toast.type === "warning"
+              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+              : "bg-green-500/20 border-green-500/30 text-green-300"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              {toast.type === "error" && <span className="text-lg">❌</span>}
+              {toast.type === "warning" && <span className="text-lg">⚠️</span>}
+              {toast.type === "success" && <span className="text-lg">✅</span>}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="flex-shrink-0 text-lg hover:opacity-70 transition-opacity"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="relative z-10 max-w-3xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="w-full p-0">
           <div className="mb-8">
@@ -1220,13 +1202,18 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   Next
                 </button>
               ) : (
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !isValid}
-                  className="px-4 py-2 rounded-md text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                <WrappedText
+                  size="large"
+                  className="border-orange-300 text-orange-300 bg-transparent"
                 >
-                  {isSubmitting ? "Submitting..." : "Submit Application"}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !isValid}
+                    className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 flex items-center justify-center text-center"
+                  >
+                    {isSubmitting ? "Submitting..." : "Submit Application"}
+                  </button>
+                </WrappedText>
               )}
             </div>
           </form>
@@ -1237,6 +1224,36 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   const singlePageUi = (
     <div className="relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 max-w-md p-4 rounded-lg shadow-lg border backdrop-blur-sm transition-all duration-300 ${
+            toast.type === "error"
+              ? "bg-red-500/20 border-red-500/30 text-red-300"
+              : toast.type === "warning"
+              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+              : "bg-green-500/20 border-green-500/30 text-green-300"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              {toast.type === "error" && <span className="text-lg">❌</span>}
+              {toast.type === "warning" && <span className="text-lg">⚠️</span>}
+              {toast.type === "success" && <span className="text-lg">✅</span>}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="flex-shrink-0 text-lg hover:opacity-70 transition-opacity"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sticky progress bar */}
       <div className="sticky top-16 z-20 bg-transparent/0 backdrop-blur-0">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
@@ -1265,13 +1282,18 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
           {renderAll()}
           <div className="pt-2">
-            <button
-              type="submit"
-              disabled={isSubmitting || !isValid}
-              className="w-full md:w-auto px-6 py-3 rounded-md text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            <WrappedText
+              size="large"
+              className="border-orange-300 text-orange-300 bg-transparent block"
             >
-              {isSubmitting ? "Submitting..." : "Submit Application"}
-            </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || !isValid}
+                className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-6 py-3 flex items-center justify-center text-center"
+              >
+                {isSubmitting ? "Submitting..." : "Submit Application"}
+              </button>
+            </WrappedText>
           </div>
         </form>
       </div>
