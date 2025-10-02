@@ -71,7 +71,9 @@ const applicationSchema = new mongoose.Schema({
     workEligibility: { type: String, enum: ["Yes", "No"], required: true },
     needSponsorship: { type: String, enum: ["Yes", "No"], required: true },
     sponsorshipType: { type: String },
+    track: { type: String },
     progress: { type: Number, default: 0 },
+    resumeUrl: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./auth_manager";
+import AdminDashboard from "./AdminDashboard";
 import { UserProfile } from "./UserProfile";
 import ApplicationForm from "./ApplicationForm";
 import { WrappedText } from "./text/WrappedText";
@@ -332,7 +333,12 @@ function DashboardContent() {
     return null;
   }
 
-  return (
+  if (user.role === "admin") {
+    return <AdminDashboard />;
+  }
+ 
+
+  return   (
     <div className="min-h-screen text-gray-400">
       {/* Toast Notification */}
       {toast && (

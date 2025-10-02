@@ -3,6 +3,7 @@ import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 import { uploadResumeToCloudinary, deleteResumeFromCloudinary } from '../../../lib/cloudinary.ts';
+import { upsertResume } from '../../../lib/resumeProcessor.ts';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -174,6 +175,17 @@ export const POST: APIRoute = async ({ request }) => {
           headers: { 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Process resume for embedding storage
+    try {
+      console.log('Processing resume for embeddings...');
+      await upsertResume(buffer, decoded.userId, user.major || 'Not specified');
+      console.log('Resume embeddings processed successfully');
+    } catch (embeddingError) {
+      console.error('Error processing resume embeddings:', embeddingError);
+      // Don't fail the upload if embedding processing fails
+      // The resume is still uploaded to Cloudinary successfully
     }
 
     return new Response(

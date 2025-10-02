@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { connectDB, Application } from '../../lib/mongodb';
+import User from '../../models/user.tsx';
 
 export const POST: APIRoute = async ({ request }) => {
     try {
@@ -72,6 +73,20 @@ export const POST: APIRoute = async ({ request }) => {
             } else {
                 // For partial saves, create without validation
                 application = await Application.create({ ...data, createdAt: new Date(), updatedAt: new Date() });
+            }
+        }
+
+        // Update user's major field if major is provided
+        if (data.major && data.email) {
+            try {
+                await User.findOneAndUpdate(
+                    { email: data.email },
+                    { major: data.major },
+                    { upsert: false } // Don't create user if doesn't exist
+                );
+            } catch (error) {
+                console.error('Error updating user major:', error);
+                // Don't fail the application submission if user update fails
             }
         }
 

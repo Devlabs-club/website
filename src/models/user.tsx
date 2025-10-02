@@ -7,6 +7,7 @@ export interface IUser {
   email: string;
   password: string;
   role: 'user' | 'admin';
+  major?: string;
   resumeUrl?: string;
   oauthProvider?: 'google' | null; // OAuth provider type
   oauthId?: string; // OAuth provider user ID
@@ -46,6 +47,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user',
+  },
+  major: {
+    type: String,
+    default: null,
   },
   resumeUrl: {
     type: String,
