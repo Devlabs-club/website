@@ -78,29 +78,17 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Check if file has only 2 page
+    // Optional: You can parse pages if needed; not required for limit change
     const pdfBuffer = await file.arrayBuffer();
-    const pdfData = await pdf(Buffer.from(pdfBuffer));
-    if (pdfData.numpages !== 2) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'PDFs files with more than 2 pages are not allowed'
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    await pdf(Buffer.from(pdfBuffer));
 
-    // Validate file size (2MB max)
-    const maxSize = 2 * 1024 * 1024; // 2MB
+    // Validate file size (10MB max)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'File size must be less than 2MB' 
+          message: 'File size must be less than 10MB' 
         }),
         { 
           status: 400,

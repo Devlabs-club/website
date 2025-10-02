@@ -275,6 +275,53 @@ function DashboardContent() {
     }
   };
 
+  // Auto-upload when a file is selected
+  const handleResumeFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0] || null;
+    setCurrentResumeFile(file);
+
+    if (!file) {
+      return;
+    }
+
+    // Always require application changes when uploading a resume
+    if (!hasApplicationChanges) {
+      showToast(
+        "Please update your application profile before uploading a resume",
+        "error"
+      );
+      // Auto-scroll to application form
+      setTimeout(() => {
+        applicationFormRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+      // Clear the input so the same file can be re-selected later
+      e.target.value = "";
+      return;
+    }
+
+    try {
+      setUploading(true);
+      await uploadResumeFile(file);
+      setMessage("Resume uploaded successfully!");
+      setMessageType("success");
+      showToast("Resume uploaded successfully! 🎉", "success");
+      // Clear the input value after successful upload
+      e.target.value = "";
+    } catch (err: any) {
+      console.error("Auto-upload error:", err);
+      setMessage(err?.message || "Upload failed. Please try again.");
+      setMessageType("error");
+      showToast(err?.message || "Upload failed. Please try again.", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return null;
   }
@@ -338,17 +385,14 @@ function DashboardContent() {
                             htmlFor="resume"
                             className="block text-sm font-medium text-gray-300 mb-2"
                           >
-                            Upload New Resume (PDF only, max 2MB)
+                            Upload New Resume (PDF only, max 10MB)
                           </label>
                           <input
                             type="file"
                             id="resume"
                             name="resume"
                             accept=".pdf"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0] || null;
-                              setCurrentResumeFile(file);
-                            }}
+                            onChange={handleResumeFileChange}
                             className="block w-full text-sm text-gray-400
                               file:mr-4 file:py-2 file:px-4
                               file:rounded-full file:border-0
@@ -361,25 +405,7 @@ function DashboardContent() {
                           />
                         </div>
 
-                        <WrappedText
-                          size="large"
-                          className="border-orange-300 text-orange-300 bg-transparent block"
-                        >
-                          <button
-                            type="submit"
-                            disabled={uploading}
-                            className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                          >
-                            {uploading ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                                Uploading...
-                              </div>
-                            ) : (
-                              "Update Resume"
-                            )}
-                          </button>
-                        </WrappedText>
+                       
                       </form>
                     </div>
                     {/* PDF Viewer */}
@@ -399,18 +425,15 @@ function DashboardContent() {
                         <label
                           htmlFor="resume"
                           className="block text-sm font-medium text-gray-300 mb-2"
-                        >
-                          Upload Resume (PDF only, max 2MB)
+                          >
+                          Upload Resume (PDF only, max 10MB)
                         </label>
                         <input
                           type="file"
                           id="resume"
                           name="resume"
                           accept=".pdf"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setCurrentResumeFile(file);
-                          }}
+                          onChange={handleResumeFileChange}
                           className="block w-full text-sm text-gray-400
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
@@ -423,25 +446,7 @@ function DashboardContent() {
                         />
                       </div>
 
-                      <WrappedText
-                        size="large"
-                        className="border-orange-300 text-orange-300 bg-transparent block"
-                      >
-                        <button
-                          type="submit"
-                          disabled={uploading}
-                          className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                        >
-                          {uploading ? (
-                            <div className="flex items-center justify-center gap-2">
-                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                              Uploading...
-                            </div>
-                          ) : (
-                            "Upload Resume"
-                          )}
-                        </button>
-                      </WrappedText>
+                     
                     </form>
                   </div>
                 )}
@@ -475,8 +480,6 @@ function DashboardContent() {
                     email: user?.email || "",
                   }}
                   onFormChange={setHasApplicationChanges}
-                  resumeFile={currentResumeFile}
-                  onResumeUpload={uploadResumeFile}
                 />
               </div>
             </div>

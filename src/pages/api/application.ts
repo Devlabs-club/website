@@ -28,10 +28,9 @@ export const POST: APIRoute = async ({ request }) => {
         if (application) {
             // For updates, only validate required fields if it's a final submission
             if (isFinalSubmission) {
-                // Validate all required fields for final submission
-                const requiredFields = ['name', 'gender', 'dob', 'email', 'phone', 'country', 'projectIdea', 'referralSource'];
-                console.log("Required Fields: ", requiredFields);
-                const missingFields = requiredFields.filter(field => !data[field]);
+                // Validate all required fields for final submission (new schema)
+                const requiredFields = ['name', 'age', 'email', 'phone', 'major', 'yearOfStudy', 'expectedGradYear', 'linkedin', 'workEligibility', 'needSponsorship'];
+                const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null || String(data[field]).trim().length === 0);
                 if (missingFields.length > 0) {
                     return new Response(JSON.stringify({
                         success: false,
@@ -54,9 +53,9 @@ export const POST: APIRoute = async ({ request }) => {
         } else {
             // For new applications, only validate required fields if it's a final submission
             if (isFinalSubmission) {
-                // Validate all required fields for final submission
-                const requiredFields = ['name', 'gender', 'dob', 'email', 'phone', 'country', 'projectIdea', 'referralSource'];
-                const missingFields = requiredFields.filter(field => !data[field]);
+                // Validate all required fields for final submission (new schema)
+                const requiredFields = ['name', 'age', 'email', 'phone', 'major', 'yearOfStudy', 'expectedGradYear', 'linkedin', 'workEligibility', 'needSponsorship'];
+                const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null || String(data[field]).trim().length === 0);
                 if (missingFields.length > 0) {
                     return new Response(JSON.stringify({
                         success: false,

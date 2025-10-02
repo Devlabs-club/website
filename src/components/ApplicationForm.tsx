@@ -1,53 +1,74 @@
 import React, { useEffect, useState } from "react";
-import { getNames } from "country-list";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { WrappedText } from "./text/WrappedText";
 
+// Normalize URLs to include protocol if missing
+const normalizeUrl = (value: unknown): string => {
+  const input = typeof value === "string" ? value.trim() : "";
+  if (input.length === 0) return "";
+  const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(input);
+  return hasScheme ? input : `https://${input}`;
+};
+
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  gender: z.string().min(1, "Please select your gender"),
-  dob: z.string().min(1, "Please enter your date of birth"),
+  name: z.string().min(2, "Full name must be at least 2 characters"),
+  age: z
+    .number({ invalid_type_error: "Age must be a number" })
+    .int("Age must be an integer")
+    .min(10, "Please enter a valid age")
+    .max(120, "Please enter a valid age"),
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
-  country: z.string().min(1, "Please select your country of citizenship"),
-  projectIdea: z
+  major: z.string().min(2, "Please enter your major"),
+  yearOfStudy: z.enum([
+    "Freshman",
+    "Sophomore",
+    "Junior",
+    "Senior",
+    "Masters",
+    "PhD",
+  ], {
+    required_error: "Please select your year of study",
+  }),
+  expectedGradYear: z
+    .number({ invalid_type_error: "Graduation year must be a number" })
+    .int("Graduation year must be a whole number")
+    .min(2024, "Please enter a valid year")
+    .max(2100, "Please enter a valid year"),
+  linkedin: z
     .string()
-    .min(50, "Please describe your project idea (minimum 50 characters)"),
-  referralSource: z.string().min(1, "Please tell us how you found us"),
-  twitterHandle: z.string().optional(),
-  // Optional links and background fields
-  linkedin: z.string().url().or(z.literal("")).optional(),
-  personalWebsite: z.string().url().or(z.literal("")).optional(),
-  portfolio: z.string().url().or(z.literal("")).optional(),
-  github: z.string().url().or(z.literal("")).optional(),
-  coolestThing: z.string().optional(),
-  favoriteLink: z.string().url().or(z.literal("")).optional(),
-  hackathonStory: z.string().optional(),
-  additionalInfo: z.string().optional(),
-  proofOfWork: z.string().optional(),
+    .transform((v) => normalizeUrl(v))
+    .pipe(z.string().url("Please enter a valid LinkedIn URL")),
+  website: z
+    .string()
+    .transform((v) => normalizeUrl(v))
+    .pipe(z.union([z.string().url(), z.literal("")]))
+    .optional(),
+  workEligibility: z.enum(["Yes", "No"], {
+    required_error: "Please select your work eligibility",
+  }),
+  needSponsorship: z.enum(["Yes", "No"], {
+    required_error: "Please select your sponsorship requirement",
+  }),
+  sponsorshipType: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-// Get country names for dropdown
-const countryOptions = Object.values(getNames());
+// No country selection in the new form schema
 
 interface ApplicationFormProps {
   prefill?: Partial<FormData>;
   variant?: "single" | "multi";
   onFormChange?: (hasChanges: boolean) => void;
-  resumeFile?: File | null;
-  onResumeUpload?: (file: File) => Promise<void>;
 }
 
 const ApplicationForm: React.FC<ApplicationFormProps> = ({
   prefill,
   variant = "multi",
   onFormChange,
-  resumeFile,
-  onResumeUpload,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveStatus, setSaveStatus] = useState(
@@ -89,23 +110,17 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     mode: "onChange",
     defaultValues: {
       name: "",
-      gender: "",
-      dob: "",
+      age: undefined as unknown as number,
       email: "",
       phone: "",
-      country: "",
-      projectIdea: "",
-      referralSource: "",
-      twitterHandle: "",
+      major: "",
+      yearOfStudy: "" as any,
+      expectedGradYear: undefined as unknown as number,
       linkedin: "",
-      personalWebsite: "",
-      portfolio: "",
-      github: "",
-      coolestThing: "",
-      favoriteLink: "",
-      hackathonStory: "",
-      additionalInfo: "",
-      proofOfWork: "",
+      website: "",
+      workEligibility: "" as any,
+      needSponsorship: "" as any,
+      sponsorshipType: "",
     },
   });
 
@@ -113,19 +128,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 
   const required: (keyof FormData)[] = [
     "name",
-    "gender",
-    "dob",
+    "age",
     "email",
     "phone",
-    "country",
-    "projectIdea",
-    "referralSource",
-  ];
-  const completedRequiredCount = required.reduce((acc, key) => {
+    "major",
+    "yearOfStudy",
+    "expectedGradYear",
+    "linkedin",
+    "workEligibility",
+    "needSponsorship",
+   ];
+   const completedRequiredCount = required.reduce((acc, key) => {
     const val = formData[key];
     if (val === undefined || val === null) return acc;
     if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
-    return acc + (String(val).trim().length > 0 ? 1 : 0);
+    if (typeof val === "string") return acc + (val.trim().length > 0 ? 1 : 0);
+    return acc;
   }, 0);
   const totalRequiredCount = required.length;
 
@@ -175,7 +193,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           if (data) {
             Object.entries(data).forEach(([key, value]) => {
               if (key in formSchema.shape && value != null) {
-                setValue(key as keyof FormData, value as string | undefined);
+                setValue(key as keyof FormData, value as any);
               }
             });
             setCurrentStep(data.progress || 1);
@@ -223,19 +241,23 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         switch (currentStep) {
           case 1:
             return (
-              formData.name &&
-              formData.gender &&
-              formData.dob &&
-              formData.email &&
-              formData.phone &&
-              formData.country
+              !!formData.name &&
+              Number.isFinite(formData.age as unknown as number) &&
+              !!formData.email &&
+              !!formData.phone
             );
           case 2:
-            return formData.projectIdea;
+            return !!formData.major && !!formData.yearOfStudy;
           case 3:
-            return formData.referralSource;
+            return Number.isFinite(
+              formData.expectedGradYear as unknown as number
+            );
           case 4:
-            return true; // No required fields in final step
+            return (
+              !!formData.linkedin &&
+              !!formData.workEligibility &&
+              !!formData.needSponsorship
+            );
           default:
             return false;
         }
@@ -277,14 +299,17 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         if (missingFields.length > 0) {
           // Convert field names to user-friendly labels
           const fieldLabels: Record<string, string> = {
-            name: "Name",
-            gender: "Gender",
-            dob: "Date of Birth",
+            name: "Full Name",
+            age: "Age",
             email: "Email",
             phone: "Phone Number",
-            country: "Country",
-            projectIdea: "Project Idea",
-            referralSource: "How you found us",
+            major: "Major",
+            yearOfStudy: "Year of Study",
+            expectedGradYear: "Expected Graduation Year",
+            linkedin: "LinkedIn Profile",
+            workEligibility: "U.S. Work Eligibility",
+            needSponsorship: "Visa Sponsorship Requirement",
+            sponsorshipType: "Sponsorship Type / N/A",
           };
 
           const missingLabels = missingFields.map(
@@ -318,24 +343,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       if (response.ok) {
         localStorage.setItem("applicationEmail", data.email);
 
-        // If there's a resume file to upload and onResumeUpload function is provided
-        if (resumeFile && onResumeUpload) {
-          try {
-            await onResumeUpload(resumeFile);
-            showToast(
-              "Application and resume submitted successfully! 🎉",
-              "success"
-            );
-          } catch (resumeError) {
-            console.error("Resume upload failed:", resumeError);
-            showToast(
-              "Application submitted successfully! Resume upload failed - please try uploading it separately.",
-              "warning"
-            );
-          }
-        } else {
-          showToast("Application submitted successfully! 🎉", "success");
-        }
+        showToast("Application submitted successfully! 🎉", "success");
 
         setIsSubmitted(true);
       } else {
@@ -401,7 +409,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Name
+                  Full Name
                 </label>
                 <Controller
                   name="name"
@@ -415,66 +423,34 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.name.message}
-                  </p>
+                  <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Gender
+                  Age
                 </label>
                 <Controller
-                  name="gender"
-                  control={control}
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    >
-                      <option value="">Select gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                      <option value="prefer-not-to-say">
-                        Prefer not to say
-                      </option>
-                    </select>
-                  )}
-                />
-                {errors.gender && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.gender.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Date of birth
-                </label>
-                <Controller
-                  name="dob"
+                  name="age"
                   control={control}
                   render={({ field }) => (
                     <input
                       {...field}
-                      type="date"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white [color-scheme:dark]"
+                      type="number"
+                      min={10}
+                      max={120}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   )}
                 />
-                {errors.dob && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.dob.message}
-                  </p>
+                {errors.age && (
+                  <p className="mt-1 text-sm text-red-400">{errors.age.message}</p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Email
+                  Email (ASU Email Preferred)
                 </label>
                 <Controller
                   name="email"
@@ -483,20 +459,19 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     <input
                       {...field}
                       type="email"
+                      placeholder="example@asu.edu"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     />
                   )}
                 />
+                <p className="mt-1 text-xs text-gray-500">.asu.edu</p>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.email.message}
-                  </p>
+                  <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
                 )}
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Phone
+                  Phone No.
                 </label>
                 <div className="mt-1 flex">
                   <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-neutral-700 bg-neutral-800 text-gray-300 text-sm">
@@ -516,40 +491,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   />
                 </div>
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.phone.message}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Country of citizenship
-                </label>
-                <Controller
-                  name="country"
-                  control={control}
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    >
-                      <option value="">Select country</option>
-                      {countryOptions.map((country) => {
-                        const countryStr = String(country);
-                        return (
-                          <option key={countryStr} value={countryStr}>
-                            {countryStr}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  )}
-                />
-                {errors.country && (
-                  <p className="mt-1 text-sm text-red-400">
-                    {errors.country.message}
-                  </p>
+                  <p className="mt-1 text-sm text-red-400">{errors.phone.message}</p>
                 )}
               </div>
             </div>
@@ -559,41 +501,54 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       case 2:
         return (
           <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                What's the coolest thing you've ever built or worked on?
-                (optional)
-              </label>
-              <Controller
-                name="coolestThing"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Even if it failed — tell us the story!"
-                  />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Major (Required: Ira Fulton Schools of Engineering)
+                </label>
+                <Controller
+                  name="major"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="e.g., Computer Science"
+                    />
+                  )}
+                />
+                {errors.major && (
+                  <p className="mt-1 text-sm text-red-400">{errors.major.message}</p>
                 )}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Have you been to any hackathons/conferences? Tell us your story!
-                (optional)
-              </label>
-              <Controller
-                name="hackathonStory"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share your experiences and learnings..."
-                  />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Year of Study
+                </label>
+                <Controller
+                  name="yearOfStudy"
+                  control={control}
+                  defaultValue={"" as any}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    >
+                      <option value="">Select year</option>
+                      <option value="Freshman">Freshman</option>
+                      <option value="Sophomore">Sophomore</option>
+                      <option value="Junior">Junior</option>
+                      <option value="Senior">Senior</option>
+                      <option value="Masters">Masters</option>
+                      <option value="PhD">PhD</option>
+                    </select>
+                  )}
+                />
+                {errors.yearOfStudy && (
+                  <p className="mt-1 text-sm text-red-400">{errors.yearOfStudy.message}</p>
                 )}
-              />
+              </div>
             </div>
           </div>
         );
@@ -603,46 +558,25 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">
-                How did you find out about us?
+                Expected Graduation Year
               </label>
               <Controller
-                name="referralSource"
+                name="expectedGradYear"
                 control={control}
                 render={({ field }) => (
-                  <select
+                  <input
                     {...field}
+                    type="number"
+                    min={2024}
+                    max={2100}
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  >
-                    <option value="">Select an option</option>
-                    <option value="social-media">Social Media</option>
-                    <option value="friend">Friend</option>
-                    <option value="search">Search Engine</option>
-                    <option value="other">Other</option>
-                  </select>
-                )}
-              />
-              {errors.referralSource && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.referralSource.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Proof of Work (optional)
-              </label>
-              <Controller
-                name="proofOfWork"
-                control={control}
-                render={({ field }) => (
-                  <textarea
-                    {...field}
-                    rows={4}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="Share links to your previous work, GitHub repositories, or portfolio..."
+                    onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 )}
               />
+              {errors.expectedGradYear && (
+                <p className="mt-1 text-sm text-red-400">{errors.expectedGradYear.message}</p>
+              )}
             </div>
           </div>
         );
@@ -650,28 +584,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       case 4:
         return (
           <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Twitter Handle (optional)
-              </label>
-              <Controller
-                name="twitterHandle"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="text"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="@username"
-                  />
-                )}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Links (optional)
-              </label>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  LinkedIn Profile
+                </label>
                 <Controller
                   name="linkedin"
                   control={control}
@@ -684,44 +601,95 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     />
                   )}
                 />
+                {errors.linkedin && (
+                  <p className="mt-1 text-sm text-red-400">{errors.linkedin.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  GitHub / Portfolio / Website (optional)
+                </label>
                 <Controller
-                  name="personalWebsite"
+                  name="website"
                   control={control}
                   render={({ field }) => (
                     <input
                       {...field}
                       type="url"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="https://yourname.com"
-                    />
-                  )}
-                />
-                <Controller
-                  name="portfolio"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="https://portfolio.site/you"
-                    />
-                  )}
-                />
-                <Controller
-                  name="github"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      type="url"
-                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="https://github.com/you"
+                      placeholder="https://github.com/you or https://your-portfolio.com"
                     />
                   )}
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Are you eligible to work in the U.S.? 
+                </label>
+                <Controller
+                  name="workEligibility"
+                  control={control}
+                  defaultValue={"" as any}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  )}
+                />
+                {errors.workEligibility && (
+                  <p className="mt-1 text-sm text-red-400">{errors.workEligibility.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Would you require visa sponsorship now or in the future?
+                </label>
+                <Controller
+                  name="needSponsorship"
+                  control={control}
+                  defaultValue={"F" as any}
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    >
+                      <option value="">Select</option>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </select>
+                  )}
+                />
+                {errors.needSponsorship && (
+                  <p className="mt-1 text-sm text-red-400">{errors.needSponsorship.message}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                If yes, what type of sponsorship would you require? (optional)
+              </label>
+              <Controller
+                name="sponsorshipType"
+                defaultValue={"FR" as any}
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="e.g., H-1B, OPT, CPT, Green Card, N/A"
+                  />
+                )}
+              />
+            </div>
+            
           </div>
         );
 
@@ -748,7 +716,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Name
+                Full Name
               </label>
               <Controller
                 name="name"
@@ -769,49 +737,24 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Gender
+                Age
               </label>
               <Controller
-                name="gender"
-                control={control}
-                render={({ field }) => (
-                  <select
-                    {...field}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  >
-                    <option value="">Select gender</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                    <option value="prefer-not-to-say">Prefer not to say</option>
-                  </select>
-                )}
-              />
-              {errors.gender && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.gender.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Date of birth
-              </label>
-              <Controller
-                name="dob"
+                name="age"
                 control={control}
                 render={({ field }) => (
                   <input
                     {...field}
-                    type="date"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white [color-scheme:dark]"
+                    type="number"
+                    min={10}
+                    max={120}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 )}
               />
-              {errors.dob && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.dob.message}
-                </p>
+              {errors.age && (
+                <p className="mt-1 text-sm text-red-400">{errors.age.message}</p>
               )}
             </div>
             <div>
@@ -862,137 +805,92 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 </p>
               )}
             </div>
+            
+          </div>
+        </div>
+
+        {/* Academics */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Country of citizenship
+                Major (Required: Ira Fulton Schools of Engineering)
               </label>
               <Controller
-                name="country"
+                name="major"
                 control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="text"
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    placeholder="e.g., Computer Science"
+                  />
+                )}
+              />
+              {errors.major && (
+                <p className="mt-1 text-sm text-red-400">{errors.major.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Year of Study
+              </label>
+              <Controller
+                name="yearOfStudy"
+                control={control}
+                defaultValue={"" as any}
                 render={({ field }) => (
                   <select
                     {...field}
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   >
-                    <option value="">Select country</option>
-                    {countryOptions.map((country) => {
-                      const countryStr = String(country);
-                      return (
-                        <option key={countryStr} value={countryStr}>
-                          {countryStr}
-                        </option>
-                      );
-                    })}
+                    <option value="">Select year</option>
+                    <option value="Freshman">Freshman</option>
+                    <option value="Sophomore">Sophomore</option>
+                    <option value="Junior">Junior</option>
+                    <option value="Senior">Senior</option>
+                    <option value="Masters">Masters</option>
+                    <option value="PhD">PhD</option>
                   </select>
                 )}
               />
-              {errors.country && (
-                <p className="mt-1 text-sm text-red-400">
-                  {errors.country.message}
-                </p>
+              {errors.yearOfStudy && (
+                <p className="mt-1 text-sm text-red-400">{errors.yearOfStudy.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Expected Graduation Year
+              </label>
+              <Controller
+                name="expectedGradYear"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    type="number"
+                    min={2024}
+                    max={2100}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                )}
+              />
+              {errors.expectedGradYear && (
+                <p className="mt-1 text-sm text-red-400">{errors.expectedGradYear.message}</p>
               )}
             </div>
           </div>
         </div>
 
-        {/* About You */}
+        {/* Final Section */}
         <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              What's the coolest thing you've ever built or worked on?
-              (optional)
-            </label>
-            <Controller
-              name="coolestThing"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Even if it failed — tell us the story!"
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Have you been to any hackathons/conferences? Tell us your story!
-              (optional)
-            </label>
-            <Controller
-              name="hackathonStory"
-              control={control}
-              render={({ field }) => (
-                <textarea
-                  {...field}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share your experiences and learnings..."
-                />
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Additional Information */}
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <div>
-            <h2 className="text-xl font-semibold text-white">
-              Additional information
-            </h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Links and optional context to help us get to know your work.
-            </p>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              How did you find out about us?
-            </label>
-            <Controller
-              name="referralSource"
-              control={control}
-              render={({ field }) => (
-                <select
-                  {...field}
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                >
-                  <option value="">Select an option</option>
-                  <option value="social-media">Social Media</option>
-                  <option value="friend">Friend</option>
-                  <option value="search">Search Engine</option>
-                  <option value="other">Other</option>
-                </select>
-              )}
-            />
-            {errors.referralSource && (
-              <p className="mt-1 text-sm text-red-400">
-                {errors.referralSource.message}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Twitter Handle (optional)
-            </label>
-            <Controller
-              name="twitterHandle"
-              control={control}
-              render={({ field }) => (
-                <input
-                  {...field}
-                  type="text"
-                  className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="@username"
-                />
-              )}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Links (optional)
-            </label>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                LinkedIn Profile
+              </label>
               <Controller
                 name="linkedin"
                 control={control}
@@ -1002,54 +900,102 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     type="url"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     placeholder="https://linkedin.com/in/yourname"
+                    onBlur={(e) => field.onChange(normalizeUrl(e.target.value))}
                   />
                 )}
               />
+              {errors.linkedin && (
+                <p className="mt-1 text-sm text-red-400">{errors.linkedin.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                GitHub / Portfolio / Website (optional)
+              </label>
               <Controller
-                name="personalWebsite"
+                name="website"
                 control={control}
                 render={({ field }) => (
                   <input
                     {...field}
                     type="url"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://portfolio.site.com"
-                  />
-                )}
-              />
-
-              <Controller
-                name="github"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="url"
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="https://github.com/you"
+                    placeholder="https://github.com/you or https://your-portfolio.com"
+                    onBlur={(e) => field.onChange(normalizeUrl(e.target.value))}
                   />
                 )}
               />
             </div>
           </div>
-
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Are you eligible to work in the U.S.? 
+              </label>
+              <Controller
+                name="workEligibility"
+                control={control}
+                defaultValue={"" as any}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  >
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                )}
+              />
+              {errors.workEligibility && (
+                <p className="mt-1 text-sm text-red-400">{errors.workEligibility.message}</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Would you require visa sponsorship now or in the future?
+              </label>
+              <Controller
+                name="needSponsorship"
+                control={control}
+                defaultValue={"" as any}
+                render={({ field }) => (
+                  <select
+                    {...field}
+                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                  >
+                    <option value="">Select</option>
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                  </select>
+                )}
+              />
+              {errors.needSponsorship && (
+                <p className="mt-1 text-sm text-red-400">{errors.needSponsorship.message}</p>
+              )}
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Proof of Work (optional)
+              If yes, what type of sponsorship would you require? (e.g., H-1B, OPT, CPT, Green Card, Other - please specify) or mention N/A
             </label>
             <Controller
-              name="proofOfWork"
+              name="sponsorshipType"
               control={control}
               render={({ field }) => (
-                <textarea
+                <input
                   {...field}
-                  rows={4}
+                  type="text"
                   className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                  placeholder="Share links to your previous work, GitHub repositories, or portfolio..."
+                  placeholder="e.g., H-1B, OPT, CPT, Green Card, N/A"
                 />
               )}
             />
+            {errors.sponsorshipType && (
+              <p className="mt-1 text-sm text-red-400">{errors.sponsorshipType.message}</p>
+            )}
           </div>
+          
         </div>
       </div>
     );
@@ -1169,18 +1115,17 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                       const fieldsToValidate: FormField[] = (() => {
                         switch (currentStep) {
                           case 1:
-                            return [
-                              "name",
-                              "gender",
-                              "dob",
-                              "email",
-                              "phone",
-                              "country",
-                            ];
+                            return ["name", "age", "email", "phone"];
                           case 2:
-                            return ["projectIdea"];
+                            return ["major", "yearOfStudy"];
                           case 3:
-                            return ["referralSource"];
+                            return ["expectedGradYear"];
+                          case 4:
+                            return [
+                              "linkedin",
+                              "workEligibility",
+                              "needSponsorship",
+                            ];
                           default:
                             return [];
                         }
