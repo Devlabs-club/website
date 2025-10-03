@@ -2,119 +2,103 @@
 import Layout from "../layouts/Layout.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Highlight from "../components/text/Highlight.astro";
-import RegisterPage from "../components/RegisterPage";
+import GradientBlob from "../components/GradientBlob.astro";
+import WrappedText from "../components/text/WrappedText.astro";
 ---
 
-<Layout title="Apply - Join Our Incubator">
-  <main class="min-h-screen relative overflow-hidden">
-    <!-- Gradient Spheres - same as HeroSection -->
-    <div class="absolute inset-0 overflow-hidden">
-      <!-- Primary sphere -->
-      <div
-        class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-      >
-      </div>
-      <!-- Secondary spheres -->
-      <div
-        class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]"
-      >
-      </div>
-      <div
-        class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]"
-      >
-      </div>
+<Layout title="Join DevLabs - Build with Arizona's Top Talent">
+    <meta property="og:title" content="Join DevLabs - Build with Arizona's Top Talent" />
+    <meta property="og:description" content="Connect with driven students, indie hackers, and startup-minded builders at ASU and nearby universities. Start building your next project today." />
+    <meta property="og:image" content="/og.png" />
+    <meta property="og:url" content="https://devlabs.asu.edu/register" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Join DevLabs - Build with Arizona's Top Talent" />
+    <meta name="twitter:description" content="Connect with driven students, indie hackers, and startup-minded builders at ASU and nearby universities. Start building your next project today." />
+    <meta name="twitter:image" content="/og.png" />
+    
+    <!-- Full Width Visual Section -->
+    <div class="relative overflow-hidden ">
+        <GradientBlob top="-20%" right="-10%" left="" scale="1.5" />
+        <GradientBlob top="60%" left="-15%" right="" scale="1.2" />
+        
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+            <!-- Full Width Visual Section -->
+            <div class="w-full mb-16">
+                <div class="w-full h-[450px] md:h-[550px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30 relative">
+                    <img src="events/DevHacks2.jpg" alt="DevLabs Community" class="w-full h-full object-cover opacity-20 rounded-2xl" />
+                    
+                    <!-- Orange overlay for aesthetic appeal -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-orange-500/30 via-orange-400/20 to-orange-300/15 rounded-2xl z-5"></div>
+                    
+                    
+                    <!-- Hero Content -->
+                    <div class="absolute right-8 left-8 top-8 bottom-8 z-20 flex flex-col justify-between">
+                        <div class=" 4">
+                          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+                            Get hired by<br />
+                            <Highlight>Arizona’s founder community</Highlight>
+                        </h1>
+                        <p class="text-lg sm:text-xl text-gray-300 leading-relaxed mb-8">
+                          Because employers don’t just want résumés—they want proof you can build.  
+                          At DevLabs, you’ll join hackathons, ship products, and collaborate with teams that mirror real-world startups.  
+                          <Highlight>Graduate with not only a degree, but also a portfolio and network that land you jobs and internships.</Highlight>
+                      
+                        </p>
+                        </div>
+                        
+                        <!-- Community Stats -->
+                        <div class="flex flex-col sm:flex-row justify-between items-center sm:items-end w-full gap-6 sm:gap-0">
+                            <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                              <WrappedText size="large" className="border-orange-300 text-orange-300">future hires</WrappedText>
+<WrappedText size="large" className="border-orange-300 text-orange-300">internship-ready</WrappedText>
+<WrappedText size="large" className="border-orange-300 text-orange-300">portfolio builders</WrappedText>
+<WrappedText size="large" className="border-orange-300 text-orange-300">startup teammates</WrappedText>
+       </div>
+                            
+                            <div class="flex items-end">
+                                <span class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-orange-500 to-orange-300 text-transparent bg-clip-text leading-none">350+</span>
+                                <span class="text-sm sm:text-base lg:text-lg text-white ml-2 mb-1 sm:mb-2">active builders</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div
-      class="max-w-7xl mx-auto py-24 md:py-32 pb-12 px-4 sm:px-6 lg:px-8 relative z-10"
-    >
-      <div class="text-center mb-12">
-        <h1
-          class="text-4xl font-extrabold text-white sm:text-5xl sm:tracking-tight lg:text-6xl"
-        >
-          Join Our <Highlight>Community</Highlight>
-        </h1>
-        <p class="mt-5 max-w-xl mx-auto text-xl text-gray-300">
-          Join our amazing developer community and start building incredible
-          projects together.
-        </p>
-      </div>
+    <!-- Why Join Section -->
+    <div class="relative overflow-hidden pb-16 bg-gradient-to-b from-transparent to-black/20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="mb-8">
+                  <WrappedText size="normal" className=''>why join devlabs?</WrappedText>
+                </div>
+                
+              
+<p class="text-lg sm:text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-8">
+  Because employers don’t just want résumés—they want proof you can build.  
+  At DevLabs, you’ll join hackathons, ship products, and collaborate with teams that mirror real-world startups.  
+  <Highlight>Graduate with not only a degree, but also a portfolio and network that land you jobs and internships.</Highlight>
+</p>
 
-      <RegisterPage client:load />
+                
+                <a href="/api/auth/oauth/login" 
+                   class="group relative inline-block px-8 py-4 
+                          bg-gradient-to-br from-white/10 via-white/5 to-transparent
+                          backdrop-blur-lg border border-white/20 
+                          text-white/80 font-medium text-lg rounded-full
+                          transition-all duration-500 hover:scale-105
+                          shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
+                          hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
+                          hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
+                          before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500">
+                          <span class="relative z-10 drop-shadow-sm">apply & get hired</span>
+                          <div class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"></div>
+                </a>
+            </div>
+        </div>
     </div>
 
-    <!-- Decorative Polaroids -->
-    <Polaroid
-      image="https://dhanush.wtf/media/y8wsq0whok.jpg?file="
-      rotate="8deg"
-      top="5%"
-      right="5%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/lvl3cogtiqg.jpg?file="
-      rotate="-12deg"
-      top="30%"
-      left="5%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/spch2uan9ni.jpg?file="
-      rotate="15deg"
-      top="60%"
-      right="8%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/7ww23hq0p6f.jpg?file="
-      rotate="-5deg"
-      top="75%"
-      left="12%"
-    />
-  </main>
+
 </Layout>
-
-<style>
-  :global(body) {
-    background-color: #111;
-  }
-
-  /* Ensure polaroids are below content but above background */
-  main :global(.polaroid) {
-    z-index: 5;
-  }
-
-  main > div {
-    z-index: 20;
-  }
-
-  /* Gradient Spheres - same as HeroSection */
-  .sphere-gradient {
-    background: radial-gradient(
-      circle at center,
-      rgba(255, 153, 0, 0.15) 0%,
-      transparent 70%
-    );
-    filter: blur(60px);
-    border-radius: 50%;
-    animation: float 8s ease-in-out infinite;
-  }
-
-  .sphere-gradient-sm {
-    background: radial-gradient(
-      circle at center,
-      rgba(255, 153, 0, 0.1) 0%,
-      transparent 70%
-    );
-    filter: blur(40px);
-    border-radius: 50%;
-    animation: float 12s ease-in-out infinite reverse;
-  }
-
-  @keyframes float {
-    0%,
-    100% {
-      transform: translate(0, 0);
-    }
-    50% {
-      transform: translate(20px, -20px);
-    }
-  }
-</style>

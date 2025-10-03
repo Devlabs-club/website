@@ -182,9 +182,8 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <div className="relative z-10  max-w-6xl min-h-screen  mx-auto py-24 sm:px-6 lg:px-8 bg-[#090909] text-gray-400 border border-dashed border-gray-700  ">
-      <h2 className="text-2xl font-bold mb-6 text-center text-white">Admin Dashboard</h2>
-
-      <div className="mb-6 p-4 bg-[#111111] border border-dashed border-gray-700">
+ 
+      <div className="mb-6 p-4 bg-[#111111] border border-dashed border-gray-700 mt-12">
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
           <h3 className="text-lg font-semibold text-white whitespace-nowrap">Search Users</h3>
           <form onSubmit={handleSearch} className="flex-1 flex flex-col sm:flex-row gap-2 w-full">
