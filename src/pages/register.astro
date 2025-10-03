@@ -22,10 +22,10 @@ import WrappedText from "../components/text/WrappedText.astro";
         <GradientBlob top="-20%" right="-10%" left="" scale="1.5" />
         <GradientBlob top="60%" left="-15%" right="" scale="1.2" />
         
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-32">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 pt-36">
             <!-- Full Width Visual Section -->
             <div class="w-full mb-16">
-                <div class="w-full h-[450px] md:h-[550px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30 relative">
+                <div class="w-full min-h-[400px] md:h-[450px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30 relative">
                     <img src="events/DevHacks2.jpg" alt="DevLabs Community" class="w-full h-full object-cover opacity-20 rounded-2xl" />
                     
                     <!-- Orange overlay for aesthetic appeal -->
@@ -33,32 +33,34 @@ import WrappedText from "../components/text/WrappedText.astro";
                     
                     
                     <!-- Hero Content -->
-                    <div class="absolute right-8 left-8 top-8 bottom-8 z-20 flex flex-col justify-between">
-                        <div class=" 4">
-                          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-                            Get hired by<br />
-                            <Highlight>Arizona’s founder community</Highlight>
-                        </h1>
-                        <p class="text-lg sm:text-xl text-gray-300 leading-relaxed mb-8">
-                          Because employers don’t just want résumés—they want proof you can build.  
-                          At DevLabs, you’ll join hackathons, ship products, and collaborate with teams that mirror real-world startups.  
-                          <Highlight>Graduate with not only a degree, but also a portfolio and network that land you jobs and internships.</Highlight>
-                      
-                        </p>
+                    <div class="absolute right-4 left-4 top-4 bottom-4 z-20 flex flex-col justify-between">
+                        <div class="flex flex-col sm:flex-row justify-between w-full gap-4">
+                          <div class="flex-1">
+                               <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                                Get hired by
+                              </h1>
+                             <h2 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-orange-300 leading-tight mb-4">
+                              Arizona's founder community
+                            </h2>
+                              <p class="text-sm sm:text-base md:text-lg lg:text-xl md:w-1/2 text-gray-300 w-full sm:w-3/4 md:w-1/2 leading-relaxed">
+                              Because employers don't just want résumés—they want proof you can build.  
+                              <span class="text-orange-300 font-semibold">Graduate with not only a degree, but also a portfolio and network that land you jobs and internships.</span>
+                            </p>
+                          </div>
                         </div>
                         
                         <!-- Community Stats -->
-                        <div class="flex flex-col sm:flex-row justify-between items-center sm:items-end w-full gap-6 sm:gap-0">
+                        <div class="flex flex-col md:flex-row gap-4 w-full justify-between m">
                             <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
                               <WrappedText size="large" className="border-orange-300 text-orange-300">future hires</WrappedText>
-<WrappedText size="large" className="border-orange-300 text-orange-300">internship-ready</WrappedText>
-<WrappedText size="large" className="border-orange-300 text-orange-300">portfolio builders</WrappedText>
-<WrappedText size="large" className="border-orange-300 text-orange-300">startup teammates</WrappedText>
-       </div>
+                              <WrappedText size="large" className="border-orange-300 text-orange-300">internship-ready</WrappedText>
+                              <WrappedText size="large" className="border-orange-300 text-orange-300">portfolio builders</WrappedText>
+                              <WrappedText size="large" className="border-orange-300 text-orange-300">startup teammates</WrappedText>
+                            </div>
                             
-                            <div class="flex items-end">
-                                <span class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold bg-gradient-to-r from-orange-500 to-orange-300 text-transparent bg-clip-text leading-none">350+</span>
-                                <span class="text-sm sm:text-base lg:text-lg text-white ml-2 mb-1 sm:mb-2">active builders</span>
+                            <div class="flex items-center justify-center sm:justify-end">
+                                <span class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-500 to-orange-300 text-transparent bg-clip-text leading-none">350+</span>
+                                <span class="text-xs sm:text-sm md:text-base lg:text-lg text-white ml-2">active builders</span>
                             </div>
                         </div>
                     </div>
