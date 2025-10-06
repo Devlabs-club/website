@@ -1,7 +1,6 @@
 ---
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
-import Analytics from "@vercel/analytics/astro";
 interface Props {
   title: string;
 }
@@ -50,7 +49,6 @@ const { title } = Astro.props;
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Caveat:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <Analytics />
   </head>
   <body class="text-gray-400 overflow-x-hidden">
     <!-- Fixed background with full-width gradient -->
