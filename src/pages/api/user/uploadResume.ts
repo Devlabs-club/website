@@ -178,9 +178,10 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Process resume for embedding storage
+    // Note: major field is now fetched from Application collection inside upsertResume
     try {
       console.log('Processing resume for embeddings...');
-      await upsertResume(buffer, decoded.userId, user.major || 'Not specified');
+      await upsertResume(buffer, decoded.userId, 'Not specified'); // Pass placeholder, will be fetched from Application
       console.log('Resume embeddings processed successfully');
     } catch (embeddingError) {
       console.error('Error processing resume embeddings:', embeddingError);

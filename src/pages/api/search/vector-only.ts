@@ -97,7 +97,7 @@ export const POST: APIRoute = async ({ request }) => {
       let applicationData: any = null;
       try {
         if (Application) {
-          applicationData = await Application.findOne({ email: userData?.email });
+          applicationData = await Application.findOne({ email: userData?.profile.email });
         }
       } catch (error) {
         console.error(`Error fetching application data for ${userId}:`, error);
@@ -109,9 +109,9 @@ export const POST: APIRoute = async ({ request }) => {
         text: bestChunk.pageContent,
         tags: bestChunk.metadata?.tags || [],
         contact_number: bestChunk.metadata?.contact_number || null,
-        email: userData?.email || bestChunk.metadata?.email || null, // Use actual user email
+        email: userData?.profile.email || bestChunk.metadata?.email || null, // Use actual user email
         socials: bestChunk.metadata?.socials || [],
-        major: applicationData?.major || userData?.major || bestChunk.metadata?.major || 'Not specified',
+        major: applicationData?.major || bestChunk.metadata?.major || 'Not specified',
       });
     }
 

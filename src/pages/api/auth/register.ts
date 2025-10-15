@@ -55,26 +55,31 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ 'profile.emailLower': email.toLowerCase() });
     if (existingUser) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'User already exists with this email' 
+        JSON.stringify({
+          success: false,
+          message: 'User already exists with this email'
         }),
-        { 
+        {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
 
-    // Create new user
+    // Create new user with profile structure
     const newUser = new User({
-      name: name.trim(),
-      email: email.toLowerCase(),
+      profile: {
+        name: name.trim(),
+        email: email,
+        emailLower: email.toLowerCase()
+      },
       password,
-      role: 'user'
+      role: 'user',
+      oauthProvider: null,
+      oauthId: null
     });
 
     await newUser.save();
@@ -89,15 +94,17 @@ export const POST: APIRoute = async ({ request }) => {
         message: 'User registered successfully',
         user: {
           id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role
+          profile: newUser.profile,
+          role: newUser.role,
+          resumeUrl: newUser.resumeUrl,
+          oauthProvider: newUser.oauthProvider,
+          createdAt: newUser.createdAt
         },
         token
       }),
       {
         status: 201,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
         }

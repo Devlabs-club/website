@@ -79,23 +79,23 @@ export const GET: APIRoute = async ({ request, url }) => {
     let application = null;
     if (Application) {
       try {
-        application = await Application.findOne({ email: user.email });
+        application = await Application.findOne({ email: user.profile.email });
       } catch (error) {
         console.error('Error fetching application:', error);
         // Continue without application data if fetch fails
       }
     }
 
-    // Return user data with application data
+    // Return user data with application data (profile structure)
     return new Response(
       JSON.stringify({
         success: true,
         user: {
           _id: user._id,
-          name: user.name,
-          email: user.email,
-          major: user.major,
+          profile: user.profile,
+          role: user.role,
           resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         },

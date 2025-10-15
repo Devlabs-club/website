@@ -15,7 +15,7 @@ export function generateToken(user: IUser): string {
 
   const payload: JWTPayload = {
     userId: user._id!,
-    email: user.email,
+    email: user.profile.email,
     role: user.role
   };
 

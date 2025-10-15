@@ -76,19 +76,8 @@ export const POST: APIRoute = async ({ request }) => {
             }
         }
 
-        // Update user's major field if major is provided
-        if (data.major && data.email) {
-            try {
-                await User.findOneAndUpdate(
-                    { email: data.email },
-                    { major: data.major },
-                    { upsert: false } // Don't create user if doesn't exist
-                );
-            } catch (error) {
-                console.error('Error updating user major:', error);
-                // Don't fail the application submission if user update fails
-            }
-        }
+        // Note: User.major field has been removed from User schema
+        // Major is now only stored in the Application collection
 
         return new Response(JSON.stringify({ success: true, data: application }), {
             status: 200,

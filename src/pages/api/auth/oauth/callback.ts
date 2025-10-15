@@ -40,18 +40,20 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     }
 
     // Check if user already exists in our database
-    let user = await User.findOne({ email: workosUser.email.toLowerCase() });
+    let user = await User.findOne({ 'profile.emailLower': workosUser.email.toLowerCase() });
 
     if (user) {
       // User exists - update their information if needed
       const updatedUser = await User.findByIdAndUpdate(
         user._id,
         {
-          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          'profile.name': `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          'profile.email': workosUser.email,
+          'profile.emailLower': workosUser.email.toLowerCase(),
           // Add OAuth provider info if not already present
-          ...(user.oauthProvider ? {} : { 
+          ...(user.oauthProvider ? {} : {
             oauthProvider: 'google',
-            oauthId: workosUser.id 
+            oauthId: workosUser.id
           })
         },
         { new: true }
@@ -60,9 +62,12 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     } else {
       // Create new user from OAuth profile
       user = new User({
-        name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
-        email: workosUser.email.toLowerCase(),
-        password: crypto.randomUUID(), // Generate random password for OAuth users
+        profile: {
+          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          email: workosUser.email,
+          emailLower: workosUser.email.toLowerCase()
+        },
+        password: null,
         role: 'user',
         oauthProvider: 'google',
         oauthId: workosUser.id,

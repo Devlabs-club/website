@@ -60,16 +60,16 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    // Return user data
+    // Return user data with profile structure
     return new Response(
       JSON.stringify({
         success: true,
         user: {
           id: user._id,
-          name: user.name,
-          email: user.email,
+          profile: user.profile,
           role: user.role,
           resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
           createdAt: user.createdAt
         }
       }),

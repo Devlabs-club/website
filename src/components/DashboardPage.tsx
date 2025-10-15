@@ -482,8 +482,8 @@ function DashboardContent() {
                 <ApplicationForm
                   variant="single"
                   prefill={{
-                    name: user?.name || "",
-                    email: user?.email || "",
+                    name: user?.profile.name || "",
+                    email: user?.profile.email || "",
                   }}
                   onFormChange={setHasApplicationChanges}
                 />

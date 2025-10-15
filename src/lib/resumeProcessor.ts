@@ -57,15 +57,23 @@ export const upsertResume = async (buffer: Buffer, userId: string, userMajor: st
     const resumeDoc = await parseResume(buffer);
     const chunks = chunkText(resumeDoc.content);
 
-    // Fetch user data to get the actual major
+    // Fetch user data and their application to get the actual major
+    // Major is now stored in Application collection, not User collection
     let actualMajor = userMajor;
     try {
       const user = await User.findById(userId);
-      if (user && user.major) {
-        actualMajor = user.major;
+      if (user && user.profile && user.profile.email) {
+        // Import Application model dynamically to avoid circular dependencies
+        const { Application } = await import('./mongodb');
+        if (Application) {
+          const application = await Application.findOne({ email: user.profile.email });
+          if (application && application.major) {
+            actualMajor = application.major;
+          }
+        }
       }
     } catch (error) {
-      console.error('Error fetching user data for major:', error);
+      console.error('Error fetching application data for major:', error);
       // Use the provided major as fallback
     }
 
@@ -84,7 +92,7 @@ export const upsertResume = async (buffer: Buffer, userId: string, userMajor: st
     // Get vector store and add documents
     const vectorStore = await getVectorStore();
     await vectorStore.addDocuments(documents);
-    
+
     console.log(`Successfully processed ${documents.length} chunks for user ${userId} with major: ${actualMajor}`);
     return documents;
   } catch (error) {

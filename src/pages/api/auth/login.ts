@@ -40,14 +40,28 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Find user and include password for comparison
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await User.findOne({ 'profile.emailLower': email.toLowerCase() }).select('+password');
     if (!user) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
+        JSON.stringify({
+          success: false,
+          message: 'Invalid email or password'
         }),
-        { 
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Check if user has a password (OAuth-only users don't have passwords)
+    if (!user.password) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'This account uses OAuth login. Please login with Google.'
+        }),
+        {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -58,11 +72,11 @@ export const POST: APIRoute = async ({ request }) => {
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
+        JSON.stringify({
+          success: false,
+          message: 'Invalid email or password'
         }),
-        { 
+        {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -79,15 +93,17 @@ export const POST: APIRoute = async ({ request }) => {
         message: 'Login successful',
         user: {
           id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
+          profile: user.profile,
+          role: user.role,
+          resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
+          createdAt: user.createdAt
         },
         token
       }),
       {
         status: 200,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
         }

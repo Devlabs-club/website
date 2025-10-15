@@ -16,10 +16,29 @@ interface SearchResult {
 
 interface UserData {
   _id: string;
-  name: string;
-  email: string;
-  major: string;
-  resumeUrl: string;
+  profile: {
+    name: string;
+    email: string;
+    emailLower: string;
+    gender?: string | null;
+    dob?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    twitterHandle?: string | null;
+    linkedin?: string | null;
+    personalWebsite?: string | null;
+    portfolio?: string | null;
+    github?: string | null;
+    proofOfWork?: string | null;
+    additionalInfo?: string | null;
+    favoriteLink?: string | null;
+    coolestThing?: string | null;
+    projectIdea?: string | null;
+    referralSource?: string | null;
+  };
+  role: string;
+  resumeUrl?: string;
+  oauthProvider?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -349,15 +368,15 @@ const AdminDashboard: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
                         <p className="text-xs text-gray-500">Name</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData?.name || selectedUserData.name}</p>
+                        <p className="text-gray-300 font-medium">{selectedApplicationData?.name || selectedUserData.profile.name}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Email</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData?.email || selectedUserData.email}</p>
+                        <p className="text-gray-300 font-medium">{selectedApplicationData?.email || selectedUserData.profile.email}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Major</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData?.major || selectedUserData.major}</p>
+                        <p className="text-gray-300 font-medium">{selectedApplicationData?.major || 'Not specified'}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">Member Since</p>
