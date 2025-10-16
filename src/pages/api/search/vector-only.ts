@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getVectorStore } from '../../../lib/vectorStore';
-import { connectAdminDB, Application } from '../../../lib/mongodb';
-import User from '../../../models/user.tsx';
+import { connectAdminDB } from '../../../lib/mongodb';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -51,7 +50,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Group chunks by user_id and aggregate scores
-    const userChunksMap = new Map();
+  const userChunksMap: Map<string, any[]> = new Map();
     
     results.forEach((result: any) => {
       const doc = Array.isArray(result) ? result[0] : result;
@@ -63,7 +62,8 @@ export const POST: APIRoute = async ({ request }) => {
       if (!userChunksMap.has(userId)) {
         userChunksMap.set(userId, []);
       }
-      userChunksMap.get(userId).push({
+      const chunkArr = userChunksMap.get(userId)!;
+      chunkArr.push({
         score,
         doc,
         pageContent: doc.pageContent,
@@ -72,15 +72,15 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     // Aggregate results by user
-    const userProfiles: any[] = [];
+  const userProfiles: any[] = [];
     
     for (const [userId, chunks] of userChunksMap.entries()) {
       // Sort chunks by score descending
-      chunks.sort((a, b) => b.score - a.score);
+  chunks.sort((a: any, b: any) => b.score - a.score);
       
       // Calculate aggregate score: average of top 3 chunks
       const topChunks = chunks.slice(0, 3);
-      const aggregateScore = topChunks.reduce((sum, chunk) => sum + chunk.score, 0) / topChunks.length;
+  const aggregateScore = topChunks.reduce((sum: number, chunk: any) => sum + chunk.score, 0) / topChunks.length;
       
       // Get the best matching chunk for context
       const bestChunk = chunks[0];
@@ -88,16 +88,18 @@ export const POST: APIRoute = async ({ request }) => {
       // Fetch user data for actual email
       let userData: any = null;
       try {
-        userData = await User.findById(userId);
+        const userModel = (await import('../../../models/user')).default as any;
+        userData = await userModel.findById(userId);
       } catch (error) {
         console.error(`Error fetching user data for ${userId}:`, error);
       }
 
-      // Fetch application data for major and other details
+      // Fetch application data for major and other details (by user ID)
       let applicationData: any = null;
       try {
-        if (Application) {
-          applicationData = await Application.findOne({ email: userData?.profile.email });
+        const appModel = (await import('../../../lib/mongodb')).Application as any;
+        if (appModel) {
+          applicationData = await appModel.findOne({ user: userId });
         }
       } catch (error) {
         console.error(`Error fetching application data for ${userId}:`, error);
@@ -112,6 +114,11 @@ export const POST: APIRoute = async ({ request }) => {
         email: userData?.profile.email || bestChunk.metadata?.email || null, // Use actual user email
         socials: bestChunk.metadata?.socials || [],
         major: applicationData?.major || bestChunk.metadata?.major || 'Not specified',
+        status: applicationData?.status || null,
+        track: applicationData?.track || null,
+        teamName: applicationData?.teamName || null,
+        dietaryRestrictions: applicationData?.dietaryRestrictions || null,
+        whyJoin: applicationData?.whyJoin || null,
       });
     }
 

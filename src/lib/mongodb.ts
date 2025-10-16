@@ -50,11 +50,36 @@ async function makeConnection(mongo_url) {
 }
 
 async function connectDB() {
+    console.log(`Connecting to ${MONGODB_URI}`);
     return makeConnection(MONGODB_URI);
 }
 
+async function makeAdminConnection(mongo_url: string) {
+    // Use cached admin connection if available
+    if (cachedAdmin.conn) {
+        return cachedAdmin.conn;
+    }
+
+    if (!cachedAdmin.promise) {
+        const opts = {
+            bufferCommands: false,
+        };
+        cachedAdmin.promise = mongoose.connect(mongo_url, opts);
+    }
+
+    try {
+        cachedAdmin.conn = await cachedAdmin.promise;
+    } catch (e) {
+        cachedAdmin.promise = null;
+        throw e;
+    }
+
+    return cachedAdmin.conn;
+}
+
 async function connectAdminDB() {
-    return makeConnection(MONGODB_ADMIN_URI);
+    console.log(`Connecting to admin DB ${MONGODB_ADMIN_URI}`);
+    return makeAdminConnection(MONGODB_ADMIN_URI as string);
 }
 
 // Define schema - this is safe even during static build
@@ -74,6 +99,17 @@ const applicationSchema = new mongoose.Schema({
     track: { type: String },
     progress: { type: Number, default: 0 },
     resumeUrl: { type: String },
+    // Additional profile fields
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    metadata: {
+        naturalKey: { type: String }
+    },
+    dietaryRestrictions: { type: String },
+    status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+    tShirtSize: { type: String },
+    teamName: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+    teamPreference: { type: String, enum: ['hasTeam', 'needTeam', 'solo'] },
+    whyJoin: { type: String },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 }, {

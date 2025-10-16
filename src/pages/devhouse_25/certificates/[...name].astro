@@ -1,6 +1,6 @@
 ---
 import Layout from "../../../layouts/Layout.astro";
-import { connectDB, Application } from "../../../lib/mongodb";
+import { connectDB } from "../../../lib/mongodb";
 import GradientBlob from "../../../components/GradientBlob.astro";
 import WrappedText from "../../../components/text/WrappedText.astro";
 import Heading from "../../../components/text/Heading.astro";
@@ -17,9 +17,17 @@ const searchName = name.replace(/_/g, " ");
 
 // Connect to database and fetch participant
 await connectDB();
-const participant = await Application.findOne({
-  name: { $regex: `^${searchName}$`, $options: "i" },
+// Find user by profile.name (case-insensitive)
+const userModel = (await import("../../../models/user")).default as any;
+const participantUser = await userModel.findOne({
+  'profile.name': { $regex: `^${searchName}$`, $options: 'i' },
 });
+
+if (!participantUser) {
+  return Astro.redirect("/404");
+}
+
+const participant = { name: participantUser.profile.name } as any;
 
 if (!participant) {
   return Astro.redirect("/404");

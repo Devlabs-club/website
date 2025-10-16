@@ -2,6 +2,7 @@ import { Document } from "@langchain/core/documents";
 import { getVectorStore } from './vectorStore';
 import User from '../models/user.tsx';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
+import { MongoClient } from 'mongodb';
 
 // Text chunker - same as devhacks implementation
 const chunkText = (text: string, chunkSize: number = 100): string[] => {
@@ -77,16 +78,47 @@ export const upsertResume = async (buffer: Buffer, userId: string, userMajor: st
       // Use the provided major as fallback
     }
 
+    // Delete old embeddings for this user before inserting new ones
+    // This prevents duplicate key errors and keeps the embeddings collection clean
+    try {
+      const mongoUri = process.env.ADMIN_MONGO_URI || process.env.MONGODB_URI;
+      if (mongoUri) {
+        const client = new MongoClient(mongoUri);
+        await client.connect();
+
+        // Extract database name from URI
+        const url = new URL(mongoUri);
+        const dbName = url.pathname.replace('/', '') || 'test';
+        const db = client.db(dbName);
+        const collectionName = process.env.MONGO_DB_COLLECTION || 'embeddings';
+        const collection = db.collection(collectionName);
+
+        // Delete all existing embeddings for this user
+        const deleteResult = await collection.deleteMany({ 'metadata.user_id': userId });
+        console.log(`Deleted ${deleteResult.deletedCount} existing embeddings for user ${userId}`);
+
+        await client.close();
+      }
+    } catch (deleteError) {
+      console.error('Error deleting old embeddings:', deleteError);
+      // Continue even if deletion fails - this is a cleanup step
+    }
+
     let metadata = resumeDoc.metadata;
     metadata.user_id = userId;
     metadata.major = actualMajor || "Not specified";
 
-    // Create Document objects for each chunk
+    // Create Document objects for each chunk with unique metadata
+    // Add chunk_index and timestamp to ensure uniqueness and prevent duplicate key errors
     const documents = chunks
       .filter(chunk => chunk.trim() !== '' && chunk.length > 50) // Ensure chunk is not empty and has sufficient length
-      .map(chunk => new Document({
+      .map((chunk, index) => new Document({
         pageContent: chunk,
-        metadata: metadata
+        metadata: {
+          ...metadata,
+          chunk_index: index, // Add chunk index for uniqueness within a resume
+          upload_timestamp: new Date().toISOString() // Add timestamp to track when embeddings were created
+        }
       }));
 
     // Get vector store and add documents
