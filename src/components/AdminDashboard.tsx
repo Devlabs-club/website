@@ -343,16 +343,6 @@ const AdminDashboard: React.FC = () => {
 
           {!isShowingSearchResults && (
             <div className="flex gap-2 items-center">
-              <select
-                value={profileFilters.status}
-                onChange={(e) => setProfileFilters({ ...profileFilters, status: e.target.value })}
-                className="px-2 py-1 text-sm bg-[#222] border border-dashed border-gray-600 text-white focus:outline-none focus:border-[#ef9248]"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
               <input
                 type="text"
                 placeholder="Filter by track..."
@@ -393,18 +383,9 @@ const AdminDashboard: React.FC = () => {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b border-dashed border-gray-700">
-                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Name</th>
                     <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Email</th>
                     <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Major</th>
-                    {!isShowingSearchResults && (
-                      <>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Status</th>
-                        <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Created</th>
-                      </>
-                    )}
-                    {isShowingSearchResults && (
-                      <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Match</th>
-                    )}
+                    <th className="text-left py-2 px-3 text-sm font-semibold text-gray-300">Created</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -415,14 +396,9 @@ const AdminDashboard: React.FC = () => {
                         className="border-b border-dashed border-gray-700 hover:bg-[#0d0d0d] cursor-pointer"
                         onClick={() => handleItemSelect(result, true)}
                       >
-                        <td className="py-2 px-3 text-sm text-gray-300">User {result.user_id.substring(0, 8)}</td>
                         <td className="py-2 px-3 text-sm text-gray-300">{result.email || 'N/A'}</td>
                         <td className="py-2 px-3 text-sm text-gray-300">{result.major || 'N/A'}</td>
-                        <td className="py-2 px-3 text-sm">
-                          <span className="bg-[#222] text-orange-400 border border-dashed border-orange-400 px-2 py-1 text-xs">
-                            {Math.round(result.match_score * 100)}%
-                          </span>
-                        </td>
+                        <td className="py-2 px-3 text-sm text-gray-300">—</td>
                       </tr>
                     ))
                   ) : (
@@ -432,22 +408,8 @@ const AdminDashboard: React.FC = () => {
                         className="border-b border-dashed border-gray-700 hover:bg-[#0d0d0d] cursor-pointer"
                         onClick={() => handleItemSelect(profile, false)}
                       >
-                        <td className="py-2 px-3 text-sm text-gray-300">{profile.name || 'N/A'}</td>
                         <td className="py-2 px-3 text-sm text-gray-300">{profile.email || 'N/A'}</td>
                         <td className="py-2 px-3 text-sm text-gray-300">{profile.major || 'N/A'}</td>
-                        <td className="py-2 px-3 text-sm">
-                          <span
-                            className={`px-2 py-1 text-xs border border-dashed ${
-                              profile.status === 'approved'
-                                ? 'bg-green-900 text-green-300 border-green-500'
-                                : profile.status === 'rejected'
-                                ? 'bg-red-900 text-red-300 border-red-500'
-                                : 'bg-yellow-900 text-yellow-300 border-yellow-500'
-                            }`}
-                          >
-                            {profile.status || 'pending'}
-                          </span>
-                        </td>
                         <td className="py-2 px-3 text-sm text-gray-400">
                           {new Date(profile.createdAt).toLocaleDateString()}
                         </td>

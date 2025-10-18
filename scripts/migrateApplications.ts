@@ -1,73 +1,69 @@
 /**
- * Migration Script: Application Schema Update
- * 
- * This script migrates the Application collection from the old schema to the new simplified schema.
- * 
- * Old schema fields (to be removed):
- * - name, age, email, phone
- * - yearOfStudy, expectedGradYear, linkedin, website
- * - workEligibility, needSponsorship, sponsorshipType
- * - progress, updatedAt
- * 
- * New schema fields (to be retained):
- * - user (ObjectId, unique, required)
- * - status, major, track
- * - teamName, teamPreference
- * - tShirtSize, dietaryRestrictions, whyJoin
- * - resumeUrl
- * - metadata.naturalKey
- * - createdAt
- * 
- * Steps:
- * 1. Connect to database
- * 2. Backup existing collection
- * 3. Remove deprecated fields from all documents
- * 4. Drop old indexes (unique index on email)
- * 5. Create new indexes (unique index on user)
- * 6. Handle duplicates (keep most recent createdAt if multiple per user)
- * 7. Validate results
+ * Migration Script: Application Schema Alignment
+ *
+ * Goals:
+ * - Ensure deprecated fields are explicitly null: track, teamName, teamPreference, tShirtSize, dietaryRestrictions, whyJoin
+ * - Normalize `dob` to Date
+ * - Backfill `resumeUrl` both ways between Application (admin DB) and User (app DB)
+ * - Compute and set `progress` (0–4) based on section contract
+ * - Provide DRY_RUN mode and optional backup to JSON
  */
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const APP_MONGODB_URI = process.env.MONGODB_URI;
+const ADMIN_MONGO_URI = process.env.ADMIN_MONGO_URI;
 const DRY_RUN = process.env.DRY_RUN !== 'false'; // Default to dry run
+const BACKUP_DIR = process.env.BACKUP_DIR || path.join(process.cwd(), 'backups');
 
-if (!MONGODB_URI) {
+if (!APP_MONGODB_URI) {
   console.error('MONGODB_URI environment variable is not set');
   process.exit(1);
 }
+if (!ADMIN_MONGO_URI) {
+  console.error('ADMIN_MONGO_URI environment variable is not set');
+  process.exit(1);
+}
 
-interface OldApplication {
+interface ApplicationDoc {
   _id: mongoose.Types.ObjectId;
   user?: mongoose.Types.ObjectId;
-  email?: string;
-  name?: string;
-  age?: number;
-  phone?: string;
-  yearOfStudy?: string;
-  expectedGradYear?: number;
-  linkedin?: string;
-  website?: string;
-  workEligibility?: string;
-  needSponsorship?: string;
-  sponsorshipType?: string;
-  progress?: number;
-  updatedAt?: Date;
-  // Fields to keep
+  // Core fields
   status?: string;
   major?: string;
-  track?: string;
-  teamName?: mongoose.Types.ObjectId;
-  teamPreference?: string;
-  tShirtSize?: string;
-  dietaryRestrictions?: string;
-  whyJoin?: string;
+  name?: string;
+  gender?: 'male' | 'female' | 'non-binary' | string;
+  dob?: Date | string;
+  email?: string;
+  phone?: string;
+  country?: string;
+  linkedin?: string;
+  github?: string;
+  personalWebsite?: string;
+  portfolio?: string;
+  favoriteLink?: string;
+  twitterHandle?: string;
+  coolestThing?: string;
+  hackathonStory?: string;
+  additionalInfo?: string;
+  projectIdea?: string;
+  referralSource?: string;
+  proofOfWork?: string;
   resumeUrl?: string;
-  metadata?: { naturalKey?: string };
+  // Deprecated
+  track?: string | null;
+  teamName?: mongoose.Types.ObjectId | null;
+  teamPreference?: string | null;
+  tShirtSize?: string | null;
+  dietaryRestrictions?: string | null;
+  whyJoin?: string | null;
+  // Meta
+  metadata?: { naturalKey?: string } | undefined;
   createdAt?: Date;
 }
 
@@ -76,31 +72,31 @@ async function migrateApplications() {
   console.log('Application Schema Migration');
   console.log('='.repeat(80));
   console.log(`Mode: ${DRY_RUN ? 'DRY RUN (no changes will be made)' : 'LIVE RUN'}`);
-  console.log(`Database: ${MONGODB_URI?.split('@')[1]?.split('?')[0] || 'unknown'}`);
+  console.log(`App DB: ${APP_MONGODB_URI?.split('@')[1]?.split('?')[0] || 'unknown'}`);
+  console.log(`Admin DB: ${ADMIN_MONGO_URI?.split('@')[1]?.split('?')[0] || 'unknown'}`);
   console.log('='.repeat(80));
   console.log('');
 
   try {
-    // Connect to MongoDB
-    await mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
-    console.log('✓ Connected to MongoDB');
+    // Connect to both DBs
+    const adminConn = await mongoose.createConnection(ADMIN_MONGO_URI as string, { bufferCommands: false }).asPromise();
+    const appConn = await mongoose.createConnection(APP_MONGODB_URI as string, { bufferCommands: false }).asPromise();
+    console.log('✓ Connected to Admin and App MongoDB');
 
-    const db = mongoose.connection.db;
-    if (!db) {
-      throw new Error('Database connection not established');
-    }
+    const appDb = appConn.db;
+    const adminDb = adminConn.db;
+    if (!appDb || !adminDb) throw new Error('Database connections not established');
 
-    const collection = db.collection('applications');
+    const applications = adminDb.collection<ApplicationDoc>('applications');
+    const users = appDb.collection('users');
 
     // Step 1: Get counts
-    const totalCount = await collection.countDocuments();
+  const totalCount = await applications.countDocuments();
     console.log(`\n📊 Found ${totalCount} application documents`);
 
     // Step 2: Analyze current state
-    const withUser = await collection.countDocuments({ user: { $exists: true, $ne: null } });
-    const withEmail = await collection.countDocuments({ email: { $exists: true, $ne: null } });
+  const withUser = await applications.countDocuments({ user: { $exists: true, $ne: undefined as any } });
+  const withEmail = await applications.countDocuments({ email: { $exists: true, $ne: undefined as any } });
     const withoutUser = totalCount - withUser;
 
     console.log(`   - With user field: ${withUser}`);
@@ -113,7 +109,7 @@ async function migrateApplications() {
     }
 
     // Step 3: Check for duplicates (multiple applications per user)
-    const duplicates = await collection.aggregate([
+    const duplicates = await applications.aggregate([
       { $match: { user: { $exists: true, $ne: null } } },
       { $group: { _id: '$user', count: { $sum: 1 }, docs: { $push: { _id: '$_id', createdAt: '$createdAt' } } } },
       { $match: { count: { $gt: 1 } } }
@@ -143,122 +139,111 @@ async function migrateApplications() {
     }
 
     // Step 4: Handle duplicates - keep most recent per user
-    let dedupeCount = 0;
-    if (duplicates.length > 0 && !DRY_RUN) {
-      console.log('🔧 Removing duplicate applications...');
-      for (const dup of duplicates) {
-        // Sort by createdAt descending, keep first (most recent)
-        const sorted = (dup as any).docs.sort((a: any, b: any) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return dateB - dateA;
-        });
-        
-        const toKeep = sorted[0]._id;
-        const toDelete = sorted.slice(1).map((d: any) => d._id);
-        
-        const result = await collection.deleteMany({ _id: { $in: toDelete } });
-        dedupeCount += result.deletedCount || 0;
-      }
-      console.log(`   ✓ Removed ${dedupeCount} duplicate applications`);
-    } else if (duplicates.length > 0) {
-      console.log(`   [DRY RUN] Would remove ~${duplicates.reduce((sum, d: any) => sum + d.count - 1, 0)} duplicate applications`);
+    // No dedupe deletes in this migration; just report duplicates
+    if (duplicates.length > 0) {
+      console.log('ℹ️  Duplicate applications exist; consider cleanup separately.');
     }
 
-    // Step 5: Remove deprecated fields
-    const deprecatedFields = [
-      'name',
-      'age',
-      'email',
-      'phone',
-      'yearOfStudy',
-      'expectedGradYear',
-      'linkedin',
-      'website',
-      'workEligibility',
-      'needSponsorship',
-      'sponsorshipType',
-      'progress',
-      'updatedAt'
-    ];
-
-    if (!DRY_RUN) {
-      console.log('\n🔧 Removing deprecated fields...');
-      const unsetFields: any = {};
-      deprecatedFields.forEach(field => {
-        unsetFields[field] = '';
-      });
-
-      const updateResult = await collection.updateMany(
-        {},
-        { $unset: unsetFields }
-      );
-      console.log(`   ✓ Updated ${updateResult.modifiedCount} documents`);
-    } else {
-      console.log(`\n[DRY RUN] Would remove fields: ${deprecatedFields.join(', ')}`);
+    // Optional: Backup applications
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const backupPath = path.join(BACKUP_DIR, `applications_backup_${new Date().toISOString().replace(/[:.]/g,'-')}.json`);
+    try {
+      const sampleDocs = await applications.find({}).limit(1000).toArray();
+      fs.writeFileSync(backupPath, JSON.stringify(sampleDocs, null, 2));
+      console.log(`\n🗄️  Backed up first ${sampleDocs.length} applications to: ${backupPath}`);
+    } catch (e) {
+      console.warn('Backup failed or partially completed:', e instanceof Error ? e.message : e);
     }
 
     // Step 6: Drop old indexes
-    console.log('\n🔧 Updating indexes...');
-    const indexes = await collection.indexes();
-    console.log(`   Current indexes: ${indexes.length}`);
-    
+    // Ensure unique index on user in admin applications
     if (!DRY_RUN) {
-      // Drop email unique index if it exists
       try {
-        await collection.dropIndex('email_1');
-        console.log('   ✓ Dropped email_1 index');
+        await applications.createIndex({ user: 1 }, { unique: true, sparse: false });
+        await applications.createIndex({ status: 1, track: 1 });
+        await applications.createIndex({ major: 1 });
+        await applications.createIndex({ 'metadata.naturalKey': 1 }, { sparse: true });
+        console.log('✓ Ensured application indexes');
       } catch (e: any) {
-        if (e.codeName !== 'IndexNotFound') {
-          console.log(`   ⚠️  Error dropping email index: ${e.message}`);
+        console.warn('Index ensure warning:', e?.message || e);
+      }
+    }
+
+    // Step: Iterate applications and apply transformations
+    const cursor = applications.find({});
+    let updatedCount = 0;
+    let missingResume = 0;
+    while (await cursor.hasNext()) {
+      const app = await cursor.next() as ApplicationDoc | null;
+      if (!app) break;
+
+      const userId = app.user?.toString();
+      const update: any = { $set: {}, $unset: {} };
+
+      // Normalize dob
+      if (app.dob && typeof app.dob === 'string') {
+        const d = new Date(app.dob);
+        if (!isNaN(d.getTime())) update.$set.dob = d;
+      }
+
+      // Backfill resumeUrl both ways
+      let resumeUrl = app.resumeUrl;
+      if ((!resumeUrl || resumeUrl === null) && userId) {
+        const userDoc = await users.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+        if (userDoc?.resumeUrl) {
+          resumeUrl = userDoc.resumeUrl;
+          update.$set.resumeUrl = resumeUrl;
+        }
+      } else if (resumeUrl && userId) {
+        const userDoc = await users.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+        if (userDoc && !userDoc.resumeUrl) {
+          if (!DRY_RUN) await users.updateOne({ _id: userDoc._id }, { $set: { resumeUrl } });
         }
       }
-    } else {
-      const hasEmailIndex = indexes.some((idx: any) => idx.key.email);
-      if (hasEmailIndex) {
-        console.log('   [DRY RUN] Would drop email_1 index');
+
+      // Deprecated fields explicitly null
+      update.$set.track = null;
+      update.$set.teamName = null;
+      update.$set.teamPreference = null;
+      update.$set.tShirtSize = null;
+      update.$set.dietaryRestrictions = null;
+      update.$set.whyJoin = null;
+
+      // Compute progress
+      const hasPersonal = Boolean(app.name && app.gender && (app.dob || update.$set.dob) && app.email && app.phone && app.country && (resumeUrl || update.$set.resumeUrl));
+      const hasCoreLinks = Boolean(app.linkedin && app.github);
+      const hasStory = Boolean(app.coolestThing && app.hackathonStory);
+      const hasExtras = Boolean(app.projectIdea || app.proofOfWork || app.portfolio || app.personalWebsite || app.favoriteLink || app.twitterHandle || app.referralSource || app.additionalInfo);
+      const progress = [hasPersonal, hasCoreLinks, hasStory, hasExtras].reduce((acc, v) => acc + (v ? 1 : 0), 0);
+      update.$set.progress = progress;
+
+      // Cleanup empty operators
+      if (Object.keys(update.$unset).length === 0) delete update.$unset;
+      if (Object.keys(update.$set).length === 0) delete update.$set;
+
+      if (update.$set && Object.keys(update.$set).length > 0 || update.$unset) {
+        if (!DRY_RUN) {
+          await applications.updateOne({ _id: app._id }, update);
+        }
+        updatedCount++;
       }
+
+      if (!resumeUrl) missingResume++;
     }
-
-    // Step 7: Create new indexes
-    if (!DRY_RUN) {
-      // Create unique index on user
-      try {
-        await collection.createIndex({ user: 1 }, { unique: true, sparse: false });
-        console.log('   ✓ Created unique index on user field');
-      } catch (e: any) {
-        console.log(`   ⚠️  Error creating user index: ${e.message}`);
-      }
-
-      // Create indexes for common queries
-      await collection.createIndex({ status: 1, track: 1 });
-      console.log('   ✓ Created compound index on status + track');
-
-      await collection.createIndex({ major: 1 });
-      console.log('   ✓ Created index on major');
-
-      await collection.createIndex({ 'metadata.naturalKey': 1 }, { sparse: true });
-      console.log('   ✓ Created index on metadata.naturalKey');
-    } else {
-      console.log('   [DRY RUN] Would create indexes:');
-      console.log('      - { user: 1 } (unique)');
-      console.log('      - { status: 1, track: 1 }');
-      console.log('      - { major: 1 }');
-      console.log('      - { metadata.naturalKey: 1 } (sparse)');
-    }
+    console.log(`\n✓ Processed applications. Updated: ${updatedCount}. Missing resumeUrl after migration: ${missingResume}.`);
 
     // Step 8: Validation
     console.log('\n📊 Post-migration stats:');
-    const finalCount = await collection.countDocuments();
-    const withUserFinal = await collection.countDocuments({ user: { $exists: true, $ne: null } });
-    const withMajor = await collection.countDocuments({ major: { $exists: true, $ne: null } });
+  const finalCount = await applications.countDocuments();
+  const withUserFinal = await applications.countDocuments({ user: { $exists: true, $ne: undefined as any } });
+  const withMajor = await applications.countDocuments({ major: { $exists: true, $ne: undefined as any } });
     
     console.log(`   Total documents: ${finalCount}`);
     console.log(`   With user field: ${withUserFinal}`);
     console.log(`   With major field: ${withMajor}`);
 
     // Sample document
-    const sample = await collection.findOne({ user: { $exists: true } });
+  const sample = await applications.findOne({ user: { $exists: true } });
     if (sample) {
       console.log('\n📄 Sample migrated document:');
       console.log(JSON.stringify(sample, null, 2));
@@ -277,7 +262,11 @@ async function migrateApplications() {
     console.error('\n❌ Migration failed:', error);
     throw error;
   } finally {
-    await mongoose.disconnect();
+    // Close all connections
+    const conns = mongoose.connections.slice();
+    await Promise.all(conns.map(async (c) => {
+      try { await c.close(); } catch {}
+    }));
     console.log('\n✓ Disconnected from MongoDB');
   }
 }

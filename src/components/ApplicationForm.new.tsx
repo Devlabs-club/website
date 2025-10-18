@@ -17,11 +17,8 @@ import { ApplicationInputSchema, type ApplicationInput } from "../models/applica
  * User identity (name, email) comes from authentication context
  */
 
-// Extended schema for UI-specific validation
-const formSchema = ApplicationInputSchema.extend({
-  major: z.string().min(2, "Major is required and must be at least 2 characters"),
-  whyJoin: z.string().min(20, "Please tell us why you want to join (at least 20 characters)").optional(),
-});
+// Use the shared schema. We may extend client-side messages or placeholders as needed.
+const formSchema = ApplicationInputSchema;
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -54,19 +51,36 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isDirty },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
     defaultValues: {
+      // Required
+      name: prefill?.name || "",
+      gender: prefill?.gender || ("male" as any),
+      dob: (prefill?.dob as any) || ("" as any),
+      email: prefill?.email || "",
+      phone: prefill?.phone || "",
+      country: prefill?.country || "",
       major: prefill?.major || "",
-      track: prefill?.track || "",
-      teamName: prefill?.teamName || "",
-      teamPreference: prefill?.teamPreference || undefined,
-      tShirtSize: prefill?.tShirtSize || "",
-      dietaryRestrictions: prefill?.dietaryRestrictions || "",
-      whyJoin: prefill?.whyJoin || "",
-    },
+      linkedin: prefill?.linkedin || "",
+      github: prefill?.github || "",
+      coolestThing: prefill?.coolestThing || "",
+      hackathonStory: prefill?.hackathonStory || "",
+      resumeUrl: prefill?.resumeUrl || "",
+
+      // Optional
+      personalWebsite: prefill?.personalWebsite || "",
+      portfolio: prefill?.portfolio || "",
+      favoriteLink: prefill?.favoriteLink || "",
+      twitterHandle: prefill?.twitterHandle || "",
+      additionalInfo: prefill?.additionalInfo || "",
+      projectIdea: prefill?.projectIdea || "",
+      referralSource: prefill?.referralSource || "",
+      proofOfWork: prefill?.proofOfWork || "",
+    } as any,
   });
 
   const formData = watch();
@@ -76,7 +90,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     onFormChange?.(isDirty);
   }, [isDirty, onFormChange]);
 
-  // Fetch existing application on mount
+  // Fetch existing application on mount and fetch resumeUrl from /api/auth/me
   useEffect(() => {
     const fetchApplication = async () => {
       try {
@@ -86,13 +100,32 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           if (result.success && result.data) {
             // Application exists, mark as submitted
             setIsSubmitted(true);
+            const data = result.data as Partial<FormData>;
+            // Prefill fields from existing app
+            Object.entries(data).forEach(([key, value]) => {
+              if (key in (formSchema.shape as any) && value != null) {
+                setValue(key as any, value as any, { shouldDirty: false });
+              }
+            });
           }
         }
       } catch (error) {
         console.error("Error fetching application:", error);
       }
     };
+    const fetchResume = async () => {
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include" });
+        const json = await res.json();
+        if (json?.success && json?.user?.resumeUrl) {
+          setValue("resumeUrl" as any, json.user.resumeUrl, { shouldDirty: false });
+        }
+      } catch (e) {
+        console.warn("Unable to prefill resumeUrl", e);
+      }
+    };
     fetchApplication();
+    fetchResume();
   }, []);
 
   const onSubmit = async (data: FormData) => {
@@ -100,6 +133,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     setSubmitError(null);
 
     try {
+      // Ensure resumeUrl present
+      if (!data.resumeUrl) {
+        throw new Error("Please upload your resume before submitting the application.");
+      }
       const response = await fetch("/api/application", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -177,182 +214,176 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         </div>
 
         {/* Academic Information */}
+        {/* Personal & Contact */}
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-white mb-4">Personal Information</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller name="name" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Full Name <span className="text-red-500">*</span></label>
+                <input {...field} type="text" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name.message}</p>}
+              </div>
+            )} />
+            <Controller name="gender" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Gender <span className="text-red-500">*</span></label>
+                <select {...field} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non-binary">Non-binary</option>
+                </select>
+                {errors.gender && <p className="text-red-400 text-sm mt-1">{(errors.gender as any).message}</p>}
+              </div>
+            )} />
+            <Controller name="dob" control={control} render={({ field }) => {
+              const f: any = field;
+              const value = typeof f.value === 'string' ? f.value : (f.value ? new Date(f.value).toISOString().slice(0,10) : '');
+              return (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Date of Birth <span className="text-red-500">*</span></label>
+                  <input name={f.name} ref={f.ref} value={value} onChange={f.onChange} onBlur={f.onBlur} type="date" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                  {errors.dob && <p className="text-red-400 text-sm mt-1">{(errors.dob as any).message}</p>}
+                </div>
+              );
+            }} />
+            <Controller name="email" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Email <span className="text-red-500">*</span></label>
+                <input {...field} type="email" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>}
+              </div>
+            )} />
+            <Controller name="phone" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Phone <span className="text-red-500">*</span></label>
+                <input {...field} type="tel" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone.message}</p>}
+              </div>
+            )} />
+            <Controller name="country" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Country <span className="text-red-500">*</span></label>
+                <input {...field} type="text" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.country && <p className="text-red-400 text-sm mt-1">{errors.country.message}</p>}
+              </div>
+            )} />
+          </div>
+        </div>
+
+        {/* Academic */}
         <div className="space-y-4">
           <h3 className="text-xl font-semibold text-white mb-4">Academic Information</h3>
-          
-          <Controller
-            name="major"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Major <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...field}
-                  type="text"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                  placeholder="e.g., Computer Science"
-                />
-                {errors.major && (
-                  <p className="text-red-400 text-sm mt-1">{errors.major.message}</p>
-                )}
-              </div>
-            )}
-          />
-
-          <Controller
-            name="track"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Track / Cohort
-                </label>
-                <input
-                  {...field}
-                  type="text"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                  placeholder="e.g., Season 1"
-                />
-                {errors.track && (
-                  <p className="text-red-400 text-sm mt-1">{errors.track.message}</p>
-                )}
-              </div>
-            )}
-          />
+          <Controller name="major" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Major <span className="text-red-500">*</span></label>
+              <input {...field} type="text" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" placeholder="e.g., Computer Science" />
+              {errors.major && <p className="text-red-400 text-sm mt-1">{errors.major.message}</p>}
+            </div>
+          )} />
         </div>
 
-        {/* Team Information */}
+        {/* Links */}
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-white mb-4">Team Information</h3>
-          
-          <Controller
-            name="teamPreference"
-            control={control}
-            render={({ field }) => (
+          <h3 className="text-xl font-semibold text-white mb-4">Links</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Controller name="linkedin" control={control} render={({ field }) => (
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Team Preference
-                </label>
-                <select
-                  {...field}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="hasTeam">I have a team</option>
-                  <option value="needTeam">I need a team</option>
-                  <option value="solo">Working solo</option>
-                </select>
-                {errors.teamPreference && (
-                  <p className="text-red-400 text-sm mt-1">{errors.teamPreference.message}</p>
-                )}
+                <label className="block text-sm font-medium text-gray-300 mb-2">LinkedIn <span className="text-red-500">*</span></label>
+                <input {...field} type="url" placeholder="https://www.linkedin.com/in/username" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.linkedin && <p className="text-red-400 text-sm mt-1">{errors.linkedin.message}</p>}
               </div>
-            )}
-          />
-
-          {formData.teamPreference === "hasTeam" && (
-            <Controller
-              name="teamName"
-              control={control}
-              render={({ field }) => (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Team ID
-                  </label>
-                  <input
-                    {...field}
-                    type="text"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                    placeholder="Enter your team ID (24-character hex)"
-                  />
-                  {errors.teamName && (
-                    <p className="text-red-400 text-sm mt-1">{errors.teamName.message}</p>
-                  )}
-                </div>
-              )}
-            />
-          )}
+            )} />
+            <Controller name="github" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">GitHub <span className="text-red-500">*</span></label>
+                <input {...field} type="url" placeholder="https://github.com/username" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.github && <p className="text-red-400 text-sm mt-1">{errors.github.message}</p>}
+              </div>
+            )} />
+            <Controller name="personalWebsite" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Personal Website</label>
+                <input {...field} type="url" placeholder="https://example.com" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.personalWebsite && <p className="text-red-400 text-sm mt-1">{errors.personalWebsite.message}</p>}
+              </div>
+            )} />
+            <Controller name="portfolio" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Portfolio</label>
+                <input {...field} type="url" placeholder="https://portfolio.example.com" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.portfolio && <p className="text-red-400 text-sm mt-1">{errors.portfolio.message}</p>}
+              </div>
+            )} />
+            <Controller name="favoriteLink" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Favorite Link</label>
+                <input {...field} type="url" placeholder="https://..." className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.favoriteLink && <p className="text-red-400 text-sm mt-1">{errors.favoriteLink.message}</p>}
+              </div>
+            )} />
+            <Controller name="twitterHandle" control={control} render={({ field }) => (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Twitter Handle</label>
+                <input {...field} type="text" placeholder="@username or https://x.com/username" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+                {errors.twitterHandle && <p className="text-red-400 text-sm mt-1">{(errors.twitterHandle as any).message}</p>}
+              </div>
+            )} />
+          </div>
         </div>
 
-        {/* Event Logistics */}
+        {/* Story */}
         <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-white mb-4">Event Details</h3>
-          
-          <Controller
-            name="tShirtSize"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  T-Shirt Size
-                </label>
-                <select
-                  {...field}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                >
-                  <option value="">Select...</option>
-                  <option value="XS">XS</option>
-                  <option value="S">S</option>
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                  <option value="XXL">XXL</option>
-                </select>
-                {errors.tShirtSize && (
-                  <p className="text-red-400 text-sm mt-1">{errors.tShirtSize.message}</p>
-                )}
-              </div>
-            )}
-          />
-
-          <Controller
-            name="dietaryRestrictions"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Dietary Restrictions
-                </label>
-                <input
-                  {...field}
-                  type="text"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500"
-                  placeholder="e.g., vegetarian, vegan, gluten-free, none"
-                />
-                {errors.dietaryRestrictions && (
-                  <p className="text-red-400 text-sm mt-1">{errors.dietaryRestrictions.message}</p>
-                )}
-              </div>
-            )}
-          />
+          <h3 className="text-xl font-semibold text-white mb-4">Your Story</h3>
+          <Controller name="coolestThing" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Coolest Thing You've Built <span className="text-red-500">*</span></label>
+              <textarea {...field} rows={4} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500 resize-none" />
+              {errors.coolestThing && <p className="text-red-400 text-sm mt-1">{errors.coolestThing.message}</p>}
+            </div>
+          )} />
+          <Controller name="hackathonStory" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Hackathon Story <span className="text-red-500">*</span></label>
+              <textarea {...field} rows={4} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500 resize-none" />
+              {errors.hackathonStory && <p className="text-red-400 text-sm mt-1">{errors.hackathonStory.message}</p>}
+            </div>
+          )} />
+          <Controller name="projectIdea" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Project Idea (Optional)</label>
+              <textarea {...field} rows={3} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500 resize-none" />
+              {errors.projectIdea && <p className="text-red-400 text-sm mt-1">{errors.projectIdea.message}</p>}
+            </div>
+          )} />
+          <Controller name="additionalInfo" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Additional Info (Optional)</label>
+              <textarea {...field} rows={3} className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500 resize-none" />
+              {errors.additionalInfo && <p className="text-red-400 text-sm mt-1">{errors.additionalInfo.message}</p>}
+            </div>
+          )} />
+          <Controller name="proofOfWork" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Proof of Work (Optional)</label>
+              <input {...field} type="text" placeholder="Links separated by space" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+              {errors.proofOfWork && <p className="text-red-400 text-sm mt-1">{errors.proofOfWork.message}</p>}
+            </div>
+          )} />
+          <Controller name="referralSource" control={control} render={({ field }) => (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">How did you hear about us? (Optional)</label>
+              <input {...field} type="text" className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500" />
+              {errors.referralSource && <p className="text-red-400 text-sm mt-1">{errors.referralSource.message}</p>}
+            </div>
+          )} />
         </div>
 
-        {/* Why Join */}
-        <div className="space-y-4">
-          <h3 className="text-xl font-semibold text-white mb-4">Tell Us More</h3>
-          
-          <Controller
-            name="whyJoin"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Why do you want to join DevLabs?
-                </label>
-                <textarea
-                  {...field}
-                  rows={5}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:outline-none focus:border-orange-500 resize-none"
-                  placeholder="Share your motivation, goals, and what you hope to achieve..."
-                />
-                {errors.whyJoin && (
-                  <p className="text-red-400 text-sm mt-1">{errors.whyJoin.message}</p>
-                )}
-              </div>
-            )}
-          />
-        </div>
+        {/* Hidden resumeUrl field just to satisfy Zod resolver in UI; it's still validated */}
+        <input type="hidden" value={watch("resumeUrl") as any} readOnly />
+
+        {/* Deprecated team/event/whyJoin fields removed */}
 
         {/* Submit Error */}
         {submitError && (

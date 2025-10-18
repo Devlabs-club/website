@@ -65,13 +65,13 @@ export async function connectAdminDB() {
 }
 
 /**
- * Application schema - updated to new simplified structure
- * 
- * Key changes:
- * - Removed deprecated fields (name, age, email, phone, yearOfStudy, etc.)
- * - Made user field required and unique (one application per user)
- * - Removed updatedAt timestamp (only tracking createdAt)
- * - All personal data is stored in the User collection
+ * Application schema - updated to new comprehensive structure
+ *
+ * Notes:
+ * - One application per user (unique index)
+ * - Personal/contact and links are captured here at submission time
+ * - Deprecated event/team fields remain but are not used; API writes them as null
+ * - Only createdAt is tracked by design
  */
 const applicationSchema = new mongoose.Schema({
     // User reference - required and unique (one application per user)
@@ -93,23 +93,44 @@ const applicationSchema = new mongoose.Schema({
     
     // Academic information
     major: { type: String, required: true, index: true },
+
+    // Personal & contact
+    name: { type: String, required: true },
+    gender: { type: String, enum: ['male', 'female', 'non-binary'], required: true },
+    dob: { type: Date, required: true },
+    email: { type: String, required: true },
+    phone: { type: String, required: true },
+    country: { type: String, required: true },
+
+    // Links
+    linkedin: { type: String, required: true },
+    github: { type: String, required: true },
+    personalWebsite: { type: String, default: null },
+    portfolio: { type: String, default: null },
+    favoriteLink: { type: String, default: null },
+    twitterHandle: { type: String, default: null },
+
+    // Story
+    coolestThing: { type: String, required: true },
+    hackathonStory: { type: String, required: true },
+    additionalInfo: { type: String, default: null },
+    projectIdea: { type: String, default: null },
+    referralSource: { type: String, default: null },
+    proofOfWork: { type: String, default: null },
+
+    // Deprecated event/team fields (explicitly nulled by API)
+    track: { type: String, index: true, default: null },
+    teamName: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
+    teamPreference: { type: String, enum: ['hasTeam', 'needTeam', 'solo'], default: null },
+    tShirtSize: { type: String, default: null },
+    dietaryRestrictions: { type: String, default: null },
+    whyJoin: { type: String, default: null },
+
+    // Resume URL (uploaded to Cloudinary) - required
+    resumeUrl: { type: String, required: true },
     
-    // Track/cohort information
-    track: { type: String, index: true },
-    
-    // Team information
-    teamName: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
-    teamPreference: { type: String, enum: ['hasTeam', 'needTeam', 'solo'] },
-    
-    // Event logistics
-    tShirtSize: { type: String },
-    dietaryRestrictions: { type: String },
-    
-    // Application essay
-    whyJoin: { type: String },
-    
-    // Resume URL (uploaded to Cloudinary)
-    resumeUrl: { type: String },
+    // Computed progress (0-4)
+    progress: { type: Number, default: 0 },
     
     // Metadata for deduplication and tracking
     metadata: {
