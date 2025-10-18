@@ -1,12 +1,11 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../lib/mongodb.ts';
 import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    // Connect to admin database
-    await connectAdminDB();
+  // Connect to admin database (for Application) and default DB (for User)
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     const body = await request.json();
     const { name, email, password } = body;
@@ -55,7 +54,8 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ 'profile.emailLower': email.toLowerCase() });
+  const UserModel: any = (await import('../../../models/user.tsx')).default;
+  const existingUser = await UserModel.findOne({ 'profile.emailLower': email.toLowerCase() });
     if (existingUser) {
       return new Response(
         JSON.stringify({
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Create new user with profile structure
-    const newUser = new User({
+  const newUser = new UserModel({
       profile: {
         name: name.trim(),
         email: email,
@@ -82,7 +82,7 @@ export const POST: APIRoute = async ({ request }) => {
       oauthId: null
     });
 
-    await newUser.save();
+  await newUser.save();
 
     // Generate token
     const token = generateToken(newUser);

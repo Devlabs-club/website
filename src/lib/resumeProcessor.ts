@@ -2,7 +2,7 @@ import { Document } from "@langchain/core/documents";
 import { getVectorStore } from './vectorStore';
 import User from '../models/user.tsx';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
-import { MongoClient } from 'mongodb';
+import { getDb } from './mongoClient';
 
 // Text chunker - same as devhacks implementation
 const chunkText = (text: string, chunkSize: number = 100): string[] => {
@@ -53,21 +53,28 @@ const parseResume = async (buffer: Buffer) => {
   };
 };
 
+/**
+ * Process and upsert resume for a user
+ * 
+ * @param buffer - PDF buffer
+ * @param userId - User ObjectId as string
+ * @param userMajor - Fallback major (deprecated, will fetch from Application)
+ */
 export const upsertResume = async (buffer: Buffer, userId: string, userMajor: string) => {
   try {
     const resumeDoc = await parseResume(buffer);
     const chunks = chunkText(resumeDoc.content);
 
-    // Fetch user data and their application to get the actual major
-    // Major is now stored in Application collection, not User collection
+    // Fetch major from Application collection by user ID
     let actualMajor = userMajor;
     try {
       const user = await User.findById(userId);
-      if (user && user.profile && user.profile.email) {
+      if (user) {
         // Import Application model dynamically to avoid circular dependencies
         const { Application } = await import('./mongodb');
         if (Application) {
-          const application = await Application.findOne({ email: user.profile.email });
+          // Look up application by user ID (new schema)
+          const application = await Application.findOne({ user: userId });
           if (application && application.major) {
             actualMajor = application.major;
           }
@@ -81,30 +88,19 @@ export const upsertResume = async (buffer: Buffer, userId: string, userMajor: st
     // Delete old embeddings for this user before inserting new ones
     // This prevents duplicate key errors and keeps the embeddings collection clean
     try {
-      const mongoUri = process.env.ADMIN_MONGO_URI || process.env.MONGODB_URI;
-      if (mongoUri) {
-        const client = new MongoClient(mongoUri);
-        await client.connect();
+      const db = await getDb();
+      const collectionName = process.env.MONGO_DB_COLLECTION || 'embeddings';
+      const collection = db.collection(collectionName);
 
-        // Extract database name from URI
-        const url = new URL(mongoUri);
-        const dbName = url.pathname.replace('/', '') || 'test';
-        const db = client.db(dbName);
-        const collectionName = process.env.MONGO_DB_COLLECTION || 'embeddings';
-        const collection = db.collection(collectionName);
-
-        // Delete all existing embeddings for this user
-        const deleteResult = await collection.deleteMany({ 'metadata.user_id': userId });
-        console.log(`Deleted ${deleteResult.deletedCount} existing embeddings for user ${userId}`);
-
-        await client.close();
-      }
+      // Delete all existing embeddings for this user
+      const deleteResult = await collection.deleteMany({ 'metadata.user_id': userId });
+      console.log(`Deleted ${deleteResult.deletedCount} existing embeddings for user ${userId}`);
     } catch (deleteError) {
       console.error('Error deleting old embeddings:', deleteError);
       // Continue even if deletion fails - this is a cleanup step
     }
 
-    let metadata = resumeDoc.metadata;
+  let metadata: any = resumeDoc.metadata;
     metadata.user_id = userId;
     metadata.major = actualMajor || "Not specified";
 

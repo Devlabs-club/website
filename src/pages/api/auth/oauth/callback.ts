@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
 import { WorkOS } from '@workos-inc/node';
-import { connectAdminDB } from '../../../../lib/mongodb.ts';
-import User from '../../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../../lib/mongodb.ts';
 import { generateToken } from '../../../../lib/auth.ts';
 
 // Initialize WorkOS client with proper configuration
@@ -11,8 +10,8 @@ const workos = new WorkOS(process.env.WORKOS_API_KEY!, {
 
 export const GET: APIRoute = async ({ request, redirect, url }) => {
   try {
-    // Connect to database
-    await connectAdminDB();
+  // Connect to admin (for Application) and default DB (for User)
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     // Extract code from query parameters
     const code = url.searchParams.get('code');
@@ -40,11 +39,12 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     }
 
     // Check if user already exists in our database
-    let user = await User.findOne({ 'profile.emailLower': workosUser.email.toLowerCase() });
+  const UserModel: any = (await import('../../../../models/user.tsx')).default;
+  let user = await UserModel.findOne({ 'profile.emailLower': workosUser.email.toLowerCase() });
 
     if (user) {
       // User exists - update their information if needed
-      const updatedUser = await User.findByIdAndUpdate(
+  const updatedUser = await UserModel.findByIdAndUpdate(
         user._id,
         {
           'profile.name': `${workosUser.firstName} ${workosUser.lastName}`.trim(),
@@ -61,7 +61,7 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
       user = updatedUser;
     } else {
       // Create new user from OAuth profile
-      user = new User({
+  user = new UserModel({
         profile: {
           name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
           email: workosUser.email,

@@ -1,12 +1,11 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../lib/mongodb.ts';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    // Connect to admin database
-    await connectAdminDB();
+  // Connect to admin database (for Application) and default DB (for User)
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     // Get token from Authorization header or cookies
     const authHeader = request.headers.get('Authorization');
@@ -45,8 +44,9 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    // Find user
-    const user = await User.findById(decoded.userId);
+  // Find user (dynamic import to avoid typing issues)
+  const UserModel: any = (await import('../../../models/user.tsx')).default;
+  const user = await UserModel.findById(decoded.userId);
     if (!user) {
       return new Response(
         JSON.stringify({ 

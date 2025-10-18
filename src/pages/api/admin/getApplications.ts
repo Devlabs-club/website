@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB, connectDB, Application } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../lib/mongodb.ts';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 import mongoose from 'mongoose';
 
@@ -69,6 +68,9 @@ export const GET: APIRoute = async ({ request, url }) => {
       filterQuery.major = { $regex: new RegExp(majorFilter, 'i') };
     }
 
+  // Only fetch applications where resumeUrl exists and is not null
+  filterQuery.resumeUrl = { $exists: true, $ne: null };
+
     console.log('Filter Query:', filterQuery);
 
     // Calculate skip value for pagination
@@ -80,45 +82,119 @@ export const GET: APIRoute = async ({ request, url }) => {
 
     console.log('pulling from db', mongoose.connection.name);
 
+  // Ensure Application model (admin DB) is initialized
+  const { Application: ApplicationModel }: any = await import('../../../lib/mongodb.ts');
+
     // Get total count for pagination
-    const total = await Application.countDocuments(filterQuery);
+    const total = await ApplicationModel.countDocuments(filterQuery);
 
     // Fetch applications with pagination
-    const applications = await Application.find(filterQuery)
+    const applications = await ApplicationModel.find(filterQuery)
       .sort(sortObj)
       .skip(skip)
       .limit(limit)
       .lean();
 
-    console.log('First application fetched:', applications[0]);
+    // Minimal Application type for this handler
+    type ApplicationDoc = {
+      _id: any;
+      user?: any;
+      status?: string;
+      major?: string;
+      track?: string;
+      teamName?: any;
+      teamPreference?: string;
+      tShirtSize?: string;
+      dietaryRestrictions?: string;
+      whyJoin?: string;
+      resumeUrl?: string;
+      metadata?: any;
+      createdAt?: Date;
+    };
 
-    // Fetch corresponding users for each application
-    const userIds = applications
-      .map(app => app.user)
-      .filter(Boolean); // Filter out null/undefined user references
+    // Fetch corresponding users for each application (normalize to string IDs and dedupe)
+    const userIds: (string | null)[] = (applications as ApplicationDoc[])
+      .map((app: ApplicationDoc) => (app.user ? app.user.toString() : null))
+      .filter((id: string | null): id is string => Boolean(id));
 
-    // Fetch all users at once for efficiency - get full user data
-    const users = await User.find({ _id: { $in: userIds } })
-      .lean();
+    const uniqueUserIds = [...new Set(userIds)];
+
+    // Switch to the primary DB to fetch Users (Applications were fetched from admin DB already)
+    let users: any[] = [];
+    if (uniqueUserIds.length > 0) {
+      await connectDB();
+      const UserModel: any = (await import('../../../models/user.tsx')).default;
+      users = await UserModel.find({ _id: { $in: uniqueUserIds } }).lean();
+    }
 
     // Create a map for quick lookup
-    const userMap = new Map();
+    const userMap = new Map<string, any>();
     users.forEach(user => {
       userMap.set(user._id.toString(), user);
     });
 
-    // Populate name and email from User objects (no fallback to legacy app fields), and attach user _id
-    const applicationsWithUsers = applications.map(app => {
-      const user = app.user ? userMap.get(app.user.toString()) : null;
+    // Combine ALL fields from both Application and User models into comprehensive item objects
+    const applicationsWithUsers = (applications as ApplicationDoc[]).map((app: ApplicationDoc) => {
+      const userIdStr = app.user ? app.user.toString() : null;
+      const user = userIdStr ? userMap.get(userIdStr) : null;
+
+      // Create a comprehensive item with all Application fields + all User fields
       return {
-        ...app,
+        // Application fields (from new schema)
+        _id: app._id,
+        applicationId: app._id, // Alias for clarity
+        user: app.user, // Keep the user ObjectId reference
+        status: app.status,
+        major: app.major,
+        track: app.track,
+        teamName: app.teamName,
+        teamPreference: app.teamPreference,
+        tShirtSize: app.tShirtSize,
+        dietaryRestrictions: app.dietaryRestrictions,
+        whyJoin: app.whyJoin,
+        resumeUrl: app.resumeUrl || user?.resumeUrl, // Prefer Application resumeUrl, fallback to User
+        metadata: app.metadata,
+        createdAt: app.createdAt,
+
+        // User fields (complete profile data)
+        userId: user?._id?.toString() || null,
         name: user?.profile?.name || 'N/A',
         email: user?.profile?.email || 'N/A',
-        // Explicitly include resumeUrl to ensure it's not lost
-        resumeUrl: app.resumeUrl,
-        // Preserve the raw user ObjectId even if user lookup failed
-        // This allows fetching user data later for resume display
-        user: user ? { _id: user._id, ...user } : (app.user ? app.user.toString() : null),
+        emailLower: user?.profile?.emailLower || null,
+
+        // Extended user profile fields
+        gender: user?.profile?.gender || null,
+        dob: user?.profile?.dob || null,
+        phone: user?.profile?.phone || null,
+        country: user?.profile?.country || null,
+        twitterHandle: user?.profile?.twitterHandle || null,
+        linkedin: user?.profile?.linkedin || null,
+        personalWebsite: user?.profile?.personalWebsite || null,
+        portfolio: user?.profile?.portfolio || null,
+        github: user?.profile?.github || null,
+        proofOfWork: user?.profile?.proofOfWork || null,
+        additionalInfo: user?.profile?.additionalInfo || null,
+        favoriteLink: user?.profile?.favoriteLink || null,
+        coolestThing: user?.profile?.coolestThing || null,
+        projectIdea: user?.profile?.projectIdea || null,
+        referralSource: user?.profile?.referralSource || null,
+
+        // User metadata
+        role: user?.role || null,
+        oauthProvider: user?.oauthProvider || null,
+        userCreatedAt: user?.createdAt || null,
+        userUpdatedAt: user?.updatedAt || null,
+
+        // Full user object for ProfileModal
+        userObject: user ? {
+          _id: user._id,
+          profile: user.profile,
+          role: user.role,
+          resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        } : null,
       };
     });
 
@@ -127,10 +203,6 @@ export const GET: APIRoute = async ({ request, url }) => {
     const totalPages = Math.ceil(total / limit);
     const hasMore = page < totalPages;
 
-    // Log the first sample profile to the console for inspection
-    if (applicationsWithUsers.length > 0) {
-      console.log('Sample applicationWithUsers[0]:', JSON.stringify(applicationsWithUsers[0], null, 2));
-    }
 
     return new Response(
       JSON.stringify({

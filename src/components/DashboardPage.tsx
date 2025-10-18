@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "./auth_manager";
 import AdminDashboard from "./AdminDashboard";
 import { UserProfile } from "./UserProfile";
-import ApplicationForm from "./ApplicationForm";
+import ApplicationForm from "./ApplicationForm.new";
 import { WrappedText } from "./text/WrappedText";
 
 // Simple PDF Viewer Component using iframe with enhanced features
@@ -480,11 +480,6 @@ function DashboardContent() {
                   Application Form
                 </h2>
                 <ApplicationForm
-                  variant="single"
-                  prefill={{
-                    name: user?.profile.name || "",
-                    email: user?.profile.email || "",
-                  }}
                   onFormChange={setHasApplicationChanges}
                 />
               </div>
