@@ -11,6 +11,7 @@ export default function BuilderChatbot() {
   const [input, setInput] = useState("");
   const [step, setStep] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const chatFlow = [
@@ -22,8 +23,14 @@ export default function BuilderChatbot() {
 
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  if (chatContainerRef.current) {
+    chatContainerRef.current.scrollTo({
+      top: chatContainerRef.current.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+}, [messages]);
+
 
 
   useEffect(() => {
@@ -64,7 +71,11 @@ export default function BuilderChatbot() {
         DevBot — Builder Onboarding
       </h1>
 
-      <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-neutral-700">
+      <div
+        ref={chatContainerRef}
+        className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-neutral-700 scroll-smooth"
+      >
+
         {messages.map((msg, idx) => (
           <motion.div
             key={idx}
@@ -110,7 +121,7 @@ export default function BuilderChatbot() {
             </motion.span>
           </div>
         )}
-        <div ref={chatEndRef} />
+        
       </div>
 
       <form
