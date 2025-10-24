@@ -1,5 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import * as z from "zod";
+
+const normalizeUrl = (value: unknown): string => {
+  const input = typeof value === "string" ? value.trim() : "";
+  if (input.length === 0) return "";
+  const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(input);
+  return hasScheme ? input : `https://${input}`;
+};
+
+const chatSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  age: z.coerce.number().int().min(10).max(120),
+  email: z.string().email("Please enter a valid email."),
+  phone: z.string().regex(/^\+?1?\s?\d{10,15}$/, "Please enter a valid US phone number."),
+  university: z.string().min(2, "Please enter your university name."),
+  major: z.string().min(2, "Please enter your major or specialization."),
+  yearOfStudy: z.enum(["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"]),
+  expectedGradYear: z.coerce.number().int().min(2024).max(2100),
+  linkedin: z.string().transform((v) => normalizeUrl(v)).pipe(z.string().url("Invalid LinkedIn URL.")),
+  website: z.string().optional(),
+  workEligibility: z.enum(["Yes", "No"]),
+  needSponsorship: z.enum(["Yes", "No"]),
+  sponsorshipType: z.string().optional(),
+});
 
 const logo = "/logo.svg";
 
@@ -63,87 +87,46 @@ export default function BuilderChatbot() {
     const currentStep = chatFlow[step];
     const requiredFields = currentStep.fields || [];
 
-    
-    if (requiredFields.length > 1) {
-      const parts = value.split(",").map((v) => v.trim());
-      if (parts.length < requiredFields.length) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Please include both name and age separated by a comma. Example: John Doe, 22" },
-        ]);
-        setInput("");
-        return;
+    try {
+      
+      if (requiredFields.length > 1) {
+        const parts = value.split(",").map((v) => v.trim());
+        const tempData: any = {};
+        requiredFields.forEach((field, i) => (tempData[field] = parts[i] || ""));
+        chatSchema.pick(requiredFields.reduce((acc, f) => ({ ...acc, [f]: true }), {} as any)).parse(tempData);
+      } else {
+        const field = requiredFields[0];
+        chatSchema.pick({ [field]: true }).parse({ [field]: value });
       }
 
       
-      if (currentStep.fields.includes("age") && isNaN(Number(parts[1]))) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Your age should be a number. Try again like: Vishal Lakshmi Narayanan, 22" },
-        ]);
-        setInput("");
-        return;
-      }
-      if (currentStep.fields.includes("phone") && !/^\+?1?\s?\d{10,15}$/.test(parts[1].replace(/\s+/g, ""))) {
-
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Your phone number must include +1 and 10 digits. Example: vishal@asu.edu, +1 4805551234" },
-        ]);
-        setInput("");
-        return;
-      }
-    }
-
-    if (requiredFields.length === 1) {
-      const field = requiredFields[0];
-      if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "That doesn’t look like a valid email. Please re-enter your email address." },
-        ]);
-        setInput("");
-        return;
-      }
-      if (["linkedin", "portfolio"].includes(field) && !/^https?:\/\//.test(value) && value.toLowerCase() !== "n/a") {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Please provide a valid URL (it should start with http or https) or type N/A if none." },
-        ]);
-        setInput("");
-        return;
-      }
-      if (field === "expectedGraduation" && !/^\d{4}$/.test(value)) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: "Please enter a 4-digit graduation year like 2026." },
-        ]);
-        setInput("");
-        return;
-      }
-    }
-
-    const userMsg = { sender: "user", text: value };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-
-    if (step < chatFlow.length - 1) {
+      setMessages((prev) => [...prev, { sender: "user", text: value }]);
+      setInput("");
       setIsTyping(true);
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           { sender: "bot", text: chatFlow[step + 1].text },
         ]);
-        setStep(step + 1);
+        setStep((s) => s + 1);
         setIsTyping(false);
-      }, 600);
+      }, 500);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const message = error.errors[0].message;
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: message },
+        ]);
+      }
     }
   };
 
 
 
   return (
-    <div className="w-full max-w-2xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white overflow-hidden">
+    <div className="w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white overflow-hidden">
+
 
       <h1 className="text-2xl font-semibold text-orange-500 mb-4 text-center">
         DevBot — Builder Onboarding
