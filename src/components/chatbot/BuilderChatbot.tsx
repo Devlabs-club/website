@@ -58,7 +58,8 @@ export default function BuilderChatbot() {
   };
 
   return (
-    <div className="w-full max-w-2xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white">
+    <div className="w-full max-w-2xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white overflow-hidden">
+
       <h1 className="text-2xl font-semibold text-orange-500 mb-4 text-center">
         DevBot — Builder Onboarding
       </h1>
@@ -112,27 +113,35 @@ export default function BuilderChatbot() {
         <div ref={chatEndRef} />
       </div>
 
-      <div className="flex mt-4 space-x-2">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your answer..."
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          className="flex-1 p-3 rounded-lg bg-neutral-800 border border-neutral-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim()}
-          className={`px-5 py-2 rounded-lg font-medium transition-colors ${
-            input.trim()
-              ? "bg-orange-500 hover:bg-orange-600 text-black"
-              : "bg-orange-900 opacity-60 cursor-not-allowed"
-          }`}
+      <form
+        onSubmit={(e) => {
+            e.preventDefault();
+            handleSend();
+          }}
+          className="flex mt-4 space-x-2 sticky bottom-0 bg-neutral-900/70 backdrop-blur-md pb-2 pt-2"
         >
-          Send
-        </button>
-      </div>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your answer..."
+            className="flex-1 p-3 rounded-lg bg-neutral-800 border border-neutral-700 text-white placeholder-gray-500 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+          />
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className={`px-5 py-2 rounded-lg font-medium transition-colors ${
+              input.trim()
+                ? "bg-orange-500 hover:bg-orange-600 text-black"
+                : "bg-orange-900 opacity-60 cursor-not-allowed"
+            }`}
+          >
+            Send
+          </button>
+        </form>
+
+        
+
     </div>
   );
 }
