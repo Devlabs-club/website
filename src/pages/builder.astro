@@ -1,0 +1,11 @@
+---
+import Layout from "../layouts/Layout.astro";
+import BuilderChatbot from "../components/chatbot/BuilderChatbot";
+---
+
+<Layout title="Builder Chatbot">
+  
+  <section class="relative z-10 min-h-screen flex items-center justify-center px-4">
+    <BuilderChatbot client:load />
+  </section>
+</Layout>
