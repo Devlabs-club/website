@@ -15,76 +15,21 @@ export default function BuilderChatbot() {
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   const chatFlow = [
-    {
-      id: 1,
-      text: "Hey there 👋 I’m DevBot from DevLabs — let’s get you onboarded as a builder! First things first — what’s your full name?",
-      type: "text",
-    },
-    {
-      id: 2,
-      text: "Got it. Can you share your age?",
-      type: "number",
-    },
-    {
-      id: 3,
-      text: "Thanks! What’s your email address?",
-      type: "email",
-    },
-    {
-      id: 4,
-      text: "What’s your phone number? +1 (___)___-____",
-      type: "tel",
-    },
-    {
-      id: 5,
-      text: "What’s your major or specialization?",
-      type: "text",
-    },
-    {
-      id: 6,
-      text: "Which year of study are you in?",
-      type: "select",
-      options: ["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"],
-    },
-    {
-      id: 7,
-      text: "When do you expect to graduate? (Month & Year)",
-      type: "text",
-    },
-    {
-      id: 8,
-      text: "Can you share your LinkedIn profile URL?",
-      type: "url",
-    },
-    {
-      id: 9,
-      text: "Do you have a GitHub, portfolio, or personal website? (Optional — type N/A if none)",
-      type: "url",
-    },
-    {
-      id: 10,
-      text: "Are you eligible to work in the United States?",
-      type: "boolean",
-      options: ["Yes", "No"],
-    },
-    {
-      id: 11,
-      text: "Would you require any form of sponsorship now or in the future?",
-      type: "boolean",
-      options: ["Yes", "No"],
-    },
-    {
-      id: 12,
-      text: "If yes, what type of sponsorship would you require? (e.g., H-1B, OPT, CPT, Green Card, Other — or type N/A)",
-      type: "text",
-    },
-    {
-      id: 13,
-      text: "Perfect 🎉 Thanks for providing all that information — your onboarding is complete! The DevLabs team will process your details for builder ranking and opportunities.",
-      type: "end",
-    },
-  ];
-
+  { id: 1, text: "Hey Builder, I’m DevBot, Lets get you on the onboarding process. What’s your full name and age?", type: "text", fields: ["name", "age"] },
+  { id: 2, text: "Thanks. Could you share your email and phone number?(add +1 before entering your number)", type: "text", fields: ["email", "phone"] },
+  { id: 3, text: "Which university or college are you attending?", type: "text", fields: ["university"] },
+  { id: 4, text: "What’s your major or specialization?", type: "text", fields: ["major"] },
+  { id: 5, text: "Which year are you in?", type: "select", options: ["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"], fields: ["yearOfStudy"] },
+  { id: 6, text: "When do you expect to graduate? (e.g. 2026)", type: "number", fields: ["expectedGradYear"] },
+  { id: 7, text: "Please share your LinkedIn profile URL.", type: "url", fields: ["linkedin"] },
+  { id: 8, text: "Do you have a GitHub or personal website? (Type N/A if not)", type: "url", fields: ["website"] },
+  { id: 9, text: "Are you eligible to work in the United States?", type: "boolean", options: ["Yes", "No"], fields: ["workEligibility"] },
+  { id: 10, text: "Would you require sponsorship now or in the future?", type: "boolean", options: ["Yes", "No"], fields: ["needSponsorship"] },
+  { id: 11, text: "If yes, what type of sponsorship? (e.g. H-1B, OPT, CPT, Green Card, or N/A)", type: "text", fields: ["sponsorshipType"] },
+  { id: 12, text: "Please upload your resume.", type: "fileUpload", fields: ["resume"] },
+  { id: 13, text: "Now upload your pitch video.", type: "fileUpload", fields: ["pitchVideo"] },
+  { id: 14, text: "Thanks! That’s everything I need. The DevLabs team will review your details soon.", type: "end" },
+];
 
 
 
@@ -115,6 +60,69 @@ export default function BuilderChatbot() {
     const value = customInput || input.trim();
     if (!value) return;
 
+    const currentStep = chatFlow[step];
+    const requiredFields = currentStep.fields || [];
+
+    
+    if (requiredFields.length > 1) {
+      const parts = value.split(",").map((v) => v.trim());
+      if (parts.length < requiredFields.length) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "Please include both name and age separated by a comma. Example: John Doe, 22" },
+        ]);
+        setInput("");
+        return;
+      }
+
+      
+      if (currentStep.fields.includes("age") && isNaN(Number(parts[1]))) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "Your age should be a number. Try again like: Vishal Lakshmi Narayanan, 22" },
+        ]);
+        setInput("");
+        return;
+      }
+      if (currentStep.fields.includes("phone") && !/^\+?1?\s?\d{10,15}$/.test(parts[1].replace(/\s+/g, ""))) {
+
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "Your phone number must include +1 and 10 digits. Example: vishal@asu.edu, +1 4805551234" },
+        ]);
+        setInput("");
+        return;
+      }
+    }
+
+    if (requiredFields.length === 1) {
+      const field = requiredFields[0];
+      if (field === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "That doesn’t look like a valid email. Please re-enter your email address." },
+        ]);
+        setInput("");
+        return;
+      }
+      if (["linkedin", "portfolio"].includes(field) && !/^https?:\/\//.test(value) && value.toLowerCase() !== "n/a") {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "Please provide a valid URL (it should start with http or https) or type N/A if none." },
+        ]);
+        setInput("");
+        return;
+      }
+      if (field === "expectedGraduation" && !/^\d{4}$/.test(value)) {
+        setMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: "Please enter a 4-digit graduation year like 2026." },
+        ]);
+        setInput("");
+        return;
+      }
+    }
+
     const userMsg = { sender: "user", text: value };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -124,13 +132,14 @@ export default function BuilderChatbot() {
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
-          { sender: "bot", text: chatFlow[step + 1].text || chatFlow[step + 1] },
+          { sender: "bot", text: chatFlow[step + 1].text },
         ]);
         setStep(step + 1);
         setIsTyping(false);
       }, 600);
     }
   };
+
 
 
   return (
@@ -266,7 +275,33 @@ export default function BuilderChatbot() {
         )}
       </form>
 
-        
+      {chatFlow[step]?.type === "fileUpload" && (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-gray-300 mb-1">{chatFlow[step].text}</p>
+
+          <input
+            type="file"
+            accept={
+              chatFlow[step].fields.includes("resume")
+                ? ".pdf,.doc,.docx"
+                : "video/*"
+            }
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                handleSend(`Uploaded: ${file.name}`);
+              }
+            }}
+            className="block w-full text-sm text-gray-300 
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-lg file:border-0 
+                      file:text-sm file:font-semibold
+                      file:bg-orange-600 file:text-black
+                      hover:file:bg-orange-700 transition"
+          />
+        </div>
+      )}
+
 
     </div>
   );
