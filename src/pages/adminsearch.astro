@@ -1,0 +1,16 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AdminJobSearch from "../components/AdminJobSearch";
+---
+
+<Layout title="Admin Builder Search">
+  <section class="min-h-screen flex flex-col justify-center items-center py-20 text-white">
+    <h1 class="text-4xl font-bold mb-6 text-center text-orange-500">
+      Admin Builder Search Testing
+    </h1>
+    <p class="text-gray-400 mb-10 text-center max-w-xl">
+      Paste the job description, skills, and mindset below to find matching builders.
+    </p>
+    <AdminJobSearch client:load />
+  </section>
+</Layout>

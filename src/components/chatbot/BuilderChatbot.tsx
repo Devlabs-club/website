@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import * as z from "zod";
+import ApplicationForm from "../ApplicationForm";
+
 
 const normalizeUrl = (value: unknown): string => {
   const input = typeof value === "string" ? value.trim() : "";
@@ -37,6 +39,10 @@ export default function BuilderChatbot() {
   const [isTyping, setIsTyping] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [showForm, setShowForm] = useState(false);
+
+
 
   const chatFlow = [
   { id: 1, text: "Hey Builder, I’m DevBot, Lets get you on the onboarding process. What’s your full name and age?", type: "text", fields: ["name", "age"] },
@@ -53,6 +59,7 @@ export default function BuilderChatbot() {
   { id: 12, text: "Please upload your resume.", type: "fileUpload", fields: ["resume"] },
   { id: 13, text: "Now upload your pitch video.", type: "fileUpload", fields: ["pitchVideo"] },
   { id: 14, text: "Thanks! That’s everything I need. The DevLabs team will review your details soon.", type: "end" },
+
 ];
 
 
@@ -99,18 +106,39 @@ export default function BuilderChatbot() {
         chatSchema.pick({ [field]: true }).parse({ [field]: value });
       }
 
+      const normalizeValue = (field: string, v: string) => {
+        if (field === "website" && v.trim().toLowerCase() === "n/a") return "";
+        if (field === "phone") {
+          const digits = v.replace(/\D/g, "");
+          return digits.length === 10 ? `+1${digits}` : v;
+        }
+        if (field === "linkedin" || field === "website") return normalizeUrl(v);
+        return v;
+      };
+
+       setFormData(prev => {
+        const newData = { ...prev };
+        requiredFields.forEach((f, i) => {
+          const piece = value.split(",")[i]?.trim() ?? value;
+          newData[f] = normalizeValue(f, piece);
+        });
+        return newData;
+      });
+
+
       
       setMessages((prev) => [...prev, { sender: "user", text: value }]);
       setInput("");
       setIsTyping(true);
       setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          { sender: "bot", text: chatFlow[step + 1].text },
-        ]);
-        setStep((s) => s + 1);
-        setIsTyping(false);
+        setStep(prev => {
+          const next = prev + 1;
+          setMessages(prevM => [...prevM, { sender: "bot", text: chatFlow[next].text }]);
+          setIsTyping(false);
+          return next;
+        });
       }, 500);
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         const message = error.errors[0].message;
@@ -120,17 +148,20 @@ export default function BuilderChatbot() {
         ]);
       }
     }
+    
   };
 
 
 
   return (
-    <div className="w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white overflow-hidden">
+  <>
+    {!showForm ? (
+   
+      <div className="w-full max-w-[90vw] md:max-w-3xl lg:max-w-4xl h-[600px] flex flex-col bg-neutral-900/70 border border-dashed border-neutral-700 rounded-2xl shadow-lg p-6 backdrop-blur-md text-white overflow-hidden">
 
-
-      <h1 className="text-2xl font-semibold text-orange-500 mb-4 text-center">
-        DevBot — Builder Onboarding
-      </h1>
+        <h1 className="text-2xl font-semibold text-orange-500 mb-4 text-center">
+          DevBot — Builder Onboarding
+        </h1>
 
       <div
         ref={chatContainerRef}
@@ -264,16 +295,43 @@ export default function BuilderChatbot() {
 
           <input
             type="file"
-            accept={
-              chatFlow[step].fields.includes("resume")
-                ? ".pdf,.doc,.docx"
-                : "video/*"
-            }
+            accept={chatFlow[step].fields.includes("resume") ? ".pdf,.doc,.docx" : "video/*"}
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                handleSend(`Uploaded: ${file.name}`);
+              if (!file) return;
+
+              
+              const isResume = chatFlow[step].fields.includes("resume");
+              const isPitch  = chatFlow[step].fields.includes("pitchVideo");
+
+              setFormData(prev => ({
+                ...prev,
+                ...(isResume    ? { resume: `Uploaded: ${file.name}` } : {}),
+                ...(isPitch     ? { pitchVideo: `Uploaded: ${file.name}` } : {}),
+              }));
+
+              
+              setMessages(prev => [
+                ...prev,
+                { sender: "user", text: `Uploaded: ${file.name}` }
+              ]);
+
+              
+              if (isPitch) {
+                setShowForm(true);
+                return; 
               }
+
+              
+              setIsTyping(true);
+              setStep(prevStep => {
+                const next = prevStep + 1;
+                setTimeout(() => {
+                  setMessages(prev => [...prev, { sender: "bot", text: chatFlow[next].text }]);
+                  setIsTyping(false);
+                }, 400);
+                return next;
+              });
             }}
             className="block w-full text-sm text-gray-300 
                       file:mr-4 file:py-2 file:px-4
@@ -285,7 +343,13 @@ export default function BuilderChatbot() {
         </div>
       )}
 
+    
+      
+    </div> 
+      ) : (
 
-    </div>
+        <ApplicationForm variant="single" prefill={formData} />
+      )}
+    </>
   );
 }
