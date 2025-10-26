@@ -18,6 +18,7 @@ const formSchema = z.object({
     .transform((v) => normalizeUrl(v))
     .pipe(z.string().url("Enter a valid company website")),
   contactName: z.string().min(2, "Contact name is required"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
   email: z.string().email("Please enter a valid email"),
   roleTitle: z.string().min(2, "Role title is required"),
   roleType: z
@@ -62,6 +63,7 @@ const ClientForm: React.FC = () => {
       companyName: "",
       companyWebsite: "",
       contactName: "",
+      phone: "",
       email: "",
       roleTitle: "",
       roleType: [],
@@ -70,7 +72,7 @@ const ClientForm: React.FC = () => {
       compensation: "",
       skills: "",
       mindset: "",
-      sponsorVisa: "" as any,
+      sponsorVisa: undefined,
       additionalNotes: "",
     },
   });
@@ -101,7 +103,7 @@ const ClientForm: React.FC = () => {
             Thank you for sharing your role!
           </h2>
           <p className="text-gray-300">
-            Our DevLabs team will reach out soon with qualified student matches.
+            Our DevLabs team will reach out soon with qualified matches.
           </p>
           <button
             onClick={() => setIsSubmitted(false)}
@@ -180,6 +182,34 @@ const ClientForm: React.FC = () => {
                   />
                 )}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Phone
+              </label>
+              <div className="mt-1 flex">
+                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-neutral-700 bg-neutral-800 text-gray-300 text-sm">
+                  +1
+                </span>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="tel"
+                      className="flex-1 block w-full rounded-none rounded-r-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="(555) 123-4567"
+                    />
+                  )}
+                />
+              </div>
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.phone.message}
+                </p>
+              )}
             </div>
 
             

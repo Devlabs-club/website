@@ -21,6 +21,7 @@ const schema = z.object({
       { message: "Enter a valid URL or leave blank" }
     ),
   contactName: z.string().min(2, "Contact name is required"),
+  phone: z.string().min(10, "Please enter a valid phone number"),
   email: z.string().email("Please enter a valid email"),
   roleTitle: z.string().min(2, "Role title is required"),
   roleType: z
@@ -50,6 +51,7 @@ const clientSchema = new mongoose.Schema({
   companyName: String,
   companyWebsite: String,
   contactName: String,
+  phone: String,
   email: String,
   roleTitle: String,
   roleType: [String],
@@ -73,7 +75,8 @@ export const POST: APIRoute = async ({ request }) => {
       companyWebsite: parsed.companyWebsite || "",
       compensation: parsed.compensation || "NIL",
       sponsorVisa: parsed.sponsorVisa || "Not specified",
-      createdAt: new Date(),
+        phone: parsed.phone || "",
+        createdAt: new Date(),
     };
 
     const mongooseConnection = await connectDB();
