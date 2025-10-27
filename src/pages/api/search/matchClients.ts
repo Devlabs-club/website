@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 400 }
       );
 
-  
+    
     const clientEmb = await db.collection("embclients").findOne({
       client_id: new mongoose.Types.ObjectId(clientId),
     });
@@ -32,41 +32,47 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 404 }
       );
 
-    const clientVector = clientEmb.vector;
-
- 
+    
+    const clientVector = clientEmb.vector || [];
+    const mindsetVector = clientEmb.mindsetVector || clientVector; // fallback if no separate mindset
     const resumes = await db.collection("embresumes").find().toArray();
+
     const scored = [];
 
     for (const res of resumes) {
-      const score = cosineSimilarity(clientVector, res.vector || []);
+      const userVector = res.vector || [];
+
+     
+      const skillSim = cosineSimilarity(clientVector, userVector);
+      const mindsetSim = cosineSimilarity(mindsetVector, userVector);
+
+      
+      const weightedScore = (0.8 * skillSim) + (0.2 * mindsetSim);
+
+      
+      const scaledScore = Math.round(weightedScore * 100);
+
       const userId = res.metadata?.user_id;
       let email = "unknown";
-      let major = "unknown";
       let resumeUrl = res.resumeUrl || "";
 
       if (userId) {
-     
         const user = await db
           .collection("users")
           .findOne({ _id: new mongoose.Types.ObjectId(userId) });
-        if (user?.email) email = user.email;
+        if (user?.profile?.email) email = user.profile.email;
         if (user?.resumeUrl) resumeUrl = user.resumeUrl;
 
-
-        const app = await db
-          .collection("applications")
-          .findOne({ "metadata.user_id": userId });
-        if (app?.metadata?.major) major = app.metadata.major;
       }
 
       scored.push({
         email,
         resumeUrl,
-        score,
+        score: scaledScore,
       });
     }
 
+  
     const topMatches = scored.sort((a, b) => b.score - a.score).slice(0, topK);
 
     return new Response(
