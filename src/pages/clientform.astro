@@ -1,0 +1,25 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ClientForm from "../components/ClientForm";
+---
+
+<Layout title="Share Your Job Requirements">
+  <section class="relative pt-32 pb-20 px-6 flex flex-col items-center justify-center text-center">
+
+    <div class="max-w-3xl mx-auto mb-10">
+      <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">
+        Share Your Job Requirements
+      </h1>
+      <p class="text-gray-300 text-lg leading-relaxed">
+        We’re thrilled to collaborate with you! DevLabs connects ASU’s brightest student builders 
+        with innovative startups and industry leaders like you. Fill out this quick form to share 
+        the details of your open role(s), and we’ll match you with qualified students from our 
+        talent network.
+      </p>
+    </div>
+
+    <div class="w-full max-w-4xl">
+      <ClientForm client:load />
+    </div>
+  </section>
+</Layout>

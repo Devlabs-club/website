@@ -1,0 +1,11 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AdminClientDashboard from "../components/AdminClientDashboard.tsx";
+---
+
+<Layout title="Admin Clients Dashboard">
+  <section class="min-h-screen bg-transparent text-white flex flex-col items-center p-8 pt-28 z-10 relative">
+    <h1 class="text-4xl font-bold mb-8 text-orange-400">Client Dashboard</h1>
+    <AdminClientDashboard client:load />
+  </section>
+</Layout>
