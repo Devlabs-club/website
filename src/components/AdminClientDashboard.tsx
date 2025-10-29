@@ -109,10 +109,7 @@ export default function AdminClientDashboard() {
                     {results[client._id]
                       .sort((a, b) => b.score - a.score)
                       .map((match, i) => {
-                        const cleanUrl = match.resumeUrl?.replace(
-                          "/raw/upload/",
-                          "/upload/"
-                        );
+                        const cleanUrl = match.resumeUrl;
 
                         return (
                           <li
