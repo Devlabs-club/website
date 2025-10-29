@@ -1,12 +1,11 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../lib/mongodb.ts';
 import { generateToken, isValidEmail } from '../../../lib/auth.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    // Connect to admin database
-    await connectAdminDB();
+  // Connect to admin database (future admin ops) and default DB for User queries
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     const body = await request.json();
     const { email, password } = body;
@@ -39,15 +38,30 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Find user and include password for comparison
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  // Find user and include password for comparison (dynamic import)
+  const UserModel: any = (await import('../../../models/user.tsx')).default;
+  const user = await UserModel.findOne({ 'profile.emailLower': email.toLowerCase() }).select('+password');
     if (!user) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
+        JSON.stringify({
+          success: false,
+          message: 'Invalid email or password'
         }),
-        { 
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Check if user has a password (OAuth-only users don't have passwords)
+    if (!user.password) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: 'This account uses OAuth login. Please login with Google.'
+        }),
+        {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -58,11 +72,11 @@ export const POST: APIRoute = async ({ request }) => {
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
+        JSON.stringify({
+          success: false,
+          message: 'Invalid email or password'
         }),
-        { 
+        {
           status: 401,
           headers: { 'Content-Type': 'application/json' }
         }
@@ -79,15 +93,17 @@ export const POST: APIRoute = async ({ request }) => {
         message: 'Login successful',
         user: {
           id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role
+          profile: user.profile,
+          role: user.role,
+          resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
+          createdAt: user.createdAt
         },
         token
       }),
       {
         status: 200,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
         }

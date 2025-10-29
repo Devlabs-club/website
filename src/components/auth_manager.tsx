@@ -2,9 +2,29 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface User {
   id: string;
-  name: string;
-  email: string;
+  profile: {
+    name: string;
+    email: string;
+    emailLower: string;
+    gender?: string | null;
+    dob?: string | null;
+    phone?: string | null;
+    country?: string | null;
+    twitterHandle?: string | null;
+    linkedin?: string | null;
+    personalWebsite?: string | null;
+    portfolio?: string | null;
+    github?: string | null;
+    proofOfWork?: string | null;
+    additionalInfo?: string | null;
+    favoriteLink?: string | null;
+    coolestThing?: string | null;
+    projectIdea?: string | null;
+    referralSource?: string | null;
+  };
   role: 'user' | 'admin';
+  resumeUrl?: string;
+  oauthProvider?: 'google' | null;
   createdAt?: string;
 }
 

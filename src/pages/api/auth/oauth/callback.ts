@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
 import { WorkOS } from '@workos-inc/node';
-import { connectAdminDB } from '../../../../lib/mongodb.ts';
-import User from '../../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../../lib/mongodb.ts';
 import { generateToken } from '../../../../lib/auth.ts';
 
 // Initialize WorkOS client with proper configuration
@@ -11,8 +10,8 @@ const workos = new WorkOS(process.env.WORKOS_API_KEY!, {
 
 export const GET: APIRoute = async ({ request, redirect, url }) => {
   try {
-    // Connect to database
-    await connectAdminDB();
+  // Connect to admin (for Application) and default DB (for User)
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     // Extract code from query parameters
     const code = url.searchParams.get('code');
@@ -40,18 +39,21 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     }
 
     // Check if user already exists in our database
-    let user = await User.findOne({ email: workosUser.email.toLowerCase() });
+  const UserModel: any = (await import('../../../../models/user.tsx')).default;
+  let user = await UserModel.findOne({ 'profile.emailLower': workosUser.email.toLowerCase() });
 
     if (user) {
       // User exists - update their information if needed
-      const updatedUser = await User.findByIdAndUpdate(
+  const updatedUser = await UserModel.findByIdAndUpdate(
         user._id,
         {
-          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          'profile.name': `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          'profile.email': workosUser.email,
+          'profile.emailLower': workosUser.email.toLowerCase(),
           // Add OAuth provider info if not already present
-          ...(user.oauthProvider ? {} : { 
+          ...(user.oauthProvider ? {} : {
             oauthProvider: 'google',
-            oauthId: workosUser.id 
+            oauthId: workosUser.id
           })
         },
         { new: true }
@@ -59,10 +61,13 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
       user = updatedUser;
     } else {
       // Create new user from OAuth profile
-      user = new User({
-        name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
-        email: workosUser.email.toLowerCase(),
-        password: crypto.randomUUID(), // Generate random password for OAuth users
+  user = new UserModel({
+        profile: {
+          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          email: workosUser.email,
+          emailLower: workosUser.email.toLowerCase()
+        },
+        password: null,
         role: 'user',
         oauthProvider: 'google',
         oauthId: workosUser.id,

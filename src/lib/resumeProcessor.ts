@@ -2,6 +2,7 @@ import { Document } from "@langchain/core/documents";
 import { getVectorStore } from './vectorStore';
 import User from '../models/user.tsx';
 import pdf from 'pdf-parse/lib/pdf-parse.js';
+import { getDb } from './mongoClient';
 
 // Text chunker - same as devhacks implementation
 const chunkText = (text: string, chunkSize: number = 100): string[] => {
@@ -52,39 +53,74 @@ const parseResume = async (buffer: Buffer) => {
   };
 };
 
+/**
+ * Process and upsert resume for a user
+ * 
+ * @param buffer - PDF buffer
+ * @param userId - User ObjectId as string
+ * @param userMajor - Fallback major (deprecated, will fetch from Application)
+ */
 export const upsertResume = async (buffer: Buffer, userId: string, userMajor: string) => {
   try {
     const resumeDoc = await parseResume(buffer);
     const chunks = chunkText(resumeDoc.content);
 
-    // Fetch user data to get the actual major
+    // Fetch major from Application collection by user ID
     let actualMajor = userMajor;
     try {
       const user = await User.findById(userId);
-      if (user && user.major) {
-        actualMajor = user.major;
+      if (user) {
+        // Import Application model dynamically to avoid circular dependencies
+        const { Application } = await import('./mongodb');
+        if (Application) {
+          // Look up application by user ID (new schema)
+          const application = await Application.findOne({ user: userId });
+          if (application && application.major) {
+            actualMajor = application.major;
+          }
+        }
       }
     } catch (error) {
-      console.error('Error fetching user data for major:', error);
+      console.error('Error fetching application data for major:', error);
       // Use the provided major as fallback
     }
 
-    let metadata = resumeDoc.metadata;
+    // Delete old embeddings for this user before inserting new ones
+    // This prevents duplicate key errors and keeps the embeddings collection clean
+    try {
+      const db = await getDb();
+      const collectionName = process.env.MONGO_DB_COLLECTION || 'embeddings';
+      const collection = db.collection(collectionName);
+
+      // Delete all existing embeddings for this user
+      const deleteResult = await collection.deleteMany({ 'metadata.user_id': userId });
+      console.log(`Deleted ${deleteResult.deletedCount} existing embeddings for user ${userId}`);
+    } catch (deleteError) {
+      console.error('Error deleting old embeddings:', deleteError);
+      // Continue even if deletion fails - this is a cleanup step
+    }
+
+  let metadata: any = resumeDoc.metadata;
     metadata.user_id = userId;
     metadata.major = actualMajor || "Not specified";
 
-    // Create Document objects for each chunk
+    // Create Document objects for each chunk with unique metadata
+    // Add chunk_index and timestamp to ensure uniqueness and prevent duplicate key errors
     const documents = chunks
       .filter(chunk => chunk.trim() !== '' && chunk.length > 50) // Ensure chunk is not empty and has sufficient length
-      .map(chunk => new Document({
+      .map((chunk, index) => new Document({
         pageContent: chunk,
-        metadata: metadata
+        metadata: {
+          ...metadata,
+          chunk_index: index, // Add chunk index for uniqueness within a resume
+          upload_timestamp: new Date().toISOString() // Add timestamp to track when embeddings were created
+        }
       }));
 
     // Get vector store and add documents
     const vectorStore = await getVectorStore();
     await vectorStore.addDocuments(documents);
-    
+
     console.log(`Successfully processed ${documents.length} chunks for user ${userId} with major: ${actualMajor}`);
     return documents;
   } catch (error) {

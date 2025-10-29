@@ -1,161 +1,108 @@
 import type { APIRoute } from 'astro';
-import { connectDB, Application } from '../../lib/mongodb';
-import User from '../../models/user.tsx';
+import { connectAdminDB, Application } from '../../lib/mongodb';
+import { ApplicationInputSchema, DeprecatedFields } from '../../models/application';
+import { verifyToken } from '../../lib/auth';
 
-export const POST: APIRoute = async ({ request }) => {
+/**
+ * POST /api/application
+ * Create or update application for the authenticated user
+ * 
+ * Authentication: Required (JWT token in cookie)
+ * Body: ApplicationInput (validated with Zod)
+ * Response: { success: boolean; data?: Application; error?: string }
+ */
+export const POST: APIRoute = async ({ request, cookies }) => {
     try {
-        // Try to connect to the database
-        await connectDB();
+    // Connect to admin database (Application model lives here)
+    await connectAdminDB();
 
-        // Check if Application model is available (will be null during static build)
+        // Check if Application model is available
         if (!Application) {
             return new Response(JSON.stringify({
                 success: false,
                 error: 'Database connection not available'
             }), {
-                status: 503, // Service Unavailable
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        const data = await request.json();
-        const isFinalSubmission = data.progress === 4; // Check if this is the final submission
-
-        // Check if application exists by email
-        let application = await Application.findOne({ email: data.email });
-
-        if (application) {
-            // For updates, only validate required fields if it's a final submission
-            if (isFinalSubmission) {
-                // Validate all required fields for final submission (new schema)
-                const requiredFields = ['name', 'age', 'email', 'phone', 'major', 'yearOfStudy', 'expectedGradYear', 'linkedin', 'workEligibility', 'needSponsorship'];
-                const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null || String(data[field]).trim().length === 0);
-                if (missingFields.length > 0) {
-                    return new Response(JSON.stringify({
-                        success: false,
-                        error: `Missing required fields: ${missingFields.join(', ')}`
-                    }), {
-                        status: 400,
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                }
-            }
-
-            // Update existing application
-            application = await Application.findOneAndUpdate(
-                { email: data.email },
-                { ...data, updatedAt: new Date() },
-                { new: true, runValidators: isFinalSubmission } // Only run validators on final submission
-            );
-        } else {
-            // For new applications, only validate required fields if it's a final submission
-            if (isFinalSubmission) {
-                // Validate all required fields for final submission (new schema)
-                const requiredFields = ['name', 'age', 'email', 'phone', 'major', 'yearOfStudy', 'expectedGradYear', 'linkedin', 'workEligibility', 'needSponsorship'];
-                const missingFields = requiredFields.filter(field => data[field] === undefined || data[field] === null || String(data[field]).trim().length === 0);
-                if (missingFields.length > 0) {
-                    return new Response(JSON.stringify({
-                        success: false,
-                        error: `Missing required fields: ${missingFields.join(', ')}`
-                    }), {
-                        status: 400,
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                }
-                // Create new application with full validation
-                application = await Application.create(data);
-            } else {
-                // For partial saves, create without validation
-                application = await Application.create({ ...data, createdAt: new Date(), updatedAt: new Date() });
-            }
-        }
-
-        // Update user's major field if major is provided
-        if (data.major && data.email) {
-            try {
-                await User.findOneAndUpdate(
-                    { email: data.email },
-                    { major: data.major },
-                    { upsert: false } // Don't create user if doesn't exist
-                );
-            } catch (error) {
-                console.error('Error updating user major:', error);
-                // Don't fail the application submission if user update fails
-            }
-        }
-
-        return new Response(JSON.stringify({ success: true, data: application }), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-    } catch (error) {
-        console.error('Error saving application:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to save application';
-        return new Response(JSON.stringify({
-            success: false,
-            error: errorMessage,
-            details: error instanceof Error ? error.stack : undefined
-        }), {
-            status: 500,
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-    }
-};
-
-export const GET: APIRoute = async ({ url }) => {
-    try {
-        // Try to connect to the database
-        await connectDB();
-
-        // Check if Application model is available (will be null during static build)
-        if (!Application) {
+        // Verify authentication
+        const token = cookies.get('auth-token')?.value;
+        if (!token) {
             return new Response(JSON.stringify({
                 success: false,
-                error: 'Database connection not available'
+                error: 'Authentication required'
             }), {
-                status: 503, // Service Unavailable
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        const email = url.searchParams.get('email');
-
-        if (!email) {
+        const decoded = verifyToken(token);
+        if (!decoded || !decoded.userId) {
             return new Response(JSON.stringify({
                 success: false,
-                error: 'Email parameter is required'
+                error: 'Invalid authentication token'
+            }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+    // Parse and validate request body
+    const data = await request.json();
+    const validationResult = ApplicationInputSchema.safeParse(data);
+
+        if (!validationResult.success) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Invalid application data',
+                details: validationResult.error.errors
             }), {
                 status: 400,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        const application = await Application.findOne({ email });
+        const input = validationResult.data as any;
+        // Ensure dob is a Date
+        if (input.dob && typeof input.dob === 'string') {
+            input.dob = new Date(input.dob);
+        }
 
-        if (!application) {
-            return new Response(JSON.stringify({
-                success: true,
-                data: null
-            }), {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+        // Server-computed progress (0-4). Not displayed in admin list.
+        const isPersonal = Boolean(input.name && input.gender && input.dob && input.email && input.phone && input.country && input.resumeUrl);
+        const isCoreLinks = Boolean(input.linkedin && input.github);
+        const isStory = Boolean(input.coolestThing && input.hackathonStory);
+        const hasExtras = Boolean(input.projectIdea || input.proofOfWork || input.portfolio || input.personalWebsite || input.favoriteLink || input.twitterHandle || input.referralSource || input.additionalInfo);
+        const progress = [isPersonal, isCoreLinks, isStory, hasExtras].reduce((acc, v) => acc + (v ? 1 : 0), 0);
+
+        // Upsert application by user ID
+        const application = await Application.findOneAndUpdate(
+            { user: decoded.userId },
+            {
+                ...input,
+                ...DeprecatedFields,
+                user: decoded.userId,
+                progress,
+            },
+            {
+                new: true,
+                upsert: true,
+                runValidators: true,
+                setDefaultsOnInsert: true
+            }
+        );
+
+        // Update user's resumeUrl to match application
+        try {
+            const User: any = (await import('../../models/user.tsx')).default;
+            if (User && input.resumeUrl) {
+                await User.findByIdAndUpdate(decoded.userId, { resumeUrl: input.resumeUrl });
+            }
+        } catch (e) {
+            console.warn('Failed to sync user.resumeUrl:', e);
         }
 
         return new Response(JSON.stringify({
@@ -163,9 +110,88 @@ export const GET: APIRoute = async ({ url }) => {
             data: application
         }), {
             status: 200,
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error('Error saving application:', error);
+        
+        // Handle duplicate key error (shouldn't happen with upsert, but just in case)
+        if (error instanceof Error && error.message.includes('duplicate key')) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'An application already exists for this user'
+            }), {
+                status: 409,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const errorMessage = error instanceof Error ? error.message : 'Failed to save application';
+        return new Response(JSON.stringify({
+            success: false,
+            error: errorMessage
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+};
+
+/**
+ * GET /api/application
+ * Get application for the authenticated user
+ * 
+ * Authentication: Required (JWT token in cookie)
+ * Response: { success: boolean; data?: Application | null; error?: string }
+ */
+export const GET: APIRoute = async ({ cookies }) => {
+    try {
+        // Connect to admin database
+        await connectAdminDB();
+
+        // Check if Application model is available
+        if (!Application) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Database connection not available'
+            }), {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        // Verify authentication
+        const token = cookies.get('auth-token')?.value;
+        if (!token) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Authentication required'
+            }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+        const decoded = verifyToken(token);
+        if (!decoded || !decoded.userId) {
+            return new Response(JSON.stringify({
+                success: false,
+                error: 'Invalid authentication token'
+            }), {
+                status: 401,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+    // Find application by user ID
+    const application = await Application.findOne({ user: decoded.userId });
+
+        return new Response(JSON.stringify({
+            success: true,
+            data: application || null
+        }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
         });
     } catch (error) {
         console.error('Error fetching application:', error);
@@ -174,9 +200,7 @@ export const GET: APIRoute = async ({ url }) => {
             error: 'Failed to fetch application'
         }), {
             status: 500,
-            headers: {
-                'Content-Type': 'application/json'
-            }
+            headers: { 'Content-Type': 'application/json' }
         });
     }
 }; 

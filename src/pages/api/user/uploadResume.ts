@@ -155,14 +155,15 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Update user in database
+    // Update both User and Application with resumeUrl
+    // User.resumeUrl is kept for backward compatibility, but Application.resumeUrl is source of truth
     const user = await User.findByIdAndUpdate(
       decoded.userId,
       { resumeUrl },
       { new: true }
     );
 
-    console.log('User updated with resumeUrl:', user?.resumeUrl); // Debug log
+    console.log('User updated with resumeUrl:', user?.resumeUrl);
 
     if (!user) {
       return new Response(
@@ -177,10 +178,27 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Update Application collection with resumeUrl
+    try {
+      const { Application } = await import('../../../lib/mongodb');
+      if (Application) {
+        await Application.findOneAndUpdate(
+          { user: decoded.userId },
+          { resumeUrl },
+          { upsert: false } // Don't create application if it doesn't exist
+        );
+        console.log('Application updated with resumeUrl');
+      }
+    } catch (appUpdateError) {
+      console.error('Error updating Application with resumeUrl:', appUpdateError);
+      // Continue even if Application update fails
+    }
+
     // Process resume for embedding storage
+    // Major will be fetched from Application collection inside upsertResume
     try {
       console.log('Processing resume for embeddings...');
-      await upsertResume(buffer, decoded.userId, user.major || 'Not specified');
+      await upsertResume(buffer, decoded.userId, 'Not specified'); // Pass placeholder, will be fetched from Application
       console.log('Resume embeddings processed successfully');
     } catch (embeddingError) {
       console.error('Error processing resume embeddings:', embeddingError);

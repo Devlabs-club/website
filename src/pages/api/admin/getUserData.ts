@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB, Application } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB } from '../../../lib/mongodb.ts';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 
 export const GET: APIRoute = async ({ request, url }) => {
@@ -60,63 +59,71 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
-    // Find user by ID
-    const user = await User.findById(userId);
+  // Find user by ID (dynamic import to avoid typing issues)
+  console.log('getUserData: Looking up user with ID:', userId);
+  const userModel = (await import('../../../models/user')).default as any;
+  const user = await userModel.findById(userId);
     if (!user) {
+      console.error('getUserData: User not found for ID:', userId);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'User not found' 
+        JSON.stringify({
+          success: false,
+          message: 'User not found'
         }),
-        { 
+        {
           status: 404,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
+    console.log('getUserData: User found:', user.profile.email);
 
-    // Find application by email
+    // Find application by user ID only (new schema)
     let application = null;
-    if (Application) {
+    {
       try {
-        application = await Application.findOne({ email: user.email });
+        console.log('getUserData: Looking up application by user ID:', userId);
+  const appModel = (await import('../../../lib/mongodb')).Application as any;
+  application = await appModel.findOne({ user: userId });
+        if (application) {
+          console.log('getUserData: Application found, _id:', application._id);
+          console.log('getUserData: Application has resumeUrl:', !!application.resumeUrl);
+        } else {
+          console.warn('getUserData: No application found for user');
+        }
       } catch (error) {
-        console.error('Error fetching application:', error);
+        console.error('getUserData: Error fetching application:', error);
         // Continue without application data if fetch fails
       }
     }
 
-    // Return user data with application data
+    console.log('getUserData: User has resumeUrl:', !!user.resumeUrl);
+
+    // Return user data with application data (profile structure)
     return new Response(
       JSON.stringify({
         success: true,
         user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          major: user.major,
+          _id: user._id.toString(),
+          profile: user.profile,
+          role: user.role,
           resumeUrl: user.resumeUrl,
+          oauthProvider: user.oauthProvider,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         },
         application: application ? {
           _id: application._id,
-          name: application.name,
-          age: application.age,
-          email: application.email,
-          phone: application.phone,
           major: application.major,
-          yearOfStudy: application.yearOfStudy,
-          expectedGradYear: application.expectedGradYear,
-          linkedin: application.linkedin,
-          website: application.website,
-          workEligibility: application.workEligibility,
-          needSponsorship: application.needSponsorship,
-          sponsorshipType: application.sponsorshipType,
-          progress: application.progress,
           resumeUrl: application.resumeUrl,
+          status: application.status,
+          track: application.track,
+          dietaryRestrictions: application.dietaryRestrictions,
+          tShirtSize: application.tShirtSize,
+          teamPreference: application.teamPreference,
+          teamName: application.teamName,
+          whyJoin: application.whyJoin,
           createdAt: application.createdAt,
-          updatedAt: application.updatedAt
         } : null
       }),
       {

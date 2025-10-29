@@ -1,12 +1,11 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB, connectDB } from '../../../lib/mongodb.ts';
 import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    // Connect to admin database
-    await connectAdminDB();
+  // Connect to admin database (for Application) and default DB (for User)
+  await Promise.all([connectAdminDB(), connectDB()]);
 
     const body = await request.json();
     const { name, email, password } = body;
@@ -55,29 +54,35 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+  const UserModel: any = (await import('../../../models/user.tsx')).default;
+  const existingUser = await UserModel.findOne({ 'profile.emailLower': email.toLowerCase() });
     if (existingUser) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'User already exists with this email' 
+        JSON.stringify({
+          success: false,
+          message: 'User already exists with this email'
         }),
-        { 
+        {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         }
       );
     }
 
-    // Create new user
-    const newUser = new User({
-      name: name.trim(),
-      email: email.toLowerCase(),
+    // Create new user with profile structure
+  const newUser = new UserModel({
+      profile: {
+        name: name.trim(),
+        email: email,
+        emailLower: email.toLowerCase()
+      },
       password,
-      role: 'user'
+      role: 'user',
+      oauthProvider: null,
+      oauthId: null
     });
 
-    await newUser.save();
+  await newUser.save();
 
     // Generate token
     const token = generateToken(newUser);
@@ -89,15 +94,17 @@ export const POST: APIRoute = async ({ request }) => {
         message: 'User registered successfully',
         user: {
           id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role
+          profile: newUser.profile,
+          role: newUser.role,
+          resumeUrl: newUser.resumeUrl,
+          oauthProvider: newUser.oauthProvider,
+          createdAt: newUser.createdAt
         },
         token
       }),
       {
         status: 201,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
         }

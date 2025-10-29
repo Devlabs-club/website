@@ -40,14 +40,14 @@ export const UserProfile: React.FC = () => {
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Name
           </label>
-          <p className="text-white font-medium">{user.name}</p>
+          <p className="text-white font-medium">{user.profile.name}</p>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Email
           </label>
-          <p className="text-white font-medium">{user.email}</p>
+          <p className="text-white font-medium">{user.profile.email}</p>
         </div>
 
         {user.createdAt && (
