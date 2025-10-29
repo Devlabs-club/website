@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import PDFViewer from "./PDFViewer"; // ✅ reuse the same robust viewer
+import PDFViewer from "./PDFViewer"; 
 
 export default function AdminClientDashboard() {
   const [clients, setClients] = useState<any[]>([]);
@@ -48,7 +48,7 @@ export default function AdminClientDashboard() {
             key={client._id}
             className="bg-neutral-900/70 border border-orange-500/40 rounded-2xl p-6 shadow-lg"
           >
-           
+            
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-semibold text-orange-400">
@@ -56,7 +56,6 @@ export default function AdminClientDashboard() {
                 </h2>
                 <p className="text-gray-300">{client.roleTitle}</p>
 
-                
                 <p className="text-sm text-gray-400">
                   <strong>Contact:</strong>{" "}
                   {client.contactName ? client.contactName : "N/A"}{" "}
@@ -83,7 +82,7 @@ export default function AdminClientDashboard() {
               </button>
             </div>
 
-           
+            
             <div className="mt-3 text-gray-400 space-y-1">
               <p>
                 <strong>Skills:</strong> {client.skills}
@@ -99,7 +98,7 @@ export default function AdminClientDashboard() {
               </p>
             </div>
 
-           
+            
             {results[client._id] && (
               <div className="mt-4 bg-neutral-800 p-4 rounded-xl">
                 <h3 className="text-lg text-orange-400 mb-2">Top Matches</h3>
@@ -125,6 +124,8 @@ export default function AdminClientDashboard() {
                                 <p className="text-white font-semibold">
                                   {match.email}
                                 </p>
+
+                                
                                 <button
                                   onClick={() =>
                                     setOpenResume((prev) => ({
@@ -141,7 +142,25 @@ export default function AdminClientDashboard() {
                                     ? "Hide Resume"
                                     : "View Resume"}
                                 </button>
+
+                                
+                                {match.skills && match.skills.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {match.skills
+                                      .slice(0, 10)
+                                      .map((skill: string, j: number) => (
+                                        <span
+                                          key={j}
+                                          className="bg-orange-400/10 text-orange-300 border border-orange-400/30 text-xs px-2 py-1 rounded-full font-medium tracking-wide"
+                                        >
+                                          {skill}
+                                        </span>
+                                      ))}
+                                  </div>
+                                )}
                               </div>
+
+                             
                               <p className="text-gray-400 text-sm">
                                 Score:{" "}
                                 {(
@@ -156,7 +175,8 @@ export default function AdminClientDashboard() {
                             
                             {openResume[client._id] === cleanUrl && (
                               <div className="mt-3 border border-white/10 rounded-lg overflow-hidden">
-                                <PDFViewer resumeUrl={cleanUrl} />
+                                <PDFViewer url={cleanUrl} />
+
                               </div>
                             )}
                           </li>

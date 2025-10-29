@@ -42,19 +42,16 @@ export const POST: APIRoute = async ({ request }) => {
     for (const res of resumes) {
       const userVector = res.vector || [];
 
-     
       const skillSim = cosineSimilarity(clientVector, userVector);
       const mindsetSim = cosineSimilarity(mindsetVector, userVector);
-
-      
-      const weightedScore = (0.8 * skillSim) + (0.2 * mindsetSim);
-
-      
+      const weightedScore = 0.8 * skillSim + 0.2 * mindsetSim;
       const scaledScore = Math.round(weightedScore * 100);
 
       const userId = res.metadata?.user_id;
       let email = "unknown";
       let resumeUrl = res.resumeUrl || "";
+      let skills: string[] = res.metadata?.tags || [];
+
 
       if (userId) {
         const user = await db
@@ -62,15 +59,16 @@ export const POST: APIRoute = async ({ request }) => {
           .findOne({ _id: new mongoose.Types.ObjectId(userId) });
         if (user?.profile?.email) email = user.profile.email;
         if (user?.resumeUrl) resumeUrl = user.resumeUrl;
-
       }
 
       scored.push({
         email,
         resumeUrl,
         score: scaledScore,
+        skills, 
       });
     }
+
 
   
     const topMatches = scored.sort((a, b) => b.score - a.score).slice(0, topK);
