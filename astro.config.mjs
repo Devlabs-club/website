@@ -21,7 +21,12 @@ export default defineConfig({
   integrations: [tailwind(), react()],
   output: "server",
   adapter: vercel({
+    edgeMiddleware:false,
     analytics: true,
     maxDuration: 60
-  })
+  }),
+  compilerOptions: {
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
+  },
 });
