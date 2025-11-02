@@ -97,10 +97,10 @@ async function sendNotificationEmail(clientData: any) {
           <style>
             body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
             .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+            .header { background-color: #db9108; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
             .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
             .section { margin-bottom: 20px; }
-            .section h3 { color: #4CAF50; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }
+            .section h3 { color: #db9108; border-bottom: 2px solid #db9108; padding-bottom: 5px; }
             ul { list-style: none; padding: 0; }
             li { padding: 5px 0; }
             .label { font-weight: bold; color: #555; }
