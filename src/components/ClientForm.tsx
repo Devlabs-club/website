@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { WrappedText } from "./text/WrappedText";
@@ -11,6 +11,19 @@ const normalizeUrl = (value: unknown): string => {
   return hasScheme ? input : `https://${input}`;
 };
 
+const ROLE_TYPES = [
+  "Internship (Paid)",
+  "Internship (Unpaid)",
+  "Part-time Role",
+  "Full-time Role",
+  "Contract/Freelance",
+] as const;
+
+const WORK_MODES = ["Remote", "Hybrid", "On-Site"] as const;
+
+type RoleType = (typeof ROLE_TYPES)[number];
+type WorkMode = (typeof WORK_MODES)[number];
+
 const formSchema = z.object({
   companyName: z.string().min(2, "Company name is required"),
   companyWebsite: z
@@ -21,20 +34,8 @@ const formSchema = z.object({
   phone: z.string().min(10, "Please enter a valid phone number"),
   email: z.string().email("Please enter a valid email"),
   roleTitle: z.string().min(2, "Role title is required"),
-  roleType: z
-    .array(
-      z.enum([
-        "Internship (Paid)",
-        "Internship (Unpaid)",
-        "Part-time Role",
-        "Full-time Role",
-        "Contract/Freelance",
-      ])
-    )
-    .min(1, "Select at least one role type"),
-  workMode: z
-    .array(z.enum(["Remote", "Hybrid", "On-Site"]))
-    .min(1, "Select at least one work mode"),
+  roleType: z.array(z.enum(ROLE_TYPES)).min(1, "Select at least one role type"),
+  workMode: z.array(z.enum(WORK_MODES)).min(1, "Select at least one work mode"),
   roleDescription: z.string().min(10, "Please include role details or link"),
   compensation: z.string().min(1, "Enter compensation or NIL"),
   skills: z.string().min(2, "Please list key skills"),
@@ -47,14 +48,36 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const extractErrorMessage = (errorObject: any): string | null => {
+  if (!errorObject) return null;
+  if (typeof errorObject === "object") {
+    if (
+      typeof errorObject.message === "string" &&
+      errorObject.message.length > 0
+    ) {
+      return errorObject.message;
+    }
+    if (errorObject.root) {
+      const rootMessage = extractErrorMessage(errorObject.root);
+      if (rootMessage) return rootMessage;
+    }
+    for (const value of Object.values(errorObject)) {
+      const nested = extractErrorMessage(value);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
+
 const ClientForm: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
-    formState: { errors, isValid },
+    formState: { errors },
     reset,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -66,8 +89,8 @@ const ClientForm: React.FC = () => {
       phone: "",
       email: "",
       roleTitle: "",
-      roleType: [],
-      workMode: [],
+      roleType: [] as RoleType[],
+      workMode: [] as WorkMode[],
       roleDescription: "",
       compensation: "",
       skills: "",
@@ -78,6 +101,7 @@ const ClientForm: React.FC = () => {
   });
 
   const onSubmit = async (data: FormData) => {
+    setFormError(null);
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/clientform", {
@@ -90,9 +114,19 @@ const ClientForm: React.FC = () => {
       reset();
     } catch (err) {
       console.error(err);
+      setFormError(
+        "Something went wrong while submitting the form. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleValidationError: SubmitErrorHandler<FormData> = (errors) => {
+    const message =
+      extractErrorMessage(errors) ??
+      "Please review the highlighted fields before submitting.";
+    setFormError(message);
   };
 
   if (isSubmitted) {
@@ -118,16 +152,20 @@ const ClientForm: React.FC = () => {
 
   return (
     <div className="relative max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-10">
-        
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <h2 className="text-xl font-semibold text-white">
-            Company & Contact Information
-          </h2>
+      <form
+        onSubmit={handleSubmit(onSubmit, handleValidationError)}
+        className="space-y-10"
+      >
+        {formError && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-red-200">
+            <p className="font-semibold">We couldn&apos;t submit the form</p>
+            <p className="mt-1 text-sm">{formError}</p>
+          </div>
+        )}
+        <div className="space-y-6 rounded-xl  p-5">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Company Name
               </label>
               <Controller
@@ -147,9 +185,8 @@ const ClientForm: React.FC = () => {
               )}
             </div>
 
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Company Website
               </label>
               <Controller
@@ -167,9 +204,8 @@ const ClientForm: React.FC = () => {
               />
             </div>
 
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Primary Contact Name
               </label>
               <Controller
@@ -185,7 +221,7 @@ const ClientForm: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Phone
               </label>
               <div className="mt-1 flex">
@@ -212,9 +248,8 @@ const ClientForm: React.FC = () => {
               )}
             </div>
 
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Email Address
               </label>
               <Controller
@@ -232,13 +267,9 @@ const ClientForm: React.FC = () => {
           </div>
         </div>
 
-        
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <h2 className="text-xl font-semibold text-white">Role Details</h2>
-
-          
+        <div className="space-y-6 rounded-xl  p-5">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Role Title
             </label>
             <Controller
@@ -253,11 +284,9 @@ const ClientForm: React.FC = () => {
             />
           </div>
 
-          
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Role Type
               </label>
               <Controller
@@ -265,17 +294,8 @@ const ClientForm: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-gray-300">
-                    {[
-                      "Internship (Paid)",
-                      "Internship (Unpaid)",
-                      "Part-time Role",
-                      "Full-time Role",
-                      "Contract/Freelance",
-                    ].map((type) => (
-                      <label
-                        key={type}
-                        className="flex items-center space-x-2"
-                      >
+                    {ROLE_TYPES.map((type) => (
+                      <label key={type} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
                           value={type}
@@ -298,9 +318,8 @@ const ClientForm: React.FC = () => {
               />
             </div>
 
-            
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                 Location / Work Mode
               </label>
               <Controller
@@ -308,11 +327,8 @@ const ClientForm: React.FC = () => {
                 control={control}
                 render={({ field }) => (
                   <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-gray-300">
-                    {["Remote", "Hybrid", "On-Site"].map((mode) => (
-                      <label
-                        key={mode}
-                        className="flex items-center space-x-2"
-                      >
+                    {WORK_MODES.map((mode) => (
+                      <label key={mode} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
                           value={mode}
@@ -336,9 +352,8 @@ const ClientForm: React.FC = () => {
             </div>
           </div>
 
-          
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Role Description
             </label>
             <Controller
@@ -355,9 +370,8 @@ const ClientForm: React.FC = () => {
             />
           </div>
 
-          
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Compensation in USD
             </label>
             <Controller
@@ -374,15 +388,9 @@ const ClientForm: React.FC = () => {
           </div>
         </div>
 
-        
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <h2 className="text-xl font-semibold text-white">
-            Candidate Preferences & Additional Info
-          </h2>
-
-          
+        <div className="space-y-6 rounded-xl  p-5">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Ideal Candidate Skills
             </label>
             <Controller
@@ -398,9 +406,8 @@ const ClientForm: React.FC = () => {
             />
           </div>
 
-          
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Preferred Candidate Mindset & Qualities
             </label>
             <Controller
@@ -416,9 +423,8 @@ const ClientForm: React.FC = () => {
             />
           </div>
 
-          
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Willing to Sponsor Visa Status?
             </label>
             <Controller
@@ -437,9 +443,8 @@ const ClientForm: React.FC = () => {
             />
           </div>
 
-          
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
               Additional Notes (optional)
             </label>
             <Controller
@@ -463,7 +468,7 @@ const ClientForm: React.FC = () => {
         >
           <button
             type="submit"
-            disabled={!isValid || isSubmitting}
+            disabled={isSubmitting}
             className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-6 py-3 flex items-center justify-center text-center"
           >
             {isSubmitting ? "Submitting..." : "Submit Role"}
