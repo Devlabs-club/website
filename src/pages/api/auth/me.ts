@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
+import { connectAdminDB, Application } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 
@@ -60,7 +60,11 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    // Return user data
+    // Get resume URL from application collection
+    const application = await Application.findOne({ user: decoded.userId });
+    const resumeUrl = application?.resumeUrl || null;
+
+    // Return user data with resume URL from application
     return new Response(
       JSON.stringify({
         success: true,
@@ -69,7 +73,7 @@ export const GET: APIRoute = async ({ request }) => {
           name: user.name,
           email: user.email,
           role: user.role,
-          resumeUrl: user.resumeUrl,
+          resumeUrl: resumeUrl,
           createdAt: user.createdAt
         }
       }),

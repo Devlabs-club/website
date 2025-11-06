@@ -58,7 +58,12 @@ export const POST: APIRoute = async ({ request }) => {
           .collection("users")
           .findOne({ _id: new mongoose.Types.ObjectId(userId) });
         if (user?.profile?.email) email = user.profile.email;
-        if (user?.resumeUrl) resumeUrl = user.resumeUrl;
+        
+        // Get resumeUrl from applications collection
+        const application = await db
+          .collection("applications")
+          .findOne({ user: new mongoose.Types.ObjectId(userId) });
+        if (application?.resumeUrl) resumeUrl = application.resumeUrl;
       }
 
       scored.push({

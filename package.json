@@ -9,7 +9,16 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "pnpm run build && wrangler pages deploy dist",
-    "clear-cache": "rm -rf node_modules/.vite && echo 'Vite cache cleared successfully!'"
+    "clear-cache": "rm -rf node_modules/.vite && echo 'Vite cache cleared successfully!'",
+    "fix-indexes": "tsx scripts/drop-old-indexes.ts",
+    "setup-indexes": "tsx scripts/ensure-email-index.ts",
+    "cleanup-duplicates": "tsx scripts/cleanup-duplicate-emails.ts",
+    "cleanup-invalid-users": "tsx scripts/cleanup-invalid-users.ts",
+    "restore-old-indexes": "tsx scripts/restore-old-indexes.ts",
+    "view-db-state": "tsx scripts/view-database-state.ts",
+    "check-recovery": "tsx scripts/check-recovery-options.ts",
+    "migrate-devhacks": "tsx scripts/migrate-devhacks-to-test.ts",
+    "fix-app-user-links": "tsx scripts/fix-application-user-links.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.2.1",
@@ -60,6 +69,7 @@
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.2"
   },
   "engines": {

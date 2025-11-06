@@ -59,23 +59,21 @@ async function connectAdminDB() {
 
 // Define schema - this is safe even during static build
 const applicationSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true, unique: true },
     name: { type: String, required: true },
     age: { type: Number, required: true },
-    email: { type: String, required: true, unique: true },
     phone: { type: String, required: true },
     major: { type: String, required: true },
     yearOfStudy: { type: String, enum: ["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"], required: true },
     expectedGradYear: { type: Number, required: true },
     linkedin: { type: String, required: true },
+    github: { type: String },
     website: { type: String },
     workEligibility: { type: String, enum: ["Yes", "No"], required: true },
     needSponsorship: { type: String, enum: ["Yes", "No"], required: true },
     sponsorshipType: { type: String },
-    track: { type: String },
-    progress: { type: Number, default: 0 },
     resumeUrl: { type: String },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now }
 }, {
     toJSON: { getters: true },
     toObject: { getters: true }

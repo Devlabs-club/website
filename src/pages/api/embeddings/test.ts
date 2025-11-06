@@ -144,32 +144,51 @@ function extractResumeData(text: string) {
 export const GET: APIRoute = async () => {
   await connectDB();
   const db = mongoose.connection.db;
+  
+  if (!db) {
+    return new Response(
+      JSON.stringify({ success: false, message: "Database connection failed" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   const embedder = await getMiniLM();
   const BATCH_SIZE = 100;
 
-  const users = await db
-    .collection("users")
+  // Get applications with resume URLs
+  const applications = await db
+    .collection("applications")
     .find({ resumeUrl: { $exists: true, $ne: "" } })
     .toArray();
 
-  console.log(`Found ${users.length} users with resume URLs`);
+  console.log(`Found ${applications.length} applications with resume URLs`);
 
   let processedCount = 0;
   const skipped: string[] = [];
   const processed: string[] = [];
 
-  for (let i = 0; i < users.length; i += BATCH_SIZE) {
-    const batch = users.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < applications.length; i += BATCH_SIZE) {
+    const batch = applications.slice(i, i + BATCH_SIZE);
     console.log(
       `Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(
-        users.length / BATCH_SIZE
-      )} (${batch.length} users)`
+        applications.length / BATCH_SIZE
+      )} (${batch.length} applications)`
     );
 
-    for (const user of batch) {
-      const resumeUrl = user.resumeUrl;
-      const email = user.email || "unknown";
-      const name = user.name || "unknown";
+    for (const application of batch) {
+      const resumeUrl = application.resumeUrl;
+      // Get user details from the application's user field
+      const user = await db
+        .collection("users")
+        .findOne({ _id: application.user });
+      
+      if (!user) {
+        console.log(`Skipping application ${application._id}: user not found`);
+        continue;
+      }
+      
+      const email = user.email || application.email || "unknown";
+      const name = user.name || application.name || "unknown";
 
       try {
         const existing = await db.collection("embresumes").findOne({ resumeUrl });
@@ -246,7 +265,7 @@ export const GET: APIRoute = async () => {
   return new Response(
     JSON.stringify({
       success: true,
-      total: users.length,
+      total: applications.length,
       processed: processedCount,
       skipped: skipped.length,
       processedEmails: processed,

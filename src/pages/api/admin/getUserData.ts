@@ -75,18 +75,18 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
-    // Find application by email
+    // Find application by user ID
     let application = null;
     if (Application) {
       try {
-        application = await Application.findOne({ email: user.email });
+        application = await Application.findOne({ user: userId });
       } catch (error) {
         console.error('Error fetching application:', error);
         // Continue without application data if fetch fails
       }
     }
 
-    // Return user data with application data
+    // Return user data with application data (resumeUrl comes from application, not user)
     return new Response(
       JSON.stringify({
         success: true,
@@ -95,7 +95,7 @@ export const GET: APIRoute = async ({ request, url }) => {
           name: user.name,
           email: user.email,
           major: user.major,
-          resumeUrl: user.resumeUrl,
+          resumeUrl: application?.resumeUrl || null, // Get resumeUrl from application
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         },
