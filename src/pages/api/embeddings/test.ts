@@ -32,7 +32,7 @@ const EmbResume =
           inferredSkills: [String],
         },
       ],
-      contextEmbeddings: [[Number]], 
+      contextEmbeddings: [[Number]],
       textHash: String,
       resumeUrl: String,
       model: String,
@@ -40,111 +40,9 @@ const EmbResume =
     })
   );
 
-
-function extractResumeData(text: string) {
-
-  const nameMatch = text.match(/^[A-Z][a-z]+(?:\s[A-Z][a-z]+)+/m);
-  const emailMatch = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  const phoneMatch = text.match(/\+?\d[\d\s-]{8,}/);
-  const links = Array.from(text.matchAll(/https?:\/\/[^\s)]+/g), (m) => m[0]);
-
-  
-  const skillSection = text.match(/Skills[\s\S]*?(Projects|Experience|Publications|$)/i);
-  const skillBlock = skillSection ? skillSection[0] : "";
-  const rawSkills = skillBlock
-    .split(/,|:|\n|•|-/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 1);
-
-  const stop = ["skills", "projects", "experience", "education", "publications"];
-  const skills = Array.from(new Set(rawSkills.filter((s) => !stop.includes(s.toLowerCase()))));
-
-  
-
-  const projectSection = text.match(/Projects[\s\S]*?(Experience|Education|Skills|$)/i);
-  const projectBlock = projectSection ? projectSection[0] : "";
-  const projectEntries = projectBlock
-    .split(/\n\s*(?=[A-Z].+?(?:\d{4}|–|-|:))/g)
-    .map((p) => p.trim())
-    .filter((p) => p.length > 25);
-
-  const projects = projectEntries.map((p) => {
-    const titleMatch = p.match(/^[A-Za-z0-9\s&()]+?(?=\s*(\d{4}|–|-|:|,))/);
-    const description = p.replace(/\s+/g, " ").trim();
-    const inferredSkills = Array.from(
-      new Set(
-        description
-          .split(/[\s,]+/)
-          .filter(
-            (w) =>
-              w.length > 2 &&
-              /^[A-Z][a-zA-Z]+$/.test(w) &&
-              !["Project", "Projects", "Experience", "Education", "Skills"].includes(w)
-          )
-      )
-    );
-
-    return {
-      title: titleMatch ? titleMatch[0].trim() : p.slice(0, 50),
-      description,
-      inferredSkills,
-    };
-  });
-
-
-  
-  
-  const expSection = text.match(/Experience[\s\S]*?(Education|Projects|$)/i);
-  const expBlock = expSection ? expSection[0] : "";
-  const expEntries = expBlock
-    .split(/\n\s*(?=[A-Z].+?(?:at|@|\d{4}))/g)
-    .map((e) => e.trim())
-    .filter((e) => e.length > 25);
-
-  const experiences = expEntries.map((e) => {
-    const titleMatch = e.match(/^[A-Za-z\s&]+?(?=\d{4}|at|@|–|-)/);
-    const companyMatch = e.match(/(?:at|@)\s*([A-Za-z\s&]+)/);
-    const description = e.replace(/\s+/g, " ").trim();
-
-    
-    const inferredSkills = Array.from(
-      new Set(
-        description
-          .split(/[\s,]+/)
-          .filter(
-            (w) =>
-              w.length > 2 &&
-              /^[A-Z][a-zA-Z]+$/.test(w) &&
-              !["Experience", "Responsibilities", "Education"].includes(w)
-          )
-      )
-    );
-
-    return {
-      title: titleMatch ? titleMatch[0].trim() : e.slice(0, 50),
-      company: companyMatch ? companyMatch[1].trim() : "",
-      description,
-      inferredSkills,
-    };
-  });
-
-
-  return {
-    name: nameMatch ? nameMatch[0] : "Unknown",
-    email: emailMatch ? emailMatch[0] : "Unknown",
-    phone: phoneMatch ? phoneMatch[0] : "Unknown",
-    links,
-    skills,
-    projects,
-    experiences,
-  };
-}
-
-
 export const GET: APIRoute = async () => {
   await connectDB();
   const db = mongoose.connection.db;
-  
   if (!db) {
     return new Response(
       JSON.stringify({ success: false, message: "Database connection failed" }),
@@ -155,7 +53,6 @@ export const GET: APIRoute = async () => {
   const embedder = await getMiniLM();
   const BATCH_SIZE = 100;
 
-  // Get applications with resume URLs
   const applications = await db
     .collection("applications")
     .find({ resumeUrl: { $exists: true, $ne: "" } })
@@ -177,21 +74,19 @@ export const GET: APIRoute = async () => {
 
     for (const application of batch) {
       const resumeUrl = application.resumeUrl;
-      // Get user details from the application's user field
-      const user = await db
-        .collection("users")
-        .findOne({ _id: application.user });
-      
+
+      const user = await db.collection("users").findOne({ _id: application.user });
       if (!user) {
-        console.log(`Skipping application ${application._id}: user not found`);
+        console.log(`Skipping ${application._id}: user not found`);
+        skipped.push(resumeUrl);
         continue;
       }
-      
-      const email = user.email || application.email || "unknown";
-      const name = user.name || application.name || "unknown";
+
+      const email = user.email || "unknown";
+      const name = user.name || "unknown";
 
       try {
-        const existing = await db.collection("embresumes").findOne({ resumeUrl });
+        const existing = await db.collection("newembresumes").findOne({ resumeUrl });
         if (existing) {
           skipped.push(resumeUrl);
           console.log(`Skipped (already processed): ${resumeUrl}`);
@@ -207,6 +102,7 @@ export const GET: APIRoute = async () => {
         const text = parsed.text.slice(0, 20000);
         const hash = sha256(text);
 
+
         const skillSection = text.match(/Skills[\s\S]*?(Projects|Experience|Publications|$)/i);
         const skillBlock = skillSection ? skillSection[0] : "";
         const rawSkills = skillBlock
@@ -218,39 +114,41 @@ export const GET: APIRoute = async () => {
           new Set(rawSkills.filter((s) => !stop.includes(s.toLowerCase())))
         );
 
+       
         const skillEmbeddings: number[][] = [];
         for (const skill of skills) {
           const emb = await embedder.embed(skill);
           skillEmbeddings.push(emb);
         }
 
+        
         const meanVector =
           skillEmbeddings.length > 0
             ? skillEmbeddings[0].map((_, i) =>
-                skillEmbeddings.reduce((sum, v) => sum + (v[i] || 0), 0) /
-                skillEmbeddings.length
+                skillEmbeddings.reduce((sum, v) => sum + (v[i] || 0), 0) / skillEmbeddings.length
               )
             : [];
+        const meanVector32 = Array.from(new Float32Array(meanVector));
 
-        const toFloat32 = (arr: number[]) => Array.from(new Float32Array(arr));
-        const meanVector32 = toFloat32(meanVector);
-
-       
-
-        await db.collection("embresumes").insertOne({
+        
+        await db.collection("newembresumes").insertOne({
           model: embedder.modelId || null,
           metadata: {
             user_id: user._id?.toString() || "",
+            application_id: application._id?.toString() || "",
+            email,
             tags: [...new Set(skills)],
           },
           vector: meanVector32,
           resumeUrl,
           updatedAt: new Date(),
         });
+
         processed.push(email);
         processedCount++;
-        console.log(`Stored parsed data for ${email}`);
+        console.log(`Stored parsed embedding for ${email}`);
 
+        // slow down fetch rate
         await new Promise((r) => setTimeout(r, 1000));
       } catch (err: any) {
         console.error(`Error processing ${email}:`, err.message);
