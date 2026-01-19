@@ -3,7 +3,7 @@ import { connectAdminDB } from '../../../lib/mongodb.ts';
 import mongoose from 'mongoose';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 
-export const GET: APIRoute = async ({ request, url }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     // Connect to admin database
     await connectAdminDB();
@@ -45,8 +45,10 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
-    // Get user ID from query parameters
-    const userId = url.searchParams.get('userId');
+    // Parse request body
+    const body = await request.json();
+    const { userId, flag } = body;
+
     if (!userId) {
       return new Response(
         JSON.stringify({ 
@@ -68,12 +70,21 @@ export const GET: APIRoute = async ({ request, url }) => {
       throw new Error('Failed to get users collection');
     }
 
-    // Find user by ID
-    const user = await usersCollection.findOne({ 
-      _id: new mongoose.Types.ObjectId(userId) 
-    });
+    // Update user with flag information
+    // If flag is null or undefined, remove the flag field
+    const updateData: any = {};
+    if (flag === null || flag === undefined) {
+      updateData.$unset = { flag: '' };
+    } else {
+      updateData.$set = { flag };
+    }
 
-    if (!user) {
+    const result = await usersCollection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      updateData
+    );
+
+    if (result.matchedCount === 0) {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -86,56 +97,10 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
-    // Return user data in unified schema format, with backward compatibility
     return new Response(
       JSON.stringify({
         success: true,
-        user: {
-          _id: user._id,
-          name: user.fullName || user.name || 'Unknown',
-          email: user.email || '',
-          major: user.major || '',
-          resumeUrl: user.resumeUrl || null,
-          createdAt: user.createdAt || new Date(),
-          updatedAt: user.updatedAt || new Date(),
-          // Include unified schema fields
-          fullName: user.fullName,
-          age: user.age,
-          phone: user.phone,
-          photoUrl: user.photoUrl,
-          yearOfStudy: user.yearOfStudy,
-          expectedGraduationYear: user.expectedGraduationYear,
-          linkedinUrl: user.linkedinUrl,
-          githubOrPortfolioUrl: user.githubOrPortfolioUrl,
-          eligibleToWorkInUS: user.eligibleToWorkInUS,
-          requiresVisaSponsorship: user.requiresVisaSponsorship,
-          visaType: user.visaType,
-          role: user.role,
-          season: user.season,
-          checkedIn: user.checkedIn,
-          flag: user.flag || null
-        },
-        // Format as application for backward compatibility
-        application: {
-          _id: user._id,
-          name: user.fullName || user.name || 'Unknown',
-          age: user.age || null,
-          email: user.email || '',
-          phone: user.phone || null,
-          major: user.major || '',
-          yearOfStudy: user.yearOfStudy || null,
-          expectedGradYear: user.expectedGraduationYear || null,
-          linkedin: user.linkedinUrl || null,
-          website: user.githubOrPortfolioUrl || null,
-          workEligibility: user.eligibleToWorkInUS ? 'Yes' : 'No',
-          needSponsorship: user.requiresVisaSponsorship ? 'Yes' : 'No',
-          sponsorshipType: user.visaType || null,
-          progress: 100,
-          resumeUrl: user.resumeUrl || null,
-          createdAt: user.createdAt || new Date(),
-          updatedAt: user.updatedAt || new Date(),
-          flag: user.flag || null
-        }
+        message: 'Flag updated successfully'
       }),
       {
         status: 200,
@@ -144,11 +109,11 @@ export const GET: APIRoute = async ({ request, url }) => {
     );
 
   } catch (error) {
-    console.error('Get user data error:', error);
+    console.error('Update flag error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: 'Internal server error',
+        message: 'Failed to update flag',
         error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { 
@@ -158,3 +123,4 @@ export const GET: APIRoute = async ({ request, url }) => {
     );
   }
 };
+
