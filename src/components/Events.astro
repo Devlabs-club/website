@@ -57,12 +57,33 @@
 
   <!-- IMAGE STAGE (bottom, fixed during scroll) -->
   <div class="events-parallax__image-stage" data-events-parallax-image>
+    <!-- Stars (same z-index / sticky behavior as collage) -->
     <img
-      src="/team-collage.png"
-      alt="DevLabs team collage"
+      src="/star.svg"
+      alt=""
+      aria-hidden="true"
+      class="events-parallax__star events-parallax__star--left"
       loading="eager"
       decoding="async"
     />
+    <img
+      src="/star.svg"
+      alt=""
+      aria-hidden="true"
+      class="events-parallax__star events-parallax__star--right"
+      loading="eager"
+      decoding="async"
+    />
+
+    <!-- Team collage -->
+    <div class="events-parallax__collage" aria-hidden="true">
+      <img
+        src="/team-collage.png"
+        alt="DevLabs team collage"
+        loading="eager"
+        decoding="async"
+      />
+    </div>
   </div>
 </section>
 
@@ -239,9 +260,12 @@
     left: 0;
     right: 0;
     bottom: 0;
+    height: 100vh;
+    width: 100vw;
     pointer-events: none;
     will-change: transform;
     z-index: 20;
+    overflow: hidden;
 
     /* Gradient mask for smooth fade at bottom */
     -webkit-mask-image: linear-gradient(
@@ -268,10 +292,54 @@
     mask-size: 100% 100%;
   }
 
-  .events-parallax__image-stage img {
+  .events-parallax__collage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  .events-parallax__collage img {
     width: 100%;
     object-fit: contain;
     display: block;
+  }
+
+  .events-parallax__star {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0.9;
+    filter: drop-shadow(0 22px 60px rgba(0, 0, 0, 0.55));
+  }
+
+  /* Big star: left center, with good side margin */
+  .events-parallax__star--left {
+    left: clamp(16px, 4vw, 64px);
+    top: 50%;
+    transform: translateY(-50%);
+    width: clamp(140px, 18vw, 240px);
+    height: auto;
+  }
+
+  /* Small star: right top, with good side margin */
+  .events-parallax__star--right {
+    right: clamp(16px, 4vw, 64px);
+    top: clamp(14px, 6vh, 72px);
+    width: clamp(64px, 9vw, 120px);
+    height: auto;
+    opacity: 0.85;
+  }
+
+  @media (max-width: 640px) {
+    .events-parallax__star--left {
+      width: clamp(110px, 28vw, 170px);
+      opacity: 0.8;
+    }
+    .events-parallax__star--right {
+      width: clamp(52px, 16vw, 90px);
+      opacity: 0.75;
+    }
   }
 </style>
 

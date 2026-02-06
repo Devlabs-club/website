@@ -64,7 +64,7 @@ const events = [
     name: 'DevSpace',
     tagline: 'Where Innovation Meets Collaboration',
     description: 'DevSpace is our flagship networking and learning event that brings together Arizona\'s brightest developers, designers, and entrepreneurs. A day filled with workshops, lightning talks, and networking opportunities that spark new collaborations and friendships.',
-    image: '/events/devspace.jpg',
+    image: '/events/devspace.png',
     stats: {
       participants: '60+',
       speakers: '7',
@@ -75,23 +75,6 @@ const events = [
     date: 'Fall 2024',
     status: 'completed',
     link: ''
-  },
-  {
-    id: 'momentum',
-    name: 'Momentum',
-    tagline: 'Launch your startup. For real.',
-    description: 'Momentum is our new startup program—a cohort-based, mentor-led experience for early-stage founders. Get direct access to investors, the DevLabs network, and the support to take your idea from prototype to launch.',
-    image: null,
-    stats: {
-      cohort: 'TBD',
-      duration: '12 weeks',
-      mentors: '10+',
-      funding: 'Up to $50K'
-    },
-    highlights: ['Cohort-Based', 'Mentor-Led', 'Investor Access', 'DevLabs Network'],
-    date: 'Cohort 1 coming soon',
-    status: 'upcoming',
-    link: '#momentum'
   },
 ];
 ---
@@ -126,7 +109,7 @@ const events = [
         <!-- Events Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
             {events.map((event) => (
-            <a target={event.link?.startsWith('http') ? '_blank' : undefined} href={event.link || '#'} id={event.id === 'momentum' ? 'momentum' : undefined}>
+            <a target={event.link?.startsWith('http') ? '_blank' : undefined} href={event.link || '#'}>
                 <div class="group relative bg-gradient-to-br from-white/5 via-white/3 to-transparent border border-white/10 backdrop-blur-sm rounded-3xl p-6 hover:border-orange-400/30 hover:bg-gradient-to-br hover:from-orange-500/10 hover:via-orange-400/5 hover:to-transparent transition-all duration-500 hover:scale-[1.02] hover:shadow-orange-500/20">
                     <!-- Event Image -->
                     <div class="relative mb-6 overflow-hidden rounded-2xl">
