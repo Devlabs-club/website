@@ -137,13 +137,24 @@ import GradientBlob from "../components/GradientBlob.astro";
 
     <!-- Full-bleed wrapper (spans viewport width) -->
     <div
-      class="w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-6 lg:px-10 2xl:px-14"
+      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-4 sm:px-6 lg:px-10 2xl:px-14"
     >
-      <div
-        class="growth-wrap bg-gradient-to-br from-white/6 via-white/3 to-transparent backdrop-blur-sm overflow-visible relative"
-      >
-        <div class="growth-wrap__edgeFade" aria-hidden="true"></div>
-        <div class="px-6 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
+      <!-- Corner stars (sit above fades, below content) -->
+      <img
+        src="/star.svg"
+        alt=""
+        aria-hidden="true"
+        class="absolute left-0 -translate-x-1/2 -top-24 w-[22rem] sm:w-[28rem] md:w-[32rem] pointer-events-none select-none z-10 rotate-[20deg]"
+      />
+      <img
+        src="/star.svg"
+        alt=""
+        aria-hidden="true"
+        class="absolute right-0 top-0 translate-x-1/3 -translate-y-1/2 w-56 sm:w-72 md:w-80 rotate-[8deg] pointer-events-none select-none z-10"
+      />
+      <div class="overflow-visible relative z-20">
+        <div class="" aria-hidden="true"></div>
+        <div class="relative z-10 px-6 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
           <div class="flex flex-col items-center justify-between gap-6">
             <div class="">
               <p class="text-white/70 text-sm font-medium tracking-wide">
@@ -239,42 +250,43 @@ import GradientBlob from "../components/GradientBlob.astro";
                         block.cards.map((card) => ({
                           year: block.year,
                           ...card,
-                        }))
+                        })),
                       )
                       .map((item, idx, arr) => {
-                        const showYear = idx === 0 || arr[idx - 1].year !== item.year;
+                        const showYear =
+                          idx === 0 || arr[idx - 1].year !== item.year;
                         return (
-                        <div class="year-block">
-                          <div class="year-marker">
-                            <div
-                              class="year-label"
-                              style={showYear ? undefined : "opacity: 0;"}
-                            >
-                              {item.year}
-                            </div>
-                            <div class="year-dot" aria-hidden="true" />
-                          </div>
-
-                          <div class="year-stem" aria-hidden="true" />
-
-                          <div class="year-cards">
-                            <div
-                              class="timeline-card"
-                              style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
-                            >
-                              <div class="timeline-card-img">
-                                <img
-                                  src={item.image}
-                                  alt={item.title}
-                                  loading="lazy"
-                                />
+                          <div class="year-block">
+                            <div class="year-marker">
+                              <div
+                                class="year-label"
+                                style={showYear ? undefined : "opacity: 0;"}
+                              >
+                                {item.year}
                               </div>
-                              <div class="timeline-card-caption">
-                                {item.title}
+                              <div class="year-dot" aria-hidden="true" />
+                            </div>
+
+                            <div class="year-stem" aria-hidden="true" />
+
+                            <div class="year-cards">
+                              <div
+                                class="timeline-card"
+                                style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
+                              >
+                                <div class="timeline-card-img">
+                                  <img
+                                    src={item.image}
+                                    alt={item.title}
+                                    loading="lazy"
+                                  />
+                                </div>
+                                <div class="timeline-card-caption">
+                                  {item.title}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
                         );
                       })
                   }
@@ -328,27 +340,30 @@ import GradientBlob from "../components/GradientBlob.astro";
     <!-- Team -->
     <section class="relative py-16 md:py-24">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+        <div
+          class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start"
+        >
           <div>
-            <h2 class="text-5xl md:text-6xl leading-[0.95] text-white flex items-end gap-4 flex-wrap">
+            <h2
+              class="text-5xl md:text-6xl leading-[0.95] text-white flex items-end gap-4 flex-wrap"
+            >
               <span class="font-extrabold tracking-tight">The</span>
               <span
                 class="team-highlight font-serif italic"
-                style="font-family: 'Times New Roman', Times, serif;"
-                >team</span
+                style="font-family: 'Times New Roman', Times, serif;">team</span
               >
             </h2>
           </div>
 
           <div class="max-w-2xl">
             <p class="mt-2 text-lg md:text-xl text-gray-300 leading-relaxed">
-              A small team with a big obsession: create a home where builders can
-              grow faster together.
+              A small team with a big obsession: create a home where builders
+              can grow faster together.
             </p>
           </div>
         </div>
 
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-12">
           {
             [
               {
@@ -358,40 +373,38 @@ import GradientBlob from "../components/GradientBlob.astro";
                 image: "/team/dhanush.jpg",
               },
               {
-                name: "Bhoomi Singhania",
+                name: "Bhoomi",
                 title: "Co-founder",
-                meta: "",
                 image: "/team/bhoomi.jpeg",
               },
               {
                 name: "Pranay Siddu",
-                title: "Head of Industry Relations",
-                meta: "",
+                title: "Head of Partnerships",
                 image: "/team/pranay.jpg",
               },
-            ].map((member) => (
-              <div class="group rounded-3xl border border-white/10 bg-gradient-to-br from-white/6 via-white/3 to-transparent backdrop-blur-sm overflow-hidden hover:border-orange-400/30 transition-colors">
-                <img
-                  src={member.image}
-                  alt={member.name}
-                  class="w-full aspect-[4/5] object-cover"
-                  loading="lazy"
-                />
-                <div class="p-5">
-                  <div class="text-white font-semibold text-lg leading-snug">
-                    {member.name}
+            ].map((member, i) => {
+              const rotation = (i % 2 === 0 ? 1 : -1) * ((i % 5) + 2);
+              return (
+              <div class="team-polaroid group" style={`--rotation: ${rotation}deg`}>
+                <div class="polaroid-inner">
+                  <div class="polaroid-image-container">
+                    <img
+                      src={member.image}
+                      alt={member.name}
+                      class="polaroid-image"
+                    />
                   </div>
-                  <div class="mt-1 text-white/75 text-sm">{member.title}</div>
-                  {
-                    member.meta ? (
-                      <div class="mt-2 text-white/60 text-sm leading-relaxed">
-                        {member.meta}
-                      </div>
-                    ) : null
-                  }
+                  <div class="polaroid-caption">
+                    <h3 class="polaroid-name">
+                      {member.name}
+                    </h3>
+                    <p class="polaroid-designation">
+                      {member.title}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ))
+            )})
           }
         </div>
       </div>
@@ -419,60 +432,74 @@ import GradientBlob from "../components/GradientBlob.astro";
       z-index: -1;
       pointer-events: none;
     }
-
-    /* Edge fades for the growth timeline wrapper (left, right, bottom) */
-    .growth-wrap__edgeFade {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      z-index: 50;
-      background:
-        /* left fade */
-        linear-gradient(
-          90deg,
-          rgba(0, 0, 0, 0.92) 0%,
-          rgba(0, 0, 0, 0.55) 6%,
-          rgba(0, 0, 0, 0) 18%
-        ),
-        /* right fade */
-        linear-gradient(
-          270deg,
-          rgba(0, 0, 0, 0.92) 0%,
-          rgba(0, 0, 0, 0.55) 6%,
-          rgba(0, 0, 0, 0) 18%
-        ),
-        /* bottom fade */
-        linear-gradient(
-          0deg,
-          rgba(0, 0, 0, 0.95) 0%,
-          rgba(0, 0, 0, 0.6) 10%,
-          rgba(0, 0, 0, 0) 26%
-        );
+    .team-polaroid {
+      background-color: #fff;
+      padding: 12px 12px 80px 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.15);
+      transform: rotate(var(--rotation));
+      transition: transform 0.3s ease, box-shadow 0.3s ease, z-index 0s linear 0.3s;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
 
-    @media (min-width: 1024px) {
-      .growth-wrap__edgeFade {
-        background:
-          linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.92) 0%,
-            rgba(0, 0, 0, 0.55) 5%,
-            rgba(0, 0, 0, 0) 14%
-          ),
-          linear-gradient(
-            270deg,
-            rgba(0, 0, 0, 0.92) 0%,
-            rgba(0, 0, 0, 0.55) 5%,
-            rgba(0, 0, 0, 0) 14%
-          ),
-          linear-gradient(
-            0deg,
-            rgba(0, 0, 0, 0.95) 0%,
-            rgba(0, 0, 0, 0.6) 8%,
-            rgba(0, 0, 0, 0) 22%
-          );
-      }
+    .team-polaroid:hover {
+      transform: rotate(0deg) scale(1.05);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+      z-index: 10;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, z-index 0s;
+    }
+
+    .polaroid-image-container {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: #f0f0f0;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .polaroid-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(10%);
+      transition: filter 0.3s ease;
+    }
+
+    .team-polaroid:hover .polaroid-image {
+      filter: grayscale(0%);
+    }
+
+    .polaroid-caption {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-family: 'Caveat', cursive;
+      color: #333;
+    }
+
+    .polaroid-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 2px;
+      color: #1a1a1a;
+    }
+
+    .polaroid-designation {
+      font-size: 1.3rem;
+      color: #555;
+      font-weight: 600;
     }
 
     /* About hero (matches reference layout) */
@@ -1109,7 +1136,7 @@ import GradientBlob from "../components/GradientBlob.astro";
             io.unobserve(e.target);
           }
         },
-        { threshold: 0.35 }
+        { threshold: 0.35 },
       );
 
       for (const el of revealTargets) io.observe(el);
@@ -1133,7 +1160,7 @@ import GradientBlob from "../components/GradientBlob.astro";
       const totalW = timelineContent.scrollWidth;
       const totalH = Math.max(
         timelineContent.getBoundingClientRect().height,
-        timelineScroll?.getBoundingClientRect().height || 0
+        timelineScroll?.getBoundingClientRect().height || 0,
       );
 
       if (!totalW || !totalH) return;
@@ -1221,7 +1248,7 @@ import GradientBlob from "../components/GradientBlob.astro";
           minH2 + Math.random() * (Math.min(maxFromTop, maxH2) - minH2);
         const heightPx = Math.max(
           minH2,
-          Math.min(maxFromTop, maxH2, heightTarget)
+          Math.min(maxFromTop, maxH2, heightTarget),
         );
 
         const anchorTick = document.createElement("div");
