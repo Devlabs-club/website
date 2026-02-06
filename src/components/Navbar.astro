@@ -3,7 +3,7 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
 ---
 
 <nav
-  class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-3/4 lg:w-3/4 md:w-11/12 sm:w-11/12"
+  class="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] w-3/4 lg:w-3/4 md:w-11/12 sm:w-11/12"
 >
   <div
     class="flex items-center justify-between px-8 py-4 rounded-full border border-white/20 bg-white/10 backdrop-blur-lg backdrop-filter shadow-lg shadow-black/10"
@@ -42,14 +42,19 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
         data-section="events">events</a
       >
       <a
+        href="/about"
+        class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
+        data-section="about">about</a
+      >
+      <a
         href="/sponsor"
         class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
         data-section="sponsor">sponsor</a
       >
       <a
-        href="/find-talent"
+        href="/clientform"
         class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
-        data-section="find-talent">find talent</a
+        data-section="clientform">find talent</a
       >
     </div>
 
@@ -132,14 +137,19 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
           data-section="events">events</a
         >
         <a
+          href="/about"
+          class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
+          data-section="about">about</a
+        >
+        <a
           href="/sponsor"
           class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
           data-section="sponsor">sponsor</a
         >
         <a
-          href="/find-talent"
+          href="/clientform"
           class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
-          data-section="find-talent">find talent</a
+          data-section="clientform">find talent</a
         >
       </div>
 
@@ -394,8 +404,9 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
               story: "-3deg",
               "join-us": "2deg",
               events: "1deg",
+              about: "-2deg",
               sponsor: "-1deg",
-              "find-talent": "3deg",
+              clientform: "3deg",
             };
             highlight.style.transform = `rotate(${rotations[linkSection as keyof typeof rotations] || "-2deg"})`;
           }

@@ -1,0 +1,1266 @@
+---
+import Layout from "../layouts/Layout.astro";
+import GradientBlob from "../components/GradientBlob.astro";
+---
+
+<Layout title="About - DevLabs">
+  <!-- Hero -->
+  <section class="relative overflow-hidden pt-28 md:pt-36 pb-16">
+    <GradientBlob top="-20%" right="-10%" left="" scale="1.6" />
+    <GradientBlob top="55%" left="-18%" right="" scale="1.2" />
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="about-hero">
+        <!-- Oversized outline mark (left) -->
+        <div class="about-hero__mark" aria-hidden="true">
+          <svg
+            viewBox="0 0 41 45"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class="about-hero__markSvg"
+          >
+            <path
+              d="M6.1816 3L2 29.4706L19.9211 43M6.1816 3L16.9343 14.7647M6.1816 3L12.0411 20.0588M19.9211 43L39.037 29.4706L34.2581 3M19.9211 43L34.2581 3M19.9211 43L12.0411 20.0588M34.2581 3L23.5054 14.7647M23.5054 14.7647H16.9343M23.5054 14.7647L28.2843 18.8824M16.9343 14.7647L12.7527 18.8824L12.0411 20.0588"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+        </div>
+
+        <!-- Floating polaroids -->
+        <div class="about-hero__polaroids" aria-hidden="true">
+          <div class="about-hero__polaroid p1">
+            <img src="/events/DevHacks1.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="about-hero__polaroid p2">
+            <img src="/events/DevHacks2.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="about-hero__polaroid p3">
+            <img src="/events/DevHacks3.jpg" alt="" loading="lazy" />
+          </div>
+          <div class="about-hero__polaroid p4">
+            <img src="/events/DevHacks4.jpg" alt="" loading="lazy" />
+          </div>
+        </div>
+
+        <div class="about-hero__content">
+          <div class="about-hero__media">
+            <h1 class="about-hero__title">about us</h1>
+
+            <!-- Video (16:9) -->
+            <div
+              id="about-hero-video"
+              class="about-hero__video video-placeholder is-visible has-video"
+              aria-label="About page hero video"
+            >
+              <video
+                class="about-hero__videoEl"
+                controls
+                playsinline
+                preload="metadata"
+                poster="/events/devhacks.jpg"
+              >
+                <source
+                  src="https://devlabs.club/DEVHOUSE_draft4.mp4"
+                  type="video/mp4"
+                />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Who we are -->
+  <section class="relative py-16 md:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+        <div>
+          <p
+            class="text-white/70 text-sm md:text-base font-medium tracking-wide"
+          >
+            who we are
+          </p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold text-white">
+            A community built for people who
+            <span class="italic font-serif font-normal text-orange-300"
+              >ship</span
+            >
+          </h2>
+        </div>
+
+        <div class="text-lg md:text-xl leading-relaxed space-y-6">
+          <p>
+            <span class="font-serif italic text-[3rem] text-white">DevLabs</span
+            >
+            started as a bunch of friends who wanted a space that place where builders
+            could learn, build and meet collaborators,
+            <span class="relative inline-block" style="vertical-align: middle;">
+              <span
+                class="absolute inset-0 -z-10 rounded-sm"
+                style="
+                  background: rgba(255,255,255,0.12);
+                  padding: 3px 5px;
+                  transform: rotate(-3deg);
+                  border-radius: 0.25rem;
+                  pointer-events: none;
+                  filter: blur(0.5px);
+                "
+                aria-hidden="true"></span>
+              <span class="font-serif italic text-white highlight text-[1.5rem]"
+                >*turning ideas into real products</span
+              >
+            </span>.
+          </p>
+          <p>
+            Today, we host <span class="font-serif italic text-white">
+              hackathons
+            </span>, <span class="font-serif italic text-white"
+              >founder programs</span
+            >, and <span class="font-serif italic text-white"
+              >hacker houses</span
+            > to help ambitious builders grow faster — with <span
+              class="font-serif italic text-white text-[2rem]">community</span
+            >, not alone.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Our growth timeline (anchored rail, dark theme) -->
+  <section class="relative py-16 md:py-24 overflow-visible">
+    <GradientBlob top="10%" right="-20%" left="" scale="1.3" />
+
+    <!-- Full-bleed wrapper (spans viewport width) -->
+    <div
+      class="w-screen relative left-1/2 -translate-x-1/2 px-4 sm:px-6 lg:px-10 2xl:px-14"
+    >
+      <div
+        class="growth-wrap bg-gradient-to-br from-white/6 via-white/3 to-transparent backdrop-blur-sm overflow-visible relative"
+      >
+        <div class="growth-wrap__edgeFade" aria-hidden="true"></div>
+        <div class="px-6 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
+          <div class="flex flex-col items-center justify-between gap-6">
+            <div class="">
+              <p class="text-white/70 text-sm font-medium tracking-wide">
+                our growth
+              </p>
+              <div class="flex-row">
+                <h2 class="text-4xl sm:text-5xl leading-0 text-white">
+                  one <span
+                    class="font-serif italic font-medium text-[7rem] text-orange-300"
+                    >story</span
+                  >
+                  to tell
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-2 sm:px-6 pb-10 sm:pb-12 mt-12">
+            <div class="timeline-shell" aria-label="DevLabs growth timeline">
+              <!-- Timeline mechanics:
+              - TimelineRail (single continuous line)
+              - YearMarker (year label + dot anchored on rail)
+              - TimelineCard (cards hang below via stem)
+            -->
+              <div class="timeline-scroll" id="growth-timeline-scroll">
+                <div class="timeline-content" id="growth-timeline">
+                  <div
+                    class="timeline-ticks absolute inset-0 pointer-events-none z-[1]"
+                    aria-hidden="true"
+                  >
+                  </div>
+
+                  {
+                    [
+                      {
+                        year: "2023",
+                        cards: [
+                          {
+                            title: "DevLabs begins",
+                            image: "/events/DevHacks6.jpg",
+                            rotate: "-2.6deg",
+                            y: "-10px",
+                          },
+                        ],
+                      },
+                      {
+                        year: "2024",
+                        cards: [
+                          {
+                            title: "DevSpace",
+                            image: "/events/devspace.jpg",
+                            rotate: "2.4deg",
+                            y: "18px",
+                          },
+                        ],
+                      },
+                      {
+                        year: "2025",
+                        cards: [
+                          {
+                            title: "DevHacks ’25",
+                            image: "/events/devhacks.jpg",
+                            rotate: "-2.8deg",
+                            y: "-16px",
+                          },
+                          {
+                            title: "DevHouse",
+                            image: "/events/devhouse.jpeg",
+                            rotate: "3.1deg",
+                            y: "12px",
+                          },
+                          {
+                            title: "DevHouse SF",
+                            image: "/events/devhouse-sf.jpg",
+                            rotate: "-2.1deg",
+                            y: "34px",
+                          },
+                        ],
+                      },
+                      {
+                        year: "2026",
+                        cards: [
+                          {
+                            title: "Momentum (coming soon)",
+                            image: "/hands-touching.png",
+                            rotate: "2.2deg",
+                            y: "22px",
+                          },
+                        ],
+                      },
+                    ]
+                      .flatMap((block) =>
+                        block.cards.map((card) => ({
+                          year: block.year,
+                          ...card,
+                        }))
+                      )
+                      .map((item, idx, arr) => {
+                        const showYear = idx === 0 || arr[idx - 1].year !== item.year;
+                        return (
+                        <div class="year-block">
+                          <div class="year-marker">
+                            <div
+                              class="year-label"
+                              style={showYear ? undefined : "opacity: 0;"}
+                            >
+                              {item.year}
+                            </div>
+                            <div class="year-dot" aria-hidden="true" />
+                          </div>
+
+                          <div class="year-stem" aria-hidden="true" />
+
+                          <div class="year-cards">
+                            <div
+                              class="timeline-card"
+                              style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
+                            >
+                              <div class="timeline-card-img">
+                                <img
+                                  src={item.image}
+                                  alt={item.title}
+                                  loading="lazy"
+                                />
+                              </div>
+                              <div class="timeline-card-caption">
+                                {item.title}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        );
+                      })
+                  }
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4 sm:hidden flex items-center justify-center gap-2">
+              <button
+                type="button"
+                id="timeline-prev-mobile"
+                aria-label="Scroll timeline left"
+                class="timeline-control"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="timeline-next-mobile"
+                aria-label="Scroll timeline right"
+                class="timeline-control timeline-control--dark"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M9 6l6 6-6 6"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <section class="relative py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+          <div>
+            <h2 class="text-5xl md:text-6xl leading-[0.95] text-white flex items-end gap-4 flex-wrap">
+              <span class="font-extrabold tracking-tight">The</span>
+              <span
+                class="team-highlight font-serif italic"
+                style="font-family: 'Times New Roman', Times, serif;"
+                >team</span
+              >
+            </h2>
+          </div>
+
+          <div class="max-w-2xl">
+            <p class="mt-2 text-lg md:text-xl text-gray-300 leading-relaxed">
+              A small team with a big obsession: create a home where builders can
+              grow faster together.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {
+            [
+              {
+                name: "Dhanush Vardhan",
+                title: "Co-founder",
+                meta: "Ex-Cloudflare · Incoming Google",
+                image: "/team/dhanush.jpg",
+              },
+              {
+                name: "Bhoomi Singhania",
+                title: "Co-founder",
+                meta: "",
+                image: "/team/bhoomi.jpeg",
+              },
+              {
+                name: "Pranay Siddu",
+                title: "Head of Industry Relations",
+                meta: "",
+                image: "/team/pranay.jpg",
+              },
+            ].map((member) => (
+              <div class="group rounded-3xl border border-white/10 bg-gradient-to-br from-white/6 via-white/3 to-transparent backdrop-blur-sm overflow-hidden hover:border-orange-400/30 transition-colors">
+                <img
+                  src={member.image}
+                  alt={member.name}
+                  class="w-full aspect-[4/5] object-cover"
+                  loading="lazy"
+                />
+                <div class="p-5">
+                  <div class="text-white font-semibold text-lg leading-snug">
+                    {member.name}
+                  </div>
+                  <div class="mt-1 text-white/75 text-sm">{member.title}</div>
+                  {
+                    member.meta ? (
+                      <div class="mt-2 text-white/60 text-sm leading-relaxed">
+                        {member.meta}
+                      </div>
+                    ) : null
+                  }
+                </div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <style>
+    .team-highlight {
+      position: relative;
+      display: inline-block;
+      padding: 0.06em 0.14em;
+    }
+
+    .team-highlight::before {
+      content: "";
+      position: absolute;
+      left: -0.12em;
+      right: -0.12em;
+      top: 55%;
+      bottom: 0.06em;
+      background: rgba(249, 115, 22, 0.28);
+      transform: rotate(-2.2deg);
+      border-radius: 0.22em;
+      filter: blur(0.5px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* Edge fades for the growth timeline wrapper (left, right, bottom) */
+    .growth-wrap__edgeFade {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: 50;
+      background:
+        /* left fade */
+        linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.92) 0%,
+          rgba(0, 0, 0, 0.55) 6%,
+          rgba(0, 0, 0, 0) 18%
+        ),
+        /* right fade */
+        linear-gradient(
+          270deg,
+          rgba(0, 0, 0, 0.92) 0%,
+          rgba(0, 0, 0, 0.55) 6%,
+          rgba(0, 0, 0, 0) 18%
+        ),
+        /* bottom fade */
+        linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.95) 0%,
+          rgba(0, 0, 0, 0.6) 10%,
+          rgba(0, 0, 0, 0) 26%
+        );
+    }
+
+    @media (min-width: 1024px) {
+      .growth-wrap__edgeFade {
+        background:
+          linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.92) 0%,
+            rgba(0, 0, 0, 0.55) 5%,
+            rgba(0, 0, 0, 0) 14%
+          ),
+          linear-gradient(
+            270deg,
+            rgba(0, 0, 0, 0.92) 0%,
+            rgba(0, 0, 0, 0.55) 5%,
+            rgba(0, 0, 0, 0) 14%
+          ),
+          linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.95) 0%,
+            rgba(0, 0, 0, 0.6) 8%,
+            rgba(0, 0, 0, 0) 22%
+          );
+      }
+    }
+
+    /* About hero (matches reference layout) */
+    .about-hero {
+      position: relative;
+      min-height: min(78vh, 820px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 8px;
+    }
+
+    .about-hero__content {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 18px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .about-hero__title {
+      font-size: clamp(46px, 6.6vw, 90px);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: rgba(255, 255, 255, 0.96);
+      margin-top: 0;
+      text-transform: lowercase;
+    }
+
+    .about-hero__media {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      position: relative;
+      padding-top: 44px; /* space for overlapping title */
+    }
+
+    /* "about us" sits half-over the top center of the video */
+    .about-hero__media > .about-hero__title {
+      position: absolute;
+      left: 50%;
+      top: 44px;
+      transform: translate(-50%, -50%);
+      z-index: 30;
+      text-shadow:
+        0 18px 60px rgba(0, 0, 0, 0.55),
+        0 2px 0 rgba(0, 0, 0, 0.25);
+      pointer-events: none;
+    }
+
+    .about-hero__video {
+      width: min(860px, 100%); /* reduced width */
+      aspect-ratio: 16 / 9;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 32px 90px rgba(0, 0, 0, 0.6),
+        0 2px 0 rgba(255, 255, 255, 0.05);
+      background-size: cover;
+      background-position: center;
+    }
+
+    .about-hero__video::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.25) 0%,
+        rgba(0, 0, 0, 0.2) 30%,
+        rgba(0, 0, 0, 0.55) 100%
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .about-hero__video :global(.video-placeholder__inner) {
+      z-index: 2;
+    }
+
+    .about-hero__videoEl {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
+      z-index: 0;
+      background: #000;
+    }
+
+    .about-hero__blurb {
+      margin-top: 14px;
+      max-width: 980px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .about-hero__mark {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(229, 231, 235, 1); /* like IntroSection (text-gray-200) */
+      opacity: 0.1; /* like IntroSection (opacity-10) */
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+    }
+
+    .about-hero__markSvg {
+      height: min(80vh, 760px);
+      width: auto;
+      filter: drop-shadow(0 26px 80px rgba(0, 0, 0, 0.55));
+      /* Fade the mark out near the bottom (towards video area) */
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 62%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 1) 0%,
+        rgba(0, 0, 0, 1) 62%,
+        rgba(0, 0, 0, 0) 100%
+      );
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      -webkit-mask-size: 100% 100%;
+      mask-size: 100% 100%;
+    }
+
+    .about-hero__polaroids {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      user-select: none;
+      z-index: 6;
+    }
+
+    .about-hero__polaroid {
+      position: absolute;
+      width: 116px;
+      padding: 10px 10px 18px;
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 10px;
+      box-shadow:
+        0 30px 70px rgba(0, 0, 0, 0.55),
+        0 2px 0 rgba(0, 0, 0, 0.08);
+      transform-origin: 50% 20%;
+    }
+
+    .about-hero__polaroid img {
+      width: 100%;
+      height: 88px;
+      object-fit: cover;
+      display: block;
+      border-radius: 7px;
+    }
+
+    .about-hero__polaroid.p1 {
+      left: 22%;
+      top: 36%;
+      transform: rotate(-10deg);
+      animation: floaty 5.2s ease-in-out infinite;
+    }
+
+    .about-hero__polaroid.p2 {
+      left: 14%;
+      top: 52%;
+      transform: rotate(8deg);
+      animation: floaty 6.1s ease-in-out infinite;
+      animation-delay: 0.4s;
+    }
+
+    .about-hero__polaroid.p3 {
+      right: 14%;
+      top: 32%;
+      transform: rotate(10deg);
+      animation: floaty 5.7s ease-in-out infinite;
+      animation-delay: 0.2s;
+    }
+
+    .about-hero__polaroid.p4 {
+      right: 20%;
+      top: 55%;
+      transform: rotate(-8deg);
+      animation: floaty 6.4s ease-in-out infinite;
+      animation-delay: 0.6s;
+    }
+
+    @keyframes floaty {
+      0%,
+      100% {
+        translate: 0 0;
+      }
+      50% {
+        translate: 0 -10px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .about-hero__mark {
+        opacity: 0.08;
+      }
+      .about-hero__polaroid {
+        width: 98px;
+      }
+      .about-hero__polaroid img {
+        height: 74px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .about-hero {
+        min-height: auto;
+      }
+      .about-hero__mark {
+        display: none;
+      }
+      .about-hero__polaroid {
+        display: none;
+      }
+      .about-hero__blurb {
+        text-align: left;
+        max-width: 680px;
+      }
+    }
+
+    .timeline-control {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: rgba(255, 255, 255, 0.85);
+      transition:
+        transform 160ms ease,
+        background 160ms ease,
+        border-color 160ms ease;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+    }
+
+    .timeline-control:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .timeline-control--dark {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 153, 0, 0.9),
+        rgba(255, 102, 0, 0.78)
+      );
+      color: rgba(0, 0, 0, 0.9);
+      border-color: rgba(255, 153, 0, 0.3);
+    }
+
+    .timeline-control--dark:hover {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 170, 0, 0.95),
+        rgba(255, 120, 0, 0.82)
+      );
+    }
+
+    .timeline-shell {
+      position: relative;
+      padding: 10px 8px 0;
+    }
+
+    .timeline-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 14px 18px;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .timeline-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .timeline-content {
+      --year-col: 360px;
+      --year-gap: 44px;
+      --rail-y: 66px;
+      --anchor-x: 34px;
+
+      position: relative;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: var(--year-col);
+      column-gap: var(--year-gap);
+      align-items: start;
+      width: max-content;
+      padding: 0 10px 0;
+    }
+
+    /* Timeline rail + ticks are styled with Tailwind classes in markup */
+
+    .year-block {
+      scroll-snap-align: start;
+      position: relative;
+      /* allow rotated/translated polaroids to fit without clipping */
+      min-height: 560px;
+    }
+
+    .year-marker {
+      height: var(--rail-y);
+      position: relative;
+      z-index: 2;
+    }
+
+    .year-label {
+      position: absolute;
+      left: var(--anchor-x);
+      top: 0;
+      transform: translateX(-50%); /* center year on dot */
+      font-family: "Times New Roman", Times, serif;
+      font-style: italic;
+      font-size: 30px;
+      line-height: 1;
+      color: rgba(255, 255, 255, 0.75);
+      user-select: none;
+    }
+
+    .year-dot {
+      position: absolute;
+      left: var(--anchor-x);
+      top: 100%;
+      transform: translate(-50%, -50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.08);
+      z-index: 3;
+    }
+
+    .year-stem {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.14);
+      margin-left: 0;
+      /* Align stem center exactly under the dot center */
+      left: var(--anchor-x);
+      transform: translateX(-50%);
+      position: relative;
+      z-index: 2;
+    }
+
+    .year-cards {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-top: -10px;
+      margin-left: calc(var(--anchor-x) - 18px);
+      position: relative;
+      z-index: 4;
+    }
+
+    .timeline-card {
+      width: 320px;
+      /* Polaroid frame */
+      background: rgba(24, 24, 24, 0.92); /* dark gray to match site */
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 14px 14px 22px; /* thicker bottom like polaroids */
+      box-shadow:
+        0 26px 70px rgba(0, 0, 0, 0.55),
+        0 2px 0 rgba(255, 255, 255, 0.04);
+      transform-origin: 20% 0%;
+    }
+
+    .timeline-card-img {
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.06);
+      aspect-ratio: 4 / 3;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .timeline-card-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .timeline-card-caption {
+      margin-top: 12px;
+      padding: 0 2px;
+      font-family: "Caveat", ui-serif, Georgia, serif;
+      font-size: 22px;
+      line-height: 1.05;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    /* Video placeholder (16:9) */
+    .video-placeholder {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        radial-gradient(
+          1200px 360px at 30% 20%,
+          rgba(255, 153, 0, 0.18),
+          transparent 55%
+        ),
+        radial-gradient(
+          900px 360px at 70% 70%,
+          rgba(255, 102, 0, 0.12),
+          transparent 55%
+        ),
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.06),
+          rgba(255, 255, 255, 0.02)
+        );
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      filter: blur(8px);
+      transition:
+        opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .video-placeholder.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+
+    .video-placeholder::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.08),
+        transparent
+      );
+      transform: translateX(-30%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .video-placeholder.is-visible::before {
+      opacity: 1;
+      animation: videoShimmer 2.8s linear infinite;
+    }
+
+    /* When a real video is present, don’t shimmer over it */
+    .video-placeholder.has-video::before {
+      display: none;
+    }
+
+    .video-placeholder__inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .video-placeholder__badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.75);
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 8px 10px;
+      border-radius: 9999px;
+      backdrop-filter: blur(10px);
+    }
+
+    .video-placeholder__center {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+    }
+
+    .video-placeholder__play {
+      width: 38px;
+      height: 38px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 153, 0, 0.95),
+        rgba(255, 102, 0, 0.78)
+      );
+      color: rgba(0, 0, 0, 0.9);
+    }
+
+    .video-placeholder__text {
+      color: rgba(255, 255, 255, 0.82);
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .video-placeholder--hero {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+
+    .video-placeholder--hero::before {
+      opacity: 1;
+      animation: videoShimmer 3.2s linear infinite;
+    }
+
+    @keyframes videoShimmer {
+      0% {
+        transform: translateX(-35%) rotate(8deg);
+      }
+      100% {
+        transform: translateX(35%) rotate(8deg);
+      }
+    }
+
+    @media (min-width: 640px) {
+      .timeline-scroll {
+        padding: 10px 18px 20px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .timeline-content {
+        --year-col: 320px;
+        --year-gap: 28px;
+        --rail-y: 62px;
+        --anchor-x: 28px;
+      }
+
+      .timeline-card {
+        width: 290px;
+      }
+    }
+  </style>
+
+  <script>
+    const byId = (id) => document.getElementById(id);
+
+    const timelineScroll = byId("growth-timeline-scroll");
+    const timelineContent = byId("growth-timeline");
+    const prev = byId("timeline-prev");
+    const next = byId("timeline-next");
+    const prevM = byId("timeline-prev-mobile");
+    const nextM = byId("timeline-next-mobile");
+
+    const readPx = (value) => {
+      const n = parseFloat(String(value || ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const scrollByOneYear = () => {
+      if (!timelineContent) return 420;
+      const style = getComputedStyle(timelineContent);
+      const col = readPx(style.getPropertyValue("--year-col"));
+      const gap = readPx(style.getPropertyValue("--year-gap"));
+      return Math.max(320, Math.round(col + gap));
+    };
+
+    const scrollTimeline = (dir) => {
+      if (!timelineScroll) return;
+      timelineScroll.scrollBy({
+        left: dir * scrollByOneYear(),
+        behavior: "smooth",
+      });
+    };
+
+    const bind = (el, dir) => {
+      if (!el) return;
+      el.addEventListener("click", () => scrollTimeline(dir));
+    };
+
+    bind(prev, -1);
+    bind(next, 1);
+    bind(prevM, -1);
+    bind(nextM, 1);
+
+    // Scroll reveal for video placeholders
+    const revealTargets: HTMLElement[] = [
+      byId("growth-video-placeholder"),
+      byId("about-hero-video"),
+    ].filter((el): el is HTMLElement => Boolean(el));
+
+    if (revealTargets.length && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            e.target.classList.add("is-visible");
+            io.unobserve(e.target);
+          }
+        },
+        { threshold: 0.35 }
+      );
+
+      for (const el of revealTargets) io.observe(el);
+    } else {
+      for (const el of revealTargets) el.classList.add("is-visible");
+    }
+
+    // TimelineTicks (Tailwind-only, no custom CSS)
+    // - Full height of timeline container
+    // - Random lengths with noticeable variance (all > 50% of container height)
+    // - More evident color + thicker lines
+    const ticksEl = document.querySelector(".timeline-ticks");
+    const railEl = document.querySelector(".timeline-rail");
+
+    const renderTimelineTicks = () => {
+      if (!timelineContent) return;
+      if (!(ticksEl instanceof HTMLElement)) return;
+
+      ticksEl.innerHTML = "";
+
+      const totalW = timelineContent.scrollWidth;
+      const totalH = Math.max(
+        timelineContent.getBoundingClientRect().height,
+        timelineScroll?.getBoundingClientRect().height || 0
+      );
+
+      if (!totalW || !totalH) return;
+
+      // Read rail top from computed position (fallback to 66px)
+      const railTop = railEl instanceof HTMLElement ? railEl.offsetTop : 66;
+
+      // Dot anchor X positions (used to avoid "double ticks" near the aligned dot tick)
+      const contentRect = timelineContent.getBoundingClientRect();
+      const dots = timelineContent.querySelectorAll(".year-dot");
+      const anchorXs: number[] = [];
+      for (const dot of dots) {
+        if (!(dot instanceof HTMLElement)) continue;
+        const r = dot.getBoundingClientRect();
+        anchorXs.push(r.left - contentRect.left + r.width / 2);
+      }
+
+      const gap = 72; // px between ticks (reduced occurrence)
+      const minH = totalH * 0.55;
+      const maxH = totalH * 0.98;
+
+      // Avoid the "ticks start at the column edge" feel by offsetting the first tick.
+      const startOffset = gap * (0.35 + Math.random() * 0.3); // ~25px–47px
+
+      for (let x = startOffset; x <= totalW; x += gap) {
+        // More noticeable variance: choose between "short" and "long" buckets
+        const bucket = Math.random() < 0.55;
+        const a = bucket ? 0.55 : 0.78;
+        const b = bucket ? 0.72 : 0.98;
+        const h = totalH * (a + Math.random() * (b - a));
+
+        const jitter = (Math.random() - 0.5) * 10; // ±5px
+        const heightPx = Math.max(minH, Math.min(maxH, h));
+        const topMax = Math.max(0, totalH - heightPx);
+
+        // Randomize vertical positioning (not always stuck to the top/rail).
+        // Most ticks hover around the rail, but some roam freely.
+        const aroundRail = Math.random() < 0.55;
+        const spread = Math.min(topMax, totalH * 0.18); // prevents clamping to 0
+        const rawTop = aroundRail
+          ? railTop + (Math.random() - 0.5) * 2 * spread
+          : Math.random() * topMax;
+        let topPx = Math.max(0, Math.min(topMax, rawTop));
+        // Nudge away from extremes so it doesn't look "stuck" to the top/bottom.
+        if (topMax > 20) {
+          if (topPx < 6) topPx = 6 + Math.random() * 10;
+          if (topPx > topMax - 6) topPx = topMax - 6 - Math.random() * 10;
+        }
+
+        const tick = document.createElement("div");
+        tick.className =
+          "absolute w-[3px] bg-white/35 rounded-full shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_18px_30px_rgba(0,0,0,0.25)]";
+        const leftPx = Math.max(0, x + jitter);
+        const tickCenterX = leftPx + 1.5; // w-[3px]
+
+        // If there's a dedicated tick under a dot, don't allow any tick near it.
+        // This prevents the "two ticks close to each other" case.
+        const noGoRadius = 34; // px
+        if (anchorXs.some((ax) => Math.abs(ax - tickCenterX) < noGoRadius)) {
+          continue;
+        }
+
+        tick.style.left = `${leftPx}px`;
+        tick.style.top = `${topPx}px`;
+        tick.style.height = `${heightPx}px`;
+        ticksEl.appendChild(tick);
+      }
+
+      // Ensure a dedicated tick is ALWAYS aligned under each year dot
+      // (so a "particular tick below the dot" lines up perfectly).
+      for (const dot of dots) {
+        if (!(dot instanceof HTMLElement)) continue;
+
+        const dotRect = dot.getBoundingClientRect();
+        const centerX = dotRect.left - contentRect.left + dotRect.width / 2;
+
+        // Start just below the dot (dot is centered on rail)
+        const dotBottomY = dotRect.top - contentRect.top + dotRect.height; // ~bottom of dot
+        const topPx = Math.max(0, Math.round(dotBottomY + 2));
+
+        const minH2 = totalH * 0.55;
+        const maxH2 = totalH * 0.98;
+        const maxFromTop = Math.max(0, totalH - topPx);
+        const heightTarget =
+          minH2 + Math.random() * (Math.min(maxFromTop, maxH2) - minH2);
+        const heightPx = Math.max(
+          minH2,
+          Math.min(maxFromTop, maxH2, heightTarget)
+        );
+
+        const anchorTick = document.createElement("div");
+        anchorTick.className =
+          "absolute w-[3px] bg-white/45 rounded-full shadow-[0_0_0_1px_rgba(255,255,255,0.14),0_18px_30px_rgba(0,0,0,0.25)]";
+        anchorTick.style.left = `${Math.max(0, Math.round(centerX - 1.5))}px`;
+        anchorTick.style.top = `${topPx}px`;
+        anchorTick.style.height = `${heightPx}px`;
+        ticksEl.appendChild(anchorTick);
+      }
+    };
+
+    const debounce = (fn, ms) => {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    };
+
+    const ensureTicks = () => {
+      if (!(ticksEl instanceof HTMLElement)) return;
+      renderTimelineTicks();
+      // Retry a few frames if layout not stable yet
+      let tries = 0;
+      const retry = () => {
+        tries += 1;
+        if (ticksEl.childElementCount > 0 || tries > 12) return;
+        renderTimelineTicks();
+        requestAnimationFrame(retry);
+      };
+      requestAnimationFrame(retry);
+    };
+
+    requestAnimationFrame(ensureTicks);
+    window.addEventListener("load", () => {
+      renderTimelineTicks();
+      setTimeout(renderTimelineTicks, 200);
+    });
+    window.addEventListener("resize", debounce(renderTimelineTicks, 120));
+  </script>
+</Layout>

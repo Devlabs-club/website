@@ -1,141 +1,281 @@
 ---
-import WrappedText from './text/WrappedText.astro';
-import LinkButton from './LinkButton.astro';
-import Heading from './text/HeadingBig.astro';
-import Paragraph from './text/Paragraph.astro';
-import Highlight from './text/Highlight.astro';
-import GradientBlob from './GradientBlob.astro';
+
 ---
 
-<section id="builders" class="container mx-auto relative md:pl-6 grid md:grid-cols-5 grid-cols-1 border border-dashed border-gray-700 mb-24">
-    <GradientBlob top="-300px" left="-450px" right='' scale="1.5" />
-    
-    <div class="relative col-span-3 md:px-0 md:py-32 px-12 py-20 md:w-5/6">
-        <div class="flex flex-col md:gap-16 gap-12 justify-center md:items-start items-center md:text-left text-center">
-            <div class="flex flex-col gap-6 md:items-start items-center">
-                <WrappedText size="normal" className=''>our community in action</WrappedText>  
-                <Heading>built by builders. <Highlight>for builders</Highlight>.</Heading>
-                <div class="carousel w-full">
-                    <div class="carousel-inner relative w-full overflow-hidden">
-                        <div class="carousel-item relative float-left w-full">
-                            <img src="events/placeholder1.jpg" class="block w-full" alt="DevHacks 2025">
-                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">DevHacks 2025: 180+ Hackers. 50+ Projects. $2K in Prizes.</p>
-                            </div>
-                        </div>
-                        <div class="carousel-item relative float-left w-full">
-                            <img src="events/placeholder2.jpg" class="block w-full" alt="DevSpace Cohort">
-                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">DevSpace Cohort: 6 Weeks. 1 Winner. Infinite Learnings.</p>
-                            </div>
-                        </div>
-                        <div class="carousel-item relative float-left w-full">
-                            <img src="events/placeholder3.jpg" class="block w-full" alt="Mentorship Night">
-                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">Mentorship Night at ASU</p>
-                            </div>
-                        </div>
-                        <div class="carousel-item relative float-left w-full">
-                            <img src="events/placeholder4.jpg" class="block w-full" alt="Demo Day">
-                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">Full House Demo Day</p>
-                            </div>
-                        </div>
-                        <div class="carousel-item relative float-left w-full">
-                            <img src="events/placeholder5.jpg" class="block w-full" alt="Code Sprint">
-                            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-4">
-                                <p class="text-white">Code Sprint Night</p>
-                            </div>
-                        </div>
-                    </div>
-                    <button class="carousel-control-prev absolute top-0 bottom-0 flex items-center justify-center p-0 text-center border-0 hover:outline-none hover:no-underline focus:outline-none focus:no-underline left-0" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon inline-block bg-no-repeat" aria-hidden="true"></span>
-                        <span class="visually-hidden">Previous</span>
-                    </button>
-                    <button class="carousel-control-next absolute top-0 bottom-0 flex items-center justify-center p-0 text-center border-0 hover:outline-none hover:no-underline focus:outline-none focus:no-underline right-0" type="button" data-bs-target="#carouselExampleCaptions" data-bs-slide="next">
-                        <span class="carousel-control-next-icon inline-block bg-no-repeat" aria-hidden="true"></span>
-                        <span class="visually-hidden">Next</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+<section
+  class="events-parallax"
+  data-events-parallax
+  aria-label="DevLabs events story"
+>
+  <!-- GLOW EFFECT (fixed eclipse, behind text and collage) -->
+  <div
+    class="events-parallax__glow"
+    data-events-parallax-glow
+    aria-hidden="true"
+  >
+  </div>
 
-    <div class="bg-clip-padding md:sticky md:top-0 box-border overflow-hidden col-span-2 border border-dashed border-gray-700">
-        <img src="events/hitoai2.jpg" alt="Tech Event" class="min-h-full min-w-full object-cover mix-blend-multiply">
+  <!-- TEXT STAGE (centered, fixed during scroll) -->
+  <div class="events-parallax__text-stage" data-events-parallax-text>
+    <div class="events-parallax__lines">
+      <!-- Line 1: text-start -->
+      <p
+        class="events-parallax__line events-parallax__line--start"
+        data-events-parallax-line
+      >
+        <span class="events-parallax__muted">we are a</span>
+        <span class="events-parallax__emphasis">500+ builder community</span>
+      </p>
+      <!-- Line 2: center with 20% padding right -->
+      <p
+        class="events-parallax__line events-parallax__line--center-left"
+        data-events-parallax-line
+      >
+        <span class="events-parallax__muted">raised over</span>
+        <span class="events-parallax__emphasis">125k in funding</span>
+      </p>
+      <!-- Line 3: center with 20% padding left -->
+      <p
+        class="events-parallax__line events-parallax__line--center-right"
+        data-events-parallax-line
+      >
+        <span class="events-parallax__muted">more than</span>
+        <span class="events-parallax__emphasis">170+ projects built</span>
+      </p>
+      <!-- Line 4: text-end -->
+      <p
+        class="events-parallax__line events-parallax__line--end"
+        data-events-parallax-line
+      >
+        <span class="events-parallax__muted">to fund the</span>
+        <span class="events-parallax__emphasis"
+          >next generation of builders</span
+        >
+      </p>
     </div>
+  </div>
+
+  <!-- IMAGE STAGE (bottom, fixed during scroll) -->
+  <div class="events-parallax__image-stage" data-events-parallax-image>
+    <img
+      src="/team-collage.png"
+      alt="DevLabs team collage"
+      loading="eager"
+      decoding="async"
+    />
+  </div>
 </section>
 
 <style>
-    .carousel {
-        position: relative;
+  @import url("https://api.fontshare.com/v2/css?f[]=open-sauce-sans@400,500&display=swap");
+
+  .events-parallax {
+    position: relative;
+    height: 350vh;
+    background: #000;
+    overflow: hidden;
+  }
+
+  /* GLOW EFFECT - fixed eclipse centered in viewport, behind everything */
+  .events-parallax__glow {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(255, 255, 255, 0.15) 0%,
+      rgba(255, 255, 255, 0.1) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 70%
+    );
+  }
+
+  .events-parallax__glow.is-visible {
+    opacity: 1;
+  }
+
+  /* TEXT STAGE - centered, toggles between absolute and fixed */
+  .events-parallax__text-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 10;
+
+    /* Gradient mask for smooth fade-out at top */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.3) 5%,
+      rgba(0, 0, 0, 0.6) 10%,
+      black 18%,
+      black 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.3) 5%,
+      rgba(0, 0, 0, 0.6) 10%,
+      black 18%,
+      black 100%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+  }
+
+  .events-parallax__lines {
+    position: relative;
+    width: 80%;
+    height: 300px;
+  }
+
+  .events-parallax__line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    margin: 0;
+    transition: all 300ms ease-out;
+    opacity: 0;
+    will-change: transform, opacity;
+    width: 100%;
+  }
+
+  /* Line 1: text-start (left aligned) */
+  .events-parallax__line--start {
+    text-align: left;
+  }
+
+  /* Line 2: center with 20% padding from right */
+  .events-parallax__line--center-left {
+    text-align: center;
+    padding-right: 20%;
+  }
+
+  /* Line 3: center with 20% padding from left */
+  .events-parallax__line--center-right {
+    text-align: center;
+    padding-left: 20%;
+  }
+
+  /* Line 4: text-end (right aligned) */
+  .events-parallax__line--end {
+    text-align: right;
+  }
+
+  .events-parallax__muted {
+    font-family:
+      "Open Sauce Sans",
+      "Open Sauce",
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      sans-serif;
+    font-weight: 400;
+    color: #6b7280;
+    font-size: 1.25rem;
+    margin-right: 0.5rem;
+  }
+
+  .events-parallax__emphasis {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-style: italic;
+    font-size: 2rem;
+    color: #fff;
+  }
+
+  @media (min-width: 640px) {
+    .events-parallax__muted {
+      font-size: 1.5rem;
     }
-    .carousel-inner {
-        position: relative;
-        width: 100%;
-        overflow: hidden;
+    .events-parallax__emphasis {
+      font-size: 2.5rem;
     }
-    .carousel-item {
-        position: relative;
-        display: none;
-        float: left;
-        width: 100%;
-        margin-right: -100%;
-        backface-visibility: hidden;
-        transition: transform .6s ease-in-out;
+  }
+
+  @media (min-width: 768px) {
+    .events-parallax__muted {
+      font-size: 1.75rem;
     }
-    .carousel-item.active {
-        display: block;
+    .events-parallax__emphasis {
+      font-size: 3rem;
     }
-    .carousel-control-prev,
-    .carousel-control-next {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        z-index: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 15%;
-        padding: 0;
-        color: #fff;
-        text-align: center;
-        background: none;
-        border: 0;
-        opacity: .5;
-        transition: opacity .15s ease;
+  }
+
+  @media (min-width: 1024px) {
+    .events-parallax__muted {
+      font-size: 2rem;
     }
-    .carousel-control-prev:hover,
-    .carousel-control-next:hover {
-        opacity: .9;
+    .events-parallax__emphasis {
+      font-size: 3.5rem;
     }
+  }
+
+  @media (min-width: 1280px) {
+    .events-parallax__muted {
+      font-size: 2.25rem;
+    }
+    .events-parallax__emphasis {
+      font-size: 4rem;
+    }
+  }
+
+  /* IMAGE STAGE - bottom, toggles between absolute and fixed */
+  .events-parallax__image-stage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    will-change: transform;
+    z-index: 20;
+
+    /* Gradient mask for smooth fade at bottom */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 60%,
+      rgba(0, 0, 0, 0.8) 75%,
+      rgba(0, 0, 0, 0.4) 88%,
+      rgba(0, 0, 0, 0.1) 95%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      black 0%,
+      black 60%,
+      rgba(0, 0, 0, 0.8) 75%,
+      rgba(0, 0, 0, 0.4) 88%,
+      rgba(0, 0, 0, 0.1) 95%,
+      transparent 100%
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+  }
+
+  .events-parallax__image-stage img {
+    width: 100%;
+    object-fit: contain;
+    display: block;
+  }
 </style>
 
 <script>
-    let currentSlide = 0;
-    const slides = document.querySelectorAll('.carousel-item');
-    
-    function showSlide(n) {
-        slides.forEach(slide => slide.classList.remove('active'));
-        currentSlide = (n + slides.length) % slides.length;
-        slides[currentSlide].classList.add('active');
-    }
-    
-    function nextSlide() {
-        showSlide(currentSlide + 1);
-    }
-    
-    function prevSlide() {
-        showSlide(currentSlide - 1);
-    }
-    
-    // Auto-rotate slides every 5 seconds
-    setInterval(nextSlide, 5000);
-    
-    // Show first slide initially
-    showSlide(0);
-    
-    // Add click handlers for prev/next buttons
-    document.querySelector('.carousel-control-prev')?.addEventListener('click', prevSlide);
-    document.querySelector('.carousel-control-next')?.addEventListener('click', nextSlide);
+  import { initEventsParallax } from "../lib/scroll.js";
+  initEventsParallax();
 </script>

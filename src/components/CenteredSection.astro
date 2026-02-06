@@ -7,7 +7,7 @@ interface Props {
 const { id, className } = Astro.props;
 ---
 
-<section id={id} class=`container mx-auto relative border border-dashed border-gray-700 flex flex-col items-center ${className}`>
+<section id={id} class={`container mx-auto relative flex flex-col items-center ${className}`} data-parallax-section data-parallax-depth="0.04">
     <slot />
 </section>
 

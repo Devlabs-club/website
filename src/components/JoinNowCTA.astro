@@ -1,0 +1,186 @@
+---
+
+---
+
+<section
+  class="join-now-section relative w-full py-16 md:py-24"
+  data-parallax-section
+  data-parallax-depth="0.05"
+>
+  <div
+    class="join-now-container mx-auto max-w-[1200px] px-4 md:px-6 flex flex-col gap-12 md:gap-16"
+  >
+    <!-- Join Now CTA (styled like reference) -->
+    <div
+      class="join-now-cta relative overflow-hidden rounded-[2rem] py-12 md:py-16 px-8 md:px-16"
+      data-join-now-content
+    >
+      <!-- Background image -->
+      <div class="join-now-cta__bg"></div>
+      <!-- Glassmorphic overlay -->
+      <div class="join-now-cta__glass" aria-hidden="true"></div>
+      <!-- Grain texture overlay -->
+      <div class="join-now-cta__noise" aria-hidden="true"></div>
+
+      <!-- Content -->
+      <div
+        class="relative z-10 flex flex-col items-center text-center gap-6 md:gap-8"
+      >
+        <h2 class="join-now-heading italic text-white">
+          join over
+
+          <span class="font-bold text-black">350+ builders</span> 
+        </h2>
+        <p
+          class="join-now-subheading text-base md:text-lg text-black max-w-xl leading-relaxed"
+        >
+          we are hosting events that might <strong> change your life. </strong> apply
+          now to be a part of our newsletter and be the first ones to know about any
+          event part of <strong>the community</strong> that started it all.
+        </p>
+        <a
+          href="/register"
+          class="join-now-button inline-flex items-center justify-center gap-2 px-10 py-4 rounded-full bg-white text-[#333] font-bold hover:bg-white/95 transition-all shadow-sm hover:shadow-md"
+        >
+          Join now
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .join-now-section {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* CTA box - rounded pill/squircle with subtle shadow */
+  .join-now-cta {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Background image from join_now.png */
+  .join-now-cta__bg {
+    position: absolute;
+    inset: 0;
+    background-image: url("/join_now.png");
+    opacity: 0.5;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  /* Glassmorphic overlay - frosted glass effect over bg */
+  .join-now-cta__glass {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+  }
+
+  /* Grain texture overlay */
+  .join-now-cta__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("/noise.png");
+    background-repeat: repeat;
+    background-size: 80px 80px;
+    opacity: 0.7;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  /* Heading - serif, white */
+  .join-now-heading {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 2rem;
+    line-height: 1.2;
+    color: #fff;
+    font-weight: 400;
+  }
+
+  @media (min-width: 640px) {
+    .join-now-heading {
+      font-size: 2.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .join-now-heading {
+      font-size: 3rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .join-now-heading {
+      font-size: 3.5rem;
+    }
+  }
+
+  /* Subheading */
+  .join-now-subheading {
+    font-family:
+      "Manrope",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  /* Highlighted phrase - warm orange-brown */
+  .join-now-highlight {
+    color: #f0c080;
+    font-weight: 600;
+  }
+
+  /* Button - white pill, dark text */
+  .join-now-button {
+    font-family:
+      "Manrope",
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 0.9375rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* Scroll animation initial state */
+  [data-join-now-content] {
+    opacity: 0;
+    transform: translateY(30px);
+    transition:
+      opacity 0.8s ease-out,
+      transform 0.8s ease-out;
+  }
+
+  [data-join-now-content].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+
+<script>
+  // Intersection Observer for scroll-triggered animation
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.2,
+      rootMargin: "0px 0px -50px 0px",
+    }
+  );
+
+  const content = document.querySelector("[data-join-now-content]");
+  if (content) {
+    observer.observe(content);
+  }
+</script>

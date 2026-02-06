@@ -1,144 +1,178 @@
 ---
-import WrappedText from './text/WrappedText.astro';
-import HeadingBig from './text/HeadingBig.astro';
-import Paragraph from './text/Paragraph.astro';
-import Highlight from './text/Highlight.astro';
-import LinkButton from './LinkButton.astro';
-import Polaroid from './Polaroid.astro';
-import DevLabsCollage from './DevLabsCollage.astro';
-import CompanyMarquee from './CompanyMarquee.astro';
+import CompanyMarquee from "./CompanyMarquee.astro";
 ---
 
-<section class="relative w-full flex flex-col items-center justify-center min-h-screen">
-  <div class="relative min-h-screen flex flex-col items-center justify-center px-4 md:px-8 lg:px-16">
-    <!-- Gradient Spheres -->
-    <div class="absolute inset-0 overflow-hidden">
-      <!-- Primary sphere -->
-      <div class="sphere-gradient absolute w-[500px] h-[500px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-      <!-- Secondary spheres -->
-      <div class="sphere-gradient-sm absolute w-[300px] h-[300px] top-[20%] right-[10%]" />
-      <div class="sphere-gradient-sm absolute w-[250px] h-[250px] bottom-[15%] left-[5%]" />
+<section
+  class="relative w-screen h-screen overflow-hidden"
+  data-parallax-section
+>
+  <!-- Background Image -->
+  <div class="absolute inset-0 z-0">
+    <video
+      id="hero-video"
+      class="w-full h-full object-cover"
+      src="/hero.mov"
+      autoplay
+      muted
+      playsinline
+      preload="auto"></video>
+
+    <!-- Heavy top fade: black -> transparent -->
+    <div
+      class="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black via-black/70 to-transparent pointer-events-none"
+    >
     </div>
 
-    <!-- Polaroids - positioned outside overflow container -->
-    <div class="absolute inset-0 pointer-events-none">
-      <Polaroid image="https://dhanush.wtf/media/y8wsq0whok.jpg?file=" rotate="5deg" top="15%" right="5%" />
-      <Polaroid image="https://dhanush.wtf/media/lvl3cogtiqg.jpg?file=" rotate="-5deg" top="30%" left="5%" />
+    <!-- Heavy bottom fade: transparent -> black -->
+    <div
+      class="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none"
+    >
     </div>
 
-    <!-- Content -->
-    <div class="content relative z-5 flex flex-col items-center justify-center w-full max-w-3xl mx-auto mt-12 sm:mt-16 md:mt-24 text-center px-4 sm:px-6">
-      <div class="mb-4 sm:mb-5 mt-6 sm:mt-10">
-        <WrappedText size="normal" className="relative glow-text-sm">Arizona's Premier Startup Incubator</WrappedText>
-      </div>  
-      <HeadingBig class="glow-text-lg">
-        the <Highlight>community</Highlight><br class="sm:hidden" />
-        where we launch <Highlight>founders</Highlight>
-      </HeadingBig>
-      <div class="mt-6 sm:mt-8 md:mt-10 mb-4 sm:mb-5">
-        <Paragraph class="glow-text-sm">
-          <span class="text-gray-400 font-normal block max-w-2xl mx-auto px-2 sm:px-0">
-            Creating a community of <span class="text-orange-300 font-bold">tech</span> and<br class="sm:hidden" />
-            <span class="text-orange-300 font-bold">entrepreneur-minded</span> ready to<br class="sm:hidden" />
-            <span class="text-orange-300 font-bold">build</span>, <span class="text-orange-300 font-bold">launch</span>, and <span class="text-orange-300 font-bold">grow</span> together.
-          </span>
-        </Paragraph>
+    <!-- Heavy left fade: black -> transparent -->
+    <div
+      class="absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-black via-black/70 to-transparent pointer-events-none"
+    >
+    </div>
+
+    <!-- Heavy right fade: black -> transparent -->
+    <div
+      class="absolute inset-y-0 right-0 w-[22%] bg-gradient-to-l from-black via-black/70 to-transparent pointer-events-none"
+    >
+    </div>
+  </div>
+
+  <script is:inline>
+    (() => {
+      const video = document.getElementById("hero-video");
+      if (!(video instanceof HTMLVideoElement)) return;
+
+      // 0.5x speed
+      video.playbackRate = 0.5;
+
+      // Ensure playbackRate is applied after metadata loads too
+      video.addEventListener("loadedmetadata", () => {
+        video.playbackRate = 0.5;
+      });
+
+      // Pause on last frame when video ends
+      video.addEventListener("ended", () => {
+        const d = Number.isFinite(video.duration) ? video.duration : 0;
+        // Seek a tiny bit before the end to reliably show the last frame
+        video.currentTime = Math.max(0, d - 0.05);
+        video.pause();
+      });
+
+      // Stop playing as soon as the user scrolls down
+      const onScroll = () => {
+        if (window.scrollY > 0 && !video.paused) video.pause();
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+    })();
+  </script>
+
+  <!-- Foreground layout: content + marquee pinned bottom -->
+  <div class="relative h-full w-full flex flex-col">
+    <!-- Content Container -->
+    <div
+      class="w-full mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col justify-end pt-32 pb-10"
+    >
+      <!-- Main Heading -->
+      <div class="flex flex-col items-start w-full max-w-6xl mb-12 pl-4">
+        <h1
+          class="text-6xl md:text-8xl lg:text-9xl font-medium text-white tracking-tight leading-none mb-2"
+        >
+          Go Big or
+        </h1>
+        <h1
+          class="text-6xl md:text-8xl lg:text-9xl font-medium text-transparent tracking-tight leading-none outline-text"
+        >
+          Get Hired
+        </h1>
       </div>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center my-6 sm:my-8">
-        <div class="glow-button">
-          <LinkButton link="register">join the community</LinkButton>
+
+      <!-- Action Boxes -->
+      <div
+        class="flex flex-col md:flex-row justify-between gap-6 md:gap-0 pl-4"
+      >
+        <!-- Box 1: Description -->
+        <div
+          class="md:w-[32%] border border-white/40 p-6 flex items-center bg-black/20 backdrop-blur-sm h-24"
+        >
+          <p class="text-white text-lg font-light leading-tight">
+            The community where we launch founders
+          </p>
         </div>
+
+        <!-- Box 2: Events -->
+        <a
+          href="/events"
+          class="md:w-[32%] border border-white/40 p-6 flex items-center justify-between group hover:bg-white/10 transition-colors bg-black/20 backdrop-blur-sm cursor-pointer h-24"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-10 w-10 text-white transform group-hover:translate-x-1 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+          <span
+            class="bg-white text-black px-5 py-2.5 text-sm font-bold rounded-sm"
+          >
+            check out our events
+          </span>
+        </a>
+
+        <!-- Box 3: Talent -->
+        <a
+          href="/clientform"
+          class="md:w-[32%] border border-white/40 p-6 flex items-center justify-between group hover:bg-white/10 transition-colors bg-black/20 backdrop-blur-sm cursor-pointer h-24"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-10 w-10 text-white transform group-hover:translate-x-1 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
+          </svg>
+          <span
+            class="bg-white text-black px-5 py-2.5 text-sm font-bold rounded-sm"
+          >
+            hire the best talent
+          </span>
+        </a>
       </div>
     </div>
 
-    <!-- Company Marquee Section -->
-    <div class="relative z-10 w-full mt-16">
+    <!-- Trusted By Section (pinned to bottom of hero) -->
+    <div class="w-full relative z-30 mt-auto">
       <CompanyMarquee />
     </div>
-
-   
-
+  </div>
 </section>
 
 <style>
-/* Gradient Spheres */
-.sphere-gradient {
-  background: radial-gradient(circle at center, rgba(255, 153, 0, 0.15) 0%, transparent 70%);
-  filter: blur(60px);
-  border-radius: 50%;
-  animation: float 8s ease-in-out infinite;
-}
-
-.sphere-gradient-sm {
-  background: radial-gradient(circle at center, rgba(255, 153, 0, 0.1) 0%, transparent 70%);
-  filter: blur(40px);
-  border-radius: 50%;
-  animation: float 12s ease-in-out infinite reverse;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translate(0, 0);
+  .outline-text {
+    -webkit-text-stroke: 1px white;
+    color: transparent;
   }
-  50% {
-    transform: translate(20px, -20px);
+
+  /* Responsive adjustments for outline text stroke width */
+  @media (min-width: 768px) {
+    .outline-text {
+      -webkit-text-stroke: 2px white;
+    }
   }
-}
-
-/* Polaroid positioning for hero section */
-section :global(.polaroid) {
-  z-index: 20;
-}
-
-section :global(.content) {
-  z-index: 5;
-}
-
-/* Glowing effects */
-.glow-text-sm {
-  text-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
-}
-
-.glow-text-lg {
-  text-shadow: 0 0 20px rgba(255, 153, 0, 0.4);
-}
-
-.glow-border {
-  box-shadow: 0 0 20px rgba(255, 153, 0, 0.1);
-  transition: box-shadow 0.3s ease;
-}
-
-.glow-border:hover {
-  box-shadow: 0 0 30px rgba(255, 153, 0, 0.2);
-}
-
-.glow-button {
-  box-shadow: 0 0 15px rgba(255, 153, 0, 0.3);
-  transition: all 0.3s ease;
-}
-
-.glow-button:hover {
-  box-shadow: 0 0 25px rgba(255, 153, 0, 0.4);
-  transform: translateY(-2px);
-}
-
-/* Add custom styles for the new video player look */
-.bg-gradient-to-b {
-  background: linear-gradient(to bottom, #e0e7ff 0%, #f0f6ff 60%, #fff 100%);
-}
 </style>
-
-<Fragment>
-<style>
-/* Polaroid overlay (using an <a> element with a data-src attribute) – (using a CSS custom property (--polaroid-src) and a pseudo‑element (::after) to render the image (using a background‑image) inside the polaroid.) */
- .polaroid-overlay { --polaroid-src: attr(data-src); }
- .polaroid-overlay::before, .polaroid-overlay::after { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
- .polaroid-overlay::before { top: 10%; left: 10%; --rotate: -5deg; }
- .polaroid-overlay::after { top: 20%; right: 10%; --rotate: 5deg; }
- /* Polaroid "frame" (using ::before) */
- .polaroid-overlay::before { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
- /* Polaroid "img" (using ::after) – (using a CSS custom property (--polaroid-src) (from the <a> element's data-src attribute) to render the image (using a background‑image) inside the polaroid.) */
- .polaroid-overlay::after { content: ""; position: absolute; width: 100px; height: 120px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); border: 1px solid rgba(0, 0, 0, 0.1); transform: rotate(var(--rotate, 0deg)); z-index: 0; }
- .polaroid-overlay::after { background-image: var(--polaroid-src); background-size: cover; }
-</style>
-</Fragment> 

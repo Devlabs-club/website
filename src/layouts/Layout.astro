@@ -1,6 +1,7 @@
 ---
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
+import NewFooter from "../components/NewFooter.astro";
 interface Props {
   title: string;
 }
@@ -20,7 +21,10 @@ const { title } = Astro.props;
     <meta property="og:image" content="/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="DevLabs - Arizona's fastest growing builder community" />
+    <meta
+      property="og:image:alt"
+      content="DevLabs - Arizona's fastest growing builder community"
+    />
     <meta property="og:title" content={title} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.url} />
@@ -28,13 +32,16 @@ const { title } = Astro.props;
       property="og:description"
       content="DevLabs is Arizona's most fastest growing builder community—powering the next generation of founders through hacker houses, startup cohorts, and high-energy events. We've hosted 10+ events, backed 50+ startups, and built a 450+ strong network of makers, hackers, and dreamers. This is where Arizona builds"
     />
-    
+
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content="DevLabs is Arizona's most fastest growing builder community—powering the next generation of founders through hacker houses, startup cohorts, and high-energy events. We've hosted 10+ events, backed 50+ startups, and built a 450+ strong network of makers, hackers, and dreamers. This is where Arizona builds" />
+    <meta
+      name="twitter:description"
+      content="DevLabs is Arizona's most fastest growing builder community—powering the next generation of founders through hacker houses, startup cohorts, and high-energy events. We've hosted 10+ events, backed 50+ startups, and built a 450+ strong network of makers, hackers, and dreamers. This is where Arizona builds"
+    />
     <meta name="twitter:image" content="/og.png" />
-    
+
     <title>{title}</title>
     <link rel="icon" href="/logo.svg" type="image/x-icon" />
 
@@ -51,20 +58,17 @@ const { title } = Astro.props;
     />
   </head>
   <body class="text-gray-400 overflow-x-hidden">
-    <!-- Fixed background with full-width gradient -->
-    <div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
-      <!-- Full-width gradient overlay -->
-      <div
-        class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"
-      >
-      </div>
+    <!-- Fixed background -->
+    <div class="fixed inset-0 bg-[#050505] pointer-events-none z-0">
       <!-- Noise texture -->
-      <div class="absolute inset-0 bg-noise opacity-40"></div>
+      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay">
+      </div>
     </div>
 
     <Navbar />
     <slot />
-    <Footer />
+    <!-- <Footer /> -->
+    <NewFooter />
   </body>
 </html>
 <style>
@@ -78,10 +82,26 @@ const { title } = Astro.props;
 
   .bg-noise {
     background-image: url("/noise.png");
-    background-size: 200px 200px;
+    background-size: 100px 100px;
     background-repeat: repeat;
-    background-position: center;
-    width: 100vw;
-    height: 100vh;
+  }
+
+  /* Global section parallax: reveal + depth */
+  .parallax-section {
+    --parallax-offset-y: 0px;
+    opacity: 0;
+    transform: translateY(calc(56px + var(--parallax-offset-y)));
+    transition:
+      opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .parallax-section.parallax-revealed {
+    opacity: 1;
+    transform: translateY(var(--parallax-offset-y));
   }
 </style>
+<script>
+  import { initSectionParallax } from "../lib/scroll.js";
+  initSectionParallax();
+</script>
