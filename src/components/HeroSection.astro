@@ -10,9 +10,10 @@ import { Icon } from "free-astro-components";
   <!-- Dark background -->
   <div class="absolute inset-0 z-0" aria-hidden="true"></div>
 
-  <!-- Star left: large, partially off-screen -->
+  <!-- Star left: large, below headline/underline -->
   <div
-    class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] top-[18%] left-0 pointer-events-none"
+    class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] left-0 pointer-events-none"
+    style="top: 40vh;"
     aria-hidden="true"
   >
     <img
@@ -24,9 +25,10 @@ import { Icon } from "free-astro-components";
     />
   </div>
 
-  <!-- Star right: visible top-right -->
+  <!-- Star right: below headline/underline -->
   <div
-    class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 top-[12%] right-[6%] pointer-events-none"
+    class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none"
+    style="top: 38vh;"
     aria-hidden="true"
   >
     <img
@@ -86,42 +88,42 @@ import { Icon } from "free-astro-components";
       </div>
 
       <div
-        class="grid grid-cols-2 justify-center gap-8 md:gap-16 lg:gap-24 max-w-4xl mb-10"
+        class="grid grid-cols-2 justify-center gap-3 md:gap-16 lg:gap-24 max-w-4xl mb-10"
       >
+        <!-- Primary CTA: Join now -->
         <a
           href="/api/auth/oauth/login"
-          class="group relative inline-block px-8 py-4
-               bg-gradient-to-br from-white/10 via-white/5 to-transparent
-               backdrop-blur-lg border border-white/20
-               text-white/80 font-medium text-lg rounded-full
-               transition-all duration-500 hover:scale-105
-               shadow-[0_8px_32px_rgba(255,255,255,0.1)]
-               hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
-               hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
-               before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+          class="hero-join-cta group relative inline-flex items-center justify-center gap-1.5 md:gap-2 px-4 py-2.5 md:px-12 md:py-5
+               rounded-full overflow-hidden whitespace-nowrap
+               bg-white text-[#1a1a1a] font-semibold text-sm md:text-xl tracking-wide
+               shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
+               transition-all duration-400 ease-out
+               hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
+               hover:-translate-y-0.5
+               active:scale-[0.98]"
         >
-          <span class="tracking-wide pl-2"> join now </span>
-
-          <!-- right action circle -->
+          <span class="relative z-10">join now</span>
+          <span class="hero-join-cta-arrow relative z-10 w-3.5 h-3.5 md:w-4 md:h-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
+          <!-- Warm glow behind on hover -->
+          <span class="absolute inset-0 rounded-full bg-gradient-to-r from-[#fa7d22]/0 via-[#fa7d22]/10 to-[#fa7d22]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-400" aria-hidden="true"></span>
         </a>
 
+        <!-- Secondary CTA -->
         <a
           href="/find-talent"
-          class="group relative inline-block px-8 py-4
+          class="group relative inline-flex items-center justify-center px-4 py-2.5 md:px-10 md:py-4
+               rounded-full whitespace-nowrap
                bg-gradient-to-br from-white/10 via-white/5 to-transparent
-               backdrop-blur-lg border border-white/20
-               text-white/80 font-medium text-lg rounded-full
-               transition-all duration-500 hover:scale-105
-               shadow-[0_8px_32px_rgba(255,255,255,0.1)]
-               hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
-               hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
-               before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
+               backdrop-blur-xl border border-white/20
+               text-white font-medium text-sm md:text-lg
+               transition-all duration-400
+               shadow-[0_8px_32px_rgba(255,255,255,0.06)]
+               hover:scale-[1.02] hover:border-white/35 hover:shadow-[0_12px_40px_rgba(255,255,255,0.12)]
+               hover:from-white/15 hover:via-white/10 hover:to-white/5"
         >
           <span class="relative z-10 drop-shadow-sm">meet our talent</span>
-          <div
-            class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"
-          >
-          </div>
         </a>
       </div>
 
@@ -185,6 +187,12 @@ import { Icon } from "free-astro-components";
 </section>
 
 <style>
+  .hero-join-cta-arrow svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
   .hero-headline {
     font-family: Manrope, sans-serif;
   }

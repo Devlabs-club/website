@@ -1266,7 +1266,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     disabled={isSubmitting || !isValid}
                     className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 flex items-center justify-center text-center"
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Application"}
+                    {isSubmitting ? "Submitting..." : "Update Profile"}
                   </button>
                 </WrappedText>
               )}
@@ -1346,7 +1346,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 disabled={isSubmitting || !isValid}
                 className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-6 py-3 flex items-center justify-center text-center"
               >
-                {isSubmitting ? "Submitting..." : "Submit Application"}
+                {isSubmitting ? "Submitting..." : "Update Profile"}
               </button>
             </WrappedText>
           </div>

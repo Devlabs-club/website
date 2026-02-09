@@ -112,16 +112,16 @@ import GradientBlob from "../components/GradientBlob.astro";
   <section class="relative py-16 md:py-24 overflow-visible">
     <GradientBlob top="10%" right="-20%" left="" scale="1.3" />
 
-    <!-- Full-bleed wrapper (spans viewport width) -->
+    <!-- Full-bleed wrapper (spans viewport width); no horizontal padding on mobile so timeline can be edge-to-edge -->
     <div
-      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-4 sm:px-6 lg:px-10 2xl:px-14"
+      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0 sm:px-6 lg:px-10 2xl:px-14"
     >
-      <!-- Corner stars (sit above fades, below content) -->
+      <!-- Corner stars (sit above fades, below content); left star hidden on phone -->
       <img
         src="/star.svg"
         alt=""
         aria-hidden="true"
-        class="absolute left-0 -translate-x-1/2 -top-24 w-[22rem] sm:w-[28rem] md:w-[32rem] pointer-events-none select-none z-10 rotate-[20deg]"
+        class="absolute left-0 -translate-x-1/2 -top-24 w-[22rem] sm:w-[28rem] md:w-[32rem] pointer-events-none select-none z-10 rotate-[20deg] hidden sm:block"
       />
       <img
         src="/star.svg"
@@ -131,8 +131,8 @@ import GradientBlob from "../components/GradientBlob.astro";
       />
       <div class="overflow-visible relative z-20">
         <div class="" aria-hidden="true"></div>
-        <div class="relative z-10 px-6 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
-          <div class="flex flex-col items-center justify-between gap-6">
+        <div class="relative z-10 px-0 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
+          <div class="flex flex-col items-center justify-between gap-6 px-4 sm:px-0">
             <div class="">
               <p class="text-white/70 text-sm font-medium tracking-wide">
                 our growth
@@ -149,9 +149,9 @@ import GradientBlob from "../components/GradientBlob.astro";
             </div>
           </div>
 
-          <div class="px-2 sm:px-6 pb-10 sm:pb-12 mt-12">
+          <div class="px-0 sm:px-6 pb-10 sm:pb-12 mt-12">
             <div
-              class="relative pt-2.5 px-2 pb-0"
+              class="relative pt-2.5 px-0 sm:px-2 pb-0"
               aria-label="DevLabs growth timeline"
             >
               <!-- Timeline mechanics:
@@ -160,11 +160,11 @@ import GradientBlob from "../components/GradientBlob.astro";
               - TimelineCard (cards hang below via stem)
             -->
               <div
-                class="overflow-x-auto overflow-y-hidden py-2 px-3.5 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                class="overflow-x-auto overflow-y-hidden py-2 pl-5 pr-0 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                 id="growth-timeline-scroll"
               >
                 <div
-                  class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
+                  class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-0 sm:px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
                   id="growth-timeline"
                 >
                   <div
@@ -287,7 +287,7 @@ import GradientBlob from "../components/GradientBlob.astro";
               </div>
             </div>
 
-            <div class="mt-4 sm:hidden flex items-center justify-center gap-2">
+            <div class="mt-4 sm:hidden flex items-center justify-center gap-2 px-4">
               <button
                 type="button"
                 id="timeline-prev-mobile"

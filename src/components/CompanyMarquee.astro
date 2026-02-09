@@ -1,5 +1,13 @@
 ---
 // Company data with logos, names, and website URLs
+
+interface Props {
+  className?: string;
+  showTitle?: boolean;
+}
+
+const { className, showTitle = true } = Astro.props;
+
 const companies = [
   //deepmind
   {
@@ -79,25 +87,21 @@ const companies = [
 ];
 ---
 
-<div class="w-full py-12 relative overflow-hidden">
-  <!-- Subtle background elements -->
-  <div
-    class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none"
-  >
-  </div>
-
-  <!-- Trusted by text with hero-appropriate styling -->
-  <div class="text-center mb-12 relative z-20">
-    <p
-      class="text-gray-400 text-xs font-semibold tracking-[0.2em] uppercase mb-2 glow-text-sm"
-    >
-      Trusted by Leading Teams
-    </p>
+<div class={`w-full py-12 relative overflow-hidden ${className}`}>
+  {showTitle && (
     <div
-      class="w-24 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent mx-auto"
-    >
+      class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none"
+    />
+  )}
+
+  {showTitle && (
+    <div class="text-center mb-12 relative z-20">
+      <p class="text-gray-400 text-xs font-semibold tracking-[0.2em] uppercase mb-2 glow-text-sm">
+        Trusted by Leading Teams
+      </p>
+      <div class="w-24 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent mx-auto" />
     </div>
-  </div>
+  )}
 
   <!-- Marquee container with better spacing -->
   <div

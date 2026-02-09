@@ -4,9 +4,9 @@ import { connectAdminDB } from '../../../../lib/mongodb.ts';
 import User from '../../../../models/user.tsx';
 import { generateToken } from '../../../../lib/auth.ts';
 
-// Initialize WorkOS client with proper configuration
-const workos = new WorkOS(process.env.WORKOS_API_KEY!, {
-  clientId: process.env.WORKOS_CLIENT_ID!,
+// Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
+const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
+  clientId: import.meta.env.WORKOS_CLIENT_ID,
 });
 
 export const GET: APIRoute = async ({ request, redirect, url }) => {
@@ -24,11 +24,11 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
 
     // Exchange the authorization code for user session using WorkOS session management
     const authenticateResponse = await workos.userManagement.authenticateWithCode({
-      clientId: process.env.WORKOS_CLIENT_ID!,
+      clientId: import.meta.env.WORKOS_CLIENT_ID,
       code,
       session: {
         sealSession: true,
-        cookiePassword: process.env.WORKOS_COOKIE_PASSWORD!,
+        cookiePassword: import.meta.env.WORKOS_COOKIE_PASSWORD,
       },
     });
 

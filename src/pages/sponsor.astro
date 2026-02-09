@@ -1,56 +1,290 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import CenteredSection from "../components/CenteredSection.astro";
-import WrappedText from "../components/text/WrappedText.astro";
-import Heading from "../components/text/Heading.astro";
-import Paragraph from "../components/text/Paragraph.astro";
-import Highlight from "../components/text/Highlight.astro";
-import GradientBlob from "../components/GradientBlob.astro";
+import CompanyMarquee from "../components/CompanyMarquee.astro";
 ---
 
-<Layout title="Sponsor Devlabs - Support Student Innovation">
-  <!-- Hero Section with Image -->
-  <CenteredSection id="hero" className="mb-24">
-    <GradientBlob top="" right="" left="0" scale="1.5" />
-    <GradientBlob top="60%" left="-15%" right="" scale="1.2" />
-
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20"
+<Layout title="Sponsor DevLabs">
+  <main class="relative min-h-screen">
+    <!-- Hero Section (uses global Layout background: texture + noise) -->
+    <section
+      class="relative pt-32 pb-20 px-4 md:pt-48 md:pb-32 flex flex-col items-center"
     >
-      <!-- Image with dashed border and opacity -->
-      <div class="w-full max-w-4xl mx-auto relative">
+      <!-- Decorative stars only; no overlay so site background shows through -->
+      <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div
-          class="w-full h-[450px] md:h-[550px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30"
+          class="absolute top-[15%] left-[10%] w-[40vw] max-w-[500px] opacity-50"
         >
           <img
-            src="/events/devhack1.jpg"
-            alt="Devlabs Event"
-            class="w-full h-full object-cover opacity-70 rounded-2xl"
+            src="/star.svg"
+            alt=""
+            class="w-full h-auto animate-pulse-slow"
           />
+        </div>
+        <div
+          class="absolute top-[20%] right-[5%] w-16 h-16 md:w-24 md:h-24 opacity-60"
+        >
+          <img src="/star.svg" alt="" class="w-full h-auto" />
         </div>
       </div>
 
-      <Heading
-        >Support the Next Generation of <Highlight>Student Founders</Highlight
-        ></Heading
+      <!-- Hero Content -->
+      <div
+        class="relative z-10 w-full max-w-5xl mx-auto text-center flex flex-col items-center"
       >
-      <Paragraph className="text-lg md:text-xl max-w-3xl mx-auto">
-        At Devlabs, we empower student builders through hands-on programs like
-        DevHouse, DevHacks, and Build Nights. By sponsoring DevLabs, you're not
-        just funding events — you're fueling innovation and backing Arizona's
-        next wave of startups.
-      </Paragraph>
-      <div class="flex flex-col sm:flex-row gap-6 mt-4 mb-8">
-        <WrappedText
-          size="large"
-          className="border-orange-300 text-orange-300 bg-transparent font hover:bg-orange-300 hover:text-black "
-          ><a
-            href="mailto:people@devlabs.club"
-            class="font-bold text-xl md:text-2xl">email us</a
-          ></WrappedText
+        <h1 class="text-white mb-8 md:mb-12">
+          <span
+            class="block font-manrope text-xl md:text-3xl font-light tracking-wide text-white/80 mb-2"
+          >
+            empower the next wave of
+          </span>
+          <span
+            class="block font-serif italic text-6xl md:text-8xl lg:text-9xl text-white leading-[0.9]"
+          >
+            builders
+          </span>
+        </h1>
+
+        <p
+          class="max-w-2xl mx-auto text-lg md:text-xl text-white/70 leading-relaxed mb-10 font-manrope"
         >
+          Join us in shaping the future of technology in Arizona. Support
+          student founders, hackers, and creators building the next big thing.
+        </p>
+
+        <a
+          href="mailto:people@devlabs.club"
+          class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 md:px-12 md:py-5
+               rounded-full overflow-hidden
+               bg-white text-[#1a1a1a] font-semibold text-lg md:text-xl tracking-wide
+               shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
+               transition-all duration-400 ease-out
+               hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
+               hover:-translate-y-0.5"
+        >
+          <span class="relative z-10">Become a Partner</span>
+          <span
+            class="relative z-10 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-full h-full"><path d="M5 12h14M12 5l7 7-7 7"></path></svg
+            >
+          </span>
+        </a>
       </div>
-    </div>
-    <!-- Contact Buttons -->
-  </CenteredSection>
+    </section>
+
+    <!-- Marquee Section (no solid bg; matches site background) -->
+    <section class="relative border-y border-white/5">
+      <div class="max-w-7xl mx-auto px-4 pt-8 pb-4 text-center">
+        <p class="text-white/50 text-sm font-semibold tracking-[0.2em] uppercase font-manrope">
+          Trusted by Industry Leaders
+        </p>
+      </div>
+      <CompanyMarquee className="py-6" showTitle={false} />
+    </section>
+
+    <!-- Impact/Benefits Section -->
+    <section class="relative py-24 px-4 z-10">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Card 1 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                ></path><circle cx="9" cy="7" r="4"></circle><path
+                  d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path
+                  d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg
+              >
+            </div>
+            <h3 class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4">
+              <span class="relative inline-block">
+                Access Top Talent
+                <span class="sponsor-benefit-underline" aria-hidden="true"></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Connect with Arizona's most ambitious student engineers,
+              designers, and product minds before they graduate.
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="12" cy="12" r="10"></circle><line
+                  x1="2"
+                  y1="12"
+                  x2="22"
+                  y2="12"></line><path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                ></path></svg
+              >
+            </div>
+            <h3 class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4">
+              <span class="relative inline-block">
+                Brand Visibility
+                <span class="sponsor-benefit-underline" aria-hidden="true"></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Showcase your brand to thousands of students through our events,
+              social media, and newsletter network.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="12" y1="1" x2="12" y2="23"></line><path
+                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                ></path></svg
+              >
+            </div>
+            <h3 class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4">
+              <span class="relative inline-block">
+                Support Innovation
+                <span class="sponsor-benefit-underline" aria-hidden="true"></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Directly fund the resources, hardware, and space students need to
+              turn their wild ideas into reality.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA: overflow-visible + radial gradient so glow isn't cut off; section has higher z-index than footer -->
+    <section class="relative py-24 px-4 text-center overflow-visible z-20">
+      <!-- Radial gradient overlay (extends beyond section so overflow is visible) -->
+      <div
+        class="absolute inset-0 pointer-events-none sponsor-cta-radial"
+        aria-hidden="true"
+      >
+      </div>
+
+      <div class="max-w-4xl mx-auto relative z-10">
+        <h2 class="text-4xl md:text-6xl text-white mb-8 font-serif italic">
+          ready to make an <span class="text-orange-400">impact?</span>
+        </h2>
+        <a
+          href="mailto:people@devlabs.club"
+          class="inline-flex items-center justify-center gap-2 text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white pb-1 text-lg"
+        >
+          people@devlabs.club
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-4 h-4"><path d="M7 17l9.2-9.2M17 17V7H7"></path></svg
+          >
+        </a>
+      </div>
+    </section>
+  </main>
 </Layout>
+
+<style>
+  .font-manrope {
+    font-family: Manrope, sans-serif;
+  }
+
+  /* Benefit h3 underline + typography (matches events.astro) */
+  .sponsor-benefit-heading {
+    font-family: Manrope, system-ui, sans-serif;
+  }
+
+  .sponsor-benefit-underline {
+    position: absolute;
+    bottom: 0.1em;
+    left: 0;
+    width: 100%;
+    height: 0.2em;
+    background-color: #f97316;
+    opacity: 0.8;
+    z-index: -1;
+    transform: rotate(-1deg);
+    transform-origin: left center;
+  }
+
+  /* Radial gradient on final CTA; large so it overflows and isn't cut off */
+  .sponsor-cta-radial {
+    left: 50%;
+    top: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(
+      ellipse 80% 60% at 50% 50%,
+      rgba(249, 115, 22, 0.12) 0%,
+      rgba(249, 115, 22, 0.04) 40%,
+      transparent 70%
+    );
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+</style>

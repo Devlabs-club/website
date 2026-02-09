@@ -138,6 +138,58 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
   );
 }
 
+// New component for the Newsletter CTA
+function NewsletterCTA({ email }: { email: string }) {
+  const newsletterUrl = `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
+    email
+  )}`;
+
+  return (
+    <div className="relative overflow-hidden rounded-[2rem] p-10 mb-8 shadow-2xl group ring-1 ring-white/10">
+      {/* Background image */}
+      <div 
+        className="absolute inset-0 bg-[url('/join_now.png')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105"
+      />
+      
+      {/* Glassmorphic overlay */}
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-xl border border-white/20" />
+      
+      {/* Gradient overlay for better text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
+      
+      {/* Grain texture overlay */}
+      <div 
+        className="absolute inset-0 opacity-50 mix-blend-overlay pointer-events-none"
+        style={{ backgroundImage: "url('/noise.png')", backgroundSize: "80px 80px" }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+        <div className="max-w-2xl space-y-3">
+          <h3 className="font-serif italic text-3xl md:text-4xl text-white">
+            join our 
+            <span className="block mt-1 font-sans font-bold text-5xl md:text-6xl text-white tracking-tight drop-shadow-lg">
+              newsletter
+            </span>
+          </h3>
+          <p className="text-gray-100 text-lg md:text-xl leading-relaxed font-sans max-w-xl  drop-shadow-md">
+            Stay updated with our new programs and grants for our buidlers.
+          </p>
+        </div>
+        
+        <a
+          href={newsletterUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 inline-flex items-center justify-center px-10 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transform hover:-translate-y-1"
+        >
+          Join now
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const { user, loading } = useAuth();
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
@@ -153,6 +205,19 @@ function DashboardContent() {
   } | null>(null);
   const [currentResumeFile, setCurrentResumeFile] = useState<File | null>(null);
   const applicationFormRef = useRef<HTMLDivElement>(null);
+  const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
+
+  // Show newsletter dialog when user lands on dashboard (once per session)
+  useEffect(() => {
+    if (!user?.email) return;
+    const dismissed = sessionStorage.getItem("newsletter-dialog-dismissed");
+    if (!dismissed) setShowNewsletterDialog(true);
+  }, [user?.email]);
+
+  const closeNewsletterDialog = () => {
+    setShowNewsletterDialog(false);
+    sessionStorage.setItem("newsletter-dialog-dismissed", "true");
+  };
 
   // Toast notification function
   const showToast = (
@@ -338,8 +403,67 @@ function DashboardContent() {
   }
  
 
+  const newsletterUrl = user?.email
+    ? `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
+        user.email
+      )}`
+    : "#";
+
   return   (
     <div className="min-h-screen text-gray-400">
+      {/* Newsletter signup dialog */}
+      {showNewsletterDialog && user?.email && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeNewsletterDialog}
+            aria-hidden="true"
+          />
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-white/20 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="newsletter-dialog-title"
+          >
+            <button
+              type="button"
+              onClick={closeNewsletterDialog}
+              className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors p-1"
+              aria-label="Close"
+            >
+              <span className="text-2xl leading-none">×</span>
+            </button>
+            <h2
+              id="newsletter-dialog-title"
+              className="font-serif italic text-2xl md:text-3xl text-white mb-2"
+            >
+              Join the newsletter now
+            </h2>
+            <p className="text-gray-300 text-lg mb-6">
+              Stay updated with our new programs and grants for our builders.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a
+                href={newsletterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={closeNewsletterDialog}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-100 transition-colors"
+              >
+                Join now
+              </a>
+              <button
+                type="button"
+                onClick={closeNewsletterDialog}
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/30 text-gray-300 hover:bg-white/10 transition-colors"
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toast && (
         <div
@@ -372,6 +496,7 @@ function DashboardContent() {
 
       <main className="relative z-10 max-w-7xl mx-auto py-24 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {user?.email && <NewsletterCTA email={user.email} />}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
@@ -477,7 +602,7 @@ function DashboardContent() {
                 className="p-8 border-2 border-dashed border-gray-500/50 "
               >
                 <h2 className="text-2xl font-bold mb-6 text-white">
-                  Application Form
+                  Your Profile
                 </h2>
                 <ApplicationForm
                   variant="single"

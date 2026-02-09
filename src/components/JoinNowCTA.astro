@@ -10,39 +10,40 @@
   <div
     class="join-now-container mx-auto max-w-[1200px] px-4 md:px-6 flex flex-col gap-12 md:gap-16"
   >
-    <!-- Join Now CTA (styled like reference) -->
     <div
-      class="join-now-cta relative overflow-hidden rounded-[2rem] py-12 md:py-16 px-8 md:px-16"
+      class="join-now-cta group relative overflow-hidden rounded-[2rem] py-14 md:py-20 px-8 md:px-20 ring-1 ring-white/10"
       data-join-now-content
     >
       <!-- Background image -->
-      <div class="join-now-cta__bg"></div>
+      <div class="join-now-cta__bg" aria-hidden="true"></div>
       <!-- Glassmorphic overlay -->
       <div class="join-now-cta__glass" aria-hidden="true"></div>
-      <!-- Grain texture overlay -->
+      <!-- Gradient for text contrast -->
+      <div class="join-now-cta__gradient" aria-hidden="true"></div>
+      <!-- Grain texture -->
       <div class="join-now-cta__noise" aria-hidden="true"></div>
 
       <!-- Content -->
       <div
         class="relative z-10 flex flex-col items-center text-center gap-6 md:gap-8"
       >
-        <h2 class="join-now-heading italic text-white">
-          join over
-
-          <span class="font-bold text-black">350+ builders</span>
+        <h2 class="join-now-heading">
+          <span class="join-now-heading-intro">join over</span>
+          <span class="join-now-heading-emphasis">350+ builders</span>
         </h2>
-        <p
-          class="join-now-subheading text-base md:text-lg text-black max-w-xl leading-relaxed"
-        >
-          we are hosting events that might <strong> change your life. </strong> apply
+        <p class="join-now-subheading">
+          we are hosting events that might <strong class="join-now-highlight">change your life.</strong> apply
           now to be a part of our newsletter and be the first ones to know about any
-          event part of <strong>the community</strong> that started it all.
+          event part of <strong class="join-now-highlight">the community</strong> that started it all.
         </p>
         <a
-          href="/register"
-          class="join-now-button inline-flex items-center justify-center gap-2 px-10 py-4 rounded-full bg-white text-[#333] font-bold hover:bg-white/95 transition-all shadow-sm hover:shadow-md"
+          href="/api/auth/oauth/login"
+          class="join-now-button inline-flex items-center justify-center gap-2 px-10 py-4 md:px-12 md:py-5 rounded-full bg-white text-[#1a1a1a] font-semibold text-lg tracking-wide"
         >
-          Join now
+          <span>Join now</span>
+          <span class="join-now-button-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </span>
         </a>
       </div>
     </div>
@@ -55,52 +56,77 @@
     z-index: 10;
   }
 
-  /* CTA box - rounded pill/squircle with subtle shadow */
   .join-now-cta {
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 0 60px rgba(250, 125, 34, 0.08);
+    transition: box-shadow 0.4s ease, transform 0.4s ease;
   }
 
-  /* Background image from join_now.png */
+  .join-now-cta:hover {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 16px 48px rgba(0, 0, 0, 0.25),
+      0 0 80px rgba(250, 125, 34, 0.12);
+  }
+
   .join-now-cta__bg {
     position: absolute;
     inset: 0;
     background-image: url("/join_now.png");
-    opacity: 0.5;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    opacity: 0.45;
+    transition: transform 0.7s ease;
   }
 
-  /* Glassmorphic overlay - frosted glass effect over bg */
+  .join-now-cta.group:hover .join-now-cta__bg {
+    transform: scale(1.05);
+  }
+
   .join-now-cta__glass {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     pointer-events: none;
   }
 
-  /* Grain texture overlay */
+  .join-now-cta__gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.25) 50%,
+      rgba(0, 0, 0, 0.4) 100%
+    );
+    pointer-events: none;
+  }
+
   .join-now-cta__noise {
     position: absolute;
     inset: 0;
     background-image: url("/noise.png");
     background-repeat: repeat;
     background-size: 80px 80px;
-    opacity: 0.7;
+    opacity: 0.5;
     pointer-events: none;
     mix-blend-mode: overlay;
   }
 
-  /* Heading - serif, white */
   .join-now-heading {
     font-family: "Times New Roman", Times, Georgia, serif;
     font-size: 2rem;
-    line-height: 1.2;
-    color: #fff;
-    font-weight: 400;
+    line-height: 1.25;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.25em;
   }
 
   @media (min-width: 640px) {
@@ -121,33 +147,81 @@
     }
   }
 
-  /* Subheading */
-  .join-now-subheading {
-    font-family:
-      "Manrope",
-      system-ui,
-      -apple-system,
-      sans-serif;
+  .join-now-heading-intro {
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   }
 
-  /* Highlighted phrase - warm orange-brown */
+  .join-now-heading-emphasis {
+    font-family: Manrope, system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .join-now-subheading {
+    font-family: Manrope, system-ui, -apple-system, sans-serif;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 36rem;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (min-width: 768px) {
+    .join-now-subheading {
+      font-size: 1.125rem;
+    }
+  }
+
   .join-now-highlight {
     color: #f0c080;
     font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
 
-  /* Button - white pill, dark text */
   .join-now-button {
-    font-family:
-      "Manrope",
-      system-ui,
-      -apple-system,
-      sans-serif;
-    font-size: 0.9375rem;
-    letter-spacing: 0.02em;
+    font-family: Manrope, system-ui, -apple-system, sans-serif;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 0 40px rgba(250, 125, 34, 0.2);
+    transition: transform 0.35s ease, box-shadow 0.35s ease;
   }
 
-  /* Scroll animation initial state */
+  .join-now-button:hover {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.35),
+      0 12px 48px rgba(0, 0, 0, 0.25),
+      0 0 56px rgba(250, 125, 34, 0.3);
+  }
+
+  .join-now-button-arrow {
+    display: inline-flex;
+    transition: transform 0.3s ease;
+  }
+
+  .join-now-button-arrow svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    display: block;
+  }
+
+  .join-now-button:hover .join-now-button-arrow {
+    transform: translateX(4px);
+  }
+
+  .join-now-button:hover {
+    transform: scale(1.04) translateY(-2px);
+  }
+
+  .join-now-button:active {
+    transform: scale(0.98);
+  }
+
   [data-join-now-content] {
     opacity: 0;
     transform: translateY(30px);
