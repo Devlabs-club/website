@@ -9,7 +9,7 @@ const events = [
     id: 'devhacks',
     name: 'DevHacks',
     subtitle: 'ASU’s Biggest Hackathon',
-    tagline: 'Build Something Amazing in 48 Hours',
+    tagline: 'One hackathon. Infinite possibilities.',
     image: '/events/devhacks.jpg',
     stats: {
       primary: '170+ hackers',
@@ -61,28 +61,40 @@ const events = [
 ---
 
 <section
-  class="events-showcase relative w-full h-[100vh] min-h-[700px] overflow-hidden bg-black text-white"
+  class="events-showcase relative w-full h-[130vh] min-h-[900px] overflow-hidden bg-transparent text-white"
   data-parallax-section
   aria-label="DevLabs signature programs"
   id="events-showcase"
 >
-  <!-- 1. Seamless Section Transitions (Top & Bottom) -->
-  <!-- Top Fade (Black to Transparent) -->
-  <div class="absolute top-0 left-0 right-0 h-80 bg-gradient-to-b from-black  to-transparent  z-40 pointer-events-none"></div>
-  
-  <!-- Bottom Fade (Transparent to Black) -->
-  <div class="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-black to-transparent z-40 pointer-events-none"></div>
+  <!-- Base texture layer: photo fades into this at top and bottom -->
+  <div
+    class="absolute inset-0 z-0 events-showcase-texture-bg"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Top / Bottom edge fades (subtle darkening so texture isn’t too bright) -->
+  <div class="events-showcase-fade events-showcase-fade-top absolute top-0 left-0 right-0 z-40 pointer-events-none" aria-hidden="true"></div>
+  <div class="events-showcase-fade events-showcase-fade-bottom absolute bottom-0 left-0 right-0 z-40 pointer-events-none" aria-hidden="true"></div>
+  <!-- Left & Right edge fades -->
+  <div class="events-showcase-fade events-showcase-fade-left absolute top-0 bottom-0 left-0 z-40 pointer-events-none" aria-hidden="true"></div>
+  <div class="events-showcase-fade events-showcase-fade-right absolute top-0 bottom-0 right-0 z-40 pointer-events-none" aria-hidden="true"></div>
 
   <!-- Radial Vignette for "In Scene" focus -->
-  <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)] z-30 pointer-events-none mix-blend-multiply opacity-90"></div>
+  <div class="absolute inset-0 events-showcase-vignette z-30 pointer-events-none" aria-hidden="true"></div>
 
-  <!-- Background Layers (One per event, cross-fading) -->
+  <!-- Texture Merge Layer: radial blend at sides -->
+  <div
+    class="absolute inset-0 z-25 pointer-events-none events-showcase-texture-merge"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Background Layers (One per event, cross-fading) – masked so they blend into texture at top/bottom -->
   {events.map((event, index) => (
     <div
-      class={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+      class={`absolute inset-0 transition-opacity duration-1000 ease-in-out events-showcase-bg-mask ${index === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
       data-bg-index={index}
     >
-      {event.image ? (
+  {event.image ? (
         <img
           src={event.image}
           alt={event.name}
@@ -91,10 +103,11 @@ const events = [
         />
       ) : (
         /* Gradient placeholder */
-        <div class="w-full h-full bg-gradient-to-br from-orange-900 via-black to-gray-900"></div>
+        <div class="w-full h-full bg-gradient-to-br from-orange-900 via-[#151413] to-gray-900"></div>
       )}
+       
       <!-- Cinematic Overlays -->
-      <div class="absolute inset-0 bg-black/30 mix-blend-multiply"></div>
+      <div class="absolute inset-0 bg-[#151413]/30 mix-blend-multiply"></div>
       <div class="absolute inset-0 bg-noise opacity-[0.12] mix-blend-overlay pointer-events-none"></div>
     </div>
   ))}
@@ -149,7 +162,7 @@ const events = [
                       class="w-full h-full object-cover rounded-sm sepia-[0.4] hue-rotate-[-10deg] contrast-125"
                     />
                   ) : (
-                    <div class="w-full h-full bg-gradient-to-br from-orange-900 to-black rounded-sm"></div>
+                    <div class="w-full h-full bg-gradient-to-br from-orange-900 to-[#151413] rounded-sm"></div>
                   )}
                   <!-- Amber Tint Overlay -->
                   <div class="absolute inset-[14px] bg-[#7c3a18] mix-blend-color opacity-40 pointer-events-none"></div>
@@ -244,12 +257,10 @@ const events = [
           </h2>
         </div>
         
-        <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-8 mt-4">
+        <div class="flex flex-col md:flex-row md:items-end gap-4 md:gap-8 ">
           <div>
-            <p class="text-orange-200/80 font-mono text-sm tracking-widest uppercase mb-1" data-event-subtitle>
-              
-            </p>
-            <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide" data-event-name>
+           
+            <h1 class="text-2xl md:text-3xl font-bold text-[#fa7d22] tracking-wide font-[Mistrully,ui-serif,Georgia,serif]" data-event-tagline>
               
             </h1>
           </div>
@@ -259,7 +270,7 @@ const events = [
       <!-- Bottom Right: As Seen On (ASU) -->
       <div class="hidden lg:block w-72 mb-2">
         <div class="mb-3 text-[10px] font-mono text-gray-400 uppercase tracking-widest text-right">As Seen On</div>
-        <a href="https://news.asu.edu" target="_blank" rel="noopener noreferrer" class="group block p-5 border border-white/10 bg-black/40 backdrop-blur-md hover:bg-white/5 transition-all duration-300 rounded-sm">
+        <a href="https://news.asu.edu" target="_blank" rel="noopener noreferrer" class="group block p-5 border border-white/10 bg-[#151413]/40 backdrop-blur-md hover:bg-white/5 transition-all duration-300 rounded-sm">
             <div class="flex flex-col gap-4">
                 <!-- Logo -->
                 <div class="h-5 flex items-center">
@@ -454,6 +465,137 @@ const events = [
     box-shadow: inset 0 0 0 2px rgba(246, 161, 24, 0.5);
   }
 
+  /* Base texture – photo layers sit on top and fade into this at top/bottom */
+  .events-showcase-texture-bg {
+    background-image: url('/texture.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  /* Background photo layers: gradual mask into transparent at top and bottom so texture shows */
+  .events-showcase-bg-mask {
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.25) 8%,
+      rgba(0, 0, 0, 0.7) 18%,
+      black 28%,
+      black 72%,
+      rgba(0, 0, 0, 0.7) 82%,
+      rgba(0, 0, 0, 0.25) 92%,
+      transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(0, 0, 0, 0.25) 8%,
+      rgba(0, 0, 0, 0.7) 18%,
+      black 28%,
+      black 62%,
+      rgba(0, 0, 0, 1) 72%,
+      rgba(0, 0, 0, 1) 92%,
+      transparent 100%
+    );
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+  }
+
+  /* Texture merge layer: radial blend at sides (keeps edges consistent) */
+  .events-showcase-texture-merge {
+    background-image: url('/texture.png');
+    background-size: cover;
+    background-position: center;
+    opacity: 1;
+    mask-image: radial-gradient(
+      ellipse 140% 120% at center,
+      transparent 0%,
+      transparent 35%,
+      rgba(0,0,0,0.12) 45%,
+      rgba(0,0,0,0.35) 55%,
+      rgba(0,0,0,0.6) 68%,
+      rgba(0,0,0,0.85) 80%,
+      black 92%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 140% 120% at center,
+      transparent 0%,
+      transparent 35%,
+      rgba(0,0,0,0.12) 45%,
+      rgba(0,0,0,0.35) 55%,
+      rgba(0,0,0,0.6) 68%,
+      rgba(0,0,0,0.85) 80%,
+      black 92%
+    );
+  }
+
+  /* Edge fades: subtle so texture remains visible where photo has masked out */
+  .events-showcase-fade {
+    --fade-color: transparent;
+  }
+  .events-showcase-fade-top {
+    height: min(45vh, 420px);
+    background: linear-gradient(
+      to bottom,
+      rgba(21, 20, 19, 0.5) 0%,
+      rgba(21, 20, 19, 0.2) 35%,
+      transparent 100%
+    );
+  }
+  .events-showcase-fade-bottom {
+    height: min(45vh, 420px);
+    background: linear-gradient(
+      to top,
+      rgba(21, 20, 19, 0.5) 0%,
+      rgba(21, 20, 19, 0.2) 35%,
+      transparent 100%
+    );
+  }
+  .events-showcase-fade-left {
+    width: min(20vw, 280px);
+    background: linear-gradient(
+      to right,
+      rgba(21, 20, 19, 0.85) 0%,
+      rgba(21, 20, 19, 0.5) 50%,
+      transparent 100%
+    );
+  }
+  .events-showcase-fade-right {
+    width: min(20vw, 280px);
+    background: linear-gradient(
+      to left,
+      rgba(21, 20, 19, 0.85) 0%,
+      rgba(21, 20, 19, 0.5) 50%,
+      transparent 100%
+    );
+  }
+
+  /* Vignette: fades into texture, not black; lower opacity = less "photo box" */
+  .events-showcase-vignette {
+    background: radial-gradient(
+      ellipse 100% 100% at center,
+      transparent 0%,
+      transparent 45%,
+      rgba(0,0,0,0.18) 65%,
+      rgba(0,0,0,0.35) 80%,
+      rgba(0,0,0,0.55) 100%
+    );
+    mix-blend-mode: multiply;
+    opacity: 0.75;
+  }
+
+  /* Match grain between photo + texture (film grain) */
+  .events-showcase::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('/noise.png');
+    background-size: 120px 120px;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: 26;
+  }
+
   .event-logo-center {
     /* keep it readable on busy backgrounds */
     filter: drop-shadow(0 25px 60px rgba(0, 0, 0, 0.55));
@@ -466,10 +608,10 @@ const events = [
     border-radius: 9999px;
     background: radial-gradient(
       circle at center,
-      rgba(0, 0, 0, 0.85) 0%,
-      rgba(0, 0, 0, 0.55) 35%,
-      rgba(0, 0, 0, 0.18) 60%,
-      rgba(0, 0, 0, 0) 75%
+      rgba(21, 20, 19, 0.85) 0%,
+      rgba(21, 20, 19, 0.55) 35%,
+      rgba(21, 20, 19, 0.18) 60%,
+      rgba(21, 20, 19, 0) 75%
     );
     filter: blur(18px);
     opacity: 0.95;
@@ -490,8 +632,7 @@ const events = [
         {
           id: 'devhacks',
           name: 'DevHacks',
-          subtitle: 'ASU’s Biggest Hackathon',
-          tagline: 'Build Something Amazing in 48 Hours',
+          tagline: 'ASU’s Biggest Student Led Hackathon',
           image: '/events/devhacks.jpg',
           logo: '/events/devhacks_logo.svg',
           stats: {
@@ -505,8 +646,7 @@ const events = [
         {
           id: 'devhouse-sf',
           name: 'DevHouse SF',
-          subtitle: 'SF’s Biggest Hiring Stunt',
-          tagline: 'Top 100 builders. One house. Infinite potential.',
+          tagline: 'SF’s Biggest Hiring Stunt',
           image: '/events/devhouse-sf.jpg',
           logo: '/events/devhouse_logo.png',
           stats: {
@@ -520,28 +660,26 @@ const events = [
         {
           id: 'devhouse',
           name: 'DevHouse',
-          subtitle: 'Residential Accelerator',
-          tagline: 'Live, Build, Grow Together',
+          tagline: 'Arizona\'s First Hacker House',
           image: '/events/devhouse.jpeg',
           logo: '/events/devhouse_logo.png',
           stats: {
             primary: '6 weeks',
-            secondary: '$50k+ funding',
+            secondary: '$7k+ funding',
           },
           sticker: 'Batch 1',
-          sponsorLogo: '/sponsors/deepmind.png',
+          sponsorLogo: '/sponsors/loloft.png',
           link: 'https://www.gpec.org/news/press-releases/devlabs-launches-hacker-house/',
         },
         {
           id: 'devspace',
           name: 'DevSpace',
-          subtitle: 'Flagship Networking Event',
-          tagline: 'Where Innovation Meets Collaboration',
+          tagline: 'Go Big @ ASU',
           image: '/events/devspace.png',
           logo: '/events/devspace_logo.png',
           stats: {
-            primary: '60+ attendees',
-            secondary: '25+ collabs',
+            primary: '10k grants',
+            secondary: '15+ startups',
           },
           sticker: 'Network',
           sponsorLogo: '/asu.png',
@@ -564,13 +702,14 @@ const events = [
       /** @type {HTMLElement|null} */
       const eventName = section.querySelector('[data-event-name]');
       /** @type {HTMLElement|null} */
-      const eventSubtitle = section.querySelector('[data-event-subtitle]');
       /** @type {HTMLElement|null} */
       const eventLogoWrap = section.querySelector('[data-event-logo-wrap]');
       /** @type {HTMLImageElement|null} */
       const eventLogo = section.querySelector('[data-event-logo]');
       /** @type {HTMLImageElement|null} */
       const sponsorLogo = section.querySelector('[data-sponsor-logo]');
+      /** @type {HTMLElement|null} */
+      const eventTagline = section.querySelector('[data-event-tagline]');
 
       let currentIndex = 0;
       let autoAdvanceTimerId = /** @type {number | undefined} */ (undefined);
@@ -609,7 +748,7 @@ const events = [
         setText(secondaryStat, event?.stats?.secondary);
         setText(stickerText, event?.sticker);
         setText(eventName, event?.name);
-        setText(eventSubtitle, event?.subtitle);
+        setText(eventTagline, event?.tagline);
 
         // Event logo (left)
         if (eventLogoWrap) {

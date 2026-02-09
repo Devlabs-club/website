@@ -1,178 +1,210 @@
 ---
 import CompanyMarquee from "./CompanyMarquee.astro";
+import { Icon } from "free-astro-components";
 ---
 
 <section
-  class="relative w-screen h-screen overflow-hidden"
+  class="hero-section relative w-screen min-h-screen overflow-hidden flex flex-col items-center py-20 px-4"
   data-parallax-section
 >
-  <!-- Background Image -->
-  <div class="absolute inset-0 z-0">
-    <video
-      id="hero-video"
-      class="w-full h-full object-cover"
-      src="/hero.mov"
-      autoplay
-      muted
-      playsinline
-      preload="auto"></video>
+  <!-- Dark background -->
+  <div class="absolute inset-0 z-0" aria-hidden="true"></div>
 
-    <!-- Heavy top fade: black -> transparent -->
-    <div
-      class="absolute inset-x-0 top-0 h-[45%] bg-gradient-to-b from-black via-black/70 to-transparent pointer-events-none"
-    >
-    </div>
-
-    <!-- Heavy bottom fade: transparent -> black -->
-    <div
-      class="absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-black via-black/70 to-transparent pointer-events-none"
-    >
-    </div>
-
-    <!-- Heavy left fade: black -> transparent -->
-    <div
-      class="absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-black via-black/70 to-transparent pointer-events-none"
-    >
-    </div>
-
-    <!-- Heavy right fade: black -> transparent -->
-    <div
-      class="absolute inset-y-0 right-0 w-[22%] bg-gradient-to-l from-black via-black/70 to-transparent pointer-events-none"
-    >
-    </div>
+  <!-- Star left: large, partially off-screen -->
+  <div
+    class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] top-[18%] left-0 pointer-events-none"
+    aria-hidden="true"
+  >
+    <img
+      src="/star.svg"
+      alt=""
+      class="w-full h-auto block"
+      width="487"
+      height="485"
+    />
   </div>
 
-  <script is:inline>
-    (() => {
-      const video = document.getElementById("hero-video");
-      if (!(video instanceof HTMLVideoElement)) return;
+  <!-- Star right: visible top-right -->
+  <div
+    class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 top-[12%] right-[6%] pointer-events-none"
+    aria-hidden="true"
+  >
+    <img
+      src="/star.svg"
+      alt=""
+      class="w-full h-auto block"
+      width="487"
+      height="485"
+    />
+  </div>
 
-      // 0.5x speed
-      video.playbackRate = 0.5;
-
-      // Ensure playbackRate is applied after metadata loads too
-      video.addEventListener("loadedmetadata", () => {
-        video.playbackRate = 0.5;
-      });
-
-      // Pause on last frame when video ends
-      video.addEventListener("ended", () => {
-        const d = Number.isFinite(video.duration) ? video.duration : 0;
-        // Seek a tiny bit before the end to reliably show the last frame
-        video.currentTime = Math.max(0, d - 0.05);
-        video.pause();
-      });
-
-      // Stop playing as soon as the user scrolls down
-      const onScroll = () => {
-        if (window.scrollY > 0 && !video.paused) video.pause();
-      };
-      window.addEventListener("scroll", onScroll, { passive: true });
-    })();
-  </script>
-
-  <!-- Foreground layout: content + marquee pinned bottom -->
-  <div class="relative h-full w-full flex flex-col">
-    <!-- Content Container -->
-    <div
-      class="w-full mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col justify-end pt-32 pb-10"
+  <!-- Content: headline at 35vh from top, rest flows below -->
+  <div
+    class="relative z-20 w-full max-w-5xl mx-auto flex flex-col items-center text-center"
+  >
+    <!-- Headline: 35vh from top, fixed position from viewport top -->
+    <h1
+      class="hero-headline text-white mb-8 md:mb-10 text-center shrink-0 mt-[15vh]"
     >
-      <!-- Main Heading -->
-      <div class="flex flex-col items-start w-full max-w-6xl mb-12 pl-4">
-        <h1
-          class="text-6xl md:text-8xl lg:text-9xl font-medium text-white tracking-tight leading-none mb-2"
+      <span class="block">
+        <span
+          class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
+          >we help
+        </span>
+        <span
+          class="hero-headline-emphasis font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
+          >builders</span
         >
-          Go Big or
-        </h1>
-        <h1
-          class="text-6xl md:text-8xl lg:text-9xl font-medium text-transparent tracking-tight leading-none outline-text"
+      </span>
+      <span class="block">
+        <span
+          class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
+          >go big
+        </span>
+        <span
+          class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
+          >or
+        </span>
+        <span
+          class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
+          >get hired</span
         >
-          Get Hired
-        </h1>
+      </span>
+    </h1>
+
+    <!-- Everything below headline: logo, stats, marquee -->
+    <div class="flex flex-col items-center justify-start w-full shrink-0">
+      <!-- Center logo -->
+      <div class="hero-logo w-16 h-16 mb-10 flex-shrink-0">
+        <img
+          src="/logo.png"
+          alt="DevLabs"
+          class="w-full h-full object-contain"
+          width="112"
+          height="112"
+        />
       </div>
 
-      <!-- Action Boxes -->
       <div
-        class="flex flex-col md:flex-row justify-between gap-6 md:gap-0 pl-4"
+        class="grid grid-cols-2 justify-center gap-8 md:gap-16 lg:gap-24 max-w-4xl mb-10"
       >
-        <!-- Box 1: Description -->
-        <div
-          class="md:w-[32%] border border-white/40 p-6 flex items-center bg-black/20 backdrop-blur-sm h-24"
-        >
-          <p class="text-white text-lg font-light leading-tight">
-            The community where we launch founders
-          </p>
-        </div>
-
-        <!-- Box 2: Events -->
         <a
-          href="/events"
-          class="md:w-[32%] border border-white/40 p-6 flex items-center justify-between group hover:bg-white/10 transition-colors bg-black/20 backdrop-blur-sm cursor-pointer h-24"
+          href="/api/auth/oauth/login"
+          class="group relative inline-block px-8 py-4
+               bg-gradient-to-br from-white/10 via-white/5 to-transparent
+               backdrop-blur-lg border border-white/20
+               text-white/80 font-medium text-lg rounded-full
+               transition-all duration-500 hover:scale-105
+               shadow-[0_8px_32px_rgba(255,255,255,0.1)]
+               hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
+               hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
+               before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-10 w-10 text-white transform group-hover:translate-x-1 transition-transform"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-          </svg>
-          <span
-            class="bg-white text-black px-5 py-2.5 text-sm font-bold rounded-sm"
-          >
-            check out our events
-          </span>
+          <span class="tracking-wide pl-2"> join now </span>
+
+          <!-- right action circle -->
         </a>
 
-        <!-- Box 3: Talent -->
         <a
-          href="/clientform"
-          class="md:w-[32%] border border-white/40 p-6 flex items-center justify-between group hover:bg-white/10 transition-colors bg-black/20 backdrop-blur-sm cursor-pointer h-24"
+          href="/find-talent"
+          class="group relative inline-block px-8 py-4
+               bg-gradient-to-br from-white/10 via-white/5 to-transparent
+               backdrop-blur-lg border border-white/20
+               text-white/80 font-medium text-lg rounded-full
+               transition-all duration-500 hover:scale-105
+               shadow-[0_8px_32px_rgba(255,255,255,0.1)]
+               hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
+               hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
+               before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-r before:from-white/10 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-500"
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-10 w-10 text-white transform group-hover:translate-x-1 transition-transform"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+          <span class="relative z-10 drop-shadow-sm">meet our talent</span>
+          <div
+            class="absolute inset-0.5 rounded-xl bg-gradient-to-br from-white/5 to-transparent opacity-60"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M17 8l4 4m0 0l-4 4m4-4H3"></path>
-          </svg>
-          <span
-            class="bg-white text-black px-5 py-2.5 text-sm font-bold rounded-sm"
-          >
-            hire the best talent
-          </span>
+          </div>
         </a>
       </div>
-    </div>
 
-    <!-- Trusted By Section (pinned to bottom of hero) -->
-    <div class="w-full relative z-30 mt-auto">
-      <CompanyMarquee />
+      <!-- Stats -->
+      <div
+        class="hero-stats flex flex-wrap justify-center gap-8 md:gap-16 lg:gap-24 max-w-4xl opacity-80 mt-10"
+      >
+        <div class="flex flex-col items-start w-fit">
+          <span
+            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+            >500+</span
+          >
+          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+            >builders</span
+          >
+        </div>
+        <div class="flex flex-col items-start w-fit">
+          <span
+            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+            >50+</span
+          >
+          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+            >startups built</span
+          >
+        </div>
+        <div class="flex flex-col items-start w-fit">
+          <span
+            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+            >120k+</span
+          >
+          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+            >raised</span
+          >
+        </div>
+        <div class="flex flex-col items-start w-fit">
+          <span
+            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+            >10+</span
+          >
+          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+            >events</span
+          >
+        </div>
+      </div>
+
+      <!-- Company marquee -->
+      <div class="hero-marquee w-full mt-14 md:mt-20 mb-14 md:mb-20">
+        <CompanyMarquee />
+      </div>
     </div>
   </div>
 </section>
 
 <style>
-  .outline-text {
-    -webkit-text-stroke: 1px white;
-    color: transparent;
+  .hero-headline {
+    font-family: Manrope, sans-serif;
   }
 
-  /* Responsive adjustments for outline text stroke width */
-  @media (min-width: 768px) {
-    .outline-text {
-      -webkit-text-stroke: 2px white;
-    }
+  .hero-headline-emphasis {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-style: italic;
+  }
+
+  .hero-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .hero-underline::after {
+    content: "";
+    position: absolute;
+    left: 0.1em;
+    right: 0.1em;
+    bottom: 0.03em;
+    height: 0.24em;
+    background-color: #fa7d22;
+    opacity: 0.8;
+    z-index: -1;
+    transform: rotate(-3.5deg);
+    transform-origin: left center;
+  }
+
+  .font-manrope {
+    font-family: Manrope, sans-serif;
   }
 </style>

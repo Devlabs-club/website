@@ -4,74 +4,51 @@ import GradientBlob from "../components/GradientBlob.astro";
 ---
 
 <Layout title="About - DevLabs">
-  <!-- Hero -->
-  <section class="relative overflow-hidden pt-28 md:pt-36 pb-16">
-    <GradientBlob top="-20%" right="-10%" left="" scale="1.6" />
-    <GradientBlob top="55%" left="-18%" right="" scale="1.2" />
-
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="about-hero">
-        <!-- Oversized outline mark (left) -->
-        <div class="about-hero__mark" aria-hidden="true">
-          <svg
-            viewBox="0 0 41 45"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            class="about-hero__markSvg"
-          >
-            <path
-              d="M6.1816 3L2 29.4706L19.9211 43M6.1816 3L16.9343 14.7647M6.1816 3L12.0411 20.0588M19.9211 43L39.037 29.4706L34.2581 3M19.9211 43L34.2581 3M19.9211 43L12.0411 20.0588M34.2581 3L23.5054 14.7647M23.5054 14.7647H16.9343M23.5054 14.7647L28.2843 18.8824M16.9343 14.7647L12.7527 18.8824L12.0411 20.0588"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"></path>
-          </svg>
-        </div>
-
-        <!-- Floating polaroids -->
-        <div class="about-hero__polaroids" aria-hidden="true">
-          <div class="about-hero__polaroid p1">
-            <img src="/events/DevHacks1.jpg" alt="" loading="lazy" />
-          </div>
-          <div class="about-hero__polaroid p2">
-            <img src="/events/DevHacks2.jpg" alt="" loading="lazy" />
-          </div>
-          <div class="about-hero__polaroid p3">
-            <img src="/events/DevHacks3.jpg" alt="" loading="lazy" />
-          </div>
-          <div class="about-hero__polaroid p4">
-            <img src="/events/DevHacks4.jpg" alt="" loading="lazy" />
-          </div>
-        </div>
-
-        <div class="about-hero__content">
-          <div class="about-hero__media">
-            <h1 class="about-hero__title">about us</h1>
-
-            <!-- Video (16:9) -->
-            <div
-              id="about-hero-video"
-              class="about-hero__video video-placeholder is-visible has-video"
-              aria-label="About page hero video"
-            >
-              <video
-                class="about-hero__videoEl"
-                controls
-                playsinline
-                preload="metadata"
-                poster="/events/devhacks.jpg"
-              >
-                <source
-                  src="https://devlabs.club/DEVHOUSE_draft4.mp4"
-                  type="video/mp4"
-                />
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </div>
-        </div>
+  <!-- Hero: static (no parallax or scroll animations) -->
+  <section
+    class="relative min-h-screen flex flex-col items-center justify-center px-6 pb-16 pt-[20vh] max-md:px-4"
+    id="about-hero"
+  >
+    <h1
+      class="z-[300] font-[Mistrully,ui-serif,Georgia,serif] text-[clamp(4rem,12vw,10rem)] max-md:text-[clamp(3rem,14vw,5rem)] font-normal text-white leading-[0.9] m-0 text-center -mb-[0.2em] max-md:-mb-[0.1em]"
+      id="about-hero-text"
+    >
+      Meet the Team
+    </h1>
+    <div
+      class="z-[200] w-[min(88vw,960px)] max-md:w-[95vw] -mt-[0.15em] relative max-md:rotate-[-0.8deg] rotate-[-1.2deg] overflow-visible p-8 max-md:p-6"
+    >
+      <img
+        src="/frame.png"
+        alt=""
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
+        aria-hidden
+      />
+      <div
+        class="relative w-full aspect-video rounded overflow-hidden bg-[#0a0a0a] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] z-[1]"
+      >
+        <video
+          id="about-hero-video"
+          controls
+          loop
+          playsinline
+          autoplay
+          preload="auto"
+          class="w-full h-full object-cover block"
+        >
+          <source
+            src="https://pub-bdc5a5628514472d904835747cff21f2.r2.dev/DEVHOUSE_draft4.mp4"
+            type="video/mp4"
+          />
+        </video>
       </div>
     </div>
+    <p
+      class="font-[Manrope,system-ui,sans-serif] text-[0.7rem] max-md:text-[0.65rem] tracking-[0.2em] max-md:tracking-[0.15em] uppercase text-white/85 font-medium mt-6 max-md:mt-5"
+      id="about-hero-tagline"
+    >
+      WE HELP BUILDERS GO BIG OR GET HIRED
+    </p>
   </section>
 
   <!-- Who we are -->
@@ -173,14 +150,23 @@ import GradientBlob from "../components/GradientBlob.astro";
           </div>
 
           <div class="px-2 sm:px-6 pb-10 sm:pb-12 mt-12">
-            <div class="timeline-shell" aria-label="DevLabs growth timeline">
+            <div
+              class="relative pt-2.5 px-2 pb-0"
+              aria-label="DevLabs growth timeline"
+            >
               <!-- Timeline mechanics:
               - TimelineRail (single continuous line)
               - YearMarker (year label + dot anchored on rail)
               - TimelineCard (cards hang below via stem)
             -->
-              <div class="timeline-scroll" id="growth-timeline-scroll">
-                <div class="timeline-content" id="growth-timeline">
+              <div
+                class="overflow-x-auto overflow-y-hidden py-2 px-3.5 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                id="growth-timeline-scroll"
+              >
+                <div
+                  class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
+                  id="growth-timeline"
+                >
                   <div
                     class="timeline-ticks absolute inset-0 pointer-events-none z-[1]"
                     aria-hidden="true"
@@ -256,32 +242,39 @@ import GradientBlob from "../components/GradientBlob.astro";
                         const showYear =
                           idx === 0 || arr[idx - 1].year !== item.year;
                         return (
-                          <div class="year-block">
-                            <div class="year-marker">
+                          <div class="snap-start relative min-h-[560px]">
+                            <div class="h-[var(--rail-y)] relative z-[2]">
                               <div
-                                class="year-label"
+                                class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-serif italic text-3xl leading-none text-white/75 select-none"
                                 style={showYear ? undefined : "opacity: 0;"}
                               >
                                 {item.year}
                               </div>
-                              <div class="year-dot" aria-hidden="true" />
+                              <div
+                                class="absolute left-[var(--anchor-x)] top-full -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white/80 shadow-[0_0_0_5px_rgba(255,255,255,0.08)] z-[3]"
+                                aria-hidden="true"
+                              />
                             </div>
 
-                            <div class="year-stem" aria-hidden="true" />
+                            <div
+                              class="w-px h-7 bg-white/20 left-[var(--anchor-x)] -translate-x-1/2 relative z-[2]"
+                              aria-hidden="true"
+                            />
 
-                            <div class="year-cards">
+                            <div class="flex items-start gap-4 -mt-2.5 relative z-[4] ml-[calc(var(--anchor-x)-18px)]">
                               <div
-                                class="timeline-card"
+                                class="w-80 max-[420px]:w-[290px] bg-[rgba(24,24,24,0.92)] border border-white/10 rounded-lg py-3.5 px-3.5 pb-5 shadow-[0_26px_70px_rgba(0,0,0,0.55),0_2px_0_rgba(255,255,255,0.04)] origin-[20%_0%]"
                                 style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
                               >
-                                <div class="timeline-card-img">
+                                <div class="rounded-xl overflow-hidden bg-white/5 aspect-[4/3] border border-white/10">
                                   <img
                                     src={item.image}
                                     alt={item.title}
                                     loading="lazy"
+                                    class="w-full h-full object-cover block"
                                   />
                                 </div>
-                                <div class="timeline-card-caption">
+                                <div class="mt-3 px-0.5 font-[Mistrully,ui-serif,Georgia,serif] text-[22px] leading-[1.05] font-semibold tracking-wide text-white/80">
                                   {item.title}
                                 </div>
                               </div>
@@ -299,7 +292,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                 type="button"
                 id="timeline-prev-mobile"
                 aria-label="Scroll timeline left"
-                class="timeline-control"
+                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-white/20 bg-white/10 text-white/85 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:bg-white/10 hover:border-white/25"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -317,7 +310,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                 type="button"
                 id="timeline-next-mobile"
                 aria-label="Scroll timeline right"
-                class="timeline-control timeline-control--dark"
+                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-400/90 to-orange-500/80 text-black/90 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:from-orange-400/95 hover:to-orange-500/90"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -349,9 +342,14 @@ import GradientBlob from "../components/GradientBlob.astro";
             >
               <span class="font-extrabold tracking-tight">The</span>
               <span
-                class="team-highlight font-serif italic"
-                style="font-family: 'Times New Roman', Times, serif;">team</span
+                class="relative inline-block py-[0.06em] px-[0.14em] font-serif italic"
+                style="font-family: 'Times New Roman', Times, serif;"
               >
+                <span
+                  class="absolute -left-[0.12em] -right-[0.12em] top-[55%] bottom-[0.06em] bg-orange-300/30 -z-10 rounded-[0.22em] blur-[0.5px] pointer-events-none rotate-[-2.2deg]"
+                  aria-hidden="true"></span>
+                team
+              </span>
             </h2>
           </div>
 
@@ -368,12 +366,12 @@ import GradientBlob from "../components/GradientBlob.astro";
             [
               {
                 name: "Dhanush Vardhan",
-                title: "Co-founder",
+                title: "Co-founder, Ex-Cloudflare · Incoming Google",
                 meta: "Ex-Cloudflare · Incoming Google",
                 image: "/team/dhanush.jpg",
               },
               {
-                name: "Bhoomi",
+                name: "Bhoomi Sahajsinghani",
                 title: "Co-founder",
                 image: "/team/bhoomi.jpeg",
               },
@@ -385,703 +383,95 @@ import GradientBlob from "../components/GradientBlob.astro";
             ].map((member, i) => {
               const rotation = (i % 2 === 0 ? 1 : -1) * ((i % 5) + 2);
               return (
-              <div class="team-polaroid group" style={`--rotation: ${rotation}deg`}>
-                <div class="polaroid-inner">
-                  <div class="polaroid-image-container">
+                <div
+                  class="group bg-white p-3 pb-20 shadow-[0_4px_6px_rgba(0,0,0,0.1),0_10px_20px_rgba(0,0,0,0.15)] transition-[transform,box-shadow,z-index] duration-300 w-full max-w-xs mx-auto relative flex flex-col hover:z-10 hover:rotate-0 hover:scale-105 hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)]"
+                  style={`transform: rotate(${rotation}deg)`}
+                >
+                  <div class="w-full aspect-square overflow-hidden bg-gray-200 border border-black/10">
                     <img
                       src={member.image}
                       alt={member.name}
-                      class="polaroid-image"
+                      class="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 transition-[filter] duration-300"
                     />
                   </div>
-                  <div class="polaroid-caption">
-                    <h3 class="polaroid-name">
+                  <div class="absolute bottom-0 left-0 w-full h-20 flex flex-col items-center justify-center text-center font-[Mistrully,cursive] text-gray-700">
+                    <h3 class="text-[1.8rem] font-bold leading-none mb-0.5 text-gray-900">
                       {member.name}
                     </h3>
-                    <p class="polaroid-designation">
+                    <p class="mt-2 text-sm text-gray-500 font-semibold font-[Manrope,system-ui,sans-serif]">
                       {member.title}
                     </p>
                   </div>
                 </div>
-              </div>
-            )})
+              );
+            })
           }
         </div>
       </div>
     </section>
   </section>
 
-  <style>
-    .team-highlight {
-      position: relative;
-      display: inline-block;
-      padding: 0.06em 0.14em;
-    }
-
-    .team-highlight::before {
-      content: "";
-      position: absolute;
-      left: -0.12em;
-      right: -0.12em;
-      top: 55%;
-      bottom: 0.06em;
-      background: rgba(249, 115, 22, 0.28);
-      transform: rotate(-2.2deg);
-      border-radius: 0.22em;
-      filter: blur(0.5px);
-      z-index: -1;
-      pointer-events: none;
-    }
-    .team-polaroid {
-      background-color: #fff;
-      padding: 12px 12px 80px 12px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.15);
-      transform: rotate(var(--rotation));
-      transition: transform 0.3s ease, box-shadow 0.3s ease, z-index 0s linear 0.3s;
-      width: 100%;
-      max-width: 320px;
-      margin: 0 auto;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .team-polaroid:hover {
-      transform: rotate(0deg) scale(1.05);
-      box-shadow: 0 15px 30px rgba(0,0,0,0.25);
-      z-index: 10;
-      transition: transform 0.3s ease, box-shadow 0.3s ease, z-index 0s;
-    }
-
-    .polaroid-image-container {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      overflow: hidden;
-      background: #f0f0f0;
-      border: 1px solid rgba(0,0,0,0.1);
-    }
-
-    .polaroid-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: grayscale(10%);
-      transition: filter 0.3s ease;
-    }
-
-    .team-polaroid:hover .polaroid-image {
-      filter: grayscale(0%);
-    }
-
-    .polaroid-caption {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-family: 'Caveat', cursive;
-      color: #333;
-    }
-
-    .polaroid-name {
-      font-size: 1.8rem;
-      font-weight: 700;
-      line-height: 1;
-      margin-bottom: 2px;
-      color: #1a1a1a;
-    }
-
-    .polaroid-designation {
-      font-size: 1.3rem;
-      color: #555;
-      font-weight: 600;
-    }
-
-    /* About hero (matches reference layout) */
-    .about-hero {
-      position: relative;
-      min-height: min(78vh, 820px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-bottom: 8px;
-    }
-
-    .about-hero__content {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 18px;
-      position: relative;
-      z-index: 10;
-    }
-
-    .about-hero__title {
-      font-size: clamp(46px, 6.6vw, 90px);
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      line-height: 0.95;
-      color: rgba(255, 255, 255, 0.96);
-      margin-top: 0;
-      text-transform: lowercase;
-    }
-
-    .about-hero__media {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      position: relative;
-      padding-top: 44px; /* space for overlapping title */
-    }
-
-    /* "about us" sits half-over the top center of the video */
-    .about-hero__media > .about-hero__title {
-      position: absolute;
-      left: 50%;
-      top: 44px;
-      transform: translate(-50%, -50%);
-      z-index: 30;
-      text-shadow:
-        0 18px 60px rgba(0, 0, 0, 0.55),
-        0 2px 0 rgba(0, 0, 0, 0.25);
-      pointer-events: none;
-    }
-
-    .about-hero__video {
-      width: min(860px, 100%); /* reduced width */
-      aspect-ratio: 16 / 9;
-      border-radius: 28px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow:
-        0 32px 90px rgba(0, 0, 0, 0.6),
-        0 2px 0 rgba(255, 255, 255, 0.05);
-      background-size: cover;
-      background-position: center;
-    }
-
-    .about-hero__video::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: linear-gradient(
-        180deg,
-        rgba(0, 0, 0, 0.25) 0%,
-        rgba(0, 0, 0, 0.2) 30%,
-        rgba(0, 0, 0, 0.55) 100%
-      );
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .about-hero__video :global(.video-placeholder__inner) {
-      z-index: 2;
-    }
-
-    .about-hero__videoEl {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: inherit;
-      z-index: 0;
-      background: #000;
-    }
-
-    .about-hero__blurb {
-      margin-top: 14px;
-      max-width: 980px;
-      color: rgba(255, 255, 255, 0.72);
-      font-size: 16px;
-      line-height: 1.8;
-    }
-
-    .about-hero__mark {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      color: rgba(229, 231, 235, 1); /* like IntroSection (text-gray-200) */
-      opacity: 0.1; /* like IntroSection (opacity-10) */
-      pointer-events: none;
-      user-select: none;
-      z-index: 1;
-    }
-
-    .about-hero__markSvg {
-      height: min(80vh, 760px);
-      width: auto;
-      filter: drop-shadow(0 26px 80px rgba(0, 0, 0, 0.55));
-      /* Fade the mark out near the bottom (towards video area) */
-      -webkit-mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 62%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      mask-image: linear-gradient(
-        to bottom,
-        rgba(0, 0, 0, 1) 0%,
-        rgba(0, 0, 0, 1) 62%,
-        rgba(0, 0, 0, 0) 100%
-      );
-      -webkit-mask-repeat: no-repeat;
-      mask-repeat: no-repeat;
-      -webkit-mask-size: 100% 100%;
-      mask-size: 100% 100%;
-    }
-
-    .about-hero__polaroids {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      user-select: none;
-      z-index: 6;
-    }
-
-    .about-hero__polaroid {
-      position: absolute;
-      width: 116px;
-      padding: 10px 10px 18px;
-      background: rgba(255, 255, 255, 0.96);
-      border-radius: 10px;
-      box-shadow:
-        0 30px 70px rgba(0, 0, 0, 0.55),
-        0 2px 0 rgba(0, 0, 0, 0.08);
-      transform-origin: 50% 20%;
-    }
-
-    .about-hero__polaroid img {
-      width: 100%;
-      height: 88px;
-      object-fit: cover;
-      display: block;
-      border-radius: 7px;
-    }
-
-    .about-hero__polaroid.p1 {
-      left: 22%;
-      top: 36%;
-      transform: rotate(-10deg);
-      animation: floaty 5.2s ease-in-out infinite;
-    }
-
-    .about-hero__polaroid.p2 {
-      left: 14%;
-      top: 52%;
-      transform: rotate(8deg);
-      animation: floaty 6.1s ease-in-out infinite;
-      animation-delay: 0.4s;
-    }
-
-    .about-hero__polaroid.p3 {
-      right: 14%;
-      top: 32%;
-      transform: rotate(10deg);
-      animation: floaty 5.7s ease-in-out infinite;
-      animation-delay: 0.2s;
-    }
-
-    .about-hero__polaroid.p4 {
-      right: 20%;
-      top: 55%;
-      transform: rotate(-8deg);
-      animation: floaty 6.4s ease-in-out infinite;
-      animation-delay: 0.6s;
-    }
-
-    @keyframes floaty {
-      0%,
-      100% {
-        translate: 0 0;
-      }
-      50% {
-        translate: 0 -10px;
-      }
-    }
-
-    @media (max-width: 900px) {
-      .about-hero__mark {
-        opacity: 0.08;
-      }
-      .about-hero__polaroid {
-        width: 98px;
-      }
-      .about-hero__polaroid img {
-        height: 74px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .about-hero {
-        min-height: auto;
-      }
-      .about-hero__mark {
-        display: none;
-      }
-      .about-hero__polaroid {
-        display: none;
-      }
-      .about-hero__blurb {
-        text-align: left;
-        max-width: 680px;
-      }
-    }
-
-    .timeline-control {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 42px;
-      height: 42px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      background: rgba(255, 255, 255, 0.06);
-      color: rgba(255, 255, 255, 0.85);
-      transition:
-        transform 160ms ease,
-        background 160ms ease,
-        border-color 160ms ease;
-      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(10px);
-    }
-
-    .timeline-control:hover {
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.24);
-    }
-
-    .timeline-control--dark {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 153, 0, 0.9),
-        rgba(255, 102, 0, 0.78)
-      );
-      color: rgba(0, 0, 0, 0.9);
-      border-color: rgba(255, 153, 0, 0.3);
-    }
-
-    .timeline-control--dark:hover {
-      background: linear-gradient(
-        135deg,
-        rgba(255, 170, 0, 0.95),
-        rgba(255, 120, 0, 0.82)
-      );
-    }
-
-    .timeline-shell {
-      position: relative;
-      padding: 10px 8px 0;
-    }
-
-    .timeline-scroll {
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 8px 14px 18px;
-      scroll-snap-type: x mandatory;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-
-    .timeline-scroll::-webkit-scrollbar {
-      display: none;
-    }
-
-    .timeline-content {
-      --year-col: 360px;
-      --year-gap: 44px;
-      --rail-y: 66px;
-      --anchor-x: 34px;
-
-      position: relative;
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: var(--year-col);
-      column-gap: var(--year-gap);
-      align-items: start;
-      width: max-content;
-      padding: 0 10px 0;
-    }
-
-    /* Timeline rail + ticks are styled with Tailwind classes in markup */
-
-    .year-block {
-      scroll-snap-align: start;
-      position: relative;
-      /* allow rotated/translated polaroids to fit without clipping */
-      min-height: 560px;
-    }
-
-    .year-marker {
-      height: var(--rail-y);
-      position: relative;
-      z-index: 2;
-    }
-
-    .year-label {
-      position: absolute;
-      left: var(--anchor-x);
-      top: 0;
-      transform: translateX(-50%); /* center year on dot */
-      font-family: "Times New Roman", Times, serif;
-      font-style: italic;
-      font-size: 30px;
-      line-height: 1;
-      color: rgba(255, 255, 255, 0.75);
-      user-select: none;
-    }
-
-    .year-dot {
-      position: absolute;
-      left: var(--anchor-x);
-      top: 100%;
-      transform: translate(-50%, -50%);
-      width: 10px;
-      height: 10px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.78);
-      box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.08);
-      z-index: 3;
-    }
-
-    .year-stem {
-      width: 1px;
-      height: 28px;
-      background: rgba(255, 255, 255, 0.14);
-      margin-left: 0;
-      /* Align stem center exactly under the dot center */
-      left: var(--anchor-x);
-      transform: translateX(-50%);
-      position: relative;
-      z-index: 2;
-    }
-
-    .year-cards {
-      display: flex;
-      align-items: flex-start;
-      gap: 16px;
-      margin-top: -10px;
-      margin-left: calc(var(--anchor-x) - 18px);
-      position: relative;
-      z-index: 4;
-    }
-
-    .timeline-card {
-      width: 320px;
-      /* Polaroid frame */
-      background: rgba(24, 24, 24, 0.92); /* dark gray to match site */
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 10px;
-      padding: 14px 14px 22px; /* thicker bottom like polaroids */
-      box-shadow:
-        0 26px 70px rgba(0, 0, 0, 0.55),
-        0 2px 0 rgba(255, 255, 255, 0.04);
-      transform-origin: 20% 0%;
-    }
-
-    .timeline-card-img {
-      border-radius: 12px;
-      overflow: hidden;
-      background: rgba(255, 255, 255, 0.06);
-      aspect-ratio: 4 / 3;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-    }
-
-    .timeline-card-img img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .timeline-card-caption {
-      margin-top: 12px;
-      padding: 0 2px;
-      font-family: "Caveat", ui-serif, Georgia, serif;
-      font-size: 22px;
-      line-height: 1.05;
-      font-weight: 600;
-      letter-spacing: 0.01em;
-      color: rgba(255, 255, 255, 0.82);
-    }
-
-    /* Video placeholder (16:9) */
-    .video-placeholder {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      border-radius: 28px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background:
-        radial-gradient(
-          1200px 360px at 30% 20%,
-          rgba(255, 153, 0, 0.18),
-          transparent 55%
-        ),
-        radial-gradient(
-          900px 360px at 70% 70%,
-          rgba(255, 102, 0, 0.12),
-          transparent 55%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.06),
-          rgba(255, 255, 255, 0.02)
-        );
-      overflow: hidden;
-      position: relative;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-
-      opacity: 0;
-      transform: translateY(18px) scale(0.985);
-      filter: blur(8px);
-      transition:
-        opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
-        filter 700ms cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .video-placeholder.is-visible {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-      filter: blur(0);
-    }
-
-    .video-placeholder::before {
-      content: "";
-      position: absolute;
-      inset: -40%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.08),
-        transparent
-      );
-      transform: translateX(-30%);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .video-placeholder.is-visible::before {
-      opacity: 1;
-      animation: videoShimmer 2.8s linear infinite;
-    }
-
-    /* When a real video is present, don’t shimmer over it */
-    .video-placeholder.has-video::before {
-      display: none;
-    }
-
-    .video-placeholder__inner {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-    }
-
-    .video-placeholder__badge {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.75);
-      background: rgba(0, 0, 0, 0.25);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      padding: 8px 10px;
-      border-radius: 9999px;
-      backdrop-filter: blur(10px);
-    }
-
-    .video-placeholder__center {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 9999px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      background: rgba(0, 0, 0, 0.18);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
-    }
-
-    .video-placeholder__play {
-      width: 38px;
-      height: 38px;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(
-        135deg,
-        rgba(255, 153, 0, 0.95),
-        rgba(255, 102, 0, 0.78)
-      );
-      color: rgba(0, 0, 0, 0.9);
-    }
-
-    .video-placeholder__text {
-      color: rgba(255, 255, 255, 0.82);
-      font-weight: 650;
-      font-size: 14px;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-
-    .video-placeholder--hero {
-      opacity: 1;
-      transform: none;
-      filter: none;
-    }
-
-    .video-placeholder--hero::before {
-      opacity: 1;
-      animation: videoShimmer 3.2s linear infinite;
-    }
-
-    @keyframes videoShimmer {
-      0% {
-        transform: translateX(-35%) rotate(8deg);
-      }
-      100% {
-        transform: translateX(35%) rotate(8deg);
-      }
-    }
-
-    @media (min-width: 640px) {
-      .timeline-scroll {
-        padding: 10px 18px 20px;
-      }
-    }
-
-    @media (max-width: 420px) {
-      .timeline-content {
-        --year-col: 320px;
-        --year-gap: 28px;
-        --rail-y: 62px;
-        --anchor-x: 28px;
-      }
-
-      .timeline-card {
-        width: 290px;
-      }
-    }
-  </style>
-
   <script>
-    const byId = (id) => document.getElementById(id);
+    const byId = (id: string) => document.getElementById(id);
+
+    // ── About hero video: autoplay when ready ──
+    (() => {
+      const video = document.getElementById("about-hero-video");
+      if (!(video instanceof HTMLVideoElement)) return;
+      const play = () => {
+        video.play().catch(() => {});
+      };
+      if (video.readyState >= 2) play();
+      else video.addEventListener("loadeddata", play, { once: true });
+    })();
+
+    // ── About hero: scroll-driven video frame scaling ──
+    (() => {
+      const heroScroll = byId("about-hero-scroll");
+      const heroFrame = byId("about-hero-frame");
+      const heroText = byId("about-hero-text");
+      const heroTagline = byId("about-hero-tagline");
+
+      if (!heroScroll || !heroFrame) return;
+
+      const MIN_SCALE = 0.55;
+      const MAX_SCALE = 1;
+      let ticking = false;
+
+      const update = () => {
+        const rect = heroScroll.getBoundingClientRect();
+        const total = heroScroll.offsetHeight - window.innerHeight;
+        const scrolled = Math.max(0, -rect.top);
+        const progress = Math.max(0, Math.min(1, scrolled / total));
+
+        // Sine bell curve: smooth scale up then back down
+        const t = Math.sin(progress * Math.PI);
+        const scale = MIN_SCALE + (MAX_SCALE - MIN_SCALE) * t;
+
+        heroFrame.style.transform = `scale(${scale})`;
+
+        // Fade heading + tagline at peak scale
+        const textOp = (1 - 0.65 * t).toFixed(3);
+        if (heroText instanceof HTMLElement) heroText.style.opacity = textOp;
+        if (heroTagline instanceof HTMLElement)
+          heroTagline.style.opacity = textOp;
+
+        ticking = false;
+      };
+
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (!ticking) {
+            requestAnimationFrame(update);
+            ticking = true;
+          }
+        },
+        { passive: true },
+      );
+
+      update();
+    })();
 
     const timelineScroll = byId("growth-timeline-scroll");
     const timelineContent = byId("growth-timeline");
@@ -1124,7 +514,6 @@ import GradientBlob from "../components/GradientBlob.astro";
     // Scroll reveal for video placeholders
     const revealTargets: HTMLElement[] = [
       byId("growth-video-placeholder"),
-      byId("about-hero-video"),
     ].filter((el): el is HTMLElement => Boolean(el));
 
     if (revealTargets.length && "IntersectionObserver" in window) {

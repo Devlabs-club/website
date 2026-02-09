@@ -11,7 +11,7 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
     <!-- Logo section -->
     <div class="flex items-center gap-4 mr-8">
       <a href="/"
-        ><img src="/logo.svg" alt="devlabs-logo" class="h-10 w-10" /></a
+        ><img src="/logo.png" alt="devlabs-logo" class="h-10 w-10" /></a
       >
     </div>
 
@@ -29,12 +29,6 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
         href="/"
         class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
         data-section="story">story</a
-      >
-      <a
-        href="/register"
-        id="join-us-link"
-        class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
-        data-section="join-us">join us</a
       >
       <a
         href="/events"
@@ -124,12 +118,6 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
           href="/"
           class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
           data-section="story">story</a
-        >
-        <a
-          href="/register"
-          id="join-us-link-mobile"
-          class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
-          data-section="join-us">join us</a
         >
         <a
           href="/events"
@@ -261,52 +249,6 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
     const highlight = document.getElementById("active-highlight");
     const mobileMenuBtn = document.getElementById("mobile-menu-btn");
     const mobileMenu = document.getElementById("mobile-menu");
-    const joinUsLink = document.getElementById("join-us-link");
-    const joinUsLinkMobile = document.getElementById("join-us-link-mobile");
-
-    // Function to update join us links based on auth status
-    const updateJoinUsLinks = async () => {
-      try {
-        const response = await fetch("/api/auth/me", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user) {
-            // User is logged in - point to dashboard
-            if (joinUsLink) {
-              joinUsLink.setAttribute("href", "/dashboard");
-            }
-            if (joinUsLinkMobile) {
-              joinUsLinkMobile.setAttribute("href", "/dashboard");
-            }
-          } else {
-            // User is not logged in - point to registration
-            if (joinUsLink) {
-              joinUsLink.setAttribute("href", "/register");
-            }
-            if (joinUsLinkMobile) {
-              joinUsLinkMobile.setAttribute("href", "/register");
-            }
-          }
-        }
-      } catch (error) {
-        console.log("Auth check failed:", error);
-        // Default to registration page
-        if (joinUsLink) {
-          joinUsLink.setAttribute("href", "/register");
-        }
-        if (joinUsLinkMobile) {
-          joinUsLinkMobile.setAttribute("href", "/register");
-        }
-      }
-    };
-
-    // Update join us links on page load
-    updateJoinUsLinks();
-
     // Mobile menu toggle functionality
     if (mobileMenuBtn && mobileMenu) {
       mobileMenuBtn.addEventListener("click", function () {
@@ -402,7 +344,6 @@ import AuthControlsAstro from "./AuthControlsAstro.astro";
             // Add slight rotation variation for each link
             const rotations = {
               story: "-3deg",
-              "join-us": "2deg",
               events: "1deg",
               about: "-2deg",
               sponsor: "-1deg",
