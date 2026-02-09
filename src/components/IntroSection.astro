@@ -3,22 +3,27 @@
 ---
 
 <section
-  class="relative w-full overflow-visible min-h-[80vh] flex items-center z-10"
+  class="relative w-full overflow-visible min-h-[80vh] flex items-center"
   data-parallax-section
   data-parallax-depth="0.06"
 >
+
+
   <!-- Full-bleed background that overflows into adjacent sections -->
   <div
     aria-hidden="true"
-    class="news-bg-edge-fade absolute left-0 right-0 w-[110vw] z-[5] pointer-events- overflow-hidden"
+    class="absolute left-1/2 -translate-x-1/2 -top-[30%] h-[160%] w-[100vw] sm:w-[110vw] z-[0] pointer-events-none overflow-visible opacity-40 mix-blend-lighten"
   >
     <img
       src="/news-bg.png"
       alt=""
-      class="w-full h-full object-cover opacity-35"
+      class="w-full h-full object-cover"
       loading="lazy"
       decoding="async"
     />
+    <!-- Gradient Mask for edges -->
+    <div class="absolute inset-0 bg-gradient-to-r from-[#151413] via-transparent to-[#151413]"></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-[#151413] via-transparent to-[#151413] opacity-80"></div>
   </div>
 
   <!-- Centered Testimonials block on top of news background -->

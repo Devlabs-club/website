@@ -1,11 +1,11 @@
 ---
 const pressItems = [
   {
-    logo: "/sponsors/ph.png",
-    name: "Product Hunt",
-    quote: "DevLabs is building the <strong>future of student entrepreneurship</strong> in Arizona.",
-    date: "Featured in 2024",
-    link: "https://www.producthunt.com"
+    logo: "/sponsors/gpec.png",
+    name: "Greater Phoenix Economic Council (GPEC)",
+    quote: "Arizona’s first <strong>DevLabs DevHouse hacker house</strong> launches at Loloft to accelerate founders building purpose-driven tech.",
+    date: "August 2025",
+    link: "https://www.gpec.org/news/press-releases/devlabs-launches-hacker-house/"
   },
   {
     logo: "/asu.png",
@@ -15,11 +15,11 @@ const pressItems = [
     link: "https://news.asu.edu"
   },
   {
-    logo: "/sponsors/azvc.png",
-    name: "AZ Inno",
-    quote: "The <strong>most active builder community</strong> in the Southwest.",
-    date: "January 2025",
-    link: "https://www.bizjournals.com/phoenix/inno"
+    logo: "/sponsors/siliconoasis.png",
+    name: "Silicon Oasis",
+    quote: "Transforming Arizona into a <strong>global tech hub</strong> — led by local founders, built for the future.",
+    date: "2024",
+    link: "https://thesiliconoasis.org/f/arizona-builders-headed-to-san-francisco-for-devlabs-devhouse"
   }
 ];
 ---
@@ -28,6 +28,17 @@ const pressItems = [
     <!-- Let the Intro background overflow show through, then fade into theme -->
     <div aria-hidden="true" class="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#151413]/25 to-transparent"></div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <!-- Section Title (Mobile/Responsive) -->
+  <div class="absolute -top-10 left-0 right-0 flex flex-col items-center z-20 pointer-events-none">
+    <span class="monospace text-white/40 text-lg sm:text-xl tracking-wide">
+      As Seen In
+    </span>
+    <span
+      aria-hidden="true"
+      class="block w-28 sm:w-36 h-0.5 mt-2 rounded-full  bg-gradient-to-r from-transparent via-orange-400/50 to-transparent " 
+      
+    ></span>
+  </div>
         <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10">
             {pressItems.map((item) => (
                 <a href={item.link} target="_blank" rel="noopener noreferrer" class="group px-6 py-12 md:py-4 md:px-12 flex flex-col justify-between h-full transition-all duration-300 hover:bg-white/5">

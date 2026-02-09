@@ -92,9 +92,15 @@
 
   .events-parallax {
     position: relative;
-    height: 350vh;
+    height: 250vh;
     background: transparent;
     overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    .events-parallax {
+      height: 350vh;
+    }
   }
 
   /* GLOW EFFECT - fixed eclipse centered in viewport, behind everything */
