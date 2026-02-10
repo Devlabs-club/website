@@ -141,33 +141,34 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
 // New component for the Newsletter CTA
 function NewsletterCTA({ email }: { email: string }) {
   const newsletterUrl = `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
-    email
+    email,
   )}`;
 
   return (
     <div className="relative overflow-hidden rounded-[2rem] p-10 mb-8 shadow-2xl group ring-1 ring-white/10">
       {/* Background image */}
-      <div 
-        className="absolute inset-0 bg-[url('/join_now.png')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105"
-      />
-      
+      <div className="absolute inset-0 bg-[url('/join_now.png')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+
       {/* Glassmorphic overlay */}
       <div className="absolute inset-0 bg-white/5 backdrop-blur-xl border border-white/20" />
-      
+
       {/* Gradient overlay for better text contrast */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
-      
+
       {/* Grain texture overlay */}
-      <div 
+      <div
         className="absolute inset-0 opacity-50 mix-blend-overlay pointer-events-none"
-        style={{ backgroundImage: "url('/noise.png')", backgroundSize: "80px 80px" }}
+        style={{
+          backgroundImage: "url('/noise.png')",
+          backgroundSize: "80px 80px",
+        }}
       />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
         <div className="max-w-2xl space-y-3">
           <h3 className="font-serif italic text-3xl md:text-4xl text-white">
-            join our 
+            join our
             <span className="block mt-1 font-sans font-bold text-5xl md:text-6xl text-white tracking-tight drop-shadow-lg">
               newsletter
             </span>
@@ -176,7 +177,7 @@ function NewsletterCTA({ email }: { email: string }) {
             Stay updated with our new programs and grants for our buidlers.
           </p>
         </div>
-        
+
         <a
           href={newsletterUrl}
           target="_blank"
@@ -196,7 +197,7 @@ function DashboardContent() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [messageType, setMessageType] = useState<"success" | "error">(
-    "success"
+    "success",
   );
   const [hasApplicationChanges, setHasApplicationChanges] = useState(false);
   const [toast, setToast] = useState<{
@@ -222,7 +223,7 @@ function DashboardContent() {
   // Toast notification function
   const showToast = (
     message: string,
-    type: "error" | "warning" | "success"
+    type: "error" | "warning" | "success",
   ) => {
     setToast({ message, type });
     // Auto-hide toast after 5 seconds
@@ -296,7 +297,7 @@ function DashboardContent() {
     if (!hasApplicationChanges) {
       showToast(
         "Please update your application profile before uploading a resume",
-        "error"
+        "error",
       );
       // Auto-scroll to application form
       setTimeout(() => {
@@ -343,7 +344,7 @@ function DashboardContent() {
 
   // Auto-upload when a file is selected
   const handleResumeFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0] || null;
     setCurrentResumeFile(file);
@@ -356,7 +357,7 @@ function DashboardContent() {
     if (!hasApplicationChanges) {
       showToast(
         "Please update your application profile before uploading a resume",
-        "error"
+        "error",
       );
       // Auto-scroll to application form
       setTimeout(() => {
@@ -401,15 +402,14 @@ function DashboardContent() {
   if (user.role === "admin") {
     return <AdminDashboard />;
   }
- 
 
   const newsletterUrl = user?.email
     ? `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
-        user.email
+        user.email,
       )}`
     : "#";
 
-  return   (
+  return (
     <div className="min-h-screen text-gray-400">
       {/* Newsletter signup dialog */}
       {showNewsletterDialog && user?.email && (
@@ -471,8 +471,8 @@ function DashboardContent() {
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -535,8 +535,6 @@ function DashboardContent() {
                             required
                           />
                         </div>
-
-                       
                       </form>
                     </div>
                     {/* PDF Viewer */}
@@ -556,7 +554,7 @@ function DashboardContent() {
                         <label
                           htmlFor="resume"
                           className="block text-sm font-medium text-gray-300 mb-2"
-                          >
+                        >
                           Upload Resume (PDF only, max 10MB)
                         </label>
                         <input
@@ -576,8 +574,6 @@ function DashboardContent() {
                           required
                         />
                       </div>
-
-                     
                     </form>
                   </div>
                 )}

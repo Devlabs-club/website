@@ -16,7 +16,20 @@ const companies = [
     alt: "DeepMind",
     url: "https://deepmind.com",
   },
-
+  //supermemory
+  {
+    name: "supermemory",
+    logo: "/sponsors/supermemory.png",
+    alt: "supermemory",
+    url: "https://supermemory.com",
+  },
+  //standout
+  {
+    name: "Standout",
+    logo: "/sponsors/standout.png",
+    alt: "Standout",
+    url: "https://standout.com",
+  },
   //browser-use, omi, airgarage
   {
     name: "Browser-Use",
@@ -88,20 +101,22 @@ const companies = [
 ---
 
 <div class={`w-full py-12 relative overflow-hidden ${className}`}>
-  {showTitle && (
-    <div
-      class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none"
-    />
-  )}
+  {
+    showTitle && (
+      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none" />
+    )
+  }
 
-  {showTitle && (
-    <div class="text-center mb-12 relative z-20">
-      <p class="text-gray-400 text-xs font-semibold tracking-[0.2em] uppercase mb-2 glow-text-sm">
-        Trusted by Leading Teams
-      </p>
-      <div class="w-24 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent mx-auto" />
-    </div>
-  )}
+  {
+    showTitle && (
+      <div class="text-center mb-12 relative z-20">
+        <p class="text-gray-400 text-xs font-semibold tracking-[0.2em] uppercase mb-2 glow-text-sm">
+          Trusted by Leading Teams
+        </p>
+        <div class="w-24 h-px bg-gradient-to-r from-transparent via-orange-400/50 to-transparent mx-auto" />
+      </div>
+    )
+  }
 
   <!-- Marquee container with better spacing -->
   <div

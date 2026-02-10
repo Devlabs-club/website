@@ -61,7 +61,7 @@ const events = [
 ---
 
 <section
-  class="events-showcase relative w-full h-[100vh] sm:h-[130vh] min-h-[600px] sm:min-h-[900px] overflow-hidden bg-transparent text-white"
+  class="events-showcase relative w-full h-[85vh] sm:h-[85vh] min-h-[600px] sm:min-h-[85vh] overflow-hidden bg-transparent text-white"
   data-parallax-section
   aria-label="DevLabs signature programs"
   id="events-showcase"
@@ -616,6 +616,11 @@ const events = [
     filter: blur(18px);
     opacity: 0.95;
   }
+
+  /* Sponsor logo on tape: black variant for light-background logos (e.g. Loloft) */
+  .sponsor-logo-dark {
+    filter: brightness(0);
+  }
 </style>
 
 <script is:inline>
@@ -761,10 +766,12 @@ const events = [
           eventLogo.alt = `${event.name} logo`;
         }
 
-        // Sponsor logo (on tape)
+        // Sponsor logo (on tape) — use dark/black variant for light logos (e.g. Loloft) on tape
         if (sponsorLogo && event?.sponsorLogo) {
           sponsorLogo.src = event.sponsorLogo;
           sponsorLogo.alt = `${event.name} sponsor`;
+          const useDarkLogo = (event.sponsorLogo || '').toLowerCase().includes('loloft') || (event.sponsorLogo || '').toLowerCase().includes('ph.png');
+          sponsorLogo.classList.toggle('sponsor-logo-dark', useDarkLogo);
         }
       }
 

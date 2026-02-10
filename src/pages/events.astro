@@ -15,7 +15,7 @@ const events = [
       hired: '1 ',
       interview: '8'
     },
-    partners: ['/sponsors/deepmind.png', '/sponsors/browser-use.png', '/sponsors/airgarage.png', '/sponsors/omi.png'],
+    partners: ['/sponsors/deepmind.png', '/sponsors/browser-use.png', '/sponsors/airgarage.png', '/sponsors/omi.png', '/sponsors/supermemory.png', '/sponsors/standout.png'],
     highlights: ['Hiring', 'Buidler Energy', ' Hacker House'],
     date: 'Summer 2025',
     status: 'completed',
@@ -55,13 +55,13 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
     highlights: ['48-Hour Build', 'Mentor Support', 'Pitch Competition', 'Cash Prizes'],
     date: 'Spring 2025',
     status: 'completed',
-    link: 'https://entrepreneurship.engineering.asu.edu/2025/06/devhacks-2025-ignites-innovation-at-arizona-state-university/'
+    link: 'https://devhacks.devlabs.club'
   },
   {
     id: 'devspace',
     name: 'DevSpace',
     tagline: 'Go Big @ ASU',
-    description: 'DevSpace is our flagship networking and learning event that brings together Arizona\'s brightest developers, designers, and entrepreneurs. A day filled with workshops, lightning talks, and networking opportunities.',
+    description: 'DevSpace is our flagship networking and learning event that brings together Arizona\'s brightest developers, designers, and entrepreneurs. A day filled with workshops, lightning talks, and networking opportunities.<br><br> Special thanks to <a href="https://www.linkedin.com/in/hamidshojaee/" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-300 underline underline-offset-2 font-medium">Hamid Shojaee</a> for his support and belief in our mission—we\'re grateful for everything he did to make Devspace possible.',
     image: '/events/devspace.png',
     stats: {
       participants: '60+',
@@ -69,11 +69,11 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
       workshops: '5',
       collaborations: '25+'
     },
-    partners: ['/asu.png', '/sponsors/aca.png'],
+    partners: [ '/sponsors/e+i.png'],
     highlights: ['Networking Sessions', 'Technical Workshops', 'Startup Pitches', 'Mentorship Opportunities'],
     date: 'Fall 2024',
     status: 'completed',
-    link: ''
+    link: 'https://devspace.devlabs.club'
     }
 ];
 ---
@@ -146,7 +146,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                                 </span>
                             </h2>
                             <p class="text-xl md:text-2xl text-gray-300 leading-relaxed font-light max-w-2xl">
-                                {event.description}
+                                <p class="text-xl md:text-2xl text-gray-300 leading-relaxed font-light max-w-2xl [&_a]:text-orange-400 [&_a]:hover:text-orange-300 [&_a]:underline [&_a]:underline-offset-2 [&_a]:font-medium" set:html={event.description}></p>
                             </p>
                         </div>
 
@@ -158,7 +158,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                                 </div>
                                 <div class="flex flex-wrap items-center gap-8 md:gap-12 opacity-70 hover:opacity-100 transition-opacity duration-300">
                                     {event.partners.map(logo => (
-                                        <img src={logo} alt="Partner" class="h-8 md:h-10 w-auto object-contain brightness-0 invert" />
+                                        <img src={logo} alt="Partner" class="h-5 md:h-6 w-auto object-contain brightness-0 invert" />
                                     ))}
                                 </div>
                             </div>
