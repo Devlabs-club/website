@@ -20,8 +20,7 @@ export const UserProfile: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    // Optionally redirect or show success message
-    window.location.reload();
+    window.location.href = "/";
   };
 
   return (
