@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useForm, Controller, SubmitErrorHandler } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import type { SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { WrappedText } from "./text/WrappedText";
@@ -141,7 +142,7 @@ const ClientForm: React.FC = () => {
           </p>
           <button
             onClick={() => setIsSubmitted(false)}
-            className="mt-6 px-4 py-2 bg-orange-500 text-white font-semibold rounded-md hover:bg-orange-600 transition"
+            className="mt-6 px-4 py-2 bg-white text-black font-semibold rounded-md hover:bg-gray-200 transition"
           >
             Submit Another Role
           </button>
@@ -308,7 +309,7 @@ const ClientForm: React.FC = () => {
                                 : field.value.filter((v) => v !== type)
                             );
                           }}
-                          className="h-4 w-4 rounded border-gray-600 bg-neutral-800 accent-orange-500"
+                          className="h-4 w-4 rounded border-gray-600 bg-neutral-800 accent-white"
                         />
                         <span>{type}</span>
                       </label>
@@ -341,7 +342,7 @@ const ClientForm: React.FC = () => {
                                 : field.value.filter((v) => v !== mode)
                             );
                           }}
-                          className="h-4 w-4 rounded border-gray-600 bg-neutral-800 accent-orange-500"
+                          className="h-4 w-4 rounded border-gray-600 bg-neutral-800 accent-white"
                         />
                         <span>{mode}</span>
                       </label>
@@ -464,7 +465,7 @@ const ClientForm: React.FC = () => {
 
         <WrappedText
           size="large"
-          className="border-orange-300 text-orange-300 bg-transparent block"
+          className="border-white/70 text-white bg-transparent block"
         >
           <button
             type="submit"

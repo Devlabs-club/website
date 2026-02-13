@@ -2,6 +2,7 @@
 import Navbar from "../components/Navbar.astro";
 import Footer from "../components/Footer.astro";
 import NewFooter from "../components/NewFooter.astro";
+import PageLoader from "../components/PageLoader.astro";
 import "../styles/global.css";
 interface Props {
   title: string;
@@ -62,7 +63,8 @@ const { title } = Astro.props;
       rel="stylesheet"
     />
   </head>
-  <body class="text-gray-400 overflow-x-hidden">
+  <body class="text-gray-400 overflow-x-hidden loader-visible">
+    <PageLoader />
     <!-- Fixed background -->
     <div class="fixed inset-0 pointer-events-none z-0">
       <!-- Texture background -->
@@ -87,6 +89,10 @@ const { title } = Astro.props;
 
   body {
     background-color: transparent;
+  }
+
+  body.loader-visible {
+    overflow: hidden;
   }
 
   .bg-texture {

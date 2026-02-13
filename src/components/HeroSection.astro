@@ -1,7 +1,6 @@
 ---
 import CompanyMarquee from "./CompanyMarquee.astro";
 import { DottedGlowBackground } from "./ui/dotted-glow-background";
-import HeroRope from "./HeroRope";
 import { HeroParallaxDemo } from "./HeroParallaxDemo";
 import { getTweet } from "react-tweet/api";
 
@@ -37,9 +36,9 @@ const validTweets = tweets.filter((t) => t !== undefined);
 <section
   class="hero-section relative w-screen min-h-screen flex flex-col items-center"
 >
-  <!-- Dotted glow background with fade -->
+  <!-- Dotted glow background with fade (z-index below news-bg so IntroSection overflow is visible) -->
   <div
-    class="absolute top-0 left-0 w-full h-screen z-0 pointer-events-none"
+    class="absolute top-0 left-0 w-full h-screen z-[-1] pointer-events-none"
     style={{
       maskImage:
         "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)",
@@ -61,8 +60,6 @@ const validTweets = tweets.filter((t) => t !== undefined);
       speedScale={0.8}
     />
   </div>
-
-  <HeroRope client:load />
 
      <!-- Star left: large, below headline/underline -->
     <div
@@ -96,7 +93,7 @@ const validTweets = tweets.filter((t) => t !== undefined);
 
     <!-- Content: headline at 35vh from top, rest flows below -->
     <div
-      class="relative z-20 w-full max-w-5xl mx-auto flex flex-col items-center text-center"
+      class="relative z-20 w-full max-w-5xl mx-auto flex flex-col items-center text-center mt-[10vh]"
     >
       <!-- Headline: 35vh from top, fixed position from viewport top -->
       <h1

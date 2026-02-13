@@ -1,0 +1,212 @@
+---
+// Full-screen loader: shows logo with a shader mask (bottom-to-top fill) simulating progress.
+// Once filled (load complete), the logo zooms in and the site is revealed.
+---
+
+<div id="page-loader" class="page-loader" aria-hidden="true">
+  <div class="page-loader__bg">
+    <div class="page-loader__texture"></div>
+    <div class="page-loader__noise"></div>
+  </div>
+  
+  <div class="page-loader__logo-container">
+    <!-- Base Layer: Gray/Black with opacity (Unfilled state) -->
+    <img 
+      src="/logo.png" 
+      alt="DevLabs" 
+      class="page-loader__logo page-loader__logo--base" 
+      width="100" 
+      height="100" 
+    />
+    
+    <!-- Progress Layer: Orange/Colored (Filled state), masked from bottom -->
+    <div class="page-loader__logo-mask" id="loader-mask">
+      <img 
+        src="/logo.png" 
+        alt="" 
+        class="page-loader__logo page-loader__logo--fill" 
+        width="100" 
+        height="100" 
+      />
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const loader = document.getElementById("page-loader");
+    const mask = document.getElementById("loader-mask");
+    if (!loader || !mask) return;
+
+    const LOAD_DONE_CLASS = "page-loader--done";
+    const HIDDEN_CLASS = "page-loader--hidden";
+    const ZOOM_DURATION_MS = 700;
+    const HIDE_DELAY_MS = 200; // slightly longer to let 100% fill settle
+
+    // Simulation variables
+    let progress = 0;
+    let increment = 1; 
+    let interval: ReturnType<typeof setInterval>;
+    let isPageLoaded = false;
+
+    function updateMask(percent: number) {
+      if (mask) {
+        // Fill from bottom: height %
+        mask.style.height = `${percent}%`;
+      }
+    }
+
+    // Start simulating progress
+    interval = setInterval(() => {
+      // Slow down as we get closer to 90% if page isn't loaded yet
+      if (progress < 90) {
+        if (progress > 70) increment = 0.5;
+        if (progress > 85) increment = 0.2;
+        progress += increment;
+        updateMask(progress);
+      }
+    }, 20);
+
+    function finishLoader() {
+      // Mark page as loaded
+      isPageLoaded = true;
+      
+      // Clear simulation interval
+      clearInterval(interval);
+      
+      // Quickly animate to 100%
+      progress = 100;
+      updateMask(100);
+
+      // Wait a moment for the fill to complete visually, then do the zoom out
+      setTimeout(() => {
+        if (!loader) return;
+        loader.classList.add(LOAD_DONE_CLASS);
+        document.body.classList.remove("loader-visible");
+
+        // After zoom + fade, remove from DOM
+        setTimeout(() => {
+          if (!loader) return;
+          loader.classList.add(HIDDEN_CLASS);
+          setTimeout(() => loader.remove(), 400);
+        }, ZOOM_DURATION_MS + HIDE_DELAY_MS);
+      }, 400); // 400ms delay at 100% before zooming
+    }
+
+    if (document.readyState === "complete") {
+      finishLoader();
+    } else {
+      window.addEventListener("load", finishLoader, { once: true });
+    }
+  })();
+</script>
+
+<style>
+  .page-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0.6s step-end;
+  }
+
+  .page-loader--done {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0.6s step-end 0.6s;
+  }
+
+  .page-loader--hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .page-loader__bg {
+    position: absolute;
+    inset: 0;
+  }
+
+  .page-loader__texture {
+    position: absolute;
+    inset: 0;
+    background-image: url("/texture.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: repeat;
+  }
+
+  .page-loader__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("/noise.png");
+    background-size: 100px 100px;
+    background-repeat: repeat;
+    opacity: 0.06;
+    mix-blend-mode: overlay;
+  }
+
+  /* Logo Container */
+  .page-loader__logo-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    z-index: 10;
+  }
+
+  /* Base Logo: Gray/Black, semi-transparent */
+  .page-loader__logo--base {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Make it gray/black and dim */
+    filter: grayscale(100%) brightness(0.3) opacity(0.4); 
+  }
+
+  /* Mask Container for Fill Layer */
+  .page-loader__logo-mask {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%; /* Starts at 0% */
+    overflow: hidden;
+    transition: height 0.1s linear; /* Smooth fill */
+    will-change: height;
+  }
+
+  /* Fill Logo: The actual orange/colored logo */
+  .page-loader__logo--fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100px; /* Must match container width */
+    height: 100px; /* Must match container height */
+    object-fit: contain;
+  }
+  
+  /* Shared Logo Styles */
+  .page-loader__logo {
+    display: block;
+    transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Zoom Effect on completion */
+  .page-loader--done .page-loader__logo {
+    transform: scale(3.5);
+  }
+
+  /* Unclip the mask when done so the logo can zoom out freely */
+  .page-loader--done .page-loader__logo-mask {
+    overflow: visible;
+  }
+</style>

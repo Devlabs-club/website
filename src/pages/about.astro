@@ -32,6 +32,7 @@ import Layout from "../layouts/Layout.astro";
           loop
           playsinline
           autoplay
+          muted
           preload="auto"
           class="w-full h-full object-cover block"
         >
@@ -133,16 +134,12 @@ import Layout from "../layouts/Layout.astro";
             class="flex flex-col items-center justify-between gap-6 px-4 sm:px-0"
           >
             <div class="">
-              <p class="text-white/70 text-sm font-medium tracking-wide">
+              <p class="text-xs text-gray-500 uppercase tracking-[0.2em] font-bold mb-2">
                 our growth
               </p>
               <div class="flex-row">
-                <h2 class="text-4xl sm:text-5xl leading-0 text-white">
-                  one <span
-                    class="font-serif italic font-medium text-[7rem] text-white"
-                    >story</span
-                  >
-                  to tell
+                <h2 class="text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight text-white font-sans">
+                  one <span class="font-bold">story</span> to tell
                 </h2>
               </div>
             </div>
@@ -159,16 +156,14 @@ import Layout from "../layouts/Layout.astro";
               - TimelineCard (cards hang below via stem)
             -->
               <div class="relative">
-                <!-- Left edge: black fade so timeline fades in from the left -->
+                <!-- Left edge: fade timeline into page texture (not solid black) -->
                 <div
-                  class="absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none"
-                  style="background: linear-gradient(to right, #0a0a0a 0%, transparent 100%);"
+                  class="absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none timeline-edge-fade timeline-edge-fade--left"
                   aria-hidden="true"
                 />
-                <!-- Right edge: black fade so timeline fades out to the right -->
+                <!-- Right edge: fade timeline into page texture (not solid black) -->
                 <div
-                  class="absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none"
-                  style="background: linear-gradient(to left, #0a0a0a 0%, transparent 100%);"
+                  class="absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none timeline-edge-fade timeline-edge-fade--right"
                   aria-hidden="true"
                 />
                 <div
@@ -290,7 +285,7 @@ import Layout from "../layouts/Layout.astro";
                           <div class="snap-start relative min-h-[560px]">
                             <div class="h-[var(--rail-y)] relative z-[2]">
                               <div
-                                class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-serif italic text-3xl leading-none text-white/75 select-none"
+                                class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-sans font-bold text-2xl tracking-tight leading-none text-white/75 select-none"
                                 style={showYear ? undefined : "opacity: 0;"}
                               >
                                 {dateDisplay}
@@ -320,11 +315,14 @@ import Layout from "../layouts/Layout.astro";
                                   />
                                 </div>
                                 <div class="mt-3 px-0.5">
-                                  <div class="font-[Mistrully,ui-serif,Georgia,serif] text-[22px] leading-[1.05] font-semibold tracking-wide text-white/80">
-                                    {item.title}
+                                  <div class="font-sans font-bold text-xl tracking-tight text-white">
+                                    <span class="relative inline">
+                                      {item.title}
+                                      <span class="absolute bottom-0.5 left-0 w-full h-[6px] bg-orange-500 -z-10 transform -rotate-1 opacity-80 mix-blend-screen" aria-hidden="true"></span>
+                                    </span>
                                   </div>
                                   {item.bullets && item.bullets.length > 0 ? (
-                                    <ul class="mt-2.5 space-y-1.5 text-sm text-white/65 font-[Manrope,system-ui,sans-serif] leading-snug list-disc list-inside">
+                                    <ul class="mt-2.5 space-y-1.5 text-base text-gray-300 leading-relaxed font-light list-disc list-inside font-sans">
                                       {item.bullets.map((b) => (
                                         <li>{b}</li>
                                       ))}
@@ -758,4 +756,21 @@ import Layout from "../layouts/Layout.astro";
     });
     window.addEventListener("resize", debounce(renderTimelineTicks, 120));
   </script>
+
+  <style>
+    /* Timeline edge fades: use page texture so content fades into textured background, not solid black */
+    .timeline-edge-fade {
+      background-image: url("/texture.png");
+      background-size: cover;
+      background-position: center;
+    }
+    .timeline-edge-fade--left {
+      mask-image: linear-gradient(to right, black 0%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to right, black 0%, transparent 100%);
+    }
+    .timeline-edge-fade--right {
+      mask-image: linear-gradient(to left, black 0%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to left, black 0%, transparent 100%);
+    }
+  </style>
 </Layout>
