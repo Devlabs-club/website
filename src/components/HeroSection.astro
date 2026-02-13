@@ -1,203 +1,257 @@
 ---
 import CompanyMarquee from "./CompanyMarquee.astro";
-import { Icon } from "free-astro-components";
+import { DottedGlowBackground } from "./ui/dotted-glow-background";
+import HeroRope from "./HeroRope";
+import { HeroParallaxDemo } from "./HeroParallaxDemo";
+import { getTweet } from "react-tweet/api";
+
+const tweetIds = [
+  "1928619327542145295",
+  "1923056107817144526",
+  "2007508417276195234",
+  "2018830577957224829",
+  "2015186024713081271",
+  "2016245796816244936",
+  "2016452633876381946",
+  "1928619327542145295",
+  "1923056107817144526",
+  "2007508417276195234",
+  "2018830577957224829",
+  "2015186024713081271",
+  "2016245796816244936",
+  "2016452633876381946",
+];
+
+const tweets = await Promise.all(tweetIds.map(async (id) => {
+    try {
+        return await getTweet(id);
+    } catch (e) {
+        console.error(`Failed to fetch tweet ${id}`, e);
+        return undefined;
+    }
+}));
+
+const validTweets = tweets.filter((t) => t !== undefined);
 ---
 
 <section
-  class="hero-section relative w-screen min-h-screen overflow-hidden flex flex-col items-center py-20 px-4"
-  data-parallax-section
+  class="hero-section relative w-screen min-h-screen flex flex-col items-center"
 >
-  <!-- Dark background -->
-  <div class="absolute inset-0 z-0" aria-hidden="true"></div>
-
-  <!-- Star left: large, below headline/underline -->
+  <!-- Dotted glow background with fade -->
   <div
-    class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] left-0 pointer-events-none"
-    style="top: 40vh;"
+    class="absolute top-0 left-0 w-full h-screen z-0 pointer-events-none"
+    style={{
+      maskImage:
+        "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)",
+      WebkitMaskImage:
+        "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)",
+    }}
     aria-hidden="true"
   >
-    <img
-      src="/star.svg"
-      alt=""
-      class="w-full h-auto block"
-      width="487"
-      height="485"
+    <DottedGlowBackground
+      client:load
+      className="w-full h-full"
+      color="rgba(255,255,255,0.5)"
+      glowColor="rgba(250, 125, 34, 0.75)"
+      gap={14}
+      radius={2}
+      opacity={0.7}
+      speedMin={0.3}
+      speedMax={1}
+      speedScale={0.8}
     />
   </div>
 
-  <!-- Star right: below headline/underline -->
-  <div
-    class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none"
-    style="top: 38vh;"
-    aria-hidden="true"
-  >
-    <img
-      src="/star.svg"
-      alt=""
-      class="w-full h-auto block"
-      width="487"
-      height="485"
-    />
-  </div>
+  <HeroRope client:load />
 
-  <!-- Content: headline at 35vh from top, rest flows below -->
-  <div
-    class="relative z-20 w-full max-w-5xl mx-auto flex flex-col items-center text-center"
-  >
-    <!-- Headline: 35vh from top, fixed position from viewport top -->
-    <h1
-      class="hero-headline text-white mb-8 md:mb-10 text-center shrink-0 mt-[15vh]"
+     <!-- Star left: large, below headline/underline -->
+    <div
+      class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] left-0 pointer-events-none"
+      style="top: 40vh;"
+      aria-hidden="true"
     >
-      <span class="block">
-        <span
-          class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
-          >we help
-        </span>
-        <span
-          class="hero-headline-emphasis font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
-          >builders</span
-        >
-      </span>
-      <span class="block">
-        <span
-          class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
-          >go big
-        </span>
-        <span
-          class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
-          >or
-        </span>
-        <span
-          class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
-          >get hired</span
-        >
-      </span>
-    </h1>
+      <img
+        src="/star.svg"
+        alt=""
+        class="w-full h-auto block"
+        width="487"
+        height="485"
+      />
+    </div>
 
-    <!-- Everything below headline: logo, stats, marquee -->
-    <div class="flex flex-col items-center justify-start w-full shrink-0">
-      <!-- Center logo -->
-      <div class="hero-logo w-16 h-16 mb-10 flex-shrink-0">
-        <img
-          src="/logo.png"
-          alt="DevLabs"
-          class="w-full h-full object-contain"
-          width="112"
-          height="112"
-        />
-      </div>
+    <!-- Star right: below headline/underline -->
+    <div
+      class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none"
+      style="top: 38vh;"
+      aria-hidden="true"
+    >
+      <img
+        src="/star.svg"
+        alt=""
+        class="w-full h-auto block"
+        width="487"
+        height="485"
+      />
+    </div>
 
-      <div
-        class="grid grid-cols-2 justify-center gap-3 md:gap-16 lg:gap-24 max-w-4xl mb-10"
+    <!-- Content: headline at 35vh from top, rest flows below -->
+    <div
+      class="relative z-20 w-full max-w-5xl mx-auto flex flex-col items-center text-center"
+    >
+      <!-- Headline: 35vh from top, fixed position from viewport top -->
+      <h1
+        class="hero-headline text-white mb-8 md:mb-10 text-center shrink-0 mt-[15vh]"
       >
-        <!-- Primary CTA: Join now -->
-        <a
-          href="/api/auth/oauth/login"
-          class="hero-join-cta group relative inline-flex items-center justify-center gap-1.5 md:gap-2 px-4 py-2.5 md:px-12 md:py-5
-               rounded-full overflow-hidden whitespace-nowrap
-               bg-white text-[#1a1a1a] font-semibold text-sm md:text-xl tracking-wide
-               shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
-               transition-all duration-400 ease-out
-               hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
-               hover:-translate-y-0.5
-               active:scale-[0.98]"
-        >
-          <span class="relative z-10">join now</span>
+        <span class="block">
           <span
-            class="hero-join-cta-arrow relative z-10 w-3.5 h-3.5 md:w-4 md:h-4 transition-transform duration-300 group-hover:translate-x-1"
-            aria-hidden="true"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              ><path d="M5 12h14M12 5l7 7-7 7"></path></svg
-            >
+            class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
+            >we help
           </span>
-          <!-- Warm glow behind on hover -->
           <span
-            class="absolute inset-0 rounded-full bg-gradient-to-r from-[#fa7d22]/0 via-[#fa7d22]/10 to-[#fa7d22]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
-            aria-hidden="true"></span>
-        </a>
-
-        <!-- Secondary CTA -->
-        <a
-          href="/find-talent"
-          class="group relative inline-flex items-center justify-center px-4 py-2.5 md:px-10 md:py-4
-               rounded-full whitespace-nowrap
-               bg-gradient-to-br from-white/10 via-white/5 to-transparent
-               backdrop-blur-xl border border-white/20
-               text-white font-medium text-sm md:text-lg
-               transition-all duration-400
-               shadow-[0_8px_32px_rgba(255,255,255,0.06)]
-               hover:scale-[1.02] hover:border-white/35 hover:shadow-[0_12px_40px_rgba(255,255,255,0.12)]
-               hover:from-white/15 hover:via-white/10 hover:to-white/5"
-        >
-          <span class="relative z-10 drop-shadow-sm">meet our talent</span>
-        </a>
-      </div>
-
-      <!-- Stats -->
-      <div
-        class="hero-stats flex flex-wrap justify-center gap-8 lg:gap-12 max-w-4xl opacity-80 mt-10"
-      >
-        <div class="flex flex-col items-start w-fit">
-          <span
-            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
-            >500+</span
-          >
-          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+            class="hero-headline-emphasis font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
             >builders</span
           >
-        </div>
-
-        <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
-
-        <div class="flex flex-col items-start w-fit">
+        </span>
+        <span class="block">
           <span
-            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
-            >50+</span
-          >
-          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
-            >startups built</span
-          >
-        </div>
-
-        <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
-
-        <div class="flex flex-col items-start w-fit">
+            class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
+            >go big
+          </span>
           <span
-            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
-            >120k+</span
-          >
-          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
-            >raised</span
-          >
-        </div>
-
-        <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
-
-        <div class="flex flex-col items-start w-fit">
+            class="hero-headline-intro font-manrope text-xl md:text-2xl lg:text-3xl font-normal text-white"
+            >or
+          </span>
           <span
-            class="font-manrope text-2xl md:text-6xl font-semibold text-white"
-            >10+</span
+            class="hero-headline-emphasis hero-underline font-serif italic text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl text-white leading-tight"
+            >get hired</span
           >
-          <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
-            >events</span
-          >
-        </div>
-      </div>
+        </span>
+      </h1>
 
-      <!-- Company marquee -->
-      <div class="hero-marquee w-full mt-14 md:mt-20 mb-14 md:mb-20">
-        <CompanyMarquee />
+      <!-- Everything below headline: logo, stats, marquee -->
+      <div class="flex flex-col items-center justify-start w-full shrink-0">
+        <!-- Center logo -->
+        <div class="hero-logo w-16 h-16 mb-10 flex-shrink-0">
+          <img
+            src="/logo.png"
+            alt="DevLabs"
+            class="w-full h-full object-contain"
+            width="112"
+            height="112"
+          />
+        </div>
+
+        <div
+          class="grid grid-cols-2 justify-center gap-3 md:gap-16 lg:gap-24 max-w-4xl mb-10"
+        >
+          <!-- Primary CTA: Join now -->
+          <a
+            href="/api/auth/oauth/login"
+            class="hero-join-cta group relative inline-flex items-center justify-center gap-1.5 md:gap-2 px-4 py-2.5 md:px-12 md:py-5
+                 rounded-full overflow-hidden whitespace-nowrap
+                 bg-white text-[#1a1a1a] font-semibold text-sm md:text-xl tracking-wide
+                 shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
+                 transition-all duration-400 ease-out
+                 hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
+                 hover:-translate-y-0.5
+                 active:scale-[0.98]"
+          >
+            <span class="relative z-10">join now</span>
+            <span
+              class="hero-join-cta-arrow relative z-10 w-3.5 h-3.5 md:w-4 md:h-4 transition-transform duration-300 group-hover:translate-x-1"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M5 12h14M12 5l7 7-7 7"></path></svg
+              >
+            </span>
+            <!-- Warm glow behind on hover -->
+            <span
+              class="absolute inset-0 rounded-full bg-gradient-to-r from-[#fa7d22]/0 via-[#fa7d22]/10 to-[#fa7d22]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-400"
+              aria-hidden="true"></span>
+          </a>
+
+          <!-- Secondary CTA -->
+          <a
+            href="/clientform"
+            class="group relative inline-flex items-center justify-center px-4 py-2.5 md:px-10 md:py-4
+                 rounded-full whitespace-nowrap
+                 bg-gradient-to-br from-white/10 via-white/5 to-transparent
+                 backdrop-blur-xl border border-white/20
+                 text-white font-medium text-sm md:text-lg
+                 transition-all duration-400
+                 shadow-[0_8px_32px_rgba(255,255,255,0.06)]
+                 hover:scale-[1.02] hover:border-white/35 hover:shadow-[0_12px_40px_rgba(255,255,255,0.12)]
+                 hover:from-white/15 hover:via-white/10 hover:to-white/5"
+          >
+            <span class="relative z-10 drop-shadow-sm">meet our talent</span>
+          </a>
+        </div>
+
+        <!-- Stats -->
+        <div
+          class="hero-stats flex flex-wrap justify-center gap-8 lg:gap-12 max-w-4xl opacity-80 mt-10"
+        >
+          <div class="flex flex-col items-start w-fit">
+            <span
+              class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+              >500+</span
+            >
+            <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+              >builders</span
+            >
+          </div>
+
+          <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
+
+          <div class="flex flex-col items-start w-fit">
+            <span
+              class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+              >50+</span
+            >
+            <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+              >startups built</span
+            >
+          </div>
+
+          <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
+
+          <div class="flex flex-col items-start w-fit">
+            <span
+              class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+              >120k+</span
+            >
+            <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+              >raised</span
+            >
+          </div>
+
+          <div class="hidden md:block w-px h-12 bg-white/20 self-center"></div>
+
+          <div class="flex flex-col items-start w-fit">
+            <span
+              class="font-manrope text-2xl md:text-6xl font-semibold text-white"
+              >10+</span
+            >
+            <span class="font-manrope text-sm md:text-base text-white/90 mt-0.5"
+              >events</span
+            >
+          </div>
+        </div>
+
+        <!-- Company marquee -->
+        <div class="hero-marquee w-full mt-14 md:mt-20 mb-14 md:mb-20">
+          <CompanyMarquee />
+        </div>
       </div>
     </div>
-  </div>
-</section>
+ </section>
 
 <style>
   .hero-join-cta-arrow svg {

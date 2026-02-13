@@ -24,4 +24,9 @@ export default defineConfig({
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
+  vite: {
+    ssr: {
+      noExternal: ["react-tweet"],
+    },
+  },
 });

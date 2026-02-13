@@ -1,6 +1,5 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import GradientBlob from "../components/GradientBlob.astro";
 ---
 
 <Layout title="About - DevLabs">
@@ -110,11 +109,9 @@ import GradientBlob from "../components/GradientBlob.astro";
 
   <!-- Our growth timeline (anchored rail, dark theme) -->
   <section class="relative py-16 md:py-24 overflow-visible">
-    <GradientBlob top="10%" right="-20%" left="" scale="1.3" />
-
-    <!-- Full-bleed wrapper (spans viewport width); no horizontal padding on mobile so timeline can be edge-to-edge -->
+    <!-- Full-bleed wrapper: timeline uses full width of screen -->
     <div
-      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0 sm:px-6 lg:px-10 2xl:px-14"
+      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0"
     >
       <!-- Corner stars (sit above fades, below content); left star hidden on phone -->
       <img
@@ -131,7 +128,7 @@ import GradientBlob from "../components/GradientBlob.astro";
       />
       <div class="overflow-visible relative z-20">
         <div class="" aria-hidden="true"></div>
-        <div class="relative z-10 px-0 sm:px-10 pt-10 sm:pt-12 pb-6 sm:pb-8">
+        <div class="relative z-10 px-4 sm:px-6 pt-10 sm:pt-12 pb-6 sm:pb-8">
           <div
             class="flex flex-col items-center justify-between gap-6 px-4 sm:px-0"
           >
@@ -142,7 +139,7 @@ import GradientBlob from "../components/GradientBlob.astro";
               <div class="flex-row">
                 <h2 class="text-4xl sm:text-5xl leading-0 text-white">
                   one <span
-                    class="font-serif italic font-medium text-[7rem] text-orange-300"
+                    class="font-serif italic font-medium text-[7rem] text-white"
                     >story</span
                   >
                   to tell
@@ -151,7 +148,7 @@ import GradientBlob from "../components/GradientBlob.astro";
             </div>
           </div>
 
-          <div class="px-0 sm:px-6 pb-10 sm:pb-12 mt-12">
+          <div class="px-0 pb-10 sm:pb-12 mt-12">
             <div
               class="relative pt-2.5 px-0 sm:px-2 pb-0"
               aria-label="DevLabs growth timeline"
@@ -161,10 +158,23 @@ import GradientBlob from "../components/GradientBlob.astro";
               - YearMarker (year label + dot anchored on rail)
               - TimelineCard (cards hang below via stem)
             -->
-              <div
-                class="overflow-x-auto overflow-y-hidden py-2 pl-5 pr-0 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-                id="growth-timeline-scroll"
-              >
+              <div class="relative">
+                <!-- Left edge: black fade so timeline fades in from the left -->
+                <div
+                  class="absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none"
+                  style="background: linear-gradient(to right, #0a0a0a 0%, transparent 100%);"
+                  aria-hidden="true"
+                />
+                <!-- Right edge: black fade so timeline fades out to the right -->
+                <div
+                  class="absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none"
+                  style="background: linear-gradient(to left, #0a0a0a 0%, transparent 100%);"
+                  aria-hidden="true"
+                />
+                <div
+                  class="overflow-x-auto overflow-y-hidden py-2 pl-5 pr-0 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                  id="growth-timeline-scroll"
+                >
                 <div
                   class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-0 sm:px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
                   id="growth-timeline"
@@ -178,24 +188,26 @@ import GradientBlob from "../components/GradientBlob.astro";
                   {
                     [
                       {
-                        year: "2023",
-                        cards: [
-                          {
-                            title: "DevLabs begins",
-                            image: "/events/DevHacks6.jpg",
-                            rotate: "-2.6deg",
-                            y: "-10px",
-                          },
-                        ],
-                      },
-                      {
                         year: "2024",
                         cards: [
                           {
-                            title: "DevSpace",
+                            dateLabel: "March 2024",
+                            title: "The beginning",
+                            image: "/events/DevHacks6.jpg",
+                            rotate: "-2.6deg",
+                            y: "-10px",
+                            bullets: [
+                              "We started in a dorm study room with a group of 10 friends",
+                              "0 connections, 0 network, 0 direction",
+                            ],
+                          },
+                          {
+                            dateLabel: "August 2024",
+                            title: "First event",
                             image: "/events/devspace.png",
                             rotate: "2.4deg",
                             y: "18px",
+                            bullets: ["50+ attendees"],
                           },
                         ],
                       },
@@ -203,22 +215,50 @@ import GradientBlob from "../components/GradientBlob.astro";
                         year: "2025",
                         cards: [
                           {
-                            title: "DevHacks ’25",
+                            dateLabel: "March 2025",
+                            title: "DevHacks",
                             image: "/events/devhacks.jpg",
                             rotate: "-2.8deg",
                             y: "-16px",
+                            bullets: [
+                              "Arizona's biggest student-led hackathon with 150+ students",
+                              "Product Hunt sponsored us",
+                              "60+ projects in 36 hours",
+                            ],
                           },
                           {
-                            title: "DevHouse",
+                            dateLabel: "June 2025",
+                            title: "DevHouse AZ",
                             image: "/events/devhouse.jpeg",
                             rotate: "3.1deg",
                             y: "12px",
+                            bullets: [
+                              "Hosted Arizona's first hacker house",
+                              "Became Arizona's biggest builder community with 500+ members",
+                              "Partnered with the state's top 4 VC's — AZVC, PHX Ventures, Arizona Commerce Authority",
+                              "10 graduated startups from Class of 2025, Dev House, Arizona",
+                            ],
                           },
                           {
-                            title: "DevHouse SF",
-                            image: "/events/devhouse-sf.jpg",
+                            dateLabel: "November 2025",
+                            title: "Devspace",
+                            image: "/events/devspace.png",
                             rotate: "-2.1deg",
                             y: "34px",
+                            bullets: ["We gave away $10k grants to two startups"],
+                          },
+                          {
+                            dateLabel: "December 2025",
+                            title: "DevHouse SF",
+                            image: "/events/devhouse-sf.jpg",
+                            rotate: "2.2deg",
+                            y: "22px",
+                            bullets: [
+                              "500+ applications",
+                              "Builders flew in from Canada, London and the east coast",
+                              "1 got hired for $150k job offer @ Supermemory",
+                              "$10k in prizes for the top builders",
+                            ],
                           },
                         ],
                       },
@@ -226,10 +266,12 @@ import GradientBlob from "../components/GradientBlob.astro";
                         year: "2026",
                         cards: [
                           {
-                            title: "Momentum (coming soon)",
+                            dateLabel: "Coming soon",
+                            title: "Momentum",
                             image: "/hands-touching.png",
                             rotate: "2.2deg",
                             y: "22px",
+                            bullets: ["Nationwide startup program"],
                           },
                         ],
                       },
@@ -243,6 +285,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                       .map((item, idx, arr) => {
                         const showYear =
                           idx === 0 || arr[idx - 1].year !== item.year;
+                        const dateDisplay = item.dateLabel ?? item.year;
                         return (
                           <div class="snap-start relative min-h-[560px]">
                             <div class="h-[var(--rail-y)] relative z-[2]">
@@ -250,7 +293,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                                 class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-serif italic text-3xl leading-none text-white/75 select-none"
                                 style={showYear ? undefined : "opacity: 0;"}
                               >
-                                {item.year}
+                                {dateDisplay}
                               </div>
                               <div
                                 class="absolute left-[var(--anchor-x)] top-full -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white/80 shadow-[0_0_0_5px_rgba(255,255,255,0.08)] z-[3]"
@@ -276,8 +319,17 @@ import GradientBlob from "../components/GradientBlob.astro";
                                     class="w-full h-full object-cover block"
                                   />
                                 </div>
-                                <div class="mt-3 px-0.5 font-[Mistrully,ui-serif,Georgia,serif] text-[22px] leading-[1.05] font-semibold tracking-wide text-white/80">
-                                  {item.title}
+                                <div class="mt-3 px-0.5">
+                                  <div class="font-[Mistrully,ui-serif,Georgia,serif] text-[22px] leading-[1.05] font-semibold tracking-wide text-white/80">
+                                    {item.title}
+                                  </div>
+                                  {item.bullets && item.bullets.length > 0 ? (
+                                    <ul class="mt-2.5 space-y-1.5 text-sm text-white/65 font-[Manrope,system-ui,sans-serif] leading-snug list-disc list-inside">
+                                      {item.bullets.map((b) => (
+                                        <li>{b}</li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -286,6 +338,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                       })
                   }
                 </div>
+              </div>
               </div>
             </div>
 
@@ -314,7 +367,7 @@ import GradientBlob from "../components/GradientBlob.astro";
                 type="button"
                 id="timeline-next-mobile"
                 aria-label="Scroll timeline right"
-                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-orange-400/30 bg-gradient-to-br from-orange-400/90 to-orange-500/80 text-black/90 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:from-orange-400/95 hover:to-orange-500/90"
+                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-white/20 bg-white/10 text-white/85 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:bg-white/15 hover:border-white/25"
               >
                 <svg
                   viewBox="0 0 24 24"

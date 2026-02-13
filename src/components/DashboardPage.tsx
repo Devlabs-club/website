@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./auth_manager";
 import AdminDashboard from "./AdminDashboard";
 import { UserProfile } from "./UserProfile";
@@ -145,7 +146,12 @@ function NewsletterCTA({ email }: { email: string }) {
   )}`;
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem] p-10 mb-8 shadow-2xl group ring-1 ring-white/10">
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="relative overflow-hidden rounded-[2rem] p-10 mb-8 shadow-2xl group ring-1 ring-white/10"
+    >
       {/* Background image */}
       <div className="absolute inset-0 bg-[url('/join_now.png')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
 
@@ -187,7 +193,7 @@ function NewsletterCTA({ email }: { email: string }) {
           Join now
         </a>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -207,13 +213,25 @@ function DashboardContent() {
   const [currentResumeFile, setCurrentResumeFile] = useState<File | null>(null);
   const applicationFormRef = useRef<HTMLDivElement>(null);
   const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
+  const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState<
+    boolean | null
+  >(null);
 
-  // Show newsletter dialog when user lands on dashboard (once per session)
+  // Check Beehiv subscription status - wait for response before showing CTA/dialog
   useEffect(() => {
     if (!user?.email) return;
+    fetch("/api/newsletter/check-subscription", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setIsNewsletterSubscribed(data.subscribed === true))
+      .catch(() => setIsNewsletterSubscribed(false));
+  }, [user?.email]);
+
+  // Show newsletter dialog only when we know user is not subscribed (once per session)
+  useEffect(() => {
+    if (!user?.email || isNewsletterSubscribed !== false) return;
     const dismissed = sessionStorage.getItem("newsletter-dialog-dismissed");
     if (!dismissed) setShowNewsletterDialog(true);
-  }, [user?.email]);
+  }, [user?.email, isNewsletterSubscribed]);
 
   const closeNewsletterDialog = () => {
     setShowNewsletterDialog(false);
@@ -411,58 +429,60 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen text-gray-400">
-      {/* Newsletter signup dialog */}
-      {showNewsletterDialog && user?.email && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={closeNewsletterDialog}
-            aria-hidden="true"
-          />
-          <div
-            className="relative w-full max-w-md rounded-2xl border border-white/20 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="newsletter-dialog-title"
-          >
-            <button
-              type="button"
+      {/* Newsletter signup dialog - only when we know user is not subscribed */}
+      {showNewsletterDialog &&
+        user?.email &&
+        isNewsletterSubscribed === false && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={closeNewsletterDialog}
-              className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors p-1"
-              aria-label="Close"
+              aria-hidden="true"
+            />
+            <div
+              className="relative w-full max-w-md rounded-2xl border border-white/20 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="newsletter-dialog-title"
             >
-              <span className="text-2xl leading-none">×</span>
-            </button>
-            <h2
-              id="newsletter-dialog-title"
-              className="font-serif italic text-2xl md:text-3xl text-white mb-2"
-            >
-              Join the newsletter now
-            </h2>
-            <p className="text-gray-300 text-lg mb-6">
-              Stay updated with our new programs and grants for our builders.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href={newsletterUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeNewsletterDialog}
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-100 transition-colors"
-              >
-                Join now
-              </a>
               <button
                 type="button"
                 onClick={closeNewsletterDialog}
-                className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/30 text-gray-300 hover:bg-white/10 transition-colors"
+                className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors p-1"
+                aria-label="Close"
               >
-                Maybe later
+                <span className="text-2xl leading-none">×</span>
               </button>
+              <h2
+                id="newsletter-dialog-title"
+                className="font-serif italic text-2xl md:text-3xl text-white mb-2"
+              >
+                Join the newsletter now
+              </h2>
+              <p className="text-gray-300 text-lg mb-6">
+                Stay updated with our new programs and grants for our builders.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={newsletterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeNewsletterDialog}
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-100 transition-colors"
+                >
+                  Join now
+                </a>
+                <button
+                  type="button"
+                  onClick={closeNewsletterDialog}
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/30 text-gray-300 hover:bg-white/10 transition-colors"
+                >
+                  Maybe later
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Toast Notification */}
       {toast && (
@@ -496,7 +516,34 @@ function DashboardContent() {
 
       <main className="relative z-10 max-w-7xl mx-auto py-24 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          {user?.email && <NewsletterCTA email={user.email} />}
+          {/* Welcome greeting */}
+          <h1 className=" text-5xl   text-white mb-6">
+            hey{" "}
+            <span className="font-serif italic  text-7xl text-white relative inline-block">
+              {user?.name?.split(" ")[0] ?? "there"}
+              <span
+                className="sponsor-benefit-underline"
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  bottom: "0.0em",
+                  left: 0,
+                  width: "100%",
+                  height: "0.2em",
+                  backgroundColor: "#f97316",
+                  opacity: 0.8,
+                  zIndex: -1,
+                  transform: "rotate(-1deg)",
+                  transformOrigin: "left center",
+                  display: "block",
+                  pointerEvents: "none",
+                }}
+              ></span>
+            </span>
+          </h1>
+          {user?.email && isNewsletterSubscribed === false && (
+            <NewsletterCTA email={user.email} />
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
