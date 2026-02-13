@@ -111,9 +111,7 @@ import Layout from "../layouts/Layout.astro";
   <!-- Our growth timeline (anchored rail, dark theme) -->
   <section class="relative py-16 md:py-24 overflow-visible">
     <!-- Full-bleed wrapper: timeline uses full width of screen -->
-    <div
-      class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0"
-    >
+    <div class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0">
       <!-- Corner stars (sit above fades, below content); left star hidden on phone -->
       <img
         src="/star.svg"
@@ -134,11 +132,15 @@ import Layout from "../layouts/Layout.astro";
             class="flex flex-col items-center justify-between gap-6 px-4 sm:px-0"
           >
             <div class="">
-              <p class="text-xs text-gray-500 uppercase tracking-[0.2em] font-bold mb-2">
+              <p
+                class="text-xs text-gray-500 uppercase tracking-[0.2em] font-bold mb-2"
+              >
                 our growth
               </p>
               <div class="flex-row">
-                <h2 class="text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight text-white font-sans">
+                <h2
+                  class="text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight text-white font-sans"
+                >
                   one <span class="font-bold">story</span> to tell
                 </h2>
               </div>
@@ -156,187 +158,182 @@ import Layout from "../layouts/Layout.astro";
               - TimelineCard (cards hang below via stem)
             -->
               <div class="relative">
-                <!-- Left edge: fade timeline into page texture (not solid black) -->
                 <div
-                  class="absolute left-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none timeline-edge-fade timeline-edge-fade--left"
-                  aria-hidden="true"
-                />
-                <!-- Right edge: fade timeline into page texture (not solid black) -->
-                <div
-                  class="absolute right-0 top-0 bottom-0 w-12 sm:w-20 z-10 pointer-events-none timeline-edge-fade timeline-edge-fade--right"
-                  aria-hidden="true"
-                />
-                <div
-                  class="overflow-x-auto overflow-y-hidden py-2 pl-5 pr-0 pb-[18px] sm:py-2.5 sm:px-4.5 sm:pb-5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                  class="overflow-x-auto overflow-y-hidden pt-1 pb-20 pl-5 pr-0 sm:pt-20 sm:pb-24 sm:px-4.5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
                   id="growth-timeline-scroll"
                 >
-                <div
-                  class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-0 sm:px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
-                  id="growth-timeline"
-                >
                   <div
-                    class="timeline-ticks absolute inset-0 pointer-events-none z-[1]"
-                    aria-hidden="true"
+                    class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-0 sm:px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
+                    id="growth-timeline"
                   >
-                  </div>
+                    <div
+                      class="timeline-ticks absolute inset-0 pointer-events-none z-[1]"
+                      aria-hidden="true"
+                    >
+                    </div>
 
-                  {
-                    [
-                      {
-                        year: "2024",
-                        cards: [
-                          {
-                            dateLabel: "March 2024",
-                            title: "The beginning",
-                            image: "/events/DevHacks6.jpg",
-                            rotate: "-2.6deg",
-                            y: "-10px",
-                            bullets: [
-                              "We started in a dorm study room with a group of 10 friends",
-                              "0 connections, 0 network, 0 direction",
-                            ],
-                          },
-                          {
-                            dateLabel: "August 2024",
-                            title: "First event",
-                            image: "/events/devspace.png",
-                            rotate: "2.4deg",
-                            y: "18px",
-                            bullets: ["50+ attendees"],
-                          },
-                        ],
-                      },
-                      {
-                        year: "2025",
-                        cards: [
-                          {
-                            dateLabel: "March 2025",
-                            title: "DevHacks",
-                            image: "/events/devhacks.jpg",
-                            rotate: "-2.8deg",
-                            y: "-16px",
-                            bullets: [
-                              "Arizona's biggest student-led hackathon with 150+ students",
-                              "Product Hunt sponsored us",
-                              "60+ projects in 36 hours",
-                            ],
-                          },
-                          {
-                            dateLabel: "June 2025",
-                            title: "DevHouse AZ",
-                            image: "/events/devhouse.jpeg",
-                            rotate: "3.1deg",
-                            y: "12px",
-                            bullets: [
-                              "Hosted Arizona's first hacker house",
-                              "Became Arizona's biggest builder community with 500+ members",
-                              "Partnered with the state's top 4 VC's — AZVC, PHX Ventures, Arizona Commerce Authority",
-                              "10 graduated startups from Class of 2025, Dev House, Arizona",
-                            ],
-                          },
-                          {
-                            dateLabel: "November 2025",
-                            title: "Devspace",
-                            image: "/events/devspace.png",
-                            rotate: "-2.1deg",
-                            y: "34px",
-                            bullets: ["We gave away $10k grants to two startups"],
-                          },
-                          {
-                            dateLabel: "December 2025",
-                            title: "DevHouse SF",
-                            image: "/events/devhouse-sf.jpg",
-                            rotate: "2.2deg",
-                            y: "22px",
-                            bullets: [
-                              "500+ applications",
-                              "Builders flew in from Canada, London and the east coast",
-                              "1 got hired for $150k job offer @ Supermemory",
-                              "$10k in prizes for the top builders",
-                            ],
-                          },
-                        ],
-                      },
-                      {
-                        year: "2026",
-                        cards: [
-                          {
-                            dateLabel: "Coming soon",
-                            title: "Momentum",
-                            image: "/hands-touching.png",
-                            rotate: "2.2deg",
-                            y: "22px",
-                            bullets: ["Nationwide startup program"],
-                          },
-                        ],
-                      },
-                    ]
-                      .flatMap((block) =>
-                        block.cards.map((card) => ({
-                          year: block.year,
-                          ...card,
-                        })),
-                      )
-                      .map((item, idx, arr) => {
-                        const showYear =
-                          idx === 0 || arr[idx - 1].year !== item.year;
-                        const dateDisplay = item.dateLabel ?? item.year;
-                        return (
-                          <div class="snap-start relative min-h-[560px]">
-                            <div class="h-[var(--rail-y)] relative z-[2]">
-                              <div
-                                class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-sans font-bold text-2xl tracking-tight leading-none text-white/75 select-none"
-                                style={showYear ? undefined : "opacity: 0;"}
-                              >
-                                {dateDisplay}
+                    {
+                      [
+                        {
+                          year: "2024",
+                          cards: [
+                            {
+                              dateLabel: "March 2024",
+                              title: "The beginning",
+                              image: "/events/DevHacks6.jpg",
+                              rotate: "-2.6deg",
+                              y: "-10px",
+                              bullets: [
+                                "We started in a dorm study room with a group of 10 friends",
+                                "0 connections, 0 network, 0 direction",
+                              ],
+                            },
+                            {
+                              dateLabel: "August 2024",
+                              title: "First event",
+                              image: "/events/devspace.png",
+                              rotate: "2.4deg",
+                              y: "18px",
+                              bullets: ["50+ attendees"],
+                            },
+                          ],
+                        },
+                        {
+                          year: "2025",
+                          cards: [
+                            {
+                              dateLabel: "March 2025",
+                              title: "DevHacks",
+                              image: "/events/devhacks.jpg",
+                              rotate: "-2.8deg",
+                              y: "-16px",
+                              bullets: [
+                                "Arizona's biggest student-led hackathon with 150+ students",
+                                "Product Hunt sponsored us",
+                                "60+ projects in 36 hours",
+                              ],
+                            },
+                            {
+                              dateLabel: "June 2025",
+                              title: "DevHouse AZ",
+                              image: "/events/devhouse.jpeg",
+                              rotate: "3.1deg",
+                              y: "12px",
+                              bullets: [
+                                "Hosted Arizona's first hacker house",
+                                "Became Arizona's biggest builder community with 500+ members",
+                                "Partnered with the state's top 4 VC's — AZVC, PHX Ventures, Arizona Commerce Authority",
+                                "10 graduated startups from Class of 2025, Dev House, Arizona",
+                              ],
+                            },
+                            {
+                              dateLabel: "November 2025",
+                              title: "Devspace",
+                              image: "/events/devspace.png",
+                              rotate: "-2.1deg",
+                              y: "34px",
+                              bullets: [
+                                "We gave away $10k grants to two startups",
+                              ],
+                            },
+                            {
+                              dateLabel: "December 2025",
+                              title: "DevHouse SF",
+                              image: "/events/devhouse-sf.jpg",
+                              rotate: "2.2deg",
+                              y: "22px",
+                              bullets: [
+                                "500+ applications",
+                                "Builders flew in from Canada, London and the east coast",
+                                "1 got hired for $150k job offer @ Supermemory",
+                                "$10k in prizes for the top builders",
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          year: "2026",
+                          cards: [
+                            {
+                              dateLabel: "Coming soon",
+                              title: "Momentum",
+                              image: "/hands-touching.png",
+                              rotate: "2.2deg",
+                              y: "22px",
+                              bullets: ["Nationwide startup program"],
+                            },
+                          ],
+                        },
+                      ]
+                        .flatMap((block) =>
+                          block.cards.map((card) => ({
+                            year: block.year,
+                            ...card,
+                          })),
+                        )
+                        .map((item, idx, arr) => {
+                          const showYear =
+                            idx === 0 || arr[idx - 1].year !== item.year;
+                          const dateDisplay = item.dateLabel ?? item.year;
+                          return (
+                            <div class="snap-start relative min-h-[560px]">
+                              <div class="h-[var(--rail-y)] relative z-[2]">
+                                <div
+                                  class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-sans font-bold text-2xl tracking-tight leading-none text-white/75 select-none"
+                                  style={showYear ? undefined : "opacity: 0;"}
+                                >
+                                  {dateDisplay}
+                                </div>
+                                <div
+                                  class="absolute left-[var(--anchor-x)] top-full -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white/80 shadow-[0_0_0_5px_rgba(255,255,255,0.08)] z-[3]"
+                                  aria-hidden="true"
+                                />
                               </div>
+
                               <div
-                                class="absolute left-[var(--anchor-x)] top-full -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white/80 shadow-[0_0_0_5px_rgba(255,255,255,0.08)] z-[3]"
+                                class="w-px h-7 bg-white/20 left-[var(--anchor-x)] -translate-x-1/2 relative z-[2]"
                                 aria-hidden="true"
                               />
-                            </div>
 
-                            <div
-                              class="w-px h-7 bg-white/20 left-[var(--anchor-x)] -translate-x-1/2 relative z-[2]"
-                              aria-hidden="true"
-                            />
-
-                            <div class="flex items-start gap-4 -mt-2.5 relative z-[4] ml-[calc(var(--anchor-x)-18px)]">
-                              <div
-                                class="w-80 max-[420px]:w-[290px] bg-[rgba(24,24,24,0.92)] border border-white/10 rounded-lg py-3.5 px-3.5 pb-5 shadow-[0_26px_70px_rgba(0,0,0,0.55),0_2px_0_rgba(255,255,255,0.04)] origin-[20%_0%]"
-                                style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
-                              >
-                                <div class="rounded-xl overflow-hidden bg-white/5 aspect-[4/3] border border-white/10">
-                                  <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    loading="lazy"
-                                    class="w-full h-full object-cover block"
-                                  />
-                                </div>
-                                <div class="mt-3 px-0.5">
-                                  <div class="font-sans font-bold text-xl tracking-tight text-white">
-                                    <span class="relative inline">
-                                      {item.title}
-                                      <span class="absolute bottom-0.5 left-0 w-full h-[6px] bg-orange-500 -z-10 transform -rotate-1 opacity-80 mix-blend-screen" aria-hidden="true"></span>
-                                    </span>
+                              <div class="flex items-start gap-4 -mt-2.5 relative z-[4] ml-[calc(var(--anchor-x)-18px)]">
+                                <div
+                                  class="w-80 max-[420px]:w-[290px] bg-[rgba(24,24,24,0.92)] border border-white/10 rounded-lg py-3.5 px-3.5 pb-5 shadow-[0_26px_70px_rgba(0,0,0,0.55),0_2px_0_rgba(255,255,255,0.04)] origin-[20%_0%]"
+                                  style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
+                                >
+                                  <div class="rounded-xl overflow-hidden bg-white/5 aspect-[4/3] border border-white/10">
+                                    <img
+                                      src={item.image}
+                                      alt={item.title}
+                                      loading="lazy"
+                                      class="w-full h-full object-cover block"
+                                    />
                                   </div>
-                                  {item.bullets && item.bullets.length > 0 ? (
-                                    <ul class="mt-2.5 space-y-1.5 text-base text-gray-300 leading-relaxed font-light list-disc list-inside font-sans">
-                                      {item.bullets.map((b) => (
-                                        <li>{b}</li>
-                                      ))}
-                                    </ul>
-                                  ) : null}
+                                  <div class="mt-3 px-0.5">
+                                    <div class="font-sans font-bold text-xl tracking-tight text-white">
+                                      <span class="relative inline">
+                                        {item.title}
+                                        <span
+                                          class="absolute bottom-0.5 left-0 w-full h-[6px] bg-orange-500 -z-10 transform -rotate-1 opacity-80 mix-blend-screen"
+                                          aria-hidden="true"
+                                        />
+                                      </span>
+                                    </div>
+                                    {item.bullets && item.bullets.length > 0 ? (
+                                      <ul class="mt-2.5 space-y-1.5 text-base text-gray-300 leading-relaxed font-light list-disc list-inside font-sans">
+                                        {item.bullets.map((b) => (
+                                          <li>{b}</li>
+                                        ))}
+                                      </ul>
+                                    ) : null}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
-                  }
+                          );
+                        })
+                    }
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
 
@@ -464,8 +461,12 @@ import Layout from "../layouts/Layout.astro";
         </div>
 
         <!-- Book a call CTA -->
-        <div class="mt-20 md:mt-28 flex flex-col items-center justify-center text-center">
-          <p class="text-white/70 text-sm font-medium tracking-wide uppercase mb-4">
+        <div
+          class="mt-20 md:mt-28 flex flex-col items-center justify-center text-center"
+        >
+          <p
+            class="text-white/70 text-sm font-medium tracking-wide uppercase mb-4"
+          >
             Want to chat?
           </p>
           <a
@@ -480,7 +481,9 @@ import Layout from "../layouts/Layout.astro";
           >
             <span class="relative z-10 drop-shadow-sm">book a call</span>
           </a>
-          <p class="mt-3 text-white/50 text-sm font-[Manrope,system-ui,sans-serif]">
+          <p
+            class="mt-3 text-white/50 text-sm font-[Manrope,system-ui,sans-serif]"
+          >
             30-min meeting with the DevLabs team
           </p>
         </div>
@@ -758,19 +761,23 @@ import Layout from "../layouts/Layout.astro";
   </script>
 
   <style>
-    /* Timeline edge fades: use page texture so content fades into textured background, not solid black */
-    .timeline-edge-fade {
-      background-image: url("/texture.png");
-      background-size: cover;
-      background-position: center;
-    }
-    .timeline-edge-fade--left {
-      mask-image: linear-gradient(to right, black 0%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to right, black 0%, transparent 100%);
-    }
-    .timeline-edge-fade--right {
-      mask-image: linear-gradient(to left, black 0%, transparent 100%);
-      -webkit-mask-image: linear-gradient(to left, black 0%, transparent 100%);
+    /* CSS mask on the scroll container: fades content to transparent at edges,
+       letting the page texture background show through seamlessly. */
+    #growth-timeline-scroll {
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+      );
     }
   </style>
 </Layout>
