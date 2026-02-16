@@ -65,7 +65,7 @@ const validTweets = tweets.filter((t) => t !== undefined);
 
   <!-- Star left: large, below headline/underline -->
   <div
-    class="hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] left-0 pointer-events-none"
+    class="hidden md:block hero-star-left absolute z-10 w-[min(90vw,520px)] h-auto -translate-x-[45%] left-0 pointer-events-none opacity-50"
     style="top: 40vh;"
     aria-hidden="true"
   >
@@ -76,11 +76,12 @@ const validTweets = tweets.filter((t) => t !== undefined);
       width="487"
       height="485"
     />
+
   </div>
 
   <!-- Star right: below headline/underline -->
   <div
-    class="hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none"
+    class="hidden md:block  hero-star-right absolute z-10 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none opacity-50"
     style="top: 38vh;"
     aria-hidden="true"
   >
@@ -92,6 +93,7 @@ const validTweets = tweets.filter((t) => t !== undefined);
       height="485"
     />
   </div>
+ 
 
   <!-- Content: headline at 35vh from top, rest flows below -->
   <div
