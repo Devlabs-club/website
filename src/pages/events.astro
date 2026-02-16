@@ -81,9 +81,9 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
 <Layout title="Events - DevLabs Signature Experiences">
     <div class="bg-[#0a0a0a] min-h-screen text-white overflow-x-hidden font-sans">
         
-        <!-- Background Texture -->
-        <div class="fixed inset-0 z-0 opacity-20 pointer-events-none mix-blend-overlay" style="background-image: url('/noise.png');"></div>
-        <div class="fixed inset-0 z-0 opacity-30 pointer-events-none mix-blend-soft-light" style="background-image: url('/texture.png'); background-size: cover;"></div>
+        <!-- Background: texture.png (main) + noise overlay -->
+        <div class="events-bg-texture fixed inset-0 z-0 pointer-events-none"></div>
+        <div class="fixed inset-0 z-0 opacity-[0.06] pointer-events-none mix-blend-overlay events-bg-noise"></div>
 
         <!-- Hero Section -->
         <div class="relative z-10 pt-32 pb-20 px-6 text-center">
@@ -201,6 +201,17 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
 <style>
     .perspective-1000 {
         perspective: 1000px;
+    }
+    .events-bg-texture {
+        background-image: url('/texture.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: repeat;
+    }
+    .events-bg-noise {
+        background-image: url('/noise.png');
+        background-size: 100px 100px;
+        background-repeat: repeat;
     }
     .bg-noise {
         background-image: url('/noise.png');
