@@ -26,7 +26,7 @@ const formSchema = z.object({
     ["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"],
     {
       required_error: "Please select your year of study",
-    }
+    },
   ),
   expectedGradYear: z
     .number({ invalid_type_error: "Graduation year must be a number" })
@@ -74,12 +74,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveStatus, setSaveStatus] = useState(
-    null as "saved" | "saving" | "error" | null
+    null as "saved" | "saving" | "error" | null,
   );
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [previousFormData, setPreviousFormData] = useState(
-    null as FormData | null
+    null as FormData | null,
   );
   const [submitError, setSubmitError] = useState(null as string | null);
   const [toast, setToast] = useState<{
@@ -91,7 +91,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   // Toast notification function
   const showToast = (
     message: string,
-    type: "error" | "warning" | "success"
+    type: "error" | "warning" | "success",
   ) => {
     setToast({ message, type });
     // Auto-hide toast after 5 seconds
@@ -262,7 +262,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             return !!formData.major && !!formData.yearOfStudy;
           case 3:
             return Number.isFinite(
-              formData.expectedGradYear as unknown as number
+              formData.expectedGradYear as unknown as number,
             );
           case 4:
             return (
@@ -336,10 +336,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           };
 
           const missingLabels = missingFields.map(
-            (field) => fieldLabels[field] || field
+            (field) => fieldLabels[field] || field,
           );
           const message = `Please fill in the following required fields: ${missingLabels.join(
-            ", "
+            ", ",
           )}`;
           showToast(message, "warning");
           throw new Error(message);
@@ -408,7 +408,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           </h2>
           <p className="text-gray-300 mb-6 relative z-10">
             Thank you for applying to{" "}
-            <span className="text-gray-200 font-semibold">DevLabs</span>. We
+            <span className="text-gray-200 font-semibold">Devlabs</span>. We
             will review your application and get back to you soon.
           </p>
           <button
@@ -1136,8 +1136,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -1244,7 +1244,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                       const isValid = await trigger(fieldsToValidate);
                       if (isValid) {
                         setCurrentStep((prev) =>
-                          Math.min(totalSteps, prev + 1)
+                          Math.min(totalSteps, prev + 1),
                         );
                         saveProgress().catch(console.error);
                       }
@@ -1286,8 +1286,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -1317,7 +1317,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               className="h-1 bg-orange-500/70 rounded transition-all duration-300"
               style={{
                 width: `${Math.round(
-                  (completedRequiredCount / totalRequiredCount) * 100
+                  (completedRequiredCount / totalRequiredCount) * 100,
                 )}%`,
               }}
             />

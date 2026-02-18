@@ -227,7 +227,7 @@ async function sendNotificationEmail(clientData: any) {
                 </svg>
               </div>
               <h1>🎉 New Client Submission!</h1>
-              <p>A new company is looking to hire through DevLabs</p>
+              <p>A new company is looking to hire through Devlabs</p>
             </div>
             <div class="content">
               <div class="section">
@@ -284,7 +284,7 @@ async function sendNotificationEmail(clientData: any) {
             </div>
             <div class="footer">
               <p>Submitted on ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
-              <p class="brand">DevLabs Talent Network</p>
+              <p class="brand">Devlabs Talent Network</p>
               <p style="margin-top: 12px; font-size: 12px;">Connecting exceptional builders with innovative companies</p>
             </div>
           </div>

@@ -138,7 +138,7 @@ const ClientForm: React.FC = () => {
             Thank you for sharing your role!
           </h2>
           <p className="text-gray-300">
-            Our DevLabs team will reach out soon with qualified matches.
+            Our Devlabs team will reach out soon with qualified matches.
           </p>
           <button
             onClick={() => setIsSubmitted(false)}

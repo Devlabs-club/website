@@ -592,7 +592,7 @@ function DashboardContent() {
                 ) : (
                   <div>
                     <p className="text-gray-400 mb-6">
-                      Upload your resume to enhance your DevLabs profile.
+                      Upload your resume to enhance your Devlabs profile.
                     </p>
 
                     {/* Initial Upload Form */}

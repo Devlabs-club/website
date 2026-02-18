@@ -1,3 +1,3 @@
-# DevLabs Website
+# Devlabs Website
 
-A website for the DevLabs Club at Arizona State University.
+A website for the Devlabs Club at Arizona State University.

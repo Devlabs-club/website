@@ -142,7 +142,7 @@ export default function BuilderChatbot() {
     },
     {
       id: 16,
-      text: "Submitted successfully! Thank you, Builder — the DevLabs team will review your details soon.",
+      text: "Submitted successfully! Thank you, Builder — the Devlabs team will review your details soon.",
       type: "end",
     },
   ];
