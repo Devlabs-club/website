@@ -4,6 +4,34 @@ import Layout from '../layouts/Layout.astro';
 // Event data (detailed view)
 const events = [
   {
+    id: 'momentum',
+    name: 'Momentum',
+    tagline: 'don\'t wait for the future, build it',
+    description: 'Momentum is our premier program in San Francisco. A one-month intensive designed to accelerate the most ambitious builders. Supported by industry leaders, it\'s where you stop waiting and start building.',
+    image: '/momentum_rocket.png',
+    stats: {
+      location: 'San Francisco',
+      duration: '4 Weeks',
+      dates: 'Apr 17 - May 16',
+      status: 'Upcoming'
+    },
+    partners: [
+      { url: '/sponsors/momentum/spc.png', class: 'h-10 md:h-12' },
+      { url: '/sponsors/momentum/a16z.png', class: 'h-8 md:h-10' },
+      { url: '/sponsors/momentum/antler.png', class: 'h-10 md:h-12' },
+      { url: '/sponsors/momentum/residency.png', class: 'h-12 md:h-14' },
+      { url: '/sponsors/momentum/kickstart.png', class: 'h-12 md:h-14' },
+      { url: '/sponsors/momentum/stripe.png', class: 'h-4 md:h-5' },
+      { url: '/sponsors/momentum/smallest_ai.png', class: 'h-4 md:h-5' }
+    ],
+    highlights: ['San Francisco', 'Top Tier Partners', 'Intensive Build', 'Exclusive Network'],
+    date: 'Spring 2026',
+    status: 'upcoming',
+    link: '/momentum',
+    customFont: 'font-seasons',
+    imageBg: '/momentum_bg.png'
+  },
+  {
     id: 'devhouse-sf',
     name: 'DevHouse SF',
     tagline: 'SF’s Biggest Hiring Stunt',
@@ -86,7 +114,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
         <div class="fixed inset-0 z-0 opacity-[0.06] pointer-events-none mix-blend-overlay events-bg-noise"></div>
 
         <!-- Hero Section -->
-        <div class="relative z-10 pt-32 pb-20 px-6 text-center">
+        <div class="relative z-10 pt-44 pb-20 px-6 text-center">
             <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-6 text-white">
                 Our <span class="relative inline-block text-white">
                     Events
@@ -111,11 +139,17 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                             <!-- Polaroid Frame -->
                             <div class="bg-white p-5 pb-20 shadow-2xl max-w-md w-full mx-auto transform transition-transform duration-500 relative z-10">
                                 <div class="aspect-[4/5] overflow-hidden bg-gray-100 relative">
+                                    {event.imageBg && (
+                                        <div 
+                                            class="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                                            style={`background-image: url('${event.imageBg}')`}
+                                        ></div>
+                                    )}
                                     {event.image ? (
                                         <img 
                                             src={event.image} 
                                             alt={event.name}
-                                            class="w-full h-full object-cover filter sepia-[0.1] contrast-110 group-hover:sepia-0 transition-all duration-700"
+                                            class={`w-full h-full ${event.imageBg ? 'object-contain scale-125' : 'object-cover'} filter sepia-[0.1] contrast-110 group-hover:sepia-0 transition-all duration-700 ${event.imageBg ? 'relative z-10 drop-shadow-2xl' : ''}`}
                                         />
                                     ) : (
                                         <div class="w-full h-full bg-gradient-to-br from-gray-800 to-black"></div>
@@ -127,7 +161,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                                     <div class="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                                 </div>
                                 <div class="absolute bottom-6 left-0 right-0 text-center">
-                                    <h3 class="text-black font-bold text-5xl tracking-tighter font-sans">{event.name}</h3>
+                                    <h3 class={`text-black font-bold text-5xl tracking-tighter ${event.customFont || 'font-sans'}`}>{event.name}</h3>
                                 </div>
                             </div>
                             
@@ -139,7 +173,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                     <!-- Content (Right) -->
                     <div class="w-full lg:w-7/12 space-y-10">
                         <div>
-                            <h2 class="text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight mb-8 text-white">
+                            <h2 class={`text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight mb-8 text-white ${event.customFont || ''}`}>
                                 <span class="relative inline">
                                     {event.tagline}
                                     <span class="absolute bottom-1 left-0 w-full h-[0.2em] bg-orange-500 -z-10 transform -rotate-1 opacity-80 mix-blend-screen"></span>
@@ -157,9 +191,14 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                                     Sponsored by
                                 </div>
                                 <div class="flex flex-wrap items-center gap-8 md:gap-12 opacity-70 hover:opacity-100 transition-opacity duration-300">
-                                    {event.partners.map(logo => (
-                                        <img src={logo} alt="Partner" class="h-5 md:h-6 w-auto object-contain brightness-0 invert" />
-                                    ))}
+                                    {event.partners.map(partner => {
+                                        const isObject = typeof partner === 'object';
+                                        const logoUrl = isObject ? partner.url : partner;
+                                        const customClass = isObject && partner.class ? partner.class : 'h-7 md:h-9 max-w-[140px]';
+                                        return (
+                                            <img src={logoUrl} alt="Partner" class={`${customClass} w-auto object-contain brightness-0 invert`} />
+                                        );
+                                    })}
                                 </div>
                             </div>
                         )}

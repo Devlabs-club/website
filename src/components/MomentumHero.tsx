@@ -98,7 +98,7 @@ const marqueeStyles = `
 `;
 
 // March 19th, 2025 9:30 AM MST (MST = UTC-7)
-const TARGET_DATE = "2026-03-19T09:30:00-07:00";
+const TARGET_DATE = "2026-03-21T09:30:00-07:00";
 
 interface CountdownTimerProps {
   deadline: string;
