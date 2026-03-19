@@ -1,0 +1,24 @@
+---
+import Layout from "../layouts/Layout.astro";
+import MomentumHero from "../components/MomentumHero";
+
+const title = "Momentum by DevLabs | 4-Week Startup Challenge";
+const description =
+  "Momentum by DevLabs is a 4-week startup challenge where builders turn into founders. Apply now and get a chance to pitch in front of a16z, antler, and other top VCs.";
+const keywords =
+  "Momentum, DevLabs, startup challenge, 4-week program, Demo Day, San Francisco, founders, early-stage startups, VC opportunities, fundable companies, startup accelerator, builder to founder";
+---
+
+<Layout
+  title={title}
+  description={description}
+  ogImage="/momentum_og.png"
+  ogImageAlt="Momentum by DevLabs - 4-week startup challenge. Builders to founders. Demo Day in San Francisco."
+  keywords={keywords}
+>
+  <Fragment slot="head">
+    <link rel="stylesheet" href="https://use.typekit.net/tlh5dan.css" />
+  </Fragment>
+
+  <MomentumHero client:load />
+</Layout>

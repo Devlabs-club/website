@@ -14,17 +14,19 @@ if (!MONGODB_ADMIN_URI) {
 }
 
 // Global caching mechanism
-let cached = global.certificate_connection || { conn: null, promise: null };
-let cachedAdmin = global.admin_connection || { conn: null, promise: null };
+// Use `any` on the global index to avoid TS complaining about custom properties.
+const globalAny: any = global as any;
+let cached = globalAny.certificate_connection || { conn: null, promise: null };
+let cachedAdmin = globalAny.admin_connection || { conn: null, promise: null };
 
-if (!global.certificate_connection) {
-    global.certificate_connection = cached;
+if (!globalAny.certificate_connection) {
+    globalAny.certificate_connection = cached;
 }
-if (!global.admin_connection) {
-    global.admin_connection = cachedAdmin;
+if (!globalAny.admin_connection) {
+    globalAny.admin_connection = cachedAdmin;
 }
 
-async function makeConnection(mongo_url) {
+async function makeConnection(mongo_url: string | undefined) {
     // Use cached connection if available
     if (cached.conn) {
         return cached.conn;
@@ -36,7 +38,7 @@ async function makeConnection(mongo_url) {
             bufferCommands: false,
         };
 
-        cached.promise = mongoose.connect(mongo_url, opts);
+        cached.promise = mongoose.connect(mongo_url as string, opts);
     }
 
     try {
@@ -57,7 +59,7 @@ async function connectAdminDB() {
     return makeConnection(MONGODB_ADMIN_URI);
 }
 
-// Define schema - this is safe even during static build
+// Define schemas - this is safe even during static build
 const applicationSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true, unique: true },
     name: { type: String, required: true },
@@ -79,12 +81,22 @@ const applicationSchema = new mongoose.Schema({
     toObject: { getters: true }
 });
 
-// Initialize model safely for serverless environment
-let Application;
+const momentumReminderSchema = new mongoose.Schema({
+    email: { type: String, required: true, unique: true, index: true },
+    tag: { type: String, default: 'momentum-2026-reminder' },
+    createdAt: { type: Date, default: Date.now }
+}, {
+    timestamps: true
+});
+
+// Initialize models safely for serverless environment
+let Application: mongoose.Model<any>;
+let MomentumReminder: mongoose.Model<any>;
 try {
     Application = mongoose.models.Application || mongoose.model('Application', applicationSchema);
+    MomentumReminder = mongoose.models.MomentumReminder || mongoose.model('MomentumReminder', momentumReminderSchema, 'momentum');
 } catch (error) {
     console.error('MongoDB model initialization error:', error);
 }
 
-export { connectDB, connectAdminDB, Application }; 
+export { connectDB, connectAdminDB, Application, MomentumReminder }; 

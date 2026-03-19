@@ -7,20 +7,32 @@ import Analytics from "@vercel/analytics/astro";
 import "../styles/global.css";
 interface Props {
   title: string;
+  description?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  keywords?: string;
 }
 
-const { title } = Astro.props;
+const { title, description, ogImage, ogImageAlt, keywords } = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
-const ogImageUrl = `${siteOrigin}/og.png`;
+const defaultDescription = "We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups.";
+const defaultOgImage = `${siteOrigin}/og.png`;
+const defaultOgImageAlt = "Devlabs - The home for builders, founders and vc's to build the future together.";
+const defaultKeywords = "Devlabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub";
+
+const ogImageUrl = ogImage ? (ogImage.startsWith("http") ? ogImage : `${siteOrigin}${ogImage}`) : defaultOgImage;
+const metaDescription = description ?? defaultDescription;
+const metaOgImageAlt = ogImageAlt ?? defaultOgImageAlt;
+const metaKeywords = keywords ?? defaultKeywords;
 ---
 
 <!doctype html>
 <html lang="en" class="scroll-smooth overflow-x-hidden">
   <head>
     <meta charset="UTF-8" />
-    <meta name="description" content="Astro description" />
+    <meta name="description" content={metaDescription} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="generator" content={Astro.generator} />
@@ -28,35 +40,25 @@ const ogImageUrl = `${siteOrigin}/og.png`;
     <meta property="og:image" content={ogImageUrl} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta
-      property="og:image:alt"
-      content="Devlabs - The home for builders, founders and vc's to build the future together."
-    />
+    <meta property="og:image:alt" content={metaOgImageAlt} />
     <meta property="og:title" content={title} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={Astro.url} />
-    <meta
-      property="og:description"
-      content="We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups."
-    />
+    <meta property="og:description" content={metaDescription} />
 
     <!-- Twitter Card meta tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
-    <meta
-      name="twitter:description"
-      content="We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups."
-    />
+    <meta name="twitter:description" content={metaDescription} />
     <meta name="twitter:image" content={ogImageUrl} />
 
     <title>{title}</title>
     <link rel="icon" href="/logo.png" type="image/png" />
     <Analytics />
 
-    <meta
-      name="keywords"
-      content="Devlabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub"
-    />
+    <meta name="keywords" content={metaKeywords} />
+
+    <slot name="head" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

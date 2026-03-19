@@ -1,10 +1,14 @@
 ---
 // NewFooter.astro
 // Replacement for the existing footer
+const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === "/momentum/";
 ---
 
 <footer
-  class="footer-below-cta w-full bg-transparent text-white pt-24 pb-10 overflow-hidden relative font-manrope z-10"
+  class:list={[
+    "footer-below-cta w-full bg-transparent text-white pt-24 pb-10 overflow-hidden relative font-manrope z-10",
+    isMomentum && "footer-momentum",
+  ]}
 >
   <!-- Content Container -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -139,6 +143,18 @@
       background-clip: text;
       color: transparent;
       width: 100%;
+    }
+    /* Momentum page: force footer text (links, paragraphs, copyright) to white */
+    :global(.footer-momentum) p,
+    :global(.footer-momentum) a {
+      color: white !important;
+    }
+    :global(.footer-momentum) a:hover {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    :global(.footer-momentum) .text-gray-400,
+    :global(.footer-momentum) .text-gray-500 {
+      color: white !important;
     }
   </style>
 </footer>

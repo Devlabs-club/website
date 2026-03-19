@@ -5,7 +5,11 @@ export default {
     "./public/**/*.html",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        seasons: ['"the-seasons"', 'sans-serif'],
+      },
+    },
   },
-  plugins: [require("@tailwindcss/forms")],
+  plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate")],
 };
