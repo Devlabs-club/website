@@ -2,110 +2,74 @@
 import AuthControlsAstro from "./AuthControlsAstro.astro";
 
 const hideTicker = Astro.url.pathname.startsWith("/momentum");
+const tickerItems = Array(8).fill(null);
 ---
 
 {!hideTicker && (
   <div
-    class="fixed top-0 left-0 z-[10000] w-screen overflow-hidden bg-[rgba(8,8,8,0.88)] border-t border-b border-t-white/10 border-b-white/20 backdrop-blur-[8px] shadow-[0_8px_24px_rgba(0,0,0,0.22)]"
+    class="fixed top-0 left-0 z-[10000] w-screen overflow-hidden bg-[rgba(8,8,8,0.88)] border-t border-b border-t-white/10 border-b-white/20 backdrop-blur-[8px] shadow-[0_8px_24px_rgba(0,0,0,0.22)] flex"
     aria-label="Launch announcement"
   >
-    <marquee class="flex items-center whitespace-nowrap px-4 py-2 md:px-5 md:py-[0.55rem]" scrollamount="4">
-    <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-      We are launching a new startup program with
-      <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-      <a
-        href="/momentum"
-        class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-        style="text-decoration:none;"
-      >
-        <span class="relative inline-block">
-          <span class="text-white relative z-10 px-0.5 font-normal">
-            Join Now
+    <div class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]">
+      {tickerItems.map((_) => (
+        <>
+          <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
+            We are launching a new startup program with
+            <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
+            <a
+              href="/momentum"
+              class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
+              style="text-decoration:none;"
+            >
+              <span class="relative inline-block">
+                <span class="text-white relative z-10 px-0.5 font-normal">
+                  Join Now
+                </span>
+                <span
+                  class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
+                  style="pointer-events:none; opacity:0.85;"
+                ></span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
+                <path d="M7 7h10v10"/>
+                <path d="M7 17 17 7"/>
+              </svg>
+            </a>
           </span>
-          <span
-            class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-            style="pointer-events:none; opacity:0.85;"
-          ></span>
-        </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-          <path d="M7 7h10v10"/>
-          <path d="M7 17 17 7"/>
-        </svg>
-      </a>
-    </span>
-    <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
-    <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-      We are launching a new startup program with
-      <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-      <a
-        href="/momentum"
-        class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-        style="text-decoration:none;"
-      >
-        <span class="relative inline-block">
-          <span class="text-white relative z-10 px-0.5 font-normal">
-            Join Now
+          <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
+        </>
+      ))}
+    </div>
+    <div class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]" aria-hidden="true">
+      {tickerItems.map((_) => (
+        <>
+          <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
+            We are launching a new startup program with
+            <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
+            <a
+              href="/momentum"
+              class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
+              style="text-decoration:none;"
+            >
+              <span class="relative inline-block">
+                <span class="text-white relative z-10 px-0.5 font-normal">
+                  Join Now
+                </span>
+                <span
+                  class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
+                  style="pointer-events:none; opacity:0.85;"
+                ></span>
+              </span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
+                <path d="M7 7h10v10"/>
+                <path d="M7 17 17 7"/>
+              </svg>
+            </a>
           </span>
-          <span
-            class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-            style="pointer-events:none; opacity:0.85;"
-          ></span>
-        </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-          <path d="M7 7h10v10"/>
-          <path d="M7 17 17 7"/>
-        </svg>
-      </a>
-    </span>
-    <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
-    <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-      We are launching a new startup program with
-      <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-      <a
-        href="/momentum"
-        class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-        style="text-decoration:none;"
-      >
-        <span class="relative inline-block">
-          <span class="text-white relative z-10 px-0.5 font-normal">
-            Join Now
-          </span>
-          <span
-            class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-            style="pointer-events:none; opacity:0.85;"
-          ></span>
-        </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-          <path d="M7 7h10v10"/>
-          <path d="M7 17 17 7"/>
-        </svg>
-      </a>
-    </span>
-    <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
-    <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-      We are launching a new startup program with
-      <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-      <a
-        href="/momentum"
-        class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-        style="text-decoration:none;"
-      >
-        <span class="relative inline-block">
-          <span class="text-white relative z-10 px-0.5 font-normal">
-            Join Now
-          </span>
-          <span
-            class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-            style="pointer-events:none; opacity:0.85;"
-          ></span>
-        </span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-          <path d="M7 7h10v10"/>
-          <path d="M7 17 17 7"/>
-        </svg>
-      </a>
-    </span>
-    </marquee>
+          <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
+        </>
+      ))}
+    </div>
   </div>
 )}
 
@@ -286,6 +250,19 @@ const hideTicker = Astro.url.pathname.startsWith("/momentum");
 </nav>
 
 <style>
+  .ticker-content {
+    animation: ticker 80s linear infinite;
+  }
+  
+  @keyframes ticker {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
   nav {
     /* Additional glassmorphism support for older browsers */
     -webkit-backdrop-filter: blur(16px);

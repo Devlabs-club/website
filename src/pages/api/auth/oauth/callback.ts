@@ -16,6 +16,19 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
 
     // Extract code from query parameters
     const code = url.searchParams.get('code');
+    const stateParam = url.searchParams.get('state');
+    let redirectUrl = '/dashboard';
+
+    if (stateParam) {
+      try {
+        const stateObj = JSON.parse(stateParam);
+        if (stateObj.redirect) {
+          redirectUrl = stateObj.redirect;
+        }
+      } catch (e) {
+        console.error('Failed to parse state param', e);
+      }
+    }
 
     if (!code) {
       console.error('OAuth callback: No authorization code provided');
@@ -78,7 +91,7 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': '/dashboard',
+        'Location': redirectUrl,
         'Set-Cookie': [
           `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`,
           `wos-session=${sealedSession}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`

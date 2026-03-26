@@ -1,0 +1,24 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import MomentumProgramPortal from "../../components/momentum/MomentumProgramPortal";
+
+const title = "Apply · Momentum by DevLabs";
+const description =
+  "Apply to Momentum — DevLabs’ startup challenge. Submit your application and track your status.";
+---
+
+<Layout title={title} description={description} ogImage="/momentum_og.png">
+  <Fragment slot="head">
+    <link rel="stylesheet" href="https://use.typekit.net/tlh5dan.css" />
+  </Fragment>
+
+  <div class="relative z-10 min-h-screen bg-[#131415] pt-28 pb-20 px-4 sm:px-6">
+    <div
+      class="pointer-events-none fixed inset-0 z-0 opacity-40"
+      style="background-image: url('/momentum_bg.png'); background-repeat: repeat-y; background-size: cover; background-position: center top;"
+    />
+    <div class="relative z-10 mx-auto max-w-5xl">
+      <MomentumProgramPortal client:load />
+    </div>
+  </div>
+</Layout>

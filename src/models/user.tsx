@@ -15,7 +15,7 @@ export interface IUser {
   hackathonStory?: string;
   additionalInfo?: string;
   createdAt?: Date;
-  updatedAt?: Date;
+  updatedAt?: Date; 
 }
 
 const userSchema = new mongoose.Schema({

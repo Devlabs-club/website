@@ -24,13 +24,7 @@ const companies = [
     url: "https://antler.com",
     className: "h-20 sm:h-28",
   },
-  {
-    name: "Residency",
-    logo: "/sponsors/momentum/residency.png",
-    alt: "Residency",
-    url: "https://residency.com",
-    className: "h-24 sm:h-32",
-  },
+
   {
     name: "Kickstart",
     logo: "/sponsors/momentum/kickstart.png",
@@ -52,6 +46,29 @@ const companies = [
     alt: "Smallest.ai",
     url: "https://smallest.ai",
     className: "h-8 sm:h-10 py-1.5",
+  },
+
+  //composio, tinyfish, insforge
+  {
+    name: "Composio",
+    logo: "/sponsors/momentum/composio.png",
+    alt: "Composio",  
+    url: "https://composio.com",
+    className: "h-8 sm:h-10",
+  },
+  {
+    name: "Tinyfish",
+    logo: "/sponsors/momentum/tinyfish.png",
+    alt: "Tinyfish",
+    url: "https://tinyfish.com",
+    className: "h-8 sm:h-10",
+  },
+  {
+    name: "Insforge",
+    logo: "/sponsors/momentum/insforge.svg",
+    alt: "Insforge",
+    url: "https://insforge.com",
+    className: "h-8 sm:h-10",
   },
 ];
 
@@ -98,7 +115,7 @@ const marqueeStyles = `
 `;
 
 // March 19th, 2025 9:30 AM MST (MST = UTC-7)
-const TARGET_DATE = "2026-03-21T09:30:00-07:00";
+const TARGET_DATE = "2026-03-25T09:30:00-07:00";
 
 interface CountdownTimerProps {
   deadline: string;
@@ -263,7 +280,7 @@ export default function MomentumHero() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(data.message || "Reminder set! We'll email you on the 19th.");
+        alert(data.message || "Reminder set! We'll email you on the 25th.");
         setEmail("");
         setShowInput(false);
       } else {
@@ -367,12 +384,11 @@ export default function MomentumHero() {
             "dont wait for the future, build it"
           </p>
 
-          {/* Button - Z-30 (Above Rocket) */}
-          <div className="relative z-30 mb-12 h-14 flex items-center justify-center">
-            {!showInput ? (
-              <button
-                onClick={() => setShowInput(true)}
-                className="group relative inline-flex items-center justify-center px-8 py-3 sm:px-10 sm:py-4
+          {/* CTA - Z-30 (Above Rocket) */}
+          <div className="relative z-30 mb-12 flex min-h-14 flex-col items-center justify-center gap-4 sm:flex-row">
+            <a
+              href="/momentum/apply"
+              className="group relative inline-flex items-center justify-center px-8 py-3 sm:px-10 sm:py-4
                           bg-gradient-to-br from-white/10 via-white/5 to-transparent
                           backdrop-blur-lg border border-white/20 
                           text-white/90 font-medium text-sm sm:text-lg rounded-full
@@ -380,61 +396,12 @@ export default function MomentumHero() {
                           shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
                           hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
                           hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5"
-              >
-                <span className="relative z-10 drop-shadow-sm lowercase">
-                  remind me
-                </span>
-              </button>
-            ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="flex items-center gap-2 animate-in fade-in zoom-in duration-300"
-              >
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="enter your email"
-                  required
-                  className="px-6 py-3 sm:px-8 sm:py-4 w-64 sm:w-80
-                            bg-white/5 backdrop-blur-lg border border-white/20 
-                            text-white placeholder:text-white/50 font-medium text-sm sm:text-lg rounded-full
-                            focus:outline-none focus:border-white/40 focus:bg-white/10
-                            transition-all duration-300"
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full
-                            bg-gradient-to-br from-white/10 via-white/5 to-transparent
-                            backdrop-blur-lg border border-white/20 
-                            text-white/90 transition-all duration-500
-                            shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
-                            hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
-                            hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5
-                            disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 sm:w-6 sm:h-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
-                      />
-                    </svg>
-                  )}
-                </button>
-              </form>
-            )}
+               >
+              <span className="relative z-10 drop-shadow-sm lowercase">
+                apply now
+              </span>
+            </a>
+            
           </div>
 
           {/* Bottom Info Row - Z-30 (Above Rocket) */}

@@ -8,11 +8,15 @@ const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
 
 export const GET: APIRoute = async ({ request, redirect }) => {
   try {
+    const url = new URL(request.url);
+    const redirectParam = url.searchParams.get('redirect') || '';
+
     // Get the authorization URL from WorkOS using AuthKit (not specific OAuth provider)
     const authorizationUrl = workos.userManagement.getAuthorizationUrl({
       provider: 'authkit', // Use authkit as the provider (not GoogleOAuth)
       redirectUri: import.meta.env.WORKOS_REDIRECT_URI,
       clientId: import.meta.env.WORKOS_CLIENT_ID,
+      state: redirectParam ? JSON.stringify({ redirect: redirectParam }) : undefined,
     });
 
     // Create redirect response

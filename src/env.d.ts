@@ -9,3 +9,10 @@ interface ImportMetaEnv {
   readonly WORKOS_REDIRECT_URI: string;
   readonly SENDGRID_API_KEY: string;
 }
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    /** Optional. Defaults to people@devlabs.club in momentumEmail.ts */
+    SENDGRID_FROM_EMAIL?: string;
+  }
+}

@@ -6,6 +6,7 @@ dotenv.config();
 // Use environment variable for MongoDB URI
 const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_ADMIN_URI = process.env.ADMIN_MONGO_URI;
+const MOMENTUM_MONGODB_URI = process.env.MOMENTUM_MONGODB_URI;
 if (!MONGODB_URI) {
     throw new Error('Please define the MONGODB_URI environment variable');
 }
@@ -18,12 +19,19 @@ if (!MONGODB_ADMIN_URI) {
 const globalAny: any = global as any;
 let cached = globalAny.certificate_connection || { conn: null, promise: null };
 let cachedAdmin = globalAny.admin_connection || { conn: null, promise: null };
+let cachedMomentum = globalAny.momentum_connection || {
+    conn: null as mongoose.Connection | null,
+    promise: null as Promise<mongoose.Connection> | null,
+};
 
 if (!globalAny.certificate_connection) {
     globalAny.certificate_connection = cached;
 }
 if (!globalAny.admin_connection) {
     globalAny.admin_connection = cachedAdmin;
+}
+if (!globalAny.momentum_connection) {
+    globalAny.momentum_connection = cachedMomentum;
 }
 
 async function makeConnection(mongo_url: string | undefined) {
@@ -57,6 +65,27 @@ async function connectDB() {
 
 async function connectAdminDB() {
     return makeConnection(MONGODB_ADMIN_URI);
+}
+
+async function connectMomentumDB(): Promise<mongoose.Connection> {
+    if (!MOMENTUM_MONGODB_URI) {
+        throw new Error('Please define the MOMENTUM_MONGODB_URI environment variable');
+    }
+    if (cachedMomentum.conn && cachedMomentum.conn.readyState === 1) {
+        return cachedMomentum.conn;
+    }
+    if (!cachedMomentum.promise) {
+        cachedMomentum.promise = mongoose
+            .createConnection(MOMENTUM_MONGODB_URI, { bufferCommands: false })
+            .asPromise();
+    }
+    try {
+        cachedMomentum.conn = await cachedMomentum.promise;
+    } catch (e) {
+        cachedMomentum.promise = null;
+        throw e;
+    }
+    return cachedMomentum.conn;
 }
 
 // Define schemas - this is safe even during static build
@@ -99,4 +128,4 @@ try {
     console.error('MongoDB model initialization error:', error);
 }
 
-export { connectDB, connectAdminDB, Application, MomentumReminder }; 
+export { connectDB, connectAdminDB, connectMomentumDB, Application, MomentumReminder }; 
