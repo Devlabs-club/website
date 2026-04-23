@@ -17,12 +17,19 @@ const { title, description, ogImage, ogImageAlt, keywords } = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
-const defaultDescription = "We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups.";
+const defaultDescription =
+  "We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups.";
 const defaultOgImage = `${siteOrigin}/og.png`;
-const defaultOgImageAlt = "Devlabs - The home for builders, founders and vc's to build the future together.";
-const defaultKeywords = "Devlabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub";
+const defaultOgImageAlt =
+  "Devlabs - The home for builders, founders and vc's to build the future together.";
+const defaultKeywords =
+  "Devlabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub";
 
-const ogImageUrl = ogImage ? (ogImage.startsWith("http") ? ogImage : `${siteOrigin}${ogImage}`) : defaultOgImage;
+const ogImageUrl = ogImage
+  ? ogImage.startsWith("http")
+    ? ogImage
+    : `${siteOrigin}${ogImage}`
+  : defaultOgImage;
 const metaDescription = description ?? defaultDescription;
 const metaOgImageAlt = ogImageAlt ?? defaultOgImageAlt;
 const metaKeywords = keywords ?? defaultKeywords;
@@ -104,7 +111,7 @@ const metaKeywords = keywords ?? defaultKeywords;
   }
 
   .bg-texture {
-    background-image: url("/texture.png");
+    background-image: url("/texture.webp");
     background-size: cover;
     background-position: center;
     background-repeat: repeat;

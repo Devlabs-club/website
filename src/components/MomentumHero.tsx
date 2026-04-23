@@ -52,7 +52,7 @@ const companies = [
   {
     name: "Composio",
     logo: "/sponsors/momentum/composio.png",
-    alt: "Composio",  
+    alt: "Composio",
     url: "https://composio.com",
     className: "h-8 sm:h-10",
   },
@@ -68,6 +68,13 @@ const companies = [
     logo: "/sponsors/momentum/insforge.svg",
     alt: "Insforge",
     url: "https://insforge.com",
+    className: "h-8 sm:h-10",
+  },
+  {
+    name: "Autosend",
+    logo: "/sponsors/momentum/autosend.png",
+    alt: "Autosend",
+    url: "https://autosend.com",
     className: "h-8 sm:h-10",
   },
 ];
@@ -113,90 +120,6 @@ const marqueeStyles = `
   text-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
 }
 `;
-
-// March 19th, 2025 9:30 AM MST (MST = UTC-7)
-const TARGET_DATE = "2026-03-25T09:30:00-07:00";
-
-interface CountdownTimerProps {
-  deadline: string;
-}
-
-const CountdownTimer: React.FC<CountdownTimerProps> = ({ deadline }) => {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date().getTime();
-      const target = new Date(deadline).getTime();
-      const difference = target - now;
-
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor(
-            (difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-          ),
-          minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((difference % (1000 * 60)) / 1000),
-        });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    };
-
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
-
-    return () => clearInterval(timer);
-  }, [deadline]);
-
-  return (
-    <div className="text-2xl md:text-3xl lg:text-4xl ">
-      <div className="flex gap-2 md:gap-3">
-        <div className="text-center">
-          <div className="text-orange-500 font-sans font-bold">
-            {timeLeft.days}
-          </div>
-          <div className="text-xs md:text-sm font-bold  text-black font-seasons">
-            Days
-          </div>
-        </div>
-        <div className="text-orange-500 font-sans ">:</div>
-        <div className="text-center">
-          <div className="text-orange-500 font-sans font-bold">
-            {timeLeft.hours.toString().padStart(2, "0")}
-          </div>
-          <div className="text-xs md:text-sm font-bold  text-black font-seasons">
-            Hours
-          </div>
-        </div>
-        <div className="text-orange-500 font-sans">:</div>
-        <div className="text-center">
-          <div className="text-orange-500 font-sans font-bold">
-            {timeLeft.minutes.toString().padStart(2, "0")}
-          </div>
-          <div className="text-xs md:text-sm font-bold  text-black font-seasons">
-            Mins
-          </div>
-        </div>
-        <div className="text-orange-500 font-sans">:</div>
-        <div className="text-center">
-          <div className="text-orange-500 font-sans font-bold">
-            {timeLeft.seconds.toString().padStart(2, "0")}
-          </div>
-          <div className="text-xs md:text-sm font-bold  text-black font-seasons">
-            Secs
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 function CompanyMarquee() {
   return (
@@ -325,7 +248,7 @@ export default function MomentumHero() {
         style={{ y: yRocket }}
       >
         <img
-          src="/momentum_rocket.png"
+          src="/momentum_rocket.webp"
           alt=""
           className="object-contain w-full h-full scale-[1.3] "
           style={{
@@ -342,7 +265,7 @@ export default function MomentumHero() {
         style={{ y: yClouds }}
       >
         <img
-          src="/clouds.png"
+          src="/clouds.webp"
           alt=""
           className="object-cover w-full h-full sepia saturate-[3] hue-rotate-[-15deg] scale-[2] md:scale-100 "
           // For Tailwind, use responsive utilities: scale-200 on mobile, default/above sm is scale-100
@@ -369,12 +292,22 @@ export default function MomentumHero() {
             />
           </div>
 
-          {/* Title - Z-10 (Below Rocket) */}
-          <div className="relative inline-block mb-12 z-10">
-            <h1 className="font-seasons text-6xl sm:text-7xl md:text-9xl lg:text-[10rem] leading-none text-white ">
+          {/* Title Container - No z-index to allow interleaving */}
+          <div className="relative inline-block mb-12">
+            {/* Filled Text - Z-10 (Below Rocket) */}
+            <h1 className="relative z-10 font-seasons text-6xl sm:text-7xl md:text-9xl lg:text-[10rem] leading-none text-white">
               Momentum
             </h1>
-            <p className="absolute   right-0 sm:right-4 font-seasons text-sm sm:text-xl md:text-2xl text-black/80 opacity-90">
+
+            {/* Outline Text - Z-30 (Above Rocket) */}
+            <h1
+              className="absolute inset-0 z-30 font-seasons text-6xl sm:text-7xl md:text-9xl lg:text-[10rem] leading-none text-transparent pointer-events-none"
+              style={{ WebkitTextStroke: "2px rgba(255, 255, 255, 0.8)" }}
+            >
+              Momentum
+            </h1>
+
+            <p className="absolute z-30 right-0 sm:right-4 font-seasons text-sm sm:text-xl md:text-2xl text-black/80 opacity-90">
               by Devlabs
             </p>
           </div>
@@ -396,27 +329,29 @@ export default function MomentumHero() {
                           shadow-[0_8px_32px_rgba(255,255,255,0.1)] 
                           hover:shadow-[0_16px_48px_rgba(255,255,255,0.2)]
                           hover:border-white/30 hover:bg-gradient-to-br hover:from-white/20 hover:via-white/10 hover:to-white/5"
-               >
+            >
               <span className="relative z-10 drop-shadow-sm lowercase">
                 apply now
               </span>
             </a>
-            
           </div>
 
           {/* Bottom Info Row - Z-30 (Above Rocket) */}
-          <div className="hidden md:flex relative z-30 w-full  flex-col md:flex-row justify-between items-center md:items-end   gap-8 mt-4 md:mt-8">
+          <div className="hidden md:flex relative z-30 w-full  flex-col md:flex-row justify-between items-top md:items-top   gap-8 mt-4 md:mt-8">
             <div className="text-center md:text-left">
               <p className="font-seasons text-xl sm:text-2xl md:text-3xl text-black/80 tracking-wide uppercase">
-                APRIL 17 - MAY 16 | SAN FRANCISCO
+                APRIL 24 - MAY 23 | SAN FRANCISCO
               </p>
             </div>
 
-            <div className="flex flex-col items-center md:items-end font-seasons">
-              <p className="text-black/80 text-sm sm:text-base mb-3 font-seasons tracking-wide">
-                Applications open in
+            <div className="flex flex-col items-center md:items-end font-seasons max-w-md text-right ">
+              <p className="font-seasons text-xl sm:text-2xl md:text-3xl text-black/80 tracking-wide ">
+                upto $10k in credits
               </p>
-              <CountdownTimer deadline={TARGET_DATE} />
+              <p className="text-black/80 text-xs sm:text-base font-seasons tracking-wide leading-relaxed ">
+                every startup gets a credit bundle from stripe, composio,
+                tinyfish, smallest.ai and more
+              </p>
             </div>
           </div>
         </div>
@@ -431,13 +366,107 @@ export default function MomentumHero() {
               momentum
             </h2>
           </div>
-          {/* Mobile countdown below watermark */}
-          <div className="md:hidden relative z-30 mt-10 flex flex-col items-center justify-center pointer-events-auto">
-            <p className=" text-black md:text-white/80 text-sm mb-2 font-seasons tracking-wide font-bold">
-              Applications open in
+          {/* Mobile credit bundle below watermark */}
+          <div className="md:hidden relative z-30 mt-10 flex flex-col items-center justify-center pointer-events-auto px-4 text-center">
+            <p className="font-seasons text-2xl sm:text-2xl md:text-3xl text-black/80 tracking-wide ">
+              up to $10k in credits
             </p>
-            <CountdownTimer deadline={TARGET_DATE} />
+            <p className="text-black/80 text-xs sm:text-base font-seasons tracking-wide leading-relaxed ">
+              every startup gets a credit bundle from stripe, composio,
+              tinyfish, smallest.ai and more
+            </p>
           </div>
+        </div>
+
+        {/* White Tint Background starting from here to bottom */}
+        <div className="absolute left-0 right-0 bottom-0 top-[80vh] bg-gradient-to-b from-transparent via-[#fdfdfd] to-[#fdfdfd] z-[26] pointer-events-none"></div>
+
+        {/* Program Description Section */}
+        <div className="relative z-30 w-full flex flex-col items-center justify-center px-4 py-24 md:py-32 mt-10 md:mt-20">
+          {/* Star left */}
+          <div
+            className="hidden md:block absolute z-0 w-[min(90vw,520px)] aspect-square -translate-x-[45%] left-0 pointer-events-none opacity-[0.15]"
+            style={{ top: "15%" }}
+            aria-hidden="true"
+          >
+            <div
+              className="w-full h-full bg-orange-500"
+              style={{
+                maskImage: "url(/star.svg)",
+                maskSize: "contain",
+                maskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskImage: "url(/star.svg)",
+                WebkitMaskSize: "contain",
+                WebkitMaskRepeat: "no-repeat",
+                WebkitMaskPosition: "center",
+              }}
+            />
+          </div>
+
+          {/* Star right */}
+          <div
+            className="hidden md:block absolute z-0 w-16 h-16 md:w-20 md:h-20 right-[6%] pointer-events-none opacity-[0.35]"
+            style={{ top: "10%" }}
+            aria-hidden="true"
+          >
+            <div
+              className="w-full h-full bg-orange-500"
+              style={{
+                maskImage: "url(/star.svg)",
+                maskSize: "contain",
+                maskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskImage: "url(/star.svg)",
+                WebkitMaskSize: "contain",
+                WebkitMaskRepeat: "no-repeat",
+                WebkitMaskPosition: "center",
+              }}
+            />
+          </div>
+
+          {/* Toggle */}
+          <div className="relative z-10 flex items-center bg-black/5 rounded-full p-1 mb-10 border border-black/10 backdrop-blur-md">
+            <div className="px-6 py-2 rounded-full bg-white text-black text-sm font-medium shadow-sm border border-black/5">
+              Program Details
+            </div>
+          </div>
+
+          {/* Main Description */}
+          <div className="relative z-10 max-w-4xl text-center px-4 flex flex-col gap-6 md:gap-10">
+            <p className="font-seasons text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-relaxed text-black/90">
+              Momentum is a 4-week{" "}
+              <span className="  text-orange-500">virtual program</span>{" "}
+              for early founders. Whether you're building software, hardware, or
+              robots — there's a place for all.
+            </p>
+            <p className="font-seasons text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-relaxed text-black/80">
+              Every week we work on 1 checkpoint together, meet tech founders,
+              and meet partners from VCs. And on Fridays, we share progress.
+            </p>
+            <p className="font-seasons text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-relaxed text-black/90">
+              The top 25 startups at week 4 fly to SF for an{" "}
+              <span className="  text-orange-500">in-person demo day</span>{" "}
+              attended by a16z, Kickstart, SPC, Antler, etc.
+            </p>
+          </div>
+
+          {/* Credits Info */}
+          <p className="relative z-10 mt-12 text-black/60 text-sm md:text-base font-sans tracking-wide text-center max-w-2xl px-4">
+            Giving away $10k credit bundle to each team from{" "}
+            <span className="font-semibold text-black/80">
+              smallest.ai, Composio, Stripe, Insforge, Autosend
+            </span>{" "}
+            and more...
+          </p>
+
+          {/* CTA Button */}
+          <a
+            href="/momentum/apply"
+            className="relative z-10 mt-10 px-8 py-3 rounded-full bg-black border border-black/20 text-white text-sm hover:bg-black/80 transition-colors shadow-lg"
+          >
+            Apply for the program
+          </a>
         </div>
 
         {/* Large Background Text Overlay - Z-30 (Above Rocket) */}

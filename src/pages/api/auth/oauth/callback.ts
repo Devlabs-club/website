@@ -18,21 +18,29 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
     let redirectUrl = '/dashboard';
+    let redirectParamStr = '';
 
     if (stateParam) {
       try {
+        // Try parsing as JSON first
         const stateObj = JSON.parse(stateParam);
         if (stateObj.redirect) {
           redirectUrl = stateObj.redirect;
+          redirectParamStr = `&redirect=${encodeURIComponent(stateObj.redirect)}`;
         }
       } catch (e) {
-        console.error('Failed to parse state param', e);
+        console.log('State param is not JSON, trying as plain string');
+        // If it's not JSON, maybe it's just the plain redirect string
+        if (stateParam.startsWith('/')) {
+          redirectUrl = stateParam;
+          redirectParamStr = `&redirect=${encodeURIComponent(stateParam)}`;
+        }
       }
     }
 
     if (!code) {
       console.error('OAuth callback: No authorization code provided');
-      return redirect('/login?error=oauth_no_code');
+      return redirect(`/login?error=oauth_no_code${redirectParamStr}`);
     }
 
     // Exchange the authorization code for user session using WorkOS session management
@@ -49,7 +57,7 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
 
     if (!workosUser) {
       console.error('OAuth callback: Failed to get user from WorkOS');
-      return redirect('/login?error=oauth_user_fetch_failed');
+      return redirect(`/login?error=oauth_user_fetch_failed${redirectParamStr}`);
     }
 
     // Check if user already exists in our database
@@ -102,7 +110,23 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
   } catch (error) {
     console.error('OAuth callback error:', error);
     
+    // Extract redirect URL to preserve it on error
+    let redirectParamStr = '';
+    const stateParam = url.searchParams.get('state');
+    if (stateParam) {
+      try {
+        const stateObj = JSON.parse(stateParam);
+        if (stateObj.redirect) {
+          redirectParamStr = `&redirect=${encodeURIComponent(stateObj.redirect)}`;
+        }
+      } catch (e) {
+        if (stateParam.startsWith('/')) {
+          redirectParamStr = `&redirect=${encodeURIComponent(stateParam)}`;
+        }
+      }
+    }
+    
     // Redirect to login with error
-    return redirect('/login?error=oauth_callback_failed');
+    return redirect(`/login?error=oauth_callback_failed${redirectParamStr}`);
   }
 };

@@ -100,9 +100,29 @@ export const PATCH: APIRoute = async ({ request }) => {
       );
     }
 
+    let updateData: any = { status };
+
+    // Assign a group if approving and not already assigned
+    if (status === 'approved' && existing.status !== 'approved' && !existing.group) {
+      const groups = ['Velocity', 'Inertia', 'Flux', 'Gravity'];
+      const counts = await MomentumApplication.aggregate([
+        { $match: { status: 'approved', group: { $in: groups } } },
+        { $group: { _id: '$group', count: { $sum: 1 } } }
+      ]);
+      
+      const groupCounts = Object.fromEntries(groups.map(g => [g, 0]));
+      counts.forEach(c => { groupCounts[c._id] = c.count; });
+      
+      const minCount = Math.min(...Object.values(groupCounts));
+      const candidateGroups = groups.filter(g => groupCounts[g] === minCount);
+      
+      const assignedGroup = candidateGroups[Math.floor(Math.random() * candidateGroups.length)];
+      updateData.group = assignedGroup;
+    }
+
     const updated = await MomentumApplication.findByIdAndUpdate(
       applicationId,
-      { $set: { status } },
+      { $set: updateData },
       { new: true }
     ).lean();
 

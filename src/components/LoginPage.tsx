@@ -28,11 +28,15 @@ export default function LoginPage() {
   }, []);
 
   const handleSuccess = () => {
-    window.location.href = '/dashboard';
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    window.location.href = redirect || '/dashboard';
   };
 
   const handleSwitchToRegister = () => {
-    window.location.href = '/register';
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    window.location.href = `/register${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`;
   };
 
   return (

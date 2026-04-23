@@ -8,8 +8,12 @@ import {
   Search,
   Shield,
   XCircle,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "../auth_manager";
 import type { MomentumApplicationRecord, MomentumApplicationStatus } from "./types";
+
+import { MomentumAdminTasks } from "./MomentumAdminTasks";
 
 function statusPill(status: MomentumApplicationStatus) {
   const map = {
@@ -21,6 +25,7 @@ function statusPill(status: MomentumApplicationStatus) {
 }
 
 export default function MomentumAdminDashboard() {
+  const { logout } = useAuth();
   const [applications, setApplications] = useState<MomentumApplicationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +95,17 @@ export default function MomentumAdminDashboard() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8">
+    <div className="mx-auto max-w-6xl space-y-8 relative">
+      <div className="absolute top-0 right-0">
+        <button
+          onClick={() => void logout()}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
+
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-violet-200">
@@ -244,6 +259,11 @@ export default function MomentumAdminDashboard() {
                   <p className="text-sm text-white/50">
                     {selected.firstName} {selected.lastName} · {selected.email}
                   </p>
+                  {selected.group && (
+                    <p className="mt-2 inline-flex rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-white">
+                      Team {selected.group}
+                    </p>
+                  )}
                 </div>
                 <span
                   className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium capitalize ${statusPill(selected.status)}`}
@@ -320,6 +340,8 @@ export default function MomentumAdminDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <MomentumAdminTasks />
     </div>
   );
 }

@@ -2,37 +2,7 @@
 import CompanyMarquee from "./CompanyMarquee.astro";
 import { DottedGlowBackground } from "./ui/dotted-glow-background";
 import { HeroParallaxDemo } from "./HeroParallaxDemo";
-import { getTweet } from "react-tweet/api";
 
-const tweetIds = [
-  "1928619327542145295",
-  "1923056107817144526",
-  "2007508417276195234",
-  "2018830577957224829",
-  "2015186024713081271",
-  "2016245796816244936",
-  "2016452633876381946",
-  "1928619327542145295",
-  "1923056107817144526",
-  "2007508417276195234",
-  "2018830577957224829",
-  "2015186024713081271",
-  "2016245796816244936",
-  "2016452633876381946",
-];
-
-const tweets = await Promise.all(
-  tweetIds.map(async (id) => {
-    try {
-      return await getTweet(id);
-    } catch (e) {
-      console.error(`Failed to fetch tweet ${id}`, e);
-      return undefined;
-    }
-  }),
-);
-
-const validTweets = tweets.filter((t) => t !== undefined);
 ---
 
 <section

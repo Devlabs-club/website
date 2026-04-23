@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Building2,
@@ -11,59 +11,22 @@ import {
   Rocket,
   Sparkles,
   XCircle,
+  Twitter,
+  Send,
+  LogOut,
+  Lock,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
+import { useAuth } from "../auth_manager";
 import type {
   MomentumApplicationRecord,
   MomentumApplicationStatus,
 } from "./types";
 
-function StatusBanner({ status }: { status: MomentumApplicationStatus }) {
-  const config = {
-    pending: {
-      icon: Clock,
-      title: "Under review",
-      subtitle:
-        "We’re reading your application. You’ll see your status update here.",
-      className: "border-amber-500/30 bg-amber-500/10 text-amber-100",
-    },
-    approved: {
-      icon: CheckCircle2,
-      title: "Approved",
-      subtitle: "Welcome to Momentum — we’re thrilled to have you.",
-      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-100",
-    },
-    rejected: {
-      icon: XCircle,
-      title: "Not accepted this cycle",
-      subtitle:
-        "Thank you for applying. We’re rooting for you — keep building.",
-      className: "border-rose-500/30 bg-rose-500/10 text-rose-100",
-    },
-  }[status];
-
-  const Icon = config.icon;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border px-6 py-8 ${config.className}`}
-    >
-      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/5 blur-2xl" />
-      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/30">
-          <Icon className="h-7 w-7" />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">
-            Application status
-          </p>
-          <h2 className="font-seasons text-2xl sm:text-3xl">{config.title}</h2>
-          <p className="mt-1 max-w-xl text-sm opacity-90">{config.subtitle}</p>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+import { PartnerCredits } from "./PartnerCredits";
+import { CommunityLinks } from "./CommunityLinks";
+import { MomentumPointsAndTasks } from "./MomentumPointsAndTasks";
 
 function DetailCard({
   title,
@@ -123,6 +86,13 @@ export default function MomentumUserDashboard({
 }: {
   application: MomentumApplicationRecord;
 }) {
+  const { logout } = useAuth();
+  const [tweetUrl, setTweetUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedLink, setSubmittedLink] = useState<string | null>(null);
+  const [showRevealHint, setShowRevealHint] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+
   const submitted = application.createdAt
     ? new Date(application.createdAt).toLocaleString(undefined, {
         dateStyle: "medium",
@@ -130,12 +100,59 @@ export default function MomentumUserDashboard({
       })
     : "—";
 
+  // Kickoff time: April 24, 2026, 10:30 AM Phoenix time (MST / UTC-7)
+  const kickoffTime = new Date("2026-04-24T10:30:00-07:00").getTime();
+  const isRevealed = Date.now() >= kickoffTime;
+
+  const handleSubmission = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tweetUrl) return;
+    setIsSubmitting(true);
+    // Simulate submission
+    setTimeout(() => {
+      setSubmittedLink(tweetUrl);
+      setIsSubmitting(false);
+    }, 1000);
+  };
+
+  const statusConfig = {
+    pending: {
+      label: "Under review",
+      className: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+      icon: Clock,
+    },
+    approved: {
+      label: "Approved",
+      className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+      icon: CheckCircle2,
+    },
+    rejected: {
+      label: "Not accepted",
+      className: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+      icon: XCircle,
+    },
+  }[application.status];
+
+  const StatusIcon = statusConfig.icon;
+
   return (
-    <div className="mx-auto max-w-4xl space-y-8">
+    <div className="mx-auto max-w-4xl space-y-8 relative">
+      <div className="absolute top-0 right-0">
+        <button
+          onClick={() => void logout()}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
+
       <div className="text-center">
-        <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-orange-300">
-          <Sparkles className="h-3.5 w-3.5" />
-          Your application
+        <p
+          className={`mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-widest ${statusConfig.className}`}
+        >
+          <StatusIcon className="h-3.5 w-3.5" />
+          {statusConfig.label}
         </p>
         <h1 className="font-seasons text-3xl text-white sm:text-4xl md:text-5xl">
           Momentum
@@ -145,82 +162,245 @@ export default function MomentumUserDashboard({
         </p>
       </div>
 
-      <StatusBanner status={application.status} />
+      {application.status === "approved" && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-orange-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-md relative overflow-hidden"
+        >
+          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <DetailCard title="Contact" icon={Mail}>
-          <Row
-            label="Name"
-            value={`${application.firstName} ${application.lastName}`}
-          />
-          <Row label="Email" value={application.email} />
-          <Row label="Phone" value={application.phone} />
-          <Row
-            label="Location"
-            value={`${application.city}, ${application.state} · ${application.country}`}
-          />
-        </DetailCard>
+          {!isRevealed ? (
+            <div className="relative z-10">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                    Checkpoint 1
+                  </h2>
+                  <p className="text-sm text-white/60">
+                    Get your screen recorder ready. You'll be showing the world
+                    what you're building.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-3">
+                <button
+                  onClick={() => setShowRevealHint(!showRevealHint)}
+                  className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                >
+                  More info
+                </button>
+                {showRevealHint && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                  >
+                    Full details reveal on the kickoff! Check back on April 24th
+                    at 10:30 AM (PHX time).
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="relative z-10">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+                  <Twitter className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                    Checkpoint 1 Submission
+                  </h2>
+                  <p className="text-sm text-white/60">
+                    Due today. Post a 1-min demo video on Twitter. Get 3 reposts
+                    and a comment from someone with 10K+ followers.
+                  </p>
+                </div>
+              </div>
 
-        <DetailCard title="Startup" icon={Building2}>
-          <Row label="Name" value={application.startupName} />
-          <Row label="Age" value={application.startupAge} />
-          <Row
-            label="You are"
-            value={application.founderType.replace(/_/g, " ")}
-          />
-          <Row label="Domain" value={application.startupDomain} />
-          <Row label="Co-founder" value={yesNo(application.hasCoFounder)} />
-          {application.hasCoFounder && (
+              {submittedLink ? (
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <div className="text-sm">
+                    <span className="font-medium">Submitted successfully.</span>{" "}
+                    <a
+                      href={submittedLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 hover:text-emerald-100"
+                    >
+                      View your submission
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleSubmission}
+                  className="flex flex-col gap-4 sm:flex-row sm:items-end"
+                >
+                  <div className="flex-1 space-y-2">
+                    <label
+                      htmlFor="tweetUrl"
+                      className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                    >
+                      Twitter Post URL
+                    </label>
+                    <input
+                      id="tweetUrl"
+                      type="url"
+                      required
+                      value={tweetUrl}
+                      onChange={(e) => setTweetUrl(e.target.value)}
+                      placeholder="https://twitter.com/yourusername/status/..."
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !tweetUrl}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                    ) : (
+                      <>
+                        Submit <Send className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-4 text-xs text-white/40">
+                Need help? Check the{" "}
+                <a
+                  href="/momentum/checkpoint/1"
+                  className="text-orange-400 hover:underline"
+                >
+                  checkpoint 1 details
+                </a>
+                .
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {application.status === "approved" && (
+        <>
+          <CommunityLinks />
+          <PartnerCredits />
+          <MomentumPointsAndTasks application={application} />
+        </>
+      )}
+
+      <div className="flex justify-center mt-12 mb-6">
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          {showDetails ? (
             <>
-              <Row
-                label="# Co-founders"
-                value={String(application.numCoFounders)}
-              />
-              <Row
-                label="Co-founder details"
-                value={application.coFounderDetails}
-              />
+              Hide application details <ChevronUp className="h-4 w-4" />
+            </>
+          ) : (
+            <>
+              Show application details <ChevronDown className="h-4 w-4" />
             </>
           )}
-        </DetailCard>
-
-        <DetailCard title="Story" icon={Rocket}>
-          <Row label="What you’re building" value={application.description} />
-          <Row label="Accomplishments" value={application.accomplishments} />
-          <Row label="Three adjectives" value={application.adjectives} />
-        </DetailCard>
-
-        <DetailCard title="Links & deck" icon={Globe2}>
-          <Row
-            label="Website / GitHub"
-            value={linkOrDash(application.websiteOrGithub)}
-          />
-          <Row label="Demo video" value={linkOrDash(application.demoVideo)} />
-          <Row label="LinkedIn" value={linkOrDash(application.linkedin)} />
-          <Row label="X" value={linkOrDash(application.twitter)} />
-          <Row label="Pitch deck" value={linkOrDash(application.pitchDeck)} />
-          <Row label="Traction metrics" value={application.keyMetrics || "—"} />
-        </DetailCard>
-
-        <DetailCard title="Traction" icon={MapPin}>
-          <Row label="Revenue" value={yesNo(application.hasRevenue)} />
-          <Row label="Incorporated" value={yesNo(application.isIncorporated)} />
-          <Row
-            label="Raised capital"
-            value={yesNo(application.hasRaisedMoney)}
-          />
-          <Row
-            label="Fundraise / accelerator"
-            value={yesNo(application.lookingToFundraise)}
-          />
-          <Row label="Heard about us" value={application.heardAboutUs} />
-        </DetailCard>
-
-        <DetailCard title="Meta" icon={Calendar}>
-          <Row label="Submitted" value={submitted} />
-          <Row label="Application ID" value={String(application._id)} />
-        </DetailCard>
+        </button>
       </div>
+
+      {showDetails && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="grid gap-6 md:grid-cols-2"
+        >
+          <DetailCard title="Contact" icon={Mail}>
+            <Row
+              label="Name"
+              value={`${application.firstName} ${application.lastName}`}
+            />
+            <Row label="Email" value={application.email} />
+            <Row label="Phone" value={application.phone} />
+            <Row
+              label="Location"
+              value={`${application.city}, ${application.state} · ${application.country}`}
+            />
+          </DetailCard>
+
+          <DetailCard title="Startup" icon={Building2}>
+            <Row label="Name" value={application.startupName} />
+            <Row label="Age" value={application.startupAge} />
+            <Row
+              label="You are"
+              value={application.founderType.replace(/_/g, " ")}
+            />
+            <Row label="Domain" value={application.startupDomain} />
+            <Row label="Co-founder" value={yesNo(application.hasCoFounder)} />
+            {application.hasCoFounder && (
+              <>
+                <Row
+                  label="# Co-founders"
+                  value={String(application.numCoFounders)}
+                />
+                <Row
+                  label="Co-founder details"
+                  value={application.coFounderDetails}
+                />
+              </>
+            )}
+          </DetailCard>
+
+          <DetailCard title="Story" icon={Rocket}>
+            <Row label="What you’re building" value={application.description} />
+            <Row label="Accomplishments" value={application.accomplishments} />
+            <Row label="Three adjectives" value={application.adjectives} />
+          </DetailCard>
+
+          <DetailCard title="Links & deck" icon={Globe2}>
+            <Row
+              label="Website / GitHub"
+              value={linkOrDash(application.websiteOrGithub)}
+            />
+            <Row label="Demo video" value={linkOrDash(application.demoVideo)} />
+            <Row label="LinkedIn" value={linkOrDash(application.linkedin)} />
+            <Row label="X" value={linkOrDash(application.twitter)} />
+            <Row label="Pitch deck" value={linkOrDash(application.pitchDeck)} />
+            <Row
+              label="Traction metrics"
+              value={application.keyMetrics || "—"}
+            />
+          </DetailCard>
+
+          <DetailCard title="Traction" icon={MapPin}>
+            <Row label="Revenue" value={yesNo(application.hasRevenue)} />
+            <Row
+              label="Incorporated"
+              value={yesNo(application.isIncorporated)}
+            />
+            <Row
+              label="Raised capital"
+              value={yesNo(application.hasRaisedMoney)}
+            />
+            <Row
+              label="Fundraise / accelerator"
+              value={yesNo(application.lookingToFundraise)}
+            />
+            <Row label="Heard about us" value={application.heardAboutUs} />
+          </DetailCard>
+
+          <DetailCard title="Meta" icon={Calendar}>
+            <Row label="Submitted" value={submitted} />
+            <Row label="Application ID" value={String(application._id)} />
+          </DetailCard>
+        </motion.div>
+      )}
     </div>
   );
 }

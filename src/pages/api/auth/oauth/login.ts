@@ -11,12 +11,13 @@ export const GET: APIRoute = async ({ request, redirect }) => {
     const url = new URL(request.url);
     const redirectParam = url.searchParams.get('redirect') || '';
 
-    // Get the authorization URL from WorkOS using AuthKit (not specific OAuth provider)
+    // Get the authorization URL from WorkOS for Google OAuth
     const authorizationUrl = workos.userManagement.getAuthorizationUrl({
-      provider: 'authkit', // Use authkit as the provider (not GoogleOAuth)
+      provider: 'GoogleOAuth', // Use GoogleOAuth directly to skip AuthKit page
       redirectUri: import.meta.env.WORKOS_REDIRECT_URI,
       clientId: import.meta.env.WORKOS_CLIENT_ID,
       state: redirectParam ? JSON.stringify({ redirect: redirectParam }) : undefined,
+      prompt: 'select_account',
     });
 
     // Create redirect response
@@ -30,7 +31,11 @@ export const GET: APIRoute = async ({ request, redirect }) => {
   } catch (error) {
     console.error('OAuth login initiation failed:', error);
     
+    const url = new URL(request.url);
+    const redirectParam = url.searchParams.get('redirect');
+    const redirectQuery = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : '';
+    
     // Redirect to login page with error
-    return redirect('/login?error=oauth_init_failed');
+    return redirect(`/login?error=oauth_init_failed${redirectQuery}`);
   }
 };

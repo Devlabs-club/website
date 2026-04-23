@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 
 export type MomentumApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type MomentumGroup = 'Velocity' | 'Inertia' | 'Flux' | 'Gravity';
 
 export interface IMomentumApplication {
   userId: string;
   status: MomentumApplicationStatus;
+  group?: MomentumGroup | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -45,6 +47,11 @@ const momentumApplicationSchema = new mongoose.Schema<IMomentumApplication>(
       enum: ['pending', 'approved', 'rejected'],
       default: 'pending',
       index: true,
+    },
+    group: {
+      type: String,
+      enum: ['Velocity', 'Inertia', 'Flux', 'Gravity', null],
+      default: null,
     },
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },

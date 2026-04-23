@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Sparkles, LogOut } from "lucide-react";
+import { useAuth } from "../auth_manager";
 import { countWords, type PortalUser } from "./types";
 
 const STEPS = [
@@ -95,6 +96,7 @@ export default function MomentumApplicationWizard({
   defaultLastName?: string;
   onSuccess: () => void;
 }) {
+  const { logout } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,7 +228,17 @@ export default function MomentumApplicationWizard({
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl relative">
+      <div className="absolute top-0 right-0">
+        <button
+          onClick={() => void logout()}
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
+
       <div className="mb-10 text-center">
         <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-xs font-medium uppercase tracking-widest text-orange-300">
           <Sparkles className="h-3.5 w-3.5" />

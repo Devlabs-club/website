@@ -54,7 +54,7 @@ function PortalInner() {
 
   useEffect(() => {
     if (!authLoading && !authUser) {
-      window.location.href = "/api/auth/oauth/login?redirect=/momentum/apply";
+      window.location.href = "/login?redirect=/momentum/apply";
     }
   }, [authLoading, authUser]);
 

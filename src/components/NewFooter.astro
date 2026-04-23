@@ -4,6 +4,7 @@
 const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === "/momentum/";
 ---
 
+<div class:list={[isMomentum && "footer-wrapper-momentum"]}>
 <footer
   class:list={[
     "footer-below-cta w-full bg-transparent text-white pt-24 pb-10 overflow-hidden relative font-manrope z-10",
@@ -55,7 +56,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             rel="noopener noreferrer"
             class="text-white hover:text-gray-300 transition-colors"
           >
-            <img src="/socials/linkedin.png" alt="LinkedIn" class="w-6 h-6" />
+            <img src="/socials/linkedin.svg" alt="LinkedIn" class="w-6 h-6" />
           </a>
           <!-- Instagram -->
           <a
@@ -144,17 +145,53 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
       color: transparent;
       width: 100%;
     }
-    /* Momentum page: force footer text (links, paragraphs, copyright) to white */
+    /* Momentum page: force footer text (links, paragraphs, copyright) to black for light theme */
+    :global(.footer-momentum) {
+      background: linear-gradient(135deg, #ffb347 0%, #ff7b00 100%) !important;
+      border-radius: 32px;
+      margin: 0 auto 16px auto !important;
+      width: calc(100% - 32px) !important;
+      max-width: calc(100% - 32px) !important;
+      color: black !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+    }
+    /* Wrapper to provide the white background behind the rounded footer */
+    :global(body:has(.footer-momentum)) {
+      background-color: #fdfdfd;
+    }
+    :global(.footer-wrapper-momentum) {
+      background-color: #fdfdfd;
+      padding-top: 24px;
+      padding-bottom: 24px;
+      width: 100%;
+      position: relative;
+      z-index: 26;
+    }
     :global(.footer-momentum) p,
-    :global(.footer-momentum) a {
-      color: white !important;
+    :global(.footer-momentum) a,
+    :global(.footer-momentum) span {
+      color: rgba(0, 0, 0, 0.8) !important;
     }
     :global(.footer-momentum) a:hover {
-      color: rgba(255, 255, 255, 0.85) !important;
+      color: rgba(0, 0, 0, 1) !important;
     }
     :global(.footer-momentum) .text-gray-400,
     :global(.footer-momentum) .text-gray-500 {
-      color: white !important;
+      color: rgba(0, 0, 0, 0.6) !important;
+    }
+    :global(.footer-momentum) img {
+      filter: grayscale(1) brightness(0) opacity(0.8);
+    }
+    :global(.footer-momentum) svg {
+      color: rgba(0, 0, 0, 0.8) !important;
+    }
+    :global(.footer-momentum) .clipped-text {
+      background-image: none !important;
+      color:  rgba(75, 63, 63, 0.4) !important;
+      -webkit-background-clip: border-box !important;
+      background-clip: border-box !important;
+      -webkit-text-fill-color: rgba(75, 63, 63, 0.4) !important;
     }
   </style>
 </footer>
+</div>

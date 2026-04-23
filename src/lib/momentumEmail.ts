@@ -20,7 +20,7 @@ const getBaseTemplate = (title: string, content: string) => `
 <html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" ntent="width=device-width, initial-scale=1.0">
   <link
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Manrope:wght@400;600&display=swap"
@@ -87,12 +87,20 @@ export const sendApplicationApprovedEmail = async (to: string, firstName: string
   const content = `
     <p style="margin: 0 0 16px 0;">Hi ${firstName},</p>
     <p style="margin: 0 0 16px 0;">Congratulations! We are thrilled to inform you that your application to Momentum has been <span style="color: #f97316;">approved</span>.</p>
-    <p style="margin: 0 0 16px 0;">We were incredibly impressed by your vision and what you are building. You are now part of an exclusive cohort of founders and builders.</p>
-    <p style="margin: 0 0 16px 0;">Please log in to your Momentum portal to view the next steps, schedule, and onboarding details.</p>
-    <p style="margin: 0;">Get ready to accelerate your journey. We can't wait to see what you build.</p>
+    <p style="margin: 0 0 16px 0;">You will get an updated dashboard soon with access to credits from all partners. We will let you know when we roll out access to credits.</p>
+    <p style="margin: 0 0 8px 0;"><strong>Next Steps:</strong></p>
+    <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+<li style="margin-bottom: 8px;">
+<strong>Join our Discord:</strong> Join the server first, then reply with your username to get added to the private channel — 
+<a href="https://discord.gg/J4n8e2DhEy" style="color: #f97316; text-decoration: none;">https://discord.gg/J4n8e2DhEy</a>
+</li>      <li style="margin-bottom: 8px;"><strong>Confirm your attendance:</strong> Please reply to this email to confirm your attendance.</li>
+      <li style="margin-bottom: 8px;"><strong>Stay tuned:</strong> Keep an eye out for further updates from us.</li>
+    </ul>
+    <p style="margin: 0 0 16px 0;">Please share the below attached poster on your socials and tag Devlabs!</p>
+    <p style="margin: 0 0 16px 0; font-weight: bold;">Let's start hacking from 17th April to 16th May</p>
     
     <div style="text-align: center; margin-top: 32px; margin-bottom: 16px;">
-      <a href="${DOMAIN}/momentum/" style="background-color: #f97316; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 9999px; font-weight: 600; font-size: 14px; font-family: ${FONT_MANROPE}; display: inline-block;">Go to Portal</a>
+      <img src="https://dhanush.wtf/media/93u5emh8m9e.png?file=" alt="Momentum Poster" style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;" />
     </div>
   `;
 

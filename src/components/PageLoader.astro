@@ -85,10 +85,10 @@
       }, 400); // 400ms delay at 100% before zooming
     }
 
-    if (document.readyState === "complete") {
+    if (document.readyState === "interactive" || document.readyState === "complete") {
       finishLoader();
     } else {
-      window.addEventListener("load", finishLoader, { once: true });
+      window.addEventListener("DOMContentLoaded", finishLoader, { once: true });
     }
   })();
 </script>

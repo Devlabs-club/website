@@ -1,9 +1,11 @@
 export type MomentumApplicationStatus = 'pending' | 'approved' | 'rejected';
+export type MomentumGroup = 'Velocity' | 'Inertia' | 'Flux' | 'Gravity';
 
 export interface MomentumApplicationRecord {
   _id: string;
   userId: string;
   status: MomentumApplicationStatus;
+  group?: MomentumGroup | null;
   firstName: string;
   lastName: string;
   email: string;

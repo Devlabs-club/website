@@ -5,76 +5,115 @@ const hideTicker = Astro.url.pathname.startsWith("/momentum");
 const tickerItems = Array(8).fill(null);
 ---
 
-{!hideTicker && (
-  <div
-    class="fixed top-0 left-0 z-[10000] w-screen overflow-hidden bg-[rgba(8,8,8,0.88)] border-t border-b border-t-white/10 border-b-white/20 backdrop-blur-[8px] shadow-[0_8px_24px_rgba(0,0,0,0.22)] flex"
-    aria-label="Launch announcement"
-  >
-    <div class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]">
-      {tickerItems.map((_) => (
-        <>
-          <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-            We are launching a new startup program with
-            <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-            <a
-              href="/momentum"
-              class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-              style="text-decoration:none;"
-            >
-              <span class="relative inline-block">
-                <span class="text-white relative z-10 px-0.5 font-normal">
-                  Join Now
-                </span>
-                <span
-                  class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-                  style="pointer-events:none; opacity:0.85;"
-                ></span>
+{
+  !hideTicker && (
+    <div
+      class="fixed top-0 left-0 z-[10000] w-screen overflow-hidden bg-[rgba(8,8,8,0.88)] border-t border-b border-t-white/10 border-b-white/20 backdrop-blur-[8px] shadow-[0_8px_24px_rgba(0,0,0,0.22)] flex"
+      aria-label="Launch announcement"
+    >
+      <div class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]">
+        {tickerItems.map((_) => (
+          <>
+            <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
+              We are launching a new startup program with
+              <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">
+                a16z, Kickstart, Antler
               </span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-                <path d="M7 7h10v10"/>
-                <path d="M7 17 17 7"/>
-              </svg>
-            </a>
-          </span>
-          <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
-        </>
-      ))}
-    </div>
-    <div class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]" aria-hidden="true">
-      {tickerItems.map((_) => (
-        <>
-          <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
-            We are launching a new startup program with
-            <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">a16z, Kickstart, Antler</span>.
-            <a
-              href="/momentum"
-              class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
-              style="text-decoration:none;"
-            >
-              <span class="relative inline-block">
-                <span class="text-white relative z-10 px-0.5 font-normal">
-                  Join Now
+              .
+              <a
+                href="/momentum"
+                class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
+                style="text-decoration:none;"
+              >
+                <span class="relative inline-block">
+                  <span class="text-white relative z-10 px-0.5 font-normal">
+                    Join Now
+                  </span>
+                  <span
+                    class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
+                    style="pointer-events:none; opacity:0.85;"
+                  />
                 </span>
-                <span
-                  class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
-                  style="pointer-events:none; opacity:0.85;"
-                ></span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]"
+                >
+                  <path d="M7 7h10v10" />
+                  <path d="M7 17 17 7" />
+                </svg>
+              </a>
+            </span>
+            <span
+              class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]"
+              aria-hidden="true"
+            />
+          </>
+        ))}
+      </div>
+      <div
+        class="ticker-content flex shrink-0 items-center whitespace-nowrap py-2 md:py-[0.55rem]"
+        aria-hidden="true"
+      >
+        {tickerItems.map((_) => (
+          <>
+            <span class="font-manrope text-[1rem] md:text-[1.15rem] leading-none tracking-[0.01em] text-white/90">
+              We are launching a new startup program with
+              <span class="underline decoration-[#fa7d22] decoration-2 underline-offset-2 mx-1">
+                a16z, Kickstart, Antler
               </span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]">
-                <path d="M7 7h10v10"/>
-                <path d="M7 17 17 7"/>
-              </svg>
-            </a>
-          </span>
-          <span class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]" aria-hidden="true"></span>
-        </>
-      ))}
+              .
+              <a
+                href="/momentum"
+                class="ml-2 relative inline-flex items-center font-semibold text-white group focus:outline-none"
+                style="text-decoration:none;"
+              >
+                <span class="relative inline-block">
+                  <span class="text-white relative z-10 px-0.5 font-normal">
+                    Join Now
+                  </span>
+                  <span
+                    class="absolute left-0 right-0 bottom-0 h-[0.17em] bg-[#fa7d22] z-0 rounded"
+                    style="pointer-events:none; opacity:0.85;"
+                  />
+                </span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#fff"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right ml-1 transition-transform duration-150 group-hover:-translate-y-[2px] group-hover:translate-x-[2px]"
+                >
+                  <path d="M7 7h10v10" />
+                  <path d="M7 17 17 7" />
+                </svg>
+              </a>
+            </span>
+            <span
+              class="inline-block w-[0.32rem] h-[0.32rem] rounded-full bg-[#fa7d22] opacity-95 mx-4 md:mx-[1.1rem]"
+              aria-hidden="true"
+            />
+          </>
+        ))}
+      </div>
     </div>
-  </div>
-)}
+  )
+}
 
 <nav
-  class={`fixed left-1/2 transform -translate-x-1/2 z-[9999] w-3/4 lg:w-3/4 md:w-11/12 sm:w-11/12 ${hideTicker ? "top-4 md:top-4" : "top-[4.35rem] md:top-16"}`}
+  class={`fixed left-1/2 transform -translate-x-1/2 z-[9999] w-3/4 lg:w-3/4 md:w-11/12 sm:w-11/12 ${hideTicker ? "top-4 md:top-4 nav-momentum" : "top-[4.35rem] md:top-16"}`}
 >
   <div
     class="flex items-center justify-between px-8 py-4 rounded-full border border-white/20 bg-white/10 backdrop-blur-lg backdrop-filter shadow-lg shadow-black/10"
@@ -253,7 +292,7 @@ const tickerItems = Array(8).fill(null);
   .ticker-content {
     animation: ticker 80s linear infinite;
   }
-  
+
   @keyframes ticker {
     0% {
       transform: translateX(0);
@@ -294,6 +333,72 @@ const tickerItems = Array(8).fill(null);
       inset 0 1px 1px rgba(255, 255, 255, 0.1);
   }
 
+  /* Momentum Landing Page Specific Styles - Dynamic Light Theme */
+  nav.nav-momentum > div {
+    transition:
+      background-color 0.3s ease,
+      border-color 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  nav.nav-momentum .nav-link,
+  nav.nav-momentum #mobile-menu-btn,
+  nav.nav-momentum img[src^="/socials/"] {
+    transition: all 0.3s ease;
+  }
+
+  nav.nav-momentum.nav-light-theme > div {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.08),
+      inset 0 1px 1px rgba(255, 255, 255, 1) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme .nav-link {
+    color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme .nav-link:hover {
+    color: rgba(0, 0, 0, 0.9) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme .nav-link.active {
+    color: rgba(0, 0, 0, 0.9) !important;
+    font-weight: 600 !important;
+  }
+
+  nav.nav-momentum.nav-light-theme #mobile-menu-btn {
+    color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme #mobile-menu-btn:hover {
+    color: #fa7d22 !important;
+  }
+
+  nav.nav-momentum.nav-light-theme #mobile-menu {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme #mobile-menu a {
+    color: rgba(0, 0, 0, 0.6) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme #mobile-menu a:hover {
+    color: rgba(0, 0, 0, 0.9) !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  nav.nav-momentum.nav-light-theme img[src^="/socials/"] {
+    opacity: 0.8 !important;
+  }
+
+  nav.nav-momentum.nav-light-theme img[src^="/socials/"]:hover {
+    opacity: 1 !important;
+  }
+
   /* Active link styling */
   .nav-link.active {
     color: white;
@@ -324,7 +429,6 @@ const tickerItems = Array(8).fill(null);
       padding: 0.75rem 1rem;
     }
   }
-
 </style>
 
 <script>
@@ -402,6 +506,24 @@ const tickerItems = Array(8).fill(null);
     // Function to update active link and highlight position
     function updateActiveLink() {
       const currentPath = window.location.pathname;
+      const isMomentum = currentPath.includes("/momentum");
+      const navElement = document.querySelector("nav");
+
+      // Scroll listener for dynamic light theme on Momentum page
+      if (isMomentum && navElement) {
+        const handleScroll = () => {
+          // The white section starts around 80vh, so we transition slightly before it
+          if (window.scrollY > window.innerHeight * 0.7) {
+            navElement.classList.add("nav-light-theme");
+          } else {
+            navElement.classList.remove("nav-light-theme");
+          }
+        };
+
+        window.addEventListener("scroll", handleScroll);
+        // Trigger once on load
+        handleScroll();
+      }
 
       // Update nav links and highlight (desktop only)
       navLinks.forEach((link) => {
@@ -442,7 +564,7 @@ const tickerItems = Array(8).fill(null);
 
       // Hide highlight if no link is active
       const hasActiveLink = Array.from(navLinks).some((link) =>
-        link.classList.contains("active")
+        link.classList.contains("active"),
       );
       if (!hasActiveLink && highlight) {
         highlight.style.opacity = "0";
