@@ -19,11 +19,6 @@ import {
 import type { MomentumApplicationRecord } from "./types";
 
 const TASK_OPTIONS = [
-  {
-    id: "checkpoint_submission",
-    label: "Submission of Checkpoint",
-    points: 30,
-  },
   { id: "social_media", label: "Weekly Social Media Engagement", points: 20 },
   {
     id: "weekly_meetup",
@@ -35,6 +30,7 @@ const TASK_OPTIONS = [
 /** Labels for history rows (includes types no longer offered for new submission). */
 const TASK_LABELS_BY_ID: Record<string, string> = {
   ...Object.fromEntries(TASK_OPTIONS.map((o) => [o.id, o.label])),
+  checkpoint_submission: "Submission of Checkpoint",
   checkpoint_attendance: "Attending Mon-Fri Checkpoints",
 };
 
