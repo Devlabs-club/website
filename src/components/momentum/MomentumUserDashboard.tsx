@@ -27,6 +27,7 @@ import type {
 import { PartnerCredits } from "./PartnerCredits";
 import { CommunityLinks } from "./CommunityLinks";
 import { MomentumPointsAndTasks } from "./MomentumPointsAndTasks";
+import { CanvasRevealBadgeCard } from "../CanvasRevealBadgeCard";
 
 function DetailCard({
   title,
@@ -136,8 +137,8 @@ export default function MomentumUserDashboard({
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 relative">
-      <div className="absolute top-0 right-0">
+    <div className="relative mx-auto max-w-6xl space-y-8 px-4 pb-10 sm:px-6">
+      <div className="flex justify-end pt-1 sm:absolute sm:top-0 sm:right-6 sm:pt-0">
         <button
           onClick={() => void logout()}
           className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
@@ -147,7 +148,7 @@ export default function MomentumUserDashboard({
         </button>
       </div>
 
-      <div className="text-center">
+      <div className="text-center sm:pt-1">
         <p
           className={`mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-widest ${statusConfig.className}`}
         >
@@ -157,148 +158,193 @@ export default function MomentumUserDashboard({
         <h1 className="font-seasons text-3xl text-white sm:text-4xl md:text-5xl">
           Momentum
         </h1>
-        <p className="mt-2 text-sm text-white/50 text-bold">
+        <p className="mt-2 text-sm font-medium text-white/50">
           don't wait for the future, build it now.
         </p>
       </div>
 
-      {application.status === "approved" && (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-orange-500/30 bg-black/40 p-6 sm:p-8 backdrop-blur-md relative overflow-hidden"
-        >
-          <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl pointer-events-none" />
+      <div
+        className="mt-6 flex flex-col-reverse items-stretch gap-8 lg:mt-8 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]"
+      >
+        <div className="min-w-0 space-y-8">
+          {application.status !== "approved" && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-sm"
+            >
+              <h2 className="font-seasons text-lg text-white/90">
+                Your application
+              </h2>
+              <p className="mt-2 text-sm text-white/55 leading-relaxed">
+                We&apos;ll surface status changes in the tagline above. On
+                large screens, your badge stays in the column to the right; on
+                phones, it appears first for a quick look at your cohort
+                artboard.
+              </p>
+            </motion.div>
+          )}
 
-          {!isRevealed ? (
-            <div className="relative z-10">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
-                  <Lock className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                    Checkpoint 1
-                  </h2>
-                  <p className="text-sm text-white/60">
-                    Get your screen recorder ready. You'll be showing the world
-                    what you're building.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-col items-start gap-3">
-                <button
-                  onClick={() => setShowRevealHint(!showRevealHint)}
-                  className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                >
-                  More info
-                </button>
-                {showRevealHint && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
-                  >
-                    Full details reveal on the kickoff! Check back on April 24th
-                    at 10:30 AM (PHX time).
-                  </motion.div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="relative z-10">
-              <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
-                  <Twitter className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                    Checkpoint 1 Submission
-                  </h2>
-                  <p className="text-sm text-white/60">
-                    Due today. Post a 1-min demo video on Twitter. Get 3 reposts
-                    and a comment from someone with 10K+ followers.
-                  </p>
-                </div>
-              </div>
+          {application.status === "approved" && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+            >
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
 
-              {submittedLink ? (
-                <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                  <CheckCircle2 className="h-5 w-5 shrink-0" />
-                  <div className="text-sm">
-                    <span className="font-medium">Submitted successfully.</span>{" "}
-                    <a
-                      href={submittedLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 hover:text-emerald-100"
+              {!isRevealed ? (
+                <div className="relative z-10">
+                  <div className="mb-6 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                        Checkpoint 1
+                      </h2>
+                      <p className="text-sm text-white/60">
+                        Get your screen recorder ready. You&apos;ll be showing the
+                        world what you&apos;re building.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-3">
+                    <button
+                      onClick={() => setShowRevealHint(!showRevealHint)}
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
                     >
-                      View your submission
-                    </a>
+                      More info
+                    </button>
+                    {showRevealHint && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                      >
+                        Full details reveal on the kickoff! Check back on
+                        April 24th at 10:30 AM (PHX time).
+                      </motion.div>
+                    )}
                   </div>
                 </div>
               ) : (
-                <form
-                  onSubmit={handleSubmission}
-                  className="flex flex-col gap-4 sm:flex-row sm:items-end"
-                >
-                  <div className="flex-1 space-y-2">
-                    <label
-                      htmlFor="tweetUrl"
-                      className="text-xs font-semibold uppercase tracking-wider text-white/50"
-                    >
-                      Twitter Post URL
-                    </label>
-                    <input
-                      id="tweetUrl"
-                      type="url"
-                      required
-                      value={tweetUrl}
-                      onChange={(e) => setTweetUrl(e.target.value)}
-                      placeholder="https://twitter.com/yourusername/status/..."
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                    />
+                <div className="relative z-10">
+                  <div className="mb-6 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
+                      <Twitter className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                        Checkpoint 1 Submission
+                      </h2>
+                      <p className="text-sm text-white/60">
+                        Due today. Post a 1-min demo video on Twitter. Get 3
+                        reposts and a comment from someone with 10K+ followers.
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !tweetUrl}
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                    ) : (
-                      <>
-                        Submit <Send className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                </form>
+
+                  {submittedLink ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                      <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      <div className="text-sm">
+                        <span className="font-medium">Submitted successfully.</span>{" "}
+                        <a
+                          href={submittedLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 hover:text-emerald-100"
+                        >
+                          View your submission
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <form
+                      onSubmit={handleSubmission}
+                      className="flex flex-col gap-4 sm:flex-row sm:items-end"
+                    >
+                      <div className="flex-1 space-y-2">
+                        <label
+                          htmlFor="tweetUrl"
+                          className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                        >
+                          Twitter Post URL
+                        </label>
+                        <input
+                          id="tweetUrl"
+                          type="url"
+                          required
+                          value={tweetUrl}
+                          onChange={(e) => setTweetUrl(e.target.value)}
+                          placeholder="https://twitter.com/yourusername/status/..."
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || !tweetUrl}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isSubmitting ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                        ) : (
+                          <>
+                            Submit <Send className="h-4 w-4" />
+                          </>
+                        )}
+                      </button>
+                    </form>
+                  )}
+
+                  <div className="mt-4 text-xs text-white/40">
+                    Need help? Check the{" "}
+                    <a
+                      href="/momentum/checkpoint/1"
+                      className="text-orange-400 hover:underline"
+                    >
+                      checkpoint 1 details
+                    </a>
+                    .
+                  </div>
+                </div>
               )}
-
-              <div className="mt-4 text-xs text-white/40">
-                Need help? Check the{" "}
-                <a
-                  href="/momentum/checkpoint/1"
-                  className="text-orange-400 hover:underline"
-                >
-                  checkpoint 1 details
-                </a>
-                .
-              </div>
-            </div>
+            </motion.div>
           )}
-        </motion.div>
-      )}
 
-      {application.status === "approved" && (
-        <>
-          <CommunityLinks />
-          <PartnerCredits />
-          <MomentumPointsAndTasks application={application} />
-        </>
-      )}
+          {application.status === "approved" && (
+            <>
+              <CommunityLinks />
+              <PartnerCredits />
+              <MomentumPointsAndTasks application={application} />
+            </>
+          )}
+        </div>
 
-      <div className="flex justify-center mt-12 mb-6">
+        <aside className="mx-auto w-full max-w-[300px] shrink-0 lg:sticky lg:top-24 lg:mx-0 lg:justify-self-end xl:top-28">
+          <div className="lg:pl-1">
+            <p className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/35 sm:mb-3 lg:mb-3 lg:text-right">
+              Your badge
+            </p>
+            <div className="mx-auto w-full max-w-[300px]">
+              <CanvasRevealBadgeCard
+                group={application.group || undefined}
+                imagePath={
+                  application.group
+                    ? `/badges/${application.group.toLowerCase()}.png`
+                    : undefined
+                }
+                firstName={application.firstName}
+                lastName={application.lastName}
+                startupName={application.startupName}
+              />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div className="mb-6 mt-12 flex justify-center sm:mt-16">
         <button
           onClick={() => setShowDetails(!showDetails)}
           className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white"
