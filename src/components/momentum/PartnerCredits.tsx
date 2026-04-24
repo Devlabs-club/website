@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, X, Copy, Check, Gift } from "lucide-react";
+import { isMomentumKickoffRevealed } from "../../lib/momentumKickoff";
 
 interface Partner {
   id: string;
@@ -76,8 +77,7 @@ export function PartnerCredits() {
   const [copied, setCopied] = useState(false);
 
   // Kickoff time: April 24, 2026, 10:30 AM Phoenix time (MST / UTC-7)
-  const kickoffTime = new Date("2026-04-24T10:30:00-07:00").getTime();
-  const isRevealed = Date.now() >= kickoffTime;
+  const isRevealed = isMomentumKickoffRevealed();
 
   const handleCopy = (code: string) => {
     navigator.clipboard.writeText(code);

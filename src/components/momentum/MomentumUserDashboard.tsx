@@ -10,7 +10,7 @@ import {
   Mail,
   MapPin,
   Rocket,
-  Sparkles,
+  Gift,
   XCircle,
   Twitter,
   Send,
@@ -21,10 +21,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { useAuth } from "../auth_manager";
-import type {
-  MomentumApplicationRecord,
-  MomentumApplicationStatus,
-} from "./types";
+import type { MomentumApplicationRecord } from "./types";
 
 import { PartnerCredits } from "./PartnerCredits";
 import { CommunityLinks } from "./CommunityLinks";
@@ -34,6 +31,7 @@ import {
   MomentumTaskSubmissionsCard,
 } from "./MomentumPointsAndTasks";
 import { CanvasRevealBadgeCard } from "../CanvasRevealBadgeCard";
+import { isMomentumKickoffRevealed } from "../../lib/momentumKickoff";
 
 function DetailCard({
   title,
@@ -119,9 +117,7 @@ export default function MomentumUserDashboard({
       })
     : "—";
 
-  // Kickoff time: April 24, 2026, 10:30 AM Phoenix time (MST / UTC-7)
-  const kickoffTime = new Date("2026-04-24T10:30:00-07:00").getTime();
-  const isRevealed = Date.now() >= kickoffTime;
+  const isRevealed = isMomentumKickoffRevealed();
 
   const handleShareBadge = useCallback(async () => {
     const el = badgeCaptureRef.current;
@@ -189,39 +185,60 @@ export default function MomentumUserDashboard({
   const badgeAside = (
     <aside className="mx-auto w-full max-w-[300px] shrink-0 lg:sticky lg:top-24 lg:mx-0 lg:justify-self-end xl:top-28">
       <div className="lg:pl-1">
-      
         <div className="mx-auto w-full max-w-[300px] space-y-3">
-          <div ref={badgeCaptureRef} className="w-full">
-            <CanvasRevealBadgeCard
-              group={application.group || undefined}
-              imagePath={
-                application.group
-                  ? `/badges/${application.group.toLowerCase()}.png`
-                  : undefined
-              }
-              firstName={application.firstName}
-              lastName={application.lastName}
-              startupName={application.startupName}
-            />
-          </div>
-          {application.status === "approved" && application.group && (
-            <button
-              type="button"
-              onClick={() => void handleShareBadge()}
-              disabled={isBadgeExporting}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isBadgeExporting ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
-              ) : (
-                <Share2 className="h-4 w-4 text-orange-400" />
+          {isRevealed ? (
+            <>
+              <p className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/35 sm:mb-3 lg:mb-3 lg:text-right">
+                Your badge
+              </p>
+              <div ref={badgeCaptureRef} className="w-full">
+                <CanvasRevealBadgeCard
+                  group={application.group || undefined}
+                  imagePath={
+                    application.group
+                      ? `/badges/${application.group.toLowerCase()}.png`
+                      : undefined
+                  }
+                  firstName={application.firstName}
+                  lastName={application.lastName}
+                  startupName={application.startupName}
+                />
+              </div>
+              {application.status === "approved" && application.group && (
+                <button
+                  type="button"
+                  onClick={() => void handleShareBadge()}
+                  disabled={isBadgeExporting}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-medium text-white/90 transition-colors hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBadgeExporting ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/25 border-t-white" />
+                  ) : (
+                    <Share2 className="h-4 w-4 text-orange-400" />
+                  )}
+                  Share Badge
+                </button>
               )}
-              Share Badge
-            </button>
-          )}
-         
-          {application.status === "approved" && (
-            <MomentumLeaderboardCard className="mt-24 sm:mt-28" />
+              {application.status === "approved" && (
+                <MomentumLeaderboardCard className="mt-24 sm:mt-28" />
+              )}
+            </>
+          ) : (
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center backdrop-blur-sm">
+              <div className="pointer-events-none absolute inset-0 bg-black/40 backdrop-blur-md" />
+              <div className="relative z-10 flex flex-col items-center gap-3">
+                <Gift className="h-8 w-8 text-orange-400" />
+                <div>
+                  <h4 className="font-seasons text-lg text-white sm:text-xl">
+                    Badge & leaderboard
+                  </h4>
+                  <p className="mt-2 text-sm text-white/60">
+                    Unlocks at kickoff — same time as partner credits. April 24,
+                    2026 at 10:30 AM (PHX time).
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -256,7 +273,10 @@ export default function MomentumUserDashboard({
       </div>
 
       {application.status === "approved" ? (
-        <MomentumPointsTasksProvider application={application}>
+        <MomentumPointsTasksProvider
+          application={application}
+          enablePointsTasksFetch={isRevealed}
+        >
           <div className={dashboardGridClass}>
             <div className="min-w-0 space-y-8">
               <motion.div

@@ -20,11 +20,6 @@ import type { MomentumApplicationRecord } from "./types";
 
 const TASK_OPTIONS = [
   {
-    id: "checkpoint_attendance",
-    label: "Attending Mon-Fri Checkpoints",
-    points: 30,
-  },
-  {
     id: "checkpoint_submission",
     label: "Submission of Checkpoint",
     points: 30,
@@ -36,6 +31,12 @@ const TASK_OPTIONS = [
     points: 20,
   },
 ];
+
+/** Labels for history rows (includes types no longer offered for new submission). */
+const TASK_LABELS_BY_ID: Record<string, string> = {
+  ...Object.fromEntries(TASK_OPTIONS.map((o) => [o.id, o.label])),
+  checkpoint_attendance: "Attending Mon-Fri Checkpoints",
+};
 
 const groupColors: Record<string, string> = {
   Velocity: "from-blue-500 to-cyan-400",
@@ -74,9 +75,12 @@ function useMomentumPointsTasks() {
 export function MomentumPointsTasksProvider({
   application,
   children,
+  enablePointsTasksFetch = true,
 }: {
   application: MomentumApplicationRecord;
   children: React.ReactNode;
+  /** When false, skips fetching points/submissions until true (kickoff, same as partner credits). */
+  enablePointsTasksFetch?: boolean;
 }) {
   const [pointsTable, setPointsTable] = useState<
     { group: string; points: number }[]
@@ -84,17 +88,18 @@ export function MomentumPointsTasksProvider({
   const [submissions, setSubmissions] = useState<
     { _id: string; status: string; taskType: string; proofLink: string }[]
   >([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enablePointsTasksFetch);
   const [submitting, setSubmitting] = useState(false);
   const [taskType, setTaskType] = useState(TASK_OPTIONS[0].id);
   const [proofLink, setProofLink] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
       const [pointsRes, tasksRes] = await Promise.all([
-        fetch("/api/momentum/points"),
-        fetch("/api/momentum/tasks"),
+        fetch("/api/momentum/points", { credentials: "include" }),
+        fetch("/api/momentum/tasks", { credentials: "include" }),
       ]);
 
       if (pointsRes.ok) {
@@ -114,8 +119,12 @@ export function MomentumPointsTasksProvider({
   }, []);
 
   useEffect(() => {
+    if (!enablePointsTasksFetch) {
+      setLoading(false);
+      return;
+    }
     void loadData();
-  }, [loadData]);
+  }, [enablePointsTasksFetch, loadData]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -128,6 +137,7 @@ export function MomentumPointsTasksProvider({
       try {
         const res = await fetch("/api/momentum/tasks", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ taskType, proofLink }),
         });
@@ -340,8 +350,7 @@ export function MomentumTaskSubmissionsCard({
               <div className="flex min-w-0 items-center gap-2 overflow-hidden">
                 {getStatusIcon(sub.status)}
                 <span className="truncate text-white/70">
-                  {TASK_OPTIONS.find((o) => o.id === sub.taskType)?.label ||
-                    sub.taskType}
+                  {TASK_LABELS_BY_ID[sub.taskType] ?? sub.taskType}
                 </span>
               </div>
               <a
