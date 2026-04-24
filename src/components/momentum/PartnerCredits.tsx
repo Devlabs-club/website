@@ -60,7 +60,15 @@ const partners: Partner[] = [
     code: "MOMENTUM_BUILDS_FAST",
     link: "https://dashboard.composio.dev/dhanush.kalaiselvan_workspace/~/settings/billing",
   },
-  
+  {
+    id: "supermemory",
+    name: "Supermemory",
+    logo: "/sponsors/supermemory.png",
+    description:
+      "Universal memory for your AI products — apply your Momentum discount in the Supermemory console.",
+    code: "GETMOMENTUM",
+    link: "https://console.supermemory.ai?discountCode=GETMOMENTUM",
+  },
 ];
 
 export function PartnerCredits() {

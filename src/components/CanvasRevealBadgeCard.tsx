@@ -69,7 +69,7 @@ export function CanvasRevealBadgeCard({
 
   return (
     <div
-      className="relative box-border w-full max-w-[300px] shrink-0 bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/20 group"
+      className="relative  w-full max-w-[300px] shrink-0 bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/20 group"
       style={{ aspectRatio: ASPECT }}
     >
       <Icon className="absolute h-6 w-6 -top-3 -left-3 text-white/50" />
@@ -84,6 +84,7 @@ export function CanvasRevealBadgeCard({
             <img
               src={imagePath}
               alt="Badge"
+              crossOrigin="anonymous"
               className="absolute inset-0 h-full w-full object-cover"
             />
           </div>
@@ -107,8 +108,9 @@ export function CanvasRevealBadgeCard({
         )}
       </div>
 
-      {/* Canvas Reveal Effect (Z-index 10) */}
+      {/* Canvas Reveal Effect (Z-index 10) — excluded from PNG export (WebGL) */}
       <motion.div
+        data-export-exclude
         className="absolute inset-0 z-10 pointer-events-none"
         initial={{ "--hole-size": "0%" } as any}
         animate={{ "--hole-size": "150%" } as any}
