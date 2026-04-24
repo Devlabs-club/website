@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2, XCircle, Clock, Loader2, ExternalLink, Trophy } from "lucide-react";
+import { TASK_LABELS } from "../../models/momentumTaskSubmission";
 
 export function MomentumAdminTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -61,6 +62,11 @@ export function MomentumAdminTasks() {
     return <Clock className="h-4 w-4 text-amber-400" />;
   };
 
+  function taskTypeLabel(taskType: string) {
+    const key = taskType as keyof typeof TASK_LABELS;
+    return TASK_LABELS[key] ?? taskType.replace(/_/g, " ");
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center py-12">
@@ -120,7 +126,7 @@ export function MomentumAdminTasks() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(task.status)}
-                        <span className="text-white/80">{task.taskType.replace(/_/g, ' ')}</span>
+                        <span className="text-white/80">{taskTypeLabel(task.taskType)}</span>
                       </div>
                       <div className="text-xs text-orange-400 mt-1">+{task.points} pts</div>
                     </td>

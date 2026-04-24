@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toPng } from "html-to-image";
 import {
@@ -104,6 +104,7 @@ export default function MomentumUserDashboard({
   const { logout } = useAuth();
   const [tweetUrl, setTweetUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submittedLink, setSubmittedLink] = useState<string | null>(null);
   const [showRevealHint, setShowRevealHint] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -118,6 +119,38 @@ export default function MomentumUserDashboard({
     : "—";
 
   const isRevealed = isMomentumKickoffRevealed();
+
+  useEffect(() => {
+    if (application.status !== "approved" || !isRevealed) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/momentum/tasks", {
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          submissions?: {
+            taskType: string;
+            proofLink?: string;
+            createdAt?: string;
+          }[];
+        };
+        const list = data.submissions ?? [];
+        const latest = list.find((s) => s.taskType === "checkpoint_submission");
+        if (latest?.proofLink?.trim() && !cancelled) {
+          setSubmittedLink(latest.proofLink.trim());
+        }
+      } catch {
+        /* ignore hydrate errors */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [application.status, application._id, isRevealed]);
 
   const handleShareBadge = useCallback(async () => {
     const el = badgeCaptureRef.current;
@@ -148,15 +181,39 @@ export default function MomentumUserDashboard({
     }
   }, [application]);
 
-  const handleSubmission = (e: React.FormEvent) => {
+  const handleSubmission = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tweetUrl) return;
+    if (!tweetUrl.trim()) return;
     setIsSubmitting(true);
-    // Simulate submission
-    setTimeout(() => {
-      setSubmittedLink(tweetUrl);
+    setSubmissionError(null);
+    try {
+      const res = await fetch("/api/momentum/tasks", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskType: "checkpoint_submission",
+          proofLink: tweetUrl.trim(),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        submission?: { proofLink?: string };
+      };
+      if (!res.ok) {
+        setSubmissionError(data.message || "Submission failed");
+        return;
+      }
+      const link =
+        (data.submission?.proofLink && data.submission.proofLink.trim()) ||
+        tweetUrl.trim();
+      setSubmittedLink(link);
+      setTweetUrl("");
+    } catch {
+      setSubmissionError("Something went wrong. Try again.");
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   const statusConfig = {
@@ -188,9 +245,7 @@ export default function MomentumUserDashboard({
         <div className="mx-auto w-full max-w-[300px] space-y-3">
           {isRevealed ? (
             <>
-              <p className="mb-2 text-center text-xs font-medium uppercase tracking-[0.2em] text-white/35 sm:mb-3 lg:mb-3 lg:text-right">
-                Your badge
-              </p>
+            
               <div ref={badgeCaptureRef} className="w-full">
                 <CanvasRevealBadgeCard
                   group={application.group || undefined}
@@ -264,7 +319,7 @@ export default function MomentumUserDashboard({
           <StatusIcon className="h-3.5 w-3.5" />
           {statusConfig.label}
         </p>
-        <h1 className="font-seasons text-3xl text-white sm:text-4xl md:text-5xl">
+        <h1 className="font-seasons text-4xl text-white sm:text-5xl md:text-6xl">
           Momentum
         </h1>
         <p className="mt-2 text-sm font-medium text-white/50">
@@ -332,8 +387,9 @@ export default function MomentumUserDashboard({
                           Checkpoint 1 Submission
                         </h2>
                         <p className="text-sm text-white/60">
-                          Due today. Post a 1-min demo video on Twitter. Get 3
-                          reposts and a comment from someone with 10K+ followers.
+                          Due Friday, May 1st at 11:59 PM. Post a 1-min demo
+                          video on Twitter. Get 3 reposts and a comment from
+                          someone with 10K+ followers.
                         </p>
                       </div>
                     </div>
@@ -357,39 +413,46 @@ export default function MomentumUserDashboard({
                       </div>
                     ) : (
                       <form
-                        onSubmit={handleSubmission}
-                        className="flex flex-col gap-4 sm:flex-row sm:items-end"
+                        onSubmit={(ev) => void handleSubmission(ev)}
+                        className="flex flex-col gap-4"
                       >
-                        <div className="flex-1 space-y-2">
-                          <label
-                            htmlFor="tweetUrl"
-                            className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                        {submissionError && (
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                            {submissionError}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                          <div className="flex-1 space-y-2">
+                            <label
+                              htmlFor="tweetUrl"
+                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                            >
+                              Twitter Post URL
+                            </label>
+                            <input
+                              id="tweetUrl"
+                              type="url"
+                              required
+                              value={tweetUrl}
+                              onChange={(e) => setTweetUrl(e.target.value)}
+                              placeholder="https://twitter.com/yourusername/status/..."
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting || !tweetUrl}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Twitter Post URL
-                          </label>
-                          <input
-                            id="tweetUrl"
-                            type="url"
-                            required
-                            value={tweetUrl}
-                            onChange={(e) => setTweetUrl(e.target.value)}
-                            placeholder="https://twitter.com/yourusername/status/..."
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                          />
+                            {isSubmitting ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                            ) : (
+                              <>
+                                Submit <Send className="h-4 w-4" />
+                              </>
+                            )}
+                          </button>
                         </div>
-                        <button
-                          type="submit"
-                          disabled={isSubmitting || !tweetUrl}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {isSubmitting ? (
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                          ) : (
-                            <>
-                              Submit <Send className="h-4 w-4" />
-                            </>
-                          )}
-                        </button>
                       </form>
                     )}
 

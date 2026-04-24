@@ -1,0 +1,285 @@
+---
+import "../../styles/global.css";
+
+const title = "Badges reveal";
+
+/** Order matches the reference: Velocity, Flux, Inertia, Gravity — images from /public/badges/ */
+const badges = [
+  { id: "velocity" as const, label: "Velocity", accent: "#1d4ed8" },
+  { id: "flux" as const, label: "Flux", accent: "#15803d" },
+  { id: "inertia" as const, label: "Inertia", accent: "#a16207" },
+  { id: "gravity" as const, label: "Gravity", accent: "#b91c1c" },
+] as const;
+
+const founderName = "Founder Name";
+const startupName = "startup name";
+const classYear = "26";
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Momentum team badges — Velocity, Flux, Inertia, Gravity." />
+    <title>{title} · Momentum</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Montserrat:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body
+    class="br-page min-h-screen antialiased"
+    style="--br-bg: #121212; --br-paper: #f3efe4; --br-ink: #1a1a1a; --br-muted: #3f3a33;"
+  >
+    <div class="mx-auto min-h-screen max-w-[1280px] px-4 pb-16 pt-8 sm:px-6 sm:pt-10 lg:px-8">
+      <header class="mb-10 flex items-start justify-between gap-4 sm:mb-14">
+        <h1 class="br-title font-serif text-3xl tracking-tight text-white sm:text-4xl md:text-5xl">
+          badges reveal !!!!
+        </h1>
+        <div class="shrink-0 pt-1" aria-hidden="true">
+          <img
+            src="/logo.png"
+            width="40"
+            height="40"
+            class="h-9 w-9 object-contain sm:h-10 sm:w-10"
+            alt=""
+          />
+        </div>
+      </header>
+
+      <ul
+        class="grid list-none grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4 lg:gap-5"
+        style="padding: 0; margin: 0;"
+      >
+        {
+          badges.map((b) => (
+            <li
+              class="br-card"
+              style={`--accent: ${b.accent}; color: var(--br-ink);`}
+            >
+              <div class="br-card__paper">
+                <div class="br-card__head">
+                  <img src="/logo.png" class="br-card__mark" width="32" height="32" alt="" />
+                  <p class="br-card__brand">Momentum</p>
+                  <p class="br-card__byline">by Devlabs</p>
+                </div>
+
+                <div class="br-card__art">
+                  <div class="br-card__art-frame">
+                    <img
+                      src={`/badges/${b.id}.png`}
+                      alt={`${b.label} badge artwork`}
+                      class="br-card__art-img"
+                      width="400"
+                      height="360"
+                    />
+                  </div>
+                  <p class="br-card__badge-name">
+                    {b.label}
+                  </p>
+                </div>
+
+                <div class="br-card__foot">
+                  <div class="br-card__ids">
+                    <p class="br-card__fl">{founderName}</p>
+                    <p class="br-card__sub">{startupName}</p>
+                  </div>
+                  <div class="br-card__batch" aria-label={`Class of ${classYear}`}>
+                    <span class="br-card__class-script">Class of</span>
+                    <span class="br-card__year">
+                      {classYear}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="br-card__dither" aria-hidden="true" />
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  .br-page {
+    background-color: var(--br-bg);
+  }
+
+  .br-title {
+    font-family: "the-seasons", "Playfair Display", "Georgia", serif;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .br-card {
+    list-style: none;
+    container-type: inline-size;
+  }
+
+  .br-card__paper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    background-color: var(--br-paper);
+    background-image: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.35) 0%,
+        rgba(255, 255, 255, 0) 40%
+      ),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    background-size: auto, 200px 200px;
+    background-blend-mode: soft-light, normal;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  }
+
+  .br-card__head {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.1rem 1rem 0.5rem;
+    text-align: center;
+  }
+
+  .br-card__mark {
+    height: 1.75rem;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 0.4rem;
+  }
+
+  .br-card__brand {
+    margin: 0;
+    font-family: "the-seasons", "Playfair Display", "Georgia", serif;
+    font-size: clamp(1.35rem, 8cqi, 1.6rem);
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+  }
+
+  .br-card__byline {
+    margin: 0.1rem 0 0;
+    font-family: "the-seasons", "Playfair Display", "Georgia", serif;
+    font-size: 0.68rem;
+    color: var(--br-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .br-card__art {
+    flex: 1 1 auto;
+    padding: 0.4rem 0.9rem 0.35rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .br-card__art-frame {
+    position: relative;
+    aspect-ratio: 1 / 1.05;
+    max-height: min(52vh, 280px);
+    width: 100%;
+    margin-inline: auto;
+    overflow: hidden;
+    background: #0f0f0f;
+  }
+
+  .br-card__art-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .br-card__badge-name {
+    margin: 0.5rem 0 0;
+    text-align: center;
+    color: var(--accent);
+    font-family: "Montserrat", system-ui, sans-serif;
+    font-size: clamp(1.05rem, 5cqi, 1.25rem);
+    font-weight: 800;
+    text-transform: none;
+    letter-spacing: 0.06em;
+  }
+
+  .br-card__foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 1.1rem 0.4rem;
+    margin-top: auto;
+  }
+
+  .br-card__ids {
+    min-width: 0;
+  }
+
+  .br-card__fl {
+    margin: 0;
+    font-family: "the-seasons", "Playfair Display", "Georgia", serif;
+    font-size: 0.98rem;
+    line-height: 1.15;
+    color: var(--br-ink);
+  }
+
+  .br-card__sub {
+    margin: 0.15rem 0 0;
+    font-family: "the-seasons", "Playfair Display", "Georgia", serif;
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: var(--br-muted);
+  }
+
+  .br-card__batch {
+    position: relative;
+    flex-shrink: 0;
+    text-align: right;
+    min-width: 3.2rem;
+  }
+
+  .br-card__class-script {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: -0.1rem;
+    font-family: "Dancing Script", cursive;
+    font-size: 0.8rem;
+    color: #4a443c;
+  }
+
+  .br-card__year {
+    display: block;
+    font-family: "Montserrat", system-ui, sans-serif;
+    font-size: 2.75rem;
+    line-height: 0.9;
+    font-weight: 800;
+    color: var(--accent);
+    -webkit-text-stroke: 2px currentColor;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 0 var(--br-paper);
+  }
+
+  .br-card__dither {
+    height: 9px;
+    width: 100%;
+    color: var(--accent);
+    background-image: radial-gradient(circle at 1px 1px, currentColor 0.5px, transparent 0.55px);
+    background-size: 3px 3px;
+    opacity: 0.5;
+  }
+
+  @supports not (-webkit-text-stroke: 2px red) {
+    .br-card__year {
+      -webkit-text-fill-color: currentColor;
+      color: var(--accent);
+      -webkit-text-stroke: 0;
+    }
+  }
+</style>

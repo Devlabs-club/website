@@ -116,7 +116,7 @@ export default function Checkpoint1() {
               deadline for week 1 update.
             </h2>
             <p className="text-lg text-white/90 font-medium">
-              friday, april 17th @ 11:59pm pt
+              friday, may 1st @ 11:59pm pt
             </p>
             <p className="text-white/60 font-light">
               submit your proof via the momentum dashboard.

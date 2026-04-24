@@ -1,5 +1,5 @@
 import React from "react";
-import Momentum3DBadge from "./Momentum3DBadge";
+import { CanvasRevealBadgeCard } from "@/components/CanvasRevealBadgeCard";
 import type { MomentumGroup } from "./types";
 
 const MOCKS: { group: MomentumGroup; firstName: string; lastName: string; startup: string }[] = [
@@ -14,10 +14,12 @@ export default function MomentumBadgePreview() {
     <div className="grid gap-8 sm:grid-cols-2 xl:grid-cols-4">
       {MOCKS.map((m) => (
         <div key={m.group} className="flex flex-col items-center gap-3">
-          <div className="relative h-[640px] w-full max-w-[360px]">
-            <Momentum3DBadge
+          <div className="relative w-full max-w-[300px]">
+            <CanvasRevealBadgeCard
               group={m.group}
-              participantName={`${m.firstName} ${m.lastName}`}
+              imagePath={`/badges/${m.group.toLowerCase()}.png`}
+              firstName={m.firstName}
+              lastName={m.lastName}
               startupName={m.startup}
             />
           </div>
