@@ -77,6 +77,13 @@ const companies = [
     url: "https://autosend.com",
     className: "h-8 sm:h-10",
   },
+   {
+    name: "Dodo Payments",
+    logo: "/sponsors/momentum/dodo_payments.svg",
+    alt: "Dodo Payments",
+    url: "https://dodopayments.com",
+    className: "h-8 sm:h-10",
+  },
 ];
 
 // Inline styles for the marquee animation and custom classes

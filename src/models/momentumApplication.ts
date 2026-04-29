@@ -37,6 +37,7 @@ export interface IMomentumApplication {
   heardAboutUs: string;
   createdAt?: Date;
   updatedAt?: Date;
+  dodoCode?: string;
 }
 
 const momentumApplicationSchema = new mongoose.Schema<IMomentumApplication>(
@@ -81,6 +82,7 @@ const momentumApplicationSchema = new mongoose.Schema<IMomentumApplication>(
     hasRaisedMoney: { type: Boolean, required: true },
     lookingToFundraise: { type: Boolean, required: true },
     heardAboutUs: { type: String, required: true, trim: true },
+    dodoCode: { type: String, trim: true },
   },
   { timestamps: true }
 );

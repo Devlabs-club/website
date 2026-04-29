@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowUpRight, X, Copy, Check, Gift } from "lucide-react";
 import { isMomentumKickoffRevealed } from "../../lib/momentumKickoff";
+import type { MomentumApplicationRecord } from "./types";
 
 interface Partner {
   id: string;
@@ -12,69 +13,77 @@ interface Partner {
   link: string;
 }
 
-const partners: Partner[] = [
-  {
-    id: "smallest-ai",
-    name: "Smallest.ai",
-    logo: "/sponsors/momentum/smallest_ai.png",
-    description: "$50 in API credits to power your voice and audio features. Build the future of voice. Expires May 31st.",
-    code: "DEVABSXSMALLEST-9JJLRL9K",
-    link: "https://app.smallest.ai/dashboard/api-keys",
-  },
-  {
-    id: "tiny-fish",
-    name: "Tiny fish",
-    logo: "/sponsors/momentum/tinyfish.png",
-    description: "1,650 free credits and 5 concurrencies to scale your AI agents. Ship faster.",
-    code: null,
-    link: "https://agent.tinyfish.ai/makeasplash?source=devlab2026",
-  },
-  {
-    id: "stripe",
-    name: "Stripe",
-    logo: "/sponsors/momentum/stripe.png",
-    description: "50% off Atlas incorporation ($250) + $2,500 in Stripe Credits for payments, billing, and more. Valid till Aug 31, 2026.",
-    code: null,
-    link: "https://dashboard.stripe.com/atlas/invite/sp-dvlmtm",
-  },
-  {
-    id: "ins-forge",
-    name: "Ins forge",
-    logo: "/sponsors/momentum/insforge.svg",
-    description: "Essential credits to forge your infrastructure. Need more to scale? Just ask.",
-    code: null,
-    link: "https://insforge.dev/promo/MOMENTUM",
-  },
-  {
-    id: "autosend",
-    name: "Autosend",
-    logo: "/sponsors/momentum/autosend.png",
-    description: "Free Hobby and Starter 10k plans to automate your user communications. Reach out if you need to upgrade.",
-    code: "MOMENTUM2026",
-    link: "https://autosend.com/welcome",
-  },
-  {
-    id: "composio",
-    name: "Composio",
-    logo: "/sponsors/momentum/composio.png",
-    description: "100% off for 7 months on the Growth Plan. Connect your AI agents to 100+ tools instantly.",
-    code: "MOMENTUM_BUILDS_FAST",
-    link: "https://dashboard.composio.dev/dhanush.kalaiselvan_workspace/~/settings/billing",
-  },
-  {
-    id: "supermemory",
-    name: "Supermemory",
-    logo: "/sponsors/supermemory.png",
-    description:
-      "Universal memory for your AI products — apply your Momentum discount in the Supermemory console.",
-    code: "GETMOMENTUM",
-    link: "https://console.supermemory.ai?discountCode=GETMOMENTUM",
-  },
-];
-
-export function PartnerCredits() {
+export function PartnerCredits({ application }: { application: MomentumApplicationRecord }) {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const partners: Partner[] = [
+    {
+      id: "smallest-ai",
+      name: "Smallest.ai",
+      logo: "/sponsors/momentum/smallest_ai.png",
+      description: "$50 in API credits to power your voice and audio features. Build the future of voice. Expires May 31st.",
+      code: "DEVABSXSMALLEST-9JJLRL9K",
+      link: "https://app.smallest.ai/dashboard/api-keys",
+    },
+    {
+      id: "tiny-fish",
+      name: "Tiny fish",
+      logo: "/sponsors/momentum/tinyfish.png",
+      description: "1,650 free credits and 5 concurrencies to scale your AI agents. Ship faster.",
+      code: null,
+      link: "https://agent.tinyfish.ai/makeasplash?source=devlab2026",
+    },
+    {
+      id: "stripe",
+      name: "Stripe",
+      logo: "/sponsors/momentum/stripe.png",
+      description: "50% off Atlas incorporation ($250) + $2,500 in Stripe Credits for payments, billing, and more. Valid till Aug 31, 2026.",
+      code: null,
+      link: "https://dashboard.stripe.com/atlas/invite/sp-dvlmtm",
+    },
+    {
+      id: "ins-forge",
+      name: "Ins forge",
+      logo: "/sponsors/momentum/insforge.svg",
+      description: "Essential credits to forge your infrastructure. Need more to scale? Just ask.",
+      code: null,
+      link: "https://insforge.dev/promo/MOMENTUM",
+    },
+    {
+      id: "autosend",
+      name: "Autosend",
+      logo: "/sponsors/momentum/autosend.png",
+      description: "Free Hobby and Starter 10k plans to automate your user communications. Reach out if you need to upgrade.",
+      code: "MOMENTUM2026",
+      link: "https://autosend.com/welcome",
+    },
+    {
+      id: "composio",
+      name: "Composio",
+      logo: "/sponsors/momentum/composio.png",
+      description: "100% off for 7 months on the Growth Plan. Connect your AI agents to 100+ tools instantly.",
+      code: "MOMENTUM_BUILDS_FAST",
+      link: "https://dashboard.composio.dev/dhanush.kalaiselvan_workspace/~/settings/billing",
+    },
+    {
+      id: "supermemory",
+      name: "Supermemory",
+      logo: "/sponsors/supermemory.png",
+      description:
+        "Universal memory for your AI products — apply your Momentum discount in the Supermemory console.",
+      code: "GETMOMENTUM",
+      link: "https://console.supermemory.ai?discountCode=GETMOMENTUM",
+    },
+    {
+      id: "dodo-payments",
+      name: "Dodo Payments",
+      logo: "/sponsors/momentum/dodo_payments.svg",
+      description: "Redeem your unique promotional offer for fee waivers and more.",
+      code: application.dodoCode || null,
+      link: "https://app.dodopayments.com/settings?tab=promotions",
+    }
+  ];
 
   // Kickoff time: April 24, 2026, 10:30 AM Phoenix time (MST / UTC-7)
   const isRevealed = isMomentumKickoffRevealed();

@@ -36,6 +36,7 @@ export interface MomentumApplicationRecord {
   heardAboutUs: string;
   createdAt?: string;
   updatedAt?: string;
+  dodoCode?: string;
 }
 
 export interface PortalUser {

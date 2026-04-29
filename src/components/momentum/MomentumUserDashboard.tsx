@@ -471,7 +471,7 @@ export default function MomentumUserDashboard({
               </motion.div>
 
               <CommunityLinks />
-              <PartnerCredits />
+              <PartnerCredits application={application} />
               <MomentumTaskSubmissionsCard className="mt-8" />
             </div>
 
