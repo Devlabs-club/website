@@ -79,7 +79,7 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
       id: "dodo-payments",
       name: "Dodo Payments",
       logo: "/sponsors/momentum/dodo_payments.svg",
-      description: "Redeem your unique promotional offer for fee waivers and more.",
+      description: "$3000 in credits to power your payments infrastructure",
       code: application.dodoCode || null,
       link: "https://app.dodopayments.com/settings?tab=promotions",
     }

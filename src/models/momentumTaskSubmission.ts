@@ -4,19 +4,22 @@ import type { MomentumGroup } from './momentumApplication';
 export type MomentumTaskType = 
   | 'checkpoint_attendance' 
   | 'checkpoint_submission' 
+  | 'checkpoint_2_submission'
   | 'social_media' 
   | 'weekly_meetup';
 
 export const TASK_POINTS: Record<MomentumTaskType, number> = {
   checkpoint_attendance: 30,
   checkpoint_submission: 30,
+  checkpoint_2_submission: 30,
   social_media: 20,
   weekly_meetup: 20,
 };
 
 export const TASK_LABELS: Record<MomentumTaskType, string> = {
   checkpoint_attendance: 'Attending Mon-Fri Checkpoints',
-  checkpoint_submission: 'Submission of Checkpoint',
+  checkpoint_submission: 'Submission of Checkpoint 1',
+  checkpoint_2_submission: 'Submission of Checkpoint 2',
   social_media: 'Weekly Social Media Engagement',
   weekly_meetup: 'Weekly Meetup (IRL/Online) with Crew',
 };
@@ -45,7 +48,7 @@ const momentumTaskSubmissionSchema = new mongoose.Schema<IMomentumTaskSubmission
     },
     taskType: {
       type: String,
-      enum: ['checkpoint_attendance', 'checkpoint_submission', 'social_media', 'weekly_meetup'],
+      enum: ['checkpoint_attendance', 'checkpoint_submission', 'checkpoint_2_submission', 'social_media', 'weekly_meetup'],
       required: true,
     },
     proofLink: { type: String, trim: true },

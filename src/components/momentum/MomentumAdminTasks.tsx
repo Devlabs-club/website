@@ -97,6 +97,7 @@ export function MomentumAdminTasks() {
                 <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-white/45">
                   <th className="px-5 py-4 font-semibold">Team / Founder</th>
                   <th className="px-5 py-4 font-semibold">Task</th>
+                  <th className="px-5 py-4 font-semibold">Points</th>
                   <th className="px-5 py-4 font-semibold">Proof</th>
                   <th className="px-5 py-4 font-semibold text-right">Actions</th>
                 </tr>
@@ -128,6 +129,8 @@ export function MomentumAdminTasks() {
                         {getStatusIcon(task.status)}
                         <span className="text-white/80">{taskTypeLabel(task.taskType)}</span>
                       </div>
+                    </td>
+                    <td className="px-5 py-4">
                       <div className="text-xs text-orange-400 mt-1">+{task.points} pts</div>
                     </td>
                     <td className="px-5 py-4">

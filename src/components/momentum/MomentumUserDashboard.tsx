@@ -103,10 +103,13 @@ export default function MomentumUserDashboard({
 }) {
   const { logout } = useAuth();
   const [tweetUrl, setTweetUrl] = useState("");
+  const [driveUrl, setDriveUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submittedLink, setSubmittedLink] = useState<string | null>(null);
+  const [submittedLink2, setSubmittedLink2] = useState<string | null>(null);
   const [showRevealHint, setShowRevealHint] = useState(false);
+  const [showRevealHint2, setShowRevealHint2] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const badgeCaptureRef = useRef<HTMLDivElement>(null);
   const [isBadgeExporting, setIsBadgeExporting] = useState(false);
@@ -141,6 +144,10 @@ export default function MomentumUserDashboard({
         const latest = list.find((s) => s.taskType === "checkpoint_submission");
         if (latest?.proofLink?.trim() && !cancelled) {
           setSubmittedLink(latest.proofLink.trim());
+        }
+        const latest2 = list.find((s) => s.taskType === "checkpoint_2_submission");
+        if (latest2?.proofLink?.trim() && !cancelled) {
+          setSubmittedLink2(latest2.proofLink.trim());
         }
       } catch {
         /* ignore hydrate errors */
@@ -216,6 +223,41 @@ export default function MomentumUserDashboard({
     }
   };
 
+  const handleSubmission2 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!driveUrl.trim()) return;
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    try {
+      const res = await fetch("/api/momentum/tasks", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskType: "checkpoint_2_submission",
+          proofLink: driveUrl.trim(),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        submission?: { proofLink?: string };
+      };
+      if (!res.ok) {
+        setSubmissionError(data.message || "Submission failed");
+        return;
+      }
+      const link =
+        (data.submission?.proofLink && data.submission.proofLink.trim()) ||
+        driveUrl.trim();
+      setSubmittedLink2(link);
+      setDriveUrl("");
+    } catch {
+      setSubmissionError("Something went wrong. Try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const statusConfig = {
     pending: {
       label: "Under review",
@@ -235,6 +277,14 @@ export default function MomentumUserDashboard({
   }[application.status];
 
   const StatusIcon = statusConfig.icon;
+
+  // Checkpoint 1 deadline: May 1, 2026 11:59 PM MST
+  const checkpoint1Deadline = new Date("2026-05-02T06:59:00Z"); // May 1 11:59 PM MST = May 2 06:59 AM UTC
+  const isCheckpoint1Locked = new Date() > checkpoint1Deadline;
+
+  // Checkpoint 2 deadline: May 8, 2026 11:59 PM MST
+  const checkpoint2Deadline = new Date("2026-05-09T06:59:00Z"); // May 8 11:59 PM MST = May 9 06:59 AM UTC
+  const isCheckpoint2Locked = new Date() > checkpoint2Deadline;
 
   const dashboardGridClass =
     "mt-6 flex flex-col-reverse items-stretch gap-24 lg:mt-24 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]";
@@ -343,9 +393,9 @@ export default function MomentumUserDashboard({
 
                 {!isRevealed ? (
                   <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
-                        <Lock className="h-5 w-5" />
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Lock className="h-6 w-6" />
                       </div>
                       <div>
                         <h2 className="font-seasons text-xl sm:text-2xl text-white">
@@ -378,9 +428,9 @@ export default function MomentumUserDashboard({
                   </div>
                 ) : (
                   <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
-                        <Twitter className="h-5 w-5" />
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Twitter className="h-6 w-6" />
                       </div>
                       <div>
                         <h2 className="font-seasons text-xl sm:text-2xl text-white">
@@ -395,20 +445,41 @@ export default function MomentumUserDashboard({
                     </div>
 
                     {submittedLink ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                        <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              Submitted successfully.
+                            </span>{" "}
+                            <a
+                              href={submittedLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              View your submission
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setTweetUrl(submittedLink);
+                            setSubmittedLink(null);
+                          }}
+                          className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
+                        >
+                          Edit submission
+                        </button>
+                      </div>
+                    ) : isCheckpoint1Locked ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                        <Lock className="h-5 w-5 shrink-0" />
                         <div className="text-sm">
                           <span className="font-medium">
-                            Submitted successfully.
+                            Checkpoint locked.
                           </span>{" "}
-                          <a
-                            href={submittedLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline underline-offset-2 hover:text-emerald-100"
-                          >
-                            View your submission
-                          </a>
+                          The deadline for this checkpoint has passed.
                         </div>
                       </div>
                     ) : (
@@ -463,6 +534,160 @@ export default function MomentumUserDashboard({
                         className="text-orange-400 hover:underline"
                       >
                         checkpoint 1 details
+                      </a>
+                      .
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Checkpoint 2 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                {!isCheckpoint1Locked ? (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Lock className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 2
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Get ready to talk to your users.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-3">
+                      <button
+                        onClick={() => setShowRevealHint2(!showRevealHint2)}
+                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        More info
+                      </button>
+                      {showRevealHint2 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                        >
+                          Unlocks after Checkpoint 1 closes on May 1st at 11:59 PM MST.
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Mail className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 2 Submission
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Due Friday, May 8th at 11:59 PM MST. Reach out to target users until you get 25 replies. Submit a Google Drive link with screenshots of all 25 replies.
+                        </p>
+                      </div>
+                    </div>
+
+                    {submittedLink2 ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              Submitted successfully.
+                            </span>{" "}
+                            <a
+                              href={submittedLink2}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              View your submission
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setDriveUrl(submittedLink2);
+                            setSubmittedLink2(null);
+                          }}
+                          className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
+                        >
+                          Edit submission
+                        </button>
+                      </div>
+                    ) : isCheckpoint2Locked ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                        <Lock className="h-5 w-5 shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            Checkpoint locked.
+                          </span>{" "}
+                          The deadline for this checkpoint has passed.
+                        </div>
+                      </div>
+                    ) : (
+                      <form
+                        onSubmit={(ev) => void handleSubmission2(ev)}
+                        className="flex flex-col gap-4"
+                      >
+                        {submissionError && (
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                            {submissionError}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                          <div className="flex-1 space-y-2">
+                            <label
+                              htmlFor="driveUrl"
+                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                            >
+                              Google Drive Folder URL
+                            </label>
+                            <input
+                              id="driveUrl"
+                              type="url"
+                              required
+                              value={driveUrl}
+                              onChange={(e) => setDriveUrl(e.target.value)}
+                              placeholder="https://drive.google.com/drive/folders/..."
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={isSubmitting || !driveUrl}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSubmitting ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                            ) : (
+                              <>
+                                Submit <Send className="h-4 w-4" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <div className="mt-4 text-xs text-white/40">
+                      Need help? Check the{" "}
+                      <a
+                        href="/momentum/checkpoint/2"
+                        className="text-orange-400 hover:underline"
+                      >
+                        checkpoint 2 details
                       </a>
                       .
                     </div>
