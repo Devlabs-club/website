@@ -113,32 +113,8 @@ export default function MomentumAdminDashboard() {
             Admin
           </p>
           <h1 className="font-seasons text-3xl text-white sm:text-4xl md:text-5xl">
-            Momentum applications
+            Momentum Admin
           </h1>
-          <p className="mt-2 max-w-lg text-sm text-white/50">
-            {applications.length} total {applications.length === 1 ? 'application' : 'applications'} received.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-            <input
-              className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-orange-500/40 sm:w-64"
-              placeholder="Search name, email, startup…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="rounded-full border border-white/10 bg-white/5 py-2.5 pl-4 pr-8 text-sm text-white outline-none focus:border-orange-500/40 appearance-none cursor-pointer"
-          >
-            <option value="all" className="bg-[#1a1b1c]">All Statuses</option>
-            <option value="pending" className="bg-[#1a1b1c]">Pending</option>
-            <option value="approved" className="bg-[#1a1b1c]">Approved</option>
-            <option value="rejected" className="bg-[#1a1b1c]">Rejected</option>
-          </select>
         </div>
       </div>
 
@@ -148,11 +124,46 @@ export default function MomentumAdminDashboard() {
         </p>
       )}
 
-      {loading ? (
-        <div className="flex justify-center py-24">
-          <Loader2 className="h-10 w-10 animate-spin text-orange-400" />
+      <MomentumAdminTasks />
+
+      <div className="mt-16 border-t border-white/10 pt-12">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-8">
+          <div>
+            <h2 className="font-seasons text-2xl text-white sm:text-3xl">
+              Applications
+            </h2>
+            <p className="mt-2 max-w-lg text-sm text-white/50">
+              {applications.length} total {applications.length === 1 ? 'application' : 'applications'} received.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+              <input
+                className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-orange-500/40 sm:w-64"
+                placeholder="Search name, email, startup…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="rounded-full border border-white/10 bg-white/5 py-2.5 pl-4 pr-8 text-sm text-white outline-none focus:border-orange-500/40 appearance-none cursor-pointer"
+            >
+              <option value="all" className="bg-[#1a1b1c]">All Statuses</option>
+              <option value="pending" className="bg-[#1a1b1c]">Pending</option>
+              <option value="approved" className="bg-[#1a1b1c]">Approved</option>
+              <option value="rejected" className="bg-[#1a1b1c]">Rejected</option>
+            </select>
+          </div>
         </div>
-      ) : (
+
+        {loading ? (
+          <div className="flex justify-center py-24">
+            <Loader2 className="h-10 w-10 animate-spin text-orange-400" />
+          </div>
+        ) : (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-sm">
@@ -340,8 +351,7 @@ export default function MomentumAdminDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <MomentumAdminTasks />
+      </div>
     </div>
   );
 }

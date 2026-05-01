@@ -9,6 +9,7 @@ export function MomentumAdminTasks() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const loadData = async () => {
     try {
@@ -75,6 +76,10 @@ export function MomentumAdminTasks() {
     );
   }
 
+  const filteredTasks = showCompleted 
+    ? tasks 
+    : tasks.filter(t => t.status === 'pending');
+
   return (
     <div className="space-y-8 mt-12 border-t border-white/10 pt-12">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -85,6 +90,14 @@ export function MomentumAdminTasks() {
           <p className="mt-2 max-w-lg text-sm text-white/50">
             Review task submissions and track team points.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            {showCompleted ? 'Hide' : 'Show'} Approved/Rejected
+          </button>
         </div>
       </div>
 
@@ -103,7 +116,7 @@ export function MomentumAdminTasks() {
                 </tr>
               </thead>
               <tbody>
-                {tasks.map((task, i) => (
+                {filteredTasks.map((task, i) => (
                   <motion.tr
                     key={task._id}
                     initial={{ opacity: 0, y: 6 }}
@@ -175,9 +188,9 @@ export function MomentumAdminTasks() {
                 ))}
               </tbody>
             </table>
-            {tasks.length === 0 && (
+            {filteredTasks.length === 0 && (
               <p className="py-8 text-center text-sm text-white/45">
-                No tasks submitted yet.
+                {tasks.length > 0 ? "No pending tasks. Click 'Show Approved/Rejected' to view completed tasks." : "No tasks submitted yet."}
               </p>
             )}
           </div>
