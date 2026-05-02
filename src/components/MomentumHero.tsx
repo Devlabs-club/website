@@ -77,11 +77,18 @@ const companies = [
     url: "https://autosend.com",
     className: "h-8 sm:h-10",
   },
-   {
+  {
     name: "Dodo Payments",
     logo: "/sponsors/momentum/dodo_payments.svg",
     alt: "Dodo Payments",
     url: "https://dodopayments.com",
+    className: "h-8 sm:h-10",
+  },
+  {
+    name: "supermemory",
+    logo: "/sponsors/supermemory.png",
+    alt: "supermemory",
+    url: "https://supermemory.com",
     className: "h-8 sm:h-10",
   },
 ];
@@ -443,8 +450,8 @@ export default function MomentumHero() {
           <div className="relative z-10 max-w-4xl text-center px-4 flex flex-col gap-6 md:gap-10">
             <p className="font-seasons text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-relaxed text-black/90">
               Momentum is a 4-week{" "}
-              <span className="  text-orange-500">virtual program</span>{" "}
-              for early founders. Whether you're building software, hardware, or
+              <span className="  text-orange-500">virtual program</span> for
+              early founders. Whether you're building software, hardware, or
               robots — there's a place for all.
             </p>
             <p className="font-seasons text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-relaxed text-black/80">
