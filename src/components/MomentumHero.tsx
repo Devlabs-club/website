@@ -91,6 +91,12 @@ const companies = [
     url: "https://supermemory.com",
     className: "h-8 sm:h-10",
   },
+  {
+    logo: "/sponsors/momentum/brief.png",
+    alt: "brief",
+    url: "https://briefhq.ai/",
+    className: "h-12 sm:h-16",
+  },
 ];
 
 // Inline styles for the marquee animation and custom classes

@@ -30,7 +30,9 @@ const TASK_OPTIONS = [
 /** Labels for history rows (includes types no longer offered for new submission). */
 const TASK_LABELS_BY_ID: Record<string, string> = {
   ...Object.fromEntries(TASK_OPTIONS.map((o) => [o.id, o.label])),
-  checkpoint_submission: "Submission of Checkpoint",
+  checkpoint_submission: "Submission of Checkpoint 1",
+  checkpoint_2_submission: "Submission of Checkpoint 2",
+  checkpoint_3_submission: "Submission of Checkpoint 3",
   checkpoint_attendance: "Attending Mon-Fri Checkpoints",
 };
 
@@ -44,7 +46,12 @@ const groupColors: Record<string, string> = {
 type MomentumPointsTasksContextValue = {
   application: MomentumApplicationRecord;
   pointsTable: { group: string; points: number }[];
-  submissions: { _id: string; status: string; taskType: string; proofLink: string }[];
+  submissions: {
+    _id: string;
+    status: string;
+    taskType: string;
+    proofLink: string;
+  }[];
   loading: boolean;
   submitting: boolean;
   taskType: string;
@@ -144,9 +151,7 @@ export function MomentumPointsTasksProvider({
         setProofLink("");
         await loadData();
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Error submitting task",
-        );
+        setError(err instanceof Error ? err.message : "Error submitting task");
       } finally {
         setSubmitting(false);
       }
@@ -206,8 +211,6 @@ export function MomentumLeaderboardCard({
           <Trophy className="h-5 w-5 shrink-0 text-orange-400" />
           <h3 className="font-seasons text-lg sm:text-xl">Leaderboard</h3>
         </div>
-
-        
       </div>
 
       {loading ? (

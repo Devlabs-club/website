@@ -104,12 +104,19 @@ export default function MomentumUserDashboard({
   const { logout } = useAuth();
   const [tweetUrl, setTweetUrl] = useState("");
   const [driveUrl, setDriveUrl] = useState("");
+  const [checkpoint3TweetUrl, setCheckpoint3TweetUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingCp3, setIsSubmittingCp3] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionErrorCp3, setSubmissionErrorCp3] = useState<string | null>(
+    null,
+  );
   const [submittedLink, setSubmittedLink] = useState<string | null>(null);
   const [submittedLink2, setSubmittedLink2] = useState<string | null>(null);
+  const [submittedLink3, setSubmittedLink3] = useState<string | null>(null);
   const [showRevealHint, setShowRevealHint] = useState(false);
   const [showRevealHint2, setShowRevealHint2] = useState(false);
+  const [showRevealHint3, setShowRevealHint3] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const badgeCaptureRef = useRef<HTMLDivElement>(null);
   const [isBadgeExporting, setIsBadgeExporting] = useState(false);
@@ -145,9 +152,17 @@ export default function MomentumUserDashboard({
         if (latest?.proofLink?.trim() && !cancelled) {
           setSubmittedLink(latest.proofLink.trim());
         }
-        const latest2 = list.find((s) => s.taskType === "checkpoint_2_submission");
+        const latest2 = list.find(
+          (s) => s.taskType === "checkpoint_2_submission",
+        );
         if (latest2?.proofLink?.trim() && !cancelled) {
           setSubmittedLink2(latest2.proofLink.trim());
+        }
+        const latest3 = list.find(
+          (s) => s.taskType === "checkpoint_3_submission",
+        );
+        if (latest3?.proofLink?.trim() && !cancelled) {
+          setSubmittedLink3(latest3.proofLink.trim());
         }
       } catch {
         /* ignore hydrate errors */
@@ -258,6 +273,41 @@ export default function MomentumUserDashboard({
     }
   };
 
+  const handleSubmission3 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkpoint3TweetUrl.trim()) return;
+    setIsSubmittingCp3(true);
+    setSubmissionErrorCp3(null);
+    try {
+      const res = await fetch("/api/momentum/tasks", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskType: "checkpoint_3_submission",
+          proofLink: checkpoint3TweetUrl.trim(),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        submission?: { proofLink?: string };
+      };
+      if (!res.ok) {
+        setSubmissionErrorCp3(data.message || "Submission failed");
+        return;
+      }
+      const link =
+        (data.submission?.proofLink && data.submission.proofLink.trim()) ||
+        checkpoint3TweetUrl.trim();
+      setSubmittedLink3(link);
+      setCheckpoint3TweetUrl("");
+    } catch {
+      setSubmissionErrorCp3("Something went wrong. Try again.");
+    } finally {
+      setIsSubmittingCp3(false);
+    }
+  };
+
   const statusConfig = {
     pending: {
       label: "Under review",
@@ -286,6 +336,10 @@ export default function MomentumUserDashboard({
   const checkpoint2Deadline = new Date("2026-05-09T06:59:00Z"); // May 8 11:59 PM MST = May 9 06:59 AM UTC
   const isCheckpoint2Locked = new Date() > checkpoint2Deadline;
 
+  // Checkpoint 3 deadline: May 15, 2026 11:59 PM MST
+  const checkpoint3Deadline = new Date("2026-05-16T06:59:00Z"); // May 15 11:59 PM MST = May 16 06:59 AM UTC
+  const isCheckpoint3Locked = new Date() > checkpoint3Deadline;
+
   const dashboardGridClass =
     "mt-6 flex flex-col-reverse items-stretch gap-24 lg:mt-24 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]";
 
@@ -295,7 +349,6 @@ export default function MomentumUserDashboard({
         <div className="mx-auto w-full max-w-[300px] space-y-3">
           {isRevealed ? (
             <>
-            
               <div ref={badgeCaptureRef} className="w-full">
                 <CanvasRevealBadgeCard
                   group={application.group || undefined}
@@ -577,7 +630,8 @@ export default function MomentumUserDashboard({
                           animate={{ opacity: 1, height: "auto" }}
                           className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
                         >
-                          Unlocks after Checkpoint 1 closes on May 1st at 11:59 PM MST.
+                          Unlocks after Checkpoint 1 closes on May 1st at 11:59
+                          PM MST.
                         </motion.div>
                       )}
                     </div>
@@ -593,7 +647,9 @@ export default function MomentumUserDashboard({
                           Checkpoint 2 Submission
                         </h2>
                         <p className="text-sm text-white/60">
-                          Due Friday, May 8th at 11:59 PM MST. Reach out to target users until you get 25 replies. Submit a Google Drive link with screenshots of all 25 replies.
+                          Due Friday, May 8th at 11:59 PM MST. Reach out to
+                          target users until you get 25 replies. Submit a Google
+                          Drive link with screenshots of all 25 replies.
                         </p>
                       </div>
                     </div>
@@ -695,6 +751,174 @@ export default function MomentumUserDashboard({
                 )}
               </motion.div>
 
+              {/* Checkpoint 3 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                {!isCheckpoint2Locked ? (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Lock className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 3
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Explain your iteration in a tweet and prove it with
+                          video — opens after Checkpoint 2 closes.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowRevealHint3(!showRevealHint3)
+                        }
+                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        More info
+                      </button>
+                      {showRevealHint3 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                        >
+                          Unlocks after Checkpoint 2 closes on May 8th at
+                          11:59 PM MST.
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Twitter className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 3 Submission
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Due Friday, May 15th at 11:59 PM MST. Post a tweet that
+                          clearly explains{" "}
+                          <span className="text-white/80">what changed</span> —
+                          with video on the tweet showing or demonstrating that
+                          change. Submit your post URL below.
+                        </p>
+                      </div>
+                    </div>
+
+                    {submittedLink3 ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              Submitted successfully.
+                            </span>{" "}
+                            <a
+                              href={submittedLink3}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              View your tweet
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckpoint3TweetUrl(submittedLink3);
+                            setSubmittedLink3(null);
+                          }}
+                          className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
+                        >
+                          Edit submission
+                        </button>
+                      </div>
+                    ) : isCheckpoint3Locked ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                        <Lock className="h-5 w-5 shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            Checkpoint locked.
+                          </span>{" "}
+                          The deadline for this checkpoint has passed.
+                        </div>
+                      </div>
+                    ) : (
+                      <form
+                        onSubmit={(ev) => void handleSubmission3(ev)}
+                        className="flex flex-col gap-4"
+                      >
+                        {submissionErrorCp3 && (
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                            {submissionErrorCp3}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                          <div className="flex-1 space-y-2">
+                            <label
+                              htmlFor="checkpoint3TweetUrl"
+                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                            >
+                              Tweet URL (caption + video)
+                            </label>
+                            <input
+                              id="checkpoint3TweetUrl"
+                              type="url"
+                              required
+                              value={checkpoint3TweetUrl}
+                              onChange={(e) =>
+                                setCheckpoint3TweetUrl(e.target.value)
+                              }
+                              placeholder="https://twitter.com/... or https://x.com/..."
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={
+                              isSubmittingCp3 || !checkpoint3TweetUrl.trim()
+                            }
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSubmittingCp3 ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                            ) : (
+                              <>
+                                Submit <Send className="h-4 w-4" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <div className="mt-4 text-xs text-white/40">
+                      Need help? Check the{" "}
+                      <a
+                        href="/momentum/checkpoint/3"
+                        className="text-orange-400 hover:underline"
+                      >
+                        checkpoint 3 details
+                      </a>
+                      .
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
               <CommunityLinks />
               <PartnerCredits application={application} />
               <MomentumTaskSubmissionsCard className="mt-8" />
@@ -715,9 +939,9 @@ export default function MomentumUserDashboard({
                 Your application
               </h2>
               <p className="mt-2 text-sm text-white/55 leading-relaxed">
-                We&apos;ll surface status changes in the tagline above. If you&apos;re
-                accepted, you&apos;ll get your team badge, leaderboard, and task
-                submissions on this page.
+                We&apos;ll surface status changes in the tagline above. If
+                you&apos;re accepted, you&apos;ll get your team badge,
+                leaderboard, and task submissions on this page.
               </p>
             </motion.div>
           </div>

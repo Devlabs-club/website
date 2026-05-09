@@ -1,0 +1,296 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ScoutHero from "../components/scout/ScoutHero";
+import ScoutSteps from "../components/scout/ScoutSteps";
+import ScoutNetwork from "../components/scout/ScoutNetwork";
+import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
+---
+
+<Layout
+  title="Scout by DevLabs — Hire builders, not engineers"
+  description="Scout matches startup founders with verified DevLabs builders. People who build for the love of it, not just the paycheck."
+>
+  <div class="scout-page bg-[#080808] min-h-screen text-white overflow-x-hidden">
+
+    <!-- NAV -->
+    <nav class="fixed top-0 left-0 w-full z-50 bg-[rgba(8,8,8,0.85)] backdrop-blur-[10px] border-b border-white/10">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="/scout" class="flex items-center gap-2.5">
+          <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain opacity-90" />
+          <span class="font-manrope text-white font-semibold text-base tracking-tight">
+            Scout <span class="text-white/40 font-normal text-sm">by DevLabs</span>
+          </span>
+        </a>
+        <div class="hidden md:flex items-center gap-8 text-sm text-white/60 font-manrope">
+          <a href="#how-it-works" class="hover:text-white transition-colors">How it works</a>
+          <a href="#signal" class="hover:text-white transition-colors">The signal</a>
+          <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+          <a href="/" class="hover:text-white transition-colors">DevLabs</a>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="#" class="hidden md:inline-flex font-manrope text-sm text-white/60 hover:text-white transition-colors">
+            I'm a builder →
+          </a>
+          <a
+            href="#pricing"
+            class="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#fa7d22] text-black font-manrope font-semibold text-sm
+                   hover:bg-[#fb8f3a] transition-all hover:scale-[1.03] active:scale-[0.98] shadow-[0_0_20px_rgba(250,125,34,0.3)]"
+          >
+            Start free
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 1. HERO with rotating globe (Image 1) -->
+    <ScoutHero client:load />
+
+    <!-- 2. STEPS — find your builder in 5 minutes (Image 4) -->
+    <ScoutSteps client:load />
+
+    <!-- PAIN POINTS -->
+    <section class="py-24 px-6 relative bg-[#080808]">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-14">
+          <p class="font-manrope text-sm text-[#fa7d22] uppercase tracking-widest mb-3 font-medium">The problem</p>
+          <h2 class="font-serif italic text-4xl md:text-5xl text-white">the hiring loop is <span class="relative inline-block">broken<span class="absolute left-0 right-0 bottom-[0.05em] h-[0.18em] bg-[#fa7d22] opacity-70 z-[-1] rounded" style="transform: rotate(-1deg);"></span></span></h2>
+          <p class="font-manrope text-white/50 text-base mt-4 max-w-xl mx-auto">
+            Every founder goes through the same grind. You post, get flooded, interview, hire — and realize months later they were never builders.
+          </p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-5">
+          <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
+            <div class="text-3xl mb-4">📥</div>
+            <h3 class="font-manrope font-semibold text-white text-base mb-2">250 applications, zero signal</h3>
+            <p class="font-manrope text-white/45 text-sm leading-relaxed">
+              LinkedIn floods you with keyword-optimized resumes. You can't tell who actually builds from who just studied the right stack.
+            </p>
+          </div>
+          <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
+            <div class="text-3xl mb-4">💸</div>
+            <h3 class="font-manrope font-semibold text-white text-base mb-2">Right skills, wrong motivation</h3>
+            <p class="font-manrope text-white/45 text-sm leading-relaxed">
+              You hire someone technically strong, but they need a spec for everything and clock out at 5. They're an engineer. You needed a builder.
+            </p>
+          </div>
+          <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-colors">
+            <div class="text-3xl mb-4">⏱️</div>
+            <h3 class="font-manrope font-semibold text-white text-base mb-2">Weeks of interviews, wrong fit</h3>
+            <p class="font-manrope text-white/45 text-sm leading-relaxed">
+              Technical rounds, take-homes, culture fit calls — and you still end up with someone who's not bought in to what you're building.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIGNAL SCORE -->
+    <section id="signal" class="py-24 px-6 bg-[#080808]">
+      <div class="max-w-5xl mx-auto">
+        <div class="bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden">
+          <div class="grid md:grid-cols-2 gap-0">
+            <div class="p-10 md:p-14 flex flex-col justify-center">
+              <p class="font-manrope text-sm text-[#fa7d22] uppercase tracking-widest mb-4 font-medium">The moat</p>
+              <h2 class="font-serif italic text-4xl md:text-5xl text-white leading-tight mb-5">
+                data Juicebox<br/>
+                <span class="relative inline-block">
+                  can't have
+                  <span class="absolute left-0 right-0 bottom-[0.05em] h-[0.18em] bg-[#fa7d22] opacity-70 z-[-1] rounded" style="transform: rotate(-1deg);"></span>
+                </span>
+              </h2>
+              <p class="font-manrope text-white/50 text-base leading-relaxed mb-6">
+                Juicebox scores resumes. Scout scores <em>behavior</em> — built from real DevLabs activity that only exists because we run the community.
+              </p>
+              <ul class="space-y-3">
+                {["Did they keep building after the hackathon ended?", "Did they lead a team voluntarily, or wait to be assigned?", "Did they turn down a safe internship to ship their own thing?", "How fast do they move from idea to deployed product?"].map((item) => (
+                  <li class="flex items-start gap-3">
+                    <span class="w-5 h-5 rounded-full border border-[#fa7d22]/50 bg-[#fa7d22]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg class="w-2.5 h-2.5 text-[#fa7d22]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    </span>
+                    <span class="font-manrope text-sm text-white/65">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div class="p-10 md:p-14 border-t md:border-t-0 md:border-l border-white/10 flex flex-col gap-4 justify-center bg-white/[0.02]">
+              <p class="font-manrope text-xs text-white/40 uppercase tracking-widest mb-1">Builder signal profile</p>
+              <div class="bg-white/[0.04] border border-white/10 rounded-xl p-4 flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#fa7d22]/30 to-[#fa7d22]/10 border border-[#fa7d22]/20 flex items-center justify-center text-sm font-bold text-[#fa7d22]">AK</div>
+                <div>
+                  <p class="font-manrope font-semibold text-white text-sm">Arjun K.</p>
+                  <p class="font-manrope text-white/40 text-xs">Full-stack · ASU · 3rd year</p>
+                </div>
+                <div class="ml-auto text-right">
+                  <p class="font-manrope font-bold text-[#fa7d22] text-xl">94</p>
+                  <p class="font-manrope text-white/35 text-xs">signal score</p>
+                </div>
+              </div>
+              {[
+                { label: "Ships without being told", value: 96 },
+                { label: "Post-event building", value: 92 },
+                { label: "Team ownership", value: 88 },
+                { label: "Speed from idea → deployed", value: 95 },
+              ].map((item) => (
+                <div>
+                  <div class="flex justify-between items-center mb-1.5">
+                    <span class="font-manrope text-xs text-white/55">{item.label}</span>
+                    <span class="font-manrope text-xs text-[#fa7d22] font-medium">{item.value}</span>
+                  </div>
+                  <div class="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-[#fa7d22] to-[#fa7d22]/60 rounded-full" style={`width: ${item.value}%`}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. NETWORK ARC with testimonial (Image 2) -->
+    <ScoutNetwork client:load />
+
+    <!-- STATS -->
+    <section class="py-20 px-6 bg-[#080808]">
+      <div class="max-w-5xl mx-auto">
+        <div class="text-center mb-10">
+          <p class="font-manrope text-white/40 text-sm">The network behind Scout</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {[
+            { num: "500+", label: "active builders" },
+            { num: "50+", label: "startups built" },
+            { num: "15+", label: "countries" },
+            { num: "10+", label: "DevLabs events" },
+          ].map((stat) => (
+            <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-center hover:border-white/20 transition-colors">
+              <p class="font-serif italic text-4xl md:text-5xl text-white mb-1">{stat.num}</p>
+              <p class="font-manrope text-white/45 text-sm">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing" class="py-24 px-6 bg-[#080808] relative">
+      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(250,125,34,0.05) 0%, transparent 65%);"></div>
+      <div class="max-w-5xl mx-auto relative z-10">
+        <div class="text-center mb-14">
+          <p class="font-manrope text-sm text-[#fa7d22] uppercase tracking-widest mb-3 font-medium">Pricing</p>
+          <h2 class="font-serif italic text-4xl md:text-5xl text-white mb-3">
+            pay when you
+            <span class="relative inline-block ml-2">
+              find someone
+              <span class="absolute left-0 right-0 bottom-[0.05em] h-[0.18em] bg-[#fa7d22] opacity-70 z-[-1] rounded" style="transform: rotate(-1deg);"></span>
+            </span>
+          </h2>
+          <p class="font-manrope text-white/50 text-base max-w-lg mx-auto">All plans include Scout AI access. Builders are always free — forever.</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-5 mb-8">
+          <!-- Starter -->
+          <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-7 flex flex-col">
+            <div class="mb-6">
+              <p class="font-manrope font-semibold text-white text-sm mb-1">Starter</p>
+              <div class="flex items-end gap-1 mb-1"><span class="font-serif italic text-4xl text-white">Free</span></div>
+              <p class="font-manrope text-white/40 text-xs">+ $500 per hire</p>
+            </div>
+            <ul class="space-y-2.5 flex-1 mb-7">
+              {["3 builder matches / month", "Scout AI conversation", "Signal score preview", "Basic outreach drafting"].map((f) => (
+                <li class="flex items-center gap-2.5">
+                  <span class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2 h-2 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </span>
+                  <span class="font-manrope text-white/55 text-sm">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="#" class="w-full text-center py-3 rounded-full border border-white/15 font-manrope font-semibold text-white/80 text-sm hover:border-white/30 hover:bg-white/5 transition-all">Start free</a>
+          </div>
+          <!-- Builder -->
+          <div class="relative bg-white/[0.05] border border-[#fa7d22]/40 rounded-2xl p-7 flex flex-col shadow-[0_0_40px_rgba(250,125,34,0.12)]">
+            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2">
+              <span class="px-4 py-1 rounded-full bg-[#fa7d22] text-black text-xs font-manrope font-bold uppercase tracking-wider">Most popular</span>
+            </div>
+            <div class="mb-6">
+              <p class="font-manrope font-semibold text-white text-sm mb-1">Builder</p>
+              <div class="flex items-end gap-1 mb-1"><span class="font-serif italic text-4xl text-white">$49</span><span class="font-manrope text-white/40 text-sm mb-1">/mo</span></div>
+              <p class="font-manrope text-white/40 text-xs">+ $300 per hire</p>
+            </div>
+            <ul class="space-y-2.5 flex-1 mb-7">
+              {["Unlimited builder matches", "Full Scout AI agent", "Complete signal profiles", "Outreach drafting included", "Priority queue access", "Hire tracking dashboard"].map((f) => (
+                <li class="flex items-center gap-2.5">
+                  <span class="w-4 h-4 rounded-full border border-[#fa7d22]/40 bg-[#fa7d22]/10 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2 h-2 text-[#fa7d22]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </span>
+                  <span class="font-manrope text-white/70 text-sm">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="#" class="w-full text-center py-3 rounded-full bg-[#fa7d22] text-black font-manrope font-bold text-sm hover:bg-[#fb8f3a] transition-all hover:scale-[1.02] shadow-[0_0_24px_rgba(250,125,34,0.3)]">Get started</a>
+          </div>
+          <!-- Studio -->
+          <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-7 flex flex-col">
+            <div class="mb-6">
+              <p class="font-manrope font-semibold text-white text-sm mb-1">Studio</p>
+              <div class="flex items-end gap-1 mb-1"><span class="font-serif italic text-4xl text-white">$149</span><span class="font-manrope text-white/40 text-sm mb-1">/mo</span></div>
+              <p class="font-manrope text-white/40 text-xs">+ $200 per hire</p>
+            </div>
+            <ul class="space-y-2.5 flex-1 mb-7">
+              {["Everything in Builder", "Multi-role hiring (up to 5 roles)", "First access to new builders", "Hire analytics & retention signals", "Dedicated Scout concierge", "Custom builder briefings"].map((f) => (
+                <li class="flex items-center gap-2.5">
+                  <span class="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center flex-shrink-0">
+                    <svg class="w-2 h-2 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  </span>
+                  <span class="font-manrope text-white/55 text-sm">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="#" class="w-full text-center py-3 rounded-full border border-white/15 font-manrope font-semibold text-white/80 text-sm hover:border-white/30 hover:bg-white/5 transition-all">Talk to us</a>
+          </div>
+        </div>
+        <div class="bg-white/[0.02] border border-white/10 rounded-2xl px-8 py-6 flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+          <span class="text-2xl">🏗️</span>
+          <div>
+            <p class="font-manrope font-semibold text-white text-sm">Builders: Scout is completely free. Always.</p>
+            <p class="font-manrope text-white/40 text-sm">Create your signal profile, get discovered by founders, and connect with startups that match how you build — no subscription, no placement fee, no catch.</p>
+          </div>
+          <a href="#" class="md:ml-auto flex-shrink-0 px-6 py-2.5 rounded-full border border-white/15 font-manrope text-white/70 text-sm hover:border-white/30 hover:text-white transition-all whitespace-nowrap">
+            Join as a builder →
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. FINAL CTA (Image 3) -->
+    <div class="py-4 bg-[#080808]">
+      <ScoutFinalCTA client:load />
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 py-10 px-6 bg-[#080808]">
+      <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2.5">
+          <img src="/logo.png" alt="DevLabs" class="h-6 w-6 object-contain opacity-70" />
+          <span class="font-manrope text-white/50 text-sm">Scout by DevLabs</span>
+        </div>
+        <div class="flex items-center gap-6 text-sm text-white/35 font-manrope">
+          <a href="/" class="hover:text-white/60 transition-colors">DevLabs</a>
+          <a href="/momentum" class="hover:text-white/60 transition-colors">Momentum</a>
+          <a href="#" class="hover:text-white/60 transition-colors">Privacy</a>
+        </div>
+        <p class="font-manrope text-white/25 text-xs">© 2025 DevLabs. Built by builders.</p>
+      </div>
+    </footer>
+
+  </div>
+</Layout>
+
+<style>
+  .font-serif {
+    font-family: "the-seasons", "Times New Roman", Times, Georgia, serif;
+  }
+  .font-manrope {
+    font-family: Manrope, sans-serif;
+  }
+</style>
