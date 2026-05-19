@@ -76,6 +76,32 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
       link: "https://console.supermemory.ai?discountCode=GETMOMENTUM",
     },
     {
+      id: "superhuman-mail",
+      name: "Superhuman Mail",
+      logo: "/sponsors/momentum/superhuman.png",
+      description:
+        "Eligible startups get one year free of Superhuman Mail's Business Plan for up to 5 teammates.",
+      code: null,
+      link: "https://superhuman.com/products/mail/startups/apply-now",
+    },
+    {
+      id: "google-cloud",
+      name: "Google Cloud",
+      logo: "/sponsors/momentum/gcp.png",
+      description: "$25 in Google Cloud credits. Redeem via the link below.",
+      code: null,
+      link: "https://trygcp.dev/edit/momentum",
+    },
+    {
+      id: "mintlify",
+      name: "Mintlify",
+      logo: "/sponsors/momentum/mintlify.png",
+      description:
+        "Mintlify Pro Plan for 6 months plus 5,000 Mint Credits per month for AI-powered docs functionality.",
+      code: null,
+      link: "https://mintlify.typeform.com/startup-program?typeform-source=www.mintlify.com",
+    },
+    {
       id: "dodo-payments",
       name: "Dodo Payments",
       logo: "/sponsors/momentum/dodo_payments.svg",
@@ -95,7 +121,7 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
   };
 
   return (
-    <div className="mt-12">
+    <div className="mt-0">
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400">
           <Gift className="h-5 w-5" />
@@ -108,17 +134,18 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {partners.map((partner) => (
           <motion.button
             key={partner.id}
+            type="button"
             onClick={() => setSelectedPartner(partner)}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="group relative flex w-full cursor-pointer text-left items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm transition-all hover:bg-white/[0.05] hover:border-orange-500/30 sm:p-6"
+            className="group relative flex min-h-0 min-w-0 w-full cursor-pointer flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left backdrop-blur-sm transition-all hover:border-orange-500/30 hover:bg-white/[0.05] sm:p-6"
           >
-            <div className="flex items-center gap-4 sm:gap-6">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-white/5 p-2">
+            <div className="flex w-full min-w-0 items-start justify-between gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/5 p-2 sm:h-16 sm:w-16">
                 {partner.logo ? (
                   <img
                     src={partner.logo}
@@ -131,19 +158,20 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
                   </span>
                 )}
               </div>
-              <div>
-                <h3 className="font-seasons text-lg text-white sm:text-xl">
-                  {partner.name}
-                </h3>
-                <p className="mt-1 max-w-xl text-sm text-white/60 line-clamp-2 sm:line-clamp-none">
-                  {partner.description}
-                </p>
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all group-hover:border-orange-500 group-hover:bg-orange-500 group-hover:text-white sm:h-10 sm:w-10"
+                aria-hidden
+              >
+                <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
             </div>
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all group-hover:bg-orange-500 group-hover:text-white group-hover:border-orange-500"
-            >
-              <ArrowUpRight className="h-5 w-5" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-seasons text-lg leading-tight text-white sm:text-xl">
+                {partner.name}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/60 line-clamp-4 sm:line-clamp-5">
+                {partner.description}
+              </p>
             </div>
           </motion.button>
         ))}

@@ -6,6 +6,7 @@ export type MomentumTaskType =
   | 'checkpoint_submission' 
   | 'checkpoint_2_submission'
   | 'checkpoint_3_submission'
+  | 'checkpoint_4_submission'
   | 'social_media' 
   | 'weekly_meetup';
 
@@ -14,6 +15,7 @@ export const TASK_POINTS: Record<MomentumTaskType, number> = {
   checkpoint_submission: 30,
   checkpoint_2_submission: 30,
   checkpoint_3_submission: 30,
+  checkpoint_4_submission: 30,
   social_media: 20,
   weekly_meetup: 20,
 };
@@ -23,6 +25,7 @@ export const TASK_LABELS: Record<MomentumTaskType, string> = {
   checkpoint_submission: 'Submission of Checkpoint 1',
   checkpoint_2_submission: 'Submission of Checkpoint 2',
   checkpoint_3_submission: 'Submission of Checkpoint 3',
+  checkpoint_4_submission: 'Submission of Checkpoint 4',
   social_media: 'Weekly Social Media Engagement',
   weekly_meetup: 'Weekly Meetup (IRL/Online) with Crew',
 };
@@ -51,7 +54,7 @@ const momentumTaskSubmissionSchema = new mongoose.Schema<IMomentumTaskSubmission
     },
     taskType: {
       type: String,
-      enum: ['checkpoint_attendance', 'checkpoint_submission', 'checkpoint_2_submission', 'checkpoint_3_submission', 'social_media', 'weekly_meetup'],
+      enum: ['checkpoint_attendance', 'checkpoint_submission', 'checkpoint_2_submission', 'checkpoint_3_submission', 'checkpoint_4_submission', 'social_media', 'weekly_meetup'],
       required: true,
     },
     proofLink: { type: String, trim: true },

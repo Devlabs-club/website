@@ -33,6 +33,7 @@ const TASK_LABELS_BY_ID: Record<string, string> = {
   checkpoint_submission: "Submission of Checkpoint 1",
   checkpoint_2_submission: "Submission of Checkpoint 2",
   checkpoint_3_submission: "Submission of Checkpoint 3",
+  checkpoint_4_submission: "Submission of Checkpoint 4",
   checkpoint_attendance: "Attending Mon-Fri Checkpoints",
 };
 

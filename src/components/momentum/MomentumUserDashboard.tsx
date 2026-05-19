@@ -19,6 +19,7 @@ import {
   Lock,
   ChevronDown,
   ChevronUp,
+  Receipt,
 } from "lucide-react";
 import { useAuth } from "../auth_manager";
 import type { MomentumApplicationRecord } from "./types";
@@ -105,18 +106,25 @@ export default function MomentumUserDashboard({
   const [tweetUrl, setTweetUrl] = useState("");
   const [driveUrl, setDriveUrl] = useState("");
   const [checkpoint3TweetUrl, setCheckpoint3TweetUrl] = useState("");
+  const [checkpoint4ProofUrl, setCheckpoint4ProofUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingCp3, setIsSubmittingCp3] = useState(false);
+  const [isSubmittingCp4, setIsSubmittingCp4] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionErrorCp3, setSubmissionErrorCp3] = useState<string | null>(
+    null,
+  );
+  const [submissionErrorCp4, setSubmissionErrorCp4] = useState<string | null>(
     null,
   );
   const [submittedLink, setSubmittedLink] = useState<string | null>(null);
   const [submittedLink2, setSubmittedLink2] = useState<string | null>(null);
   const [submittedLink3, setSubmittedLink3] = useState<string | null>(null);
+  const [submittedLink4, setSubmittedLink4] = useState<string | null>(null);
   const [showRevealHint, setShowRevealHint] = useState(false);
   const [showRevealHint2, setShowRevealHint2] = useState(false);
   const [showRevealHint3, setShowRevealHint3] = useState(false);
+  const [showRevealHint4, setShowRevealHint4] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const badgeCaptureRef = useRef<HTMLDivElement>(null);
   const [isBadgeExporting, setIsBadgeExporting] = useState(false);
@@ -163,6 +171,12 @@ export default function MomentumUserDashboard({
         );
         if (latest3?.proofLink?.trim() && !cancelled) {
           setSubmittedLink3(latest3.proofLink.trim());
+        }
+        const latest4 = list.find(
+          (s) => s.taskType === "checkpoint_4_submission",
+        );
+        if (latest4?.proofLink?.trim() && !cancelled) {
+          setSubmittedLink4(latest4.proofLink.trim());
         }
       } catch {
         /* ignore hydrate errors */
@@ -308,6 +322,41 @@ export default function MomentumUserDashboard({
     }
   };
 
+  const handleSubmission4 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkpoint4ProofUrl.trim()) return;
+    setIsSubmittingCp4(true);
+    setSubmissionErrorCp4(null);
+    try {
+      const res = await fetch("/api/momentum/tasks", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskType: "checkpoint_4_submission",
+          proofLink: checkpoint4ProofUrl.trim(),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        submission?: { proofLink?: string };
+      };
+      if (!res.ok) {
+        setSubmissionErrorCp4(data.message || "Submission failed");
+        return;
+      }
+      const link =
+        (data.submission?.proofLink && data.submission.proofLink.trim()) ||
+        checkpoint4ProofUrl.trim();
+      setSubmittedLink4(link);
+      setCheckpoint4ProofUrl("");
+    } catch {
+      setSubmissionErrorCp4("Something went wrong. Try again.");
+    } finally {
+      setIsSubmittingCp4(false);
+    }
+  };
+
   const statusConfig = {
     pending: {
       label: "Under review",
@@ -339,6 +388,10 @@ export default function MomentumUserDashboard({
   // Checkpoint 3 deadline: May 15, 2026 11:59 PM MST
   const checkpoint3Deadline = new Date("2026-05-16T06:59:00Z"); // May 15 11:59 PM MST = May 16 06:59 AM UTC
   const isCheckpoint3Locked = new Date() > checkpoint3Deadline;
+
+  // Checkpoint 4 deadline: May 22, 2026 11:59 PM MST (end of W4)
+  const checkpoint4Deadline = new Date("2026-05-23T06:59:00Z"); // May 22 11:59 PM MST = May 23 06:59 AM UTC
+  const isCheckpoint4Locked = new Date() > checkpoint4Deadline;
 
   const dashboardGridClass =
     "mt-6 flex flex-col-reverse items-stretch gap-24 lg:mt-24 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]";
@@ -435,6 +488,7 @@ export default function MomentumUserDashboard({
           application={application}
           enablePointsTasksFetch={isRevealed}
         >
+          <>
           <div className={dashboardGridClass}>
             <div className="min-w-0 space-y-8">
               <motion.div
@@ -919,13 +973,191 @@ export default function MomentumUserDashboard({
                 )}
               </motion.div>
 
+              {/* Checkpoint 4 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                {!isCheckpoint3Locked ? (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Lock className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 4
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Charge two paying customers outside your team, family,
+                          and DevLabs — opens after Checkpoint 3 closes.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowRevealHint4(!showRevealHint4)
+                        }
+                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        More info
+                      </button>
+                      {showRevealHint4 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                        >
+                          Unlocks after Checkpoint 3 closes on May 15th at
+                          11:59 PM MST.
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Receipt className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 4 Submission
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Due Friday, May 22nd at 11:59 PM MST (end of W4).
+                          Charge <strong className="text-white/85">two</strong>{" "}
+                          paying customers outside your team, family, and
+                          DevLabs. Submit one link to your Drive folder or Doc
+                          with{" "}
+                          <span className="text-white/80">
+                            payment screenshots, who paid, and one sentence per
+                            customer on why they paid
+                          </span>
+                          .
+                        </p>
+                      </div>
+                    </div>
+
+                    {submittedLink4 ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              Submitted successfully.
+                            </span>{" "}
+                            <a
+                              href={submittedLink4}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              Open submission
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckpoint4ProofUrl(submittedLink4);
+                            setSubmittedLink4(null);
+                          }}
+                          className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
+                        >
+                          Edit submission
+                        </button>
+                      </div>
+                    ) : isCheckpoint4Locked ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                        <Lock className="h-5 w-5 shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            Checkpoint locked.
+                          </span>{" "}
+                          The deadline for this checkpoint has passed.
+                        </div>
+                      </div>
+                    ) : (
+                      <form
+                        onSubmit={(ev) => void handleSubmission4(ev)}
+                        className="flex flex-col gap-4"
+                      >
+                        {submissionErrorCp4 && (
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                            {submissionErrorCp4}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                          <div className="flex-1 space-y-2">
+                            <label
+                              htmlFor="checkpoint4ProofUrl"
+                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                            >
+                              Google Drive folder or Doc URL
+                            </label>
+                            <input
+                              id="checkpoint4ProofUrl"
+                              type="url"
+                              required
+                              value={checkpoint4ProofUrl}
+                              onChange={(e) =>
+                                setCheckpoint4ProofUrl(e.target.value)
+                              }
+                              placeholder="https://drive.google.com/..."
+                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={
+                              isSubmittingCp4 || !checkpoint4ProofUrl.trim()
+                            }
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isSubmittingCp4 ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                            ) : (
+                              <>
+                                Submit <Send className="h-4 w-4" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    <div className="mt-4 text-xs text-white/40">
+                      Need help? Check the{" "}
+                      <a
+                        href="/momentum/checkpoint/4"
+                        className="text-orange-400 hover:underline"
+                      >
+                        checkpoint 4 details
+                      </a>
+                      .
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
               <CommunityLinks />
-              <PartnerCredits application={application} />
-              <MomentumTaskSubmissionsCard className="mt-8" />
             </div>
 
             {badgeAside}
           </div>
+
+          <div className="mt-24 sm:mt-28">
+            <PartnerCredits application={application} />
+          </div>
+
+          <MomentumTaskSubmissionsCard className="mt-8" />
+          </>
         </MomentumPointsTasksProvider>
       ) : (
         <div className="mt-6 lg:mt-24">

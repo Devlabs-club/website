@@ -47,6 +47,21 @@ const companies = [
     url: "https://smallest.ai",
     className: "h-8 sm:h-10 py-1.5",
   },
+  {
+    name: "Superhuman Mail",
+    logo: "/sponsors/momentum/superhuman.png",
+    alt: "Superhuman Mail",
+    url: "https://superhuman.com",
+    className:
+      "h-5 w-auto max-w-[min(11rem,42vw)] object-contain sm:h-6 md:max-w-[12rem]",
+  },
+  {
+    name: "DeepMind",
+    logo: "/sponsors/deepmind.png",
+    alt: "DeepMind",
+    url: "https://deepmind.com",
+    className: "h-5 w-auto object-contain sm:h-6",
+  },
 
   //composio, tinyfish, insforge
   {
@@ -68,6 +83,13 @@ const companies = [
     logo: "/sponsors/momentum/insforge.svg",
     alt: "Insforge",
     url: "https://insforge.com",
+    className: "h-8 sm:h-10",
+  },
+  {
+    name: "Mintlify",
+    logo: "/sponsors/momentum/mintlify.png",
+    alt: "Mintlify",
+    url: "https://mintlify.com",
     className: "h-8 sm:h-10",
   },
   {
