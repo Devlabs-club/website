@@ -102,6 +102,15 @@ export function PartnerCredits({ application }: { application: MomentumApplicati
       link: "https://mintlify.typeform.com/startup-program?typeform-source=www.mintlify.com",
     },
     {
+      id: "radix",
+      name: "Radix",
+      logo: "/sponsors/momentum/radix.png",
+      description:
+        "Startup domains via Radix — go to startup.tech, search your domain for availability, then enter your name, email, and LinkedIn and submit. Requests are reviewed and approved within 24 hours.",
+      code: null,
+      link: "https://startup.tech/",
+    },
+    {
       id: "dodo-payments",
       name: "Dodo Payments",
       logo: "/sponsors/momentum/dodo_payments.svg",

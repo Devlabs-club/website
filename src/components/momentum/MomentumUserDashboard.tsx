@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronUp,
   Receipt,
+  Video,
 } from "lucide-react";
 import { useAuth } from "../auth_manager";
 import type { MomentumApplicationRecord } from "./types";
@@ -107,9 +108,12 @@ export default function MomentumUserDashboard({
   const [driveUrl, setDriveUrl] = useState("");
   const [checkpoint3TweetUrl, setCheckpoint3TweetUrl] = useState("");
   const [checkpoint4ProofUrl, setCheckpoint4ProofUrl] = useState("");
+  const [checkpoint5PostUrl, setCheckpoint5PostUrl] = useState("");
+  const [checkpoint5DeckUrl, setCheckpoint5DeckUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingCp3, setIsSubmittingCp3] = useState(false);
   const [isSubmittingCp4, setIsSubmittingCp4] = useState(false);
+  const [isSubmittingCp5, setIsSubmittingCp5] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionErrorCp3, setSubmissionErrorCp3] = useState<string | null>(
     null,
@@ -117,14 +121,24 @@ export default function MomentumUserDashboard({
   const [submissionErrorCp4, setSubmissionErrorCp4] = useState<string | null>(
     null,
   );
+  const [submissionErrorCp5, setSubmissionErrorCp5] = useState<string | null>(
+    null,
+  );
   const [submittedLink, setSubmittedLink] = useState<string | null>(null);
   const [submittedLink2, setSubmittedLink2] = useState<string | null>(null);
   const [submittedLink3, setSubmittedLink3] = useState<string | null>(null);
   const [submittedLink4, setSubmittedLink4] = useState<string | null>(null);
+  const [submittedLink5Post, setSubmittedLink5Post] = useState<string | null>(
+    null,
+  );
+  const [submittedLink5Deck, setSubmittedLink5Deck] = useState<string | null>(
+    null,
+  );
   const [showRevealHint, setShowRevealHint] = useState(false);
   const [showRevealHint2, setShowRevealHint2] = useState(false);
   const [showRevealHint3, setShowRevealHint3] = useState(false);
   const [showRevealHint4, setShowRevealHint4] = useState(false);
+  const [showRevealHint5, setShowRevealHint5] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const badgeCaptureRef = useRef<HTMLDivElement>(null);
   const [isBadgeExporting, setIsBadgeExporting] = useState(false);
@@ -152,6 +166,7 @@ export default function MomentumUserDashboard({
           submissions?: {
             taskType: string;
             proofLink?: string;
+            proofLinkSecondary?: string;
             createdAt?: string;
           }[];
         };
@@ -177,6 +192,13 @@ export default function MomentumUserDashboard({
         );
         if (latest4?.proofLink?.trim() && !cancelled) {
           setSubmittedLink4(latest4.proofLink.trim());
+        }
+        const latest5 = list.find(
+          (s) => s.taskType === "checkpoint_5_submission",
+        );
+        if (latest5?.proofLink?.trim() && latest5?.proofLinkSecondary?.trim() && !cancelled) {
+          setSubmittedLink5Post(latest5.proofLink.trim());
+          setSubmittedLink5Deck(latest5.proofLinkSecondary.trim());
         }
       } catch {
         /* ignore hydrate errors */
@@ -357,6 +379,48 @@ export default function MomentumUserDashboard({
     }
   };
 
+  const handleSubmission5 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkpoint5PostUrl.trim() || !checkpoint5DeckUrl.trim()) return;
+    setIsSubmittingCp5(true);
+    setSubmissionErrorCp5(null);
+    try {
+      const res = await fetch("/api/momentum/tasks", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          taskType: "checkpoint_5_submission",
+          proofLink: checkpoint5PostUrl.trim(),
+          proofLinkSecondary: checkpoint5DeckUrl.trim(),
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        submission?: { proofLink?: string; proofLinkSecondary?: string };
+      };
+      if (!res.ok) {
+        setSubmissionErrorCp5(data.message || "Submission failed");
+        return;
+      }
+      const post =
+        (data.submission?.proofLink && data.submission.proofLink.trim()) ||
+        checkpoint5PostUrl.trim();
+      const deck =
+        (data.submission?.proofLinkSecondary &&
+          data.submission.proofLinkSecondary.trim()) ||
+        checkpoint5DeckUrl.trim();
+      setSubmittedLink5Post(post);
+      setSubmittedLink5Deck(deck);
+      setCheckpoint5PostUrl("");
+      setCheckpoint5DeckUrl("");
+    } catch {
+      setSubmissionErrorCp5("Something went wrong. Try again.");
+    } finally {
+      setIsSubmittingCp5(false);
+    }
+  };
+
   const statusConfig = {
     pending: {
       label: "Under review",
@@ -392,6 +456,10 @@ export default function MomentumUserDashboard({
   // Checkpoint 4 deadline: May 22, 2026 11:59 PM MST (end of W4)
   const checkpoint4Deadline = new Date("2026-05-23T06:59:00Z"); // May 22 11:59 PM MST = May 23 06:59 AM UTC
   const isCheckpoint4Locked = new Date() > checkpoint4Deadline;
+
+  // Checkpoint 5 deadline: May 29, 2026 11:59 PM MST (end of W5)
+  const checkpoint5Deadline = new Date("2026-05-30T06:59:00Z"); // May 29 11:59 PM MST = May 30 06:59 AM UTC
+  const isCheckpoint5Locked = new Date() > checkpoint5Deadline;
 
   const dashboardGridClass =
     "mt-6 flex flex-col-reverse items-stretch gap-24 lg:mt-24 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]";
@@ -489,648 +557,647 @@ export default function MomentumUserDashboard({
           enablePointsTasksFetch={isRevealed}
         >
           <>
-          <div className={dashboardGridClass}>
-            <div className="min-w-0 space-y-8">
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
-              >
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+            <div className={dashboardGridClass}>
+              <div className="min-w-0 space-y-8">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+                >
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
 
-                {!isRevealed ? (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Lock className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 1
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Get your screen recorder ready. You&apos;ll be showing
-                          the world what you&apos;re building.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <button
-                        onClick={() => setShowRevealHint(!showRevealHint)}
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        More info
-                      </button>
-                      {showRevealHint && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
-                        >
-                          Full details reveal on the kickoff! Check back on
-                          April 24th at 10:30 AM (PHX time).
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Twitter className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 1 Submission
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Due Friday, May 1st at 11:59 PM. Post a 1-min demo
-                          video on Twitter. Get 3 reposts and a comment from
-                          someone with 10K+ followers.
-                        </p>
-                      </div>
-                    </div>
-
-                    {submittedLink ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                          <CheckCircle2 className="h-5 w-5 shrink-0" />
-                          <div className="text-sm">
-                            <span className="font-medium">
-                              Submitted successfully.
-                            </span>{" "}
-                            <a
-                              href={submittedLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline underline-offset-2 hover:text-emerald-100"
-                            >
-                              View your submission
-                            </a>
-                          </div>
+                  {!isRevealed ? (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Lock className="h-6 w-6" />
                         </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 1
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Get your screen recorder ready. You&apos;ll be
+                            showing the world what you&apos;re building.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-start gap-3">
                         <button
-                          onClick={() => {
-                            setTweetUrl(submittedLink);
-                            setSubmittedLink(null);
-                          }}
-                          className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
+                          onClick={() => setShowRevealHint(!showRevealHint)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
                         >
-                          Edit submission
+                          More info
                         </button>
+                        {showRevealHint && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                          >
+                            Full details reveal on the kickoff! Check back on
+                            April 24th at 10:30 AM (PHX time).
+                          </motion.div>
+                        )}
                       </div>
-                    ) : isCheckpoint1Locked ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
-                        <Lock className="h-5 w-5 shrink-0" />
-                        <div className="text-sm">
-                          <span className="font-medium">
-                            Checkpoint locked.
-                          </span>{" "}
-                          The deadline for this checkpoint has passed.
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Twitter className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 1 Submission
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Due Friday, May 1st at 11:59 PM. Post a 1-min demo
+                            video on Twitter. Get 3 reposts and a comment from
+                            someone with 10K+ followers.
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <form
-                        onSubmit={(ev) => void handleSubmission(ev)}
-                        className="flex flex-col gap-4"
-                      >
-                        {submissionError && (
-                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-                            {submissionError}
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <div className="flex-1 space-y-2">
-                            <label
-                              htmlFor="tweetUrl"
-                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
-                            >
-                              Twitter Post URL
-                            </label>
-                            <input
-                              id="tweetUrl"
-                              type="url"
-                              required
-                              value={tweetUrl}
-                              onChange={(e) => setTweetUrl(e.target.value)}
-                              placeholder="https://twitter.com/yourusername/status/..."
-                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                            />
+
+                      {submittedLink ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                Submitted successfully.
+                              </span>{" "}
+                              <a
+                                href={submittedLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-emerald-100"
+                              >
+                                View your submission
+                              </a>
+                            </div>
                           </div>
                           <button
-                            type="submit"
-                            disabled={isSubmitting || !tweetUrl}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => {
+                              setTweetUrl(submittedLink);
+                              setSubmittedLink(null);
+                            }}
+                            className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
                           >
-                            {isSubmitting ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                            ) : (
-                              <>
-                                Submit <Send className="h-4 w-4" />
-                              </>
-                            )}
+                            Edit submission
                           </button>
                         </div>
-                      </form>
-                    )}
-
-                    <div className="mt-4 text-xs text-white/40">
-                      Need help? Check the{" "}
-                      <a
-                        href="/momentum/checkpoint/1"
-                        className="text-orange-400 hover:underline"
-                      >
-                        checkpoint 1 details
-                      </a>
-                      .
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Checkpoint 2 */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
-              >
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
-
-                {!isCheckpoint1Locked ? (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Lock className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 2
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Get ready to talk to your users.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <button
-                        onClick={() => setShowRevealHint2(!showRevealHint2)}
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        More info
-                      </button>
-                      {showRevealHint2 && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
-                        >
-                          Unlocks after Checkpoint 1 closes on May 1st at 11:59
-                          PM MST.
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Mail className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 2 Submission
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Due Friday, May 8th at 11:59 PM MST. Reach out to
-                          target users until you get 25 replies. Submit a Google
-                          Drive link with screenshots of all 25 replies.
-                        </p>
-                      </div>
-                    </div>
-
-                    {submittedLink2 ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      ) : isCheckpoint1Locked ? (
+                        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                          <Lock className="h-5 w-5 shrink-0" />
                           <div className="text-sm">
                             <span className="font-medium">
-                              Submitted successfully.
+                              Checkpoint locked.
                             </span>{" "}
-                            <a
-                              href={submittedLink2}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline underline-offset-2 hover:text-emerald-100"
-                            >
-                              View your submission
-                            </a>
+                            The deadline for this checkpoint has passed.
                           </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            setDriveUrl(submittedLink2);
-                            setSubmittedLink2(null);
-                          }}
-                          className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
+                      ) : (
+                        <form
+                          onSubmit={(ev) => void handleSubmission(ev)}
+                          className="flex flex-col gap-4"
                         >
-                          Edit submission
-                        </button>
+                          {submissionError && (
+                            <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                              {submissionError}
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                              <label
+                                htmlFor="tweetUrl"
+                                className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                              >
+                                Twitter Post URL
+                              </label>
+                              <input
+                                id="tweetUrl"
+                                type="url"
+                                required
+                                value={tweetUrl}
+                                onChange={(e) => setTweetUrl(e.target.value)}
+                                placeholder="https://twitter.com/yourusername/status/..."
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={isSubmitting || !tweetUrl}
+                              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isSubmitting ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                              ) : (
+                                <>
+                                  Submit <Send className="h-4 w-4" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      <div className="mt-4 text-xs text-white/40">
+                        Need help? Check the{" "}
+                        <a
+                          href="/momentum/checkpoint/1"
+                          className="text-orange-400 hover:underline"
+                        >
+                          checkpoint 1 details
+                        </a>
+                        .
                       </div>
-                    ) : isCheckpoint2Locked ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
-                        <Lock className="h-5 w-5 shrink-0" />
-                        <div className="text-sm">
-                          <span className="font-medium">
-                            Checkpoint locked.
-                          </span>{" "}
-                          The deadline for this checkpoint has passed.
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Checkpoint 2 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+                >
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                  {!isCheckpoint1Locked ? (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Lock className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 2
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Get ready to talk to your users.
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <form
-                        onSubmit={(ev) => void handleSubmission2(ev)}
-                        className="flex flex-col gap-4"
-                      >
-                        {submissionError && (
-                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-                            {submissionError}
-                          </div>
+                      <div className="flex flex-col items-start gap-3">
+                        <button
+                          onClick={() => setShowRevealHint2(!showRevealHint2)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                        >
+                          More info
+                        </button>
+                        {showRevealHint2 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                          >
+                            Unlocks after Checkpoint 1 closes on May 1st at
+                            11:59 PM MST.
+                          </motion.div>
                         )}
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <div className="flex-1 space-y-2">
-                            <label
-                              htmlFor="driveUrl"
-                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
-                            >
-                              Google Drive Folder URL
-                            </label>
-                            <input
-                              id="driveUrl"
-                              type="url"
-                              required
-                              value={driveUrl}
-                              onChange={(e) => setDriveUrl(e.target.value)}
-                              placeholder="https://drive.google.com/drive/folders/..."
-                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                            />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Mail className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 2 Submission
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Due Friday, May 8th at 11:59 PM MST. Reach out to
+                            target users until you get 25 replies. Submit a
+                            Google Drive link with screenshots of all 25
+                            replies.
+                          </p>
+                        </div>
+                      </div>
+
+                      {submittedLink2 ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                Submitted successfully.
+                              </span>{" "}
+                              <a
+                                href={submittedLink2}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-emerald-100"
+                              >
+                                View your submission
+                              </a>
+                            </div>
                           </div>
                           <button
-                            type="submit"
-                            disabled={isSubmitting || !driveUrl}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            onClick={() => {
+                              setDriveUrl(submittedLink2);
+                              setSubmittedLink2(null);
+                            }}
+                            className="self-start text-xs font-medium text-white/50 hover:text-white/80 transition-colors"
                           >
-                            {isSubmitting ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                            ) : (
-                              <>
-                                Submit <Send className="h-4 w-4" />
-                              </>
-                            )}
+                            Edit submission
                           </button>
                         </div>
-                      </form>
-                    )}
-
-                    <div className="mt-4 text-xs text-white/40">
-                      Need help? Check the{" "}
-                      <a
-                        href="/momentum/checkpoint/2"
-                        className="text-orange-400 hover:underline"
-                      >
-                        checkpoint 2 details
-                      </a>
-                      .
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Checkpoint 3 */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
-              >
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
-
-                {!isCheckpoint2Locked ? (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Lock className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 3
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Explain your iteration in a tweet and prove it with
-                          video — opens after Checkpoint 2 closes.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowRevealHint3(!showRevealHint3)
-                        }
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        More info
-                      </button>
-                      {showRevealHint3 && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
-                        >
-                          Unlocks after Checkpoint 2 closes on May 8th at
-                          11:59 PM MST.
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Twitter className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 3 Submission
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Due Friday, May 15th at 11:59 PM MST. Post a tweet that
-                          clearly explains{" "}
-                          <span className="text-white/80">what changed</span> —
-                          with video on the tweet showing or demonstrating that
-                          change. Submit your post URL below.
-                        </p>
-                      </div>
-                    </div>
-
-                    {submittedLink3 ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      ) : isCheckpoint2Locked ? (
+                        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                          <Lock className="h-5 w-5 shrink-0" />
                           <div className="text-sm">
                             <span className="font-medium">
-                              Submitted successfully.
+                              Checkpoint locked.
                             </span>{" "}
-                            <a
-                              href={submittedLink3}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline underline-offset-2 hover:text-emerald-100"
-                            >
-                              View your tweet
-                            </a>
+                            The deadline for this checkpoint has passed.
                           </div>
                         </div>
+                      ) : (
+                        <form
+                          onSubmit={(ev) => void handleSubmission2(ev)}
+                          className="flex flex-col gap-4"
+                        >
+                          {submissionError && (
+                            <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                              {submissionError}
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                              <label
+                                htmlFor="driveUrl"
+                                className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                              >
+                                Google Drive Folder URL
+                              </label>
+                              <input
+                                id="driveUrl"
+                                type="url"
+                                required
+                                value={driveUrl}
+                                onChange={(e) => setDriveUrl(e.target.value)}
+                                placeholder="https://drive.google.com/drive/folders/..."
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={isSubmitting || !driveUrl}
+                              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isSubmitting ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                              ) : (
+                                <>
+                                  Submit <Send className="h-4 w-4" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      <div className="mt-4 text-xs text-white/40">
+                        Need help? Check the{" "}
+                        <a
+                          href="/momentum/checkpoint/2"
+                          className="text-orange-400 hover:underline"
+                        >
+                          checkpoint 2 details
+                        </a>
+                        .
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Checkpoint 3 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+                >
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                  {!isCheckpoint2Locked ? (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Lock className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 3
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Explain your iteration in a tweet and prove it with
+                            video — opens after Checkpoint 2 closes.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-start gap-3">
                         <button
                           type="button"
-                          onClick={() => {
-                            setCheckpoint3TweetUrl(submittedLink3);
-                            setSubmittedLink3(null);
-                          }}
-                          className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
+                          onClick={() => setShowRevealHint3(!showRevealHint3)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
                         >
-                          Edit submission
+                          More info
                         </button>
+                        {showRevealHint3 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                          >
+                            Unlocks after Checkpoint 2 closes on May 8th at
+                            11:59 PM MST.
+                          </motion.div>
+                        )}
                       </div>
-                    ) : isCheckpoint3Locked ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
-                        <Lock className="h-5 w-5 shrink-0" />
-                        <div className="text-sm">
-                          <span className="font-medium">
-                            Checkpoint locked.
-                          </span>{" "}
-                          The deadline for this checkpoint has passed.
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Twitter className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 3 Submission
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Due Friday, May 15th at 11:59 PM MST. Post a tweet
+                            that clearly explains{" "}
+                            <span className="text-white/80">what changed</span>{" "}
+                            — with video on the tweet showing or demonstrating
+                            that change. Submit your post URL below.
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <form
-                        onSubmit={(ev) => void handleSubmission3(ev)}
-                        className="flex flex-col gap-4"
-                      >
-                        {submissionErrorCp3 && (
-                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-                            {submissionErrorCp3}
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <div className="flex-1 space-y-2">
-                            <label
-                              htmlFor="checkpoint3TweetUrl"
-                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
-                            >
-                              Tweet URL (caption + video)
-                            </label>
-                            <input
-                              id="checkpoint3TweetUrl"
-                              type="url"
-                              required
-                              value={checkpoint3TweetUrl}
-                              onChange={(e) =>
-                                setCheckpoint3TweetUrl(e.target.value)
-                              }
-                              placeholder="https://twitter.com/... or https://x.com/..."
-                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                            />
+
+                      {submittedLink3 ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                Submitted successfully.
+                              </span>{" "}
+                              <a
+                                href={submittedLink3}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-emerald-100"
+                              >
+                                View your tweet
+                              </a>
+                            </div>
                           </div>
                           <button
-                            type="submit"
-                            disabled={
-                              isSubmittingCp3 || !checkpoint3TweetUrl.trim()
-                            }
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            onClick={() => {
+                              setCheckpoint3TweetUrl(submittedLink3);
+                              setSubmittedLink3(null);
+                            }}
+                            className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
                           >
-                            {isSubmittingCp3 ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                            ) : (
-                              <>
-                                Submit <Send className="h-4 w-4" />
-                              </>
-                            )}
+                            Edit submission
                           </button>
                         </div>
-                      </form>
-                    )}
-
-                    <div className="mt-4 text-xs text-white/40">
-                      Need help? Check the{" "}
-                      <a
-                        href="/momentum/checkpoint/3"
-                        className="text-orange-400 hover:underline"
-                      >
-                        checkpoint 3 details
-                      </a>
-                      .
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Checkpoint 4 */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
-              >
-                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
-
-                {!isCheckpoint3Locked ? (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Lock className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 4
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Charge two paying customers outside your team, family,
-                          and DevLabs — opens after Checkpoint 3 closes.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowRevealHint4(!showRevealHint4)
-                        }
-                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
-                      >
-                        More info
-                      </button>
-                      {showRevealHint4 && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
-                        >
-                          Unlocks after Checkpoint 3 closes on May 15th at
-                          11:59 PM MST.
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative z-10">
-                    <div className="mb-6 flex items-center gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
-                        <Receipt className="h-6 w-6" />
-                      </div>
-                      <div>
-                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
-                          Checkpoint 4 Submission
-                        </h2>
-                        <p className="text-sm text-white/60">
-                          Due Friday, May 22nd at 11:59 PM MST (end of W4).
-                          Charge <strong className="text-white/85">two</strong>{" "}
-                          paying customers outside your team, family, and
-                          DevLabs. Submit one link to your Drive folder or Doc
-                          with{" "}
-                          <span className="text-white/80">
-                            payment screenshots, who paid, and one sentence per
-                            customer on why they paid
-                          </span>
-                          .
-                        </p>
-                      </div>
-                    </div>
-
-                    {submittedLink4 ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
-                          <CheckCircle2 className="h-5 w-5 shrink-0" />
+                      ) : isCheckpoint3Locked ? (
+                        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                          <Lock className="h-5 w-5 shrink-0" />
                           <div className="text-sm">
                             <span className="font-medium">
-                              Submitted successfully.
+                              Checkpoint locked.
                             </span>{" "}
-                            <a
-                              href={submittedLink4}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline underline-offset-2 hover:text-emerald-100"
-                            >
-                              Open submission
-                            </a>
+                            The deadline for this checkpoint has passed.
                           </div>
                         </div>
+                      ) : (
+                        <form
+                          onSubmit={(ev) => void handleSubmission3(ev)}
+                          className="flex flex-col gap-4"
+                        >
+                          {submissionErrorCp3 && (
+                            <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                              {submissionErrorCp3}
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                              <label
+                                htmlFor="checkpoint3TweetUrl"
+                                className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                              >
+                                Tweet URL (caption + video)
+                              </label>
+                              <input
+                                id="checkpoint3TweetUrl"
+                                type="url"
+                                required
+                                value={checkpoint3TweetUrl}
+                                onChange={(e) =>
+                                  setCheckpoint3TweetUrl(e.target.value)
+                                }
+                                placeholder="https://twitter.com/... or https://x.com/..."
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={
+                                isSubmittingCp3 || !checkpoint3TweetUrl.trim()
+                              }
+                              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isSubmittingCp3 ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                              ) : (
+                                <>
+                                  Submit <Send className="h-4 w-4" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      <div className="mt-4 text-xs text-white/40">
+                        Need help? Check the{" "}
+                        <a
+                          href="/momentum/checkpoint/3"
+                          className="text-orange-400 hover:underline"
+                        >
+                          checkpoint 3 details
+                        </a>
+                        .
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+
+                {/* Checkpoint 4 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+                >
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                  {!isCheckpoint3Locked ? (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Lock className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 4
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Charge two paying customers outside your team,
+                            family, and DevLabs — opens after Checkpoint 3
+                            closes.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-start gap-3">
                         <button
                           type="button"
-                          onClick={() => {
-                            setCheckpoint4ProofUrl(submittedLink4);
-                            setSubmittedLink4(null);
-                          }}
-                          className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
+                          onClick={() => setShowRevealHint4(!showRevealHint4)}
+                          className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
                         >
-                          Edit submission
+                          More info
                         </button>
+                        {showRevealHint4 && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                          >
+                            Unlocks after Checkpoint 3 closes on May 15th at
+                            11:59 PM MST.
+                          </motion.div>
+                        )}
                       </div>
-                    ) : isCheckpoint4Locked ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
-                        <Lock className="h-5 w-5 shrink-0" />
-                        <div className="text-sm">
-                          <span className="font-medium">
-                            Checkpoint locked.
-                          </span>{" "}
-                          The deadline for this checkpoint has passed.
+                    </div>
+                  ) : (
+                    <div className="relative z-10">
+                      <div className="mb-6 flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                          <Receipt className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                            Checkpoint 4 Submission
+                          </h2>
+                          <p className="text-sm text-white/60">
+                            Due Friday, May 22nd at 11:59 PM MST (end of W4).
+                            Charge{" "}
+                            <strong className="text-white/85">two</strong>{" "}
+                            paying customers outside your team, family, and
+                            DevLabs. Submit one link to your Drive folder or Doc
+                            with{" "}
+                            <span className="text-white/80">
+                              payment screenshots, who paid, and one sentence
+                              per customer on why they paid
+                            </span>
+                            .
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      <form
-                        onSubmit={(ev) => void handleSubmission4(ev)}
-                        className="flex flex-col gap-4"
-                      >
-                        {submissionErrorCp4 && (
-                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
-                            {submissionErrorCp4}
-                          </div>
-                        )}
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <div className="flex-1 space-y-2">
-                            <label
-                              htmlFor="checkpoint4ProofUrl"
-                              className="text-xs font-semibold uppercase tracking-wider text-white/50"
-                            >
-                              Google Drive folder or Doc URL
-                            </label>
-                            <input
-                              id="checkpoint4ProofUrl"
-                              type="url"
-                              required
-                              value={checkpoint4ProofUrl}
-                              onChange={(e) =>
-                                setCheckpoint4ProofUrl(e.target.value)
-                              }
-                              placeholder="https://drive.google.com/..."
-                              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
-                            />
+
+                      {submittedLink4 ? (
+                        <div className="flex flex-col gap-4">
+                          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-emerald-200">
+                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                            <div className="text-sm">
+                              <span className="font-medium">
+                                Submitted successfully.
+                              </span>{" "}
+                              <a
+                                href={submittedLink4}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2 hover:text-emerald-100"
+                              >
+                                Open submission
+                              </a>
+                            </div>
                           </div>
                           <button
-                            type="submit"
-                            disabled={
-                              isSubmittingCp4 || !checkpoint4ProofUrl.trim()
-                            }
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="button"
+                            onClick={() => {
+                              setCheckpoint4ProofUrl(submittedLink4);
+                              setSubmittedLink4(null);
+                            }}
+                            className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
                           >
-                            {isSubmittingCp4 ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                            ) : (
-                              <>
-                                Submit <Send className="h-4 w-4" />
-                              </>
-                            )}
+                            Edit submission
                           </button>
                         </div>
-                      </form>
-                    )}
+                      ) : isCheckpoint4Locked ? (
+                        <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                          <Lock className="h-5 w-5 shrink-0" />
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              Checkpoint locked.
+                            </span>{" "}
+                            The deadline for this checkpoint has passed.
+                          </div>
+                        </div>
+                      ) : (
+                        <form
+                          onSubmit={(ev) => void handleSubmission4(ev)}
+                          className="flex flex-col gap-4"
+                        >
+                          {submissionErrorCp4 && (
+                            <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                              {submissionErrorCp4}
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <div className="flex-1 space-y-2">
+                              <label
+                                htmlFor="checkpoint4ProofUrl"
+                                className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                              >
+                                Google Drive folder or Doc URL
+                              </label>
+                              <input
+                                id="checkpoint4ProofUrl"
+                                type="url"
+                                required
+                                value={checkpoint4ProofUrl}
+                                onChange={(e) =>
+                                  setCheckpoint4ProofUrl(e.target.value)
+                                }
+                                placeholder="https://drive.google.com/..."
+                                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                              />
+                            </div>
+                            <button
+                              type="submit"
+                              disabled={
+                                isSubmittingCp4 || !checkpoint4ProofUrl.trim()
+                              }
+                              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {isSubmittingCp4 ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                              ) : (
+                                <>
+                                  Submit <Send className="h-4 w-4" />
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      )}
 
                     <div className="mt-4 text-xs text-white/40">
                       Need help? Check the{" "}
@@ -1146,17 +1213,215 @@ export default function MomentumUserDashboard({
                 )}
               </motion.div>
 
+              {/* Checkpoint 5 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-black/40 p-6 backdrop-blur-md sm:p-8"
+              >
+                <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-orange-500/10 blur-3xl" />
+
+                {!isCheckpoint4Locked ? (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Lock className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 5
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Three-minute demo pitch publicly posted plus deck —
+                          opens after Checkpoint 4 closes.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowRevealHint5(!showRevealHint5)}
+                        className="inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                      >
+                        More info
+                      </button>
+                      {showRevealHint5 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4 text-sm text-orange-200"
+                        >
+                          Unlocks after Checkpoint 4 closes on May 22nd at
+                          11:59 PM MST.
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative z-10">
+                    <div className="mb-6 flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-orange-500/20 text-orange-400">
+                        <Video className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h2 className="font-seasons text-xl sm:text-2xl text-white">
+                          Checkpoint 5 Submission
+                        </h2>
+                        <p className="text-sm text-white/60">
+                          Due Friday, May 29th at 11:59 PM MST (end of W5).
+                          Record a ~3‑min pitch with a{" "}
+                          <span className="text-white/80">live demo</span>,
+                          publicly post it (
+                          <span className="text-white/80">mention DevLabs &amp; Momentum</span>
+                          ). Submit both the{" "}
+                          <span className="text-white/80">video post URL</span>{" "}
+                          and your{" "}
+                          <span className="text-white/80">pitch deck link</span>.
+                        </p>
+                      </div>
+                    </div>
+
+                    {submittedLink5Post && submittedLink5Deck ? (
+                      <div className="flex flex-col gap-4">
+                        <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+                          <CheckCircle2 className="mb-3 inline-block h-5 w-5 align-middle" />{" "}
+                          <span className="font-medium">Submitted successfully.</span>
+                          <div className="mt-3 flex flex-col gap-2 text-emerald-200/95">
+                            <a
+                              href={submittedLink5Post}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              Open public post / video
+                            </a>
+                            <a
+                              href={submittedLink5Deck}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-emerald-100"
+                            >
+                              Open pitch deck
+                            </a>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckpoint5PostUrl(submittedLink5Post);
+                            setCheckpoint5DeckUrl(submittedLink5Deck);
+                            setSubmittedLink5Post(null);
+                            setSubmittedLink5Deck(null);
+                          }}
+                          className="self-start text-xs font-medium text-white/50 transition-colors hover:text-white/80"
+                        >
+                          Edit submission
+                        </button>
+                      </div>
+                    ) : isCheckpoint5Locked ? (
+                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
+                        <Lock className="h-5 w-5 shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium">
+                            Checkpoint locked.
+                          </span>{" "}
+                          The deadline for this checkpoint has passed.
+                        </div>
+                      </div>
+                    ) : (
+                      <form
+                        onSubmit={(ev) => void handleSubmission5(ev)}
+                        className="flex flex-col gap-4"
+                      >
+                        {submissionErrorCp5 && (
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                            {submissionErrorCp5}
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <label
+                            htmlFor="checkpoint5PostUrl"
+                            className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                          >
+                            Video post URL (Twitter / X public link with your
+                            pitch)
+                          </label>
+                          <input
+                            id="checkpoint5PostUrl"
+                            type="url"
+                            required
+                            value={checkpoint5PostUrl}
+                            onChange={(e) =>
+                              setCheckpoint5PostUrl(e.target.value)
+                            }
+                            placeholder="https://twitter.com/... or https://x.com/..."
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label
+                            htmlFor="checkpoint5DeckUrl"
+                            className="text-xs font-semibold uppercase tracking-wider text-white/50"
+                          >
+                            Pitch deck link
+                          </label>
+                          <input
+                            id="checkpoint5DeckUrl"
+                            type="url"
+                            required
+                            value={checkpoint5DeckUrl}
+                            onChange={(e) =>
+                              setCheckpoint5DeckUrl(e.target.value)
+                            }
+                            placeholder="https://slides.google.com/... or Dropbox / Gamma / ..."
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={
+                            isSubmittingCp5 ||
+                            !checkpoint5PostUrl.trim() ||
+                            !checkpoint5DeckUrl.trim()
+                          }
+                          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 text-sm font-medium text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:self-start"
+                        >
+                          {isSubmittingCp5 ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                          ) : (
+                            <>
+                              Submit <Send className="h-4 w-4" />
+                            </>
+                          )}
+                        </button>
+                      </form>
+                    )}
+
+                    <div className="mt-4 text-xs text-white/40">
+                      Need help? Check the{" "}
+                      <a
+                        href="/momentum/checkpoint/5"
+                        className="text-orange-400 hover:underline"
+                      >
+                        checkpoint 5 details
+                      </a>
+                      .
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
               <CommunityLinks />
+              </div>
+
+              {badgeAside}
             </div>
 
-            {badgeAside}
-          </div>
+            <div className="mt-24 sm:mt-28">
+              <PartnerCredits application={application} />
+            </div>
 
-          <div className="mt-24 sm:mt-28">
-            <PartnerCredits application={application} />
-          </div>
-
-          <MomentumTaskSubmissionsCard className="mt-8" />
+            <MomentumTaskSubmissionsCard className="mt-8" />
           </>
         </MomentumPointsTasksProvider>
       ) : (

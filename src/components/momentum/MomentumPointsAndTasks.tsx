@@ -34,6 +34,7 @@ const TASK_LABELS_BY_ID: Record<string, string> = {
   checkpoint_2_submission: "Submission of Checkpoint 2",
   checkpoint_3_submission: "Submission of Checkpoint 3",
   checkpoint_4_submission: "Submission of Checkpoint 4",
+  checkpoint_5_submission: "Submission of Checkpoint 5",
   checkpoint_attendance: "Attending Mon-Fri Checkpoints",
 };
 
@@ -52,6 +53,7 @@ type MomentumPointsTasksContextValue = {
     status: string;
     taskType: string;
     proofLink: string;
+    proofLinkSecondary?: string;
   }[];
   loading: boolean;
   submitting: boolean;
@@ -90,7 +92,13 @@ export function MomentumPointsTasksProvider({
     { group: string; points: number }[]
   >([]);
   const [submissions, setSubmissions] = useState<
-    { _id: string; status: string; taskType: string; proofLink: string }[]
+    {
+      _id: string;
+      status: string;
+      taskType: string;
+      proofLink: string;
+      proofLinkSecondary?: string;
+    }[]
   >([]);
   const [loading, setLoading] = useState(enablePointsTasksFetch);
   const [submitting, setSubmitting] = useState(false);
@@ -353,14 +361,28 @@ export function MomentumTaskSubmissionsCard({
                   {TASK_LABELS_BY_ID[sub.taskType] ?? sub.taskType}
                 </span>
               </div>
-              <a
-                href={sub.proofLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 shrink-0 text-white/40 hover:text-white/80"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+              <div className="flex shrink-0 items-center gap-1">
+                <a
+                  href={sub.proofLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/40 hover:text-white/80"
+                  title="Proof link"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                {sub.proofLinkSecondary ? (
+                  <a
+                    href={sub.proofLinkSecondary}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-white/40 hover:text-white/80"
+                    title="Secondary link"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                  </a>
+                ) : null}
+              </div>
             </div>
           ))}
           {submissions.length === 0 && !loading && (

@@ -42,11 +42,42 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const body = await request.json();
-    const { taskType, proofLink } = body;
+    const { taskType, proofLink, proofLinkSecondary } = body as {
+      taskType?: string;
+      proofLink?: string;
+      proofLinkSecondary?: string;
+    };
 
     if (!taskType || !TASK_POINTS[taskType as keyof typeof TASK_POINTS]) {
       return new Response(
         JSON.stringify({ success: false, message: 'Invalid task type' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const primary = typeof proofLink === 'string' ? proofLink.trim() : '';
+    const secondary =
+      typeof proofLinkSecondary === 'string'
+        ? proofLinkSecondary.trim()
+        : '';
+
+    if (taskType === 'checkpoint_5_submission') {
+      if (!primary || !secondary) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message:
+              'Checkpoint 5 requires both your public post URL (with the pitch video) and your pitch deck link.',
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    } else if (!primary) {
+      return new Response(
+        JSON.stringify({ success: false, message: 'Proof link is required' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -63,15 +94,17 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const MomentumTaskSubmission = getMomentumTaskSubmissionModel(conn);
-    const submission = await MomentumTaskSubmission.create({
+    const submissionPayload: Record<string, unknown> = {
       userId: auth.user.id,
       applicationId: String(application._id),
       group: application.group,
       taskType,
-      proofLink,
+      proofLink: primary || undefined,
       status: 'pending',
       points: TASK_POINTS[taskType as keyof typeof TASK_POINTS],
-    });
+    };
+    if (secondary) submissionPayload.proofLinkSecondary = secondary;
+    const submission = await MomentumTaskSubmission.create(submissionPayload);
 
     return new Response(JSON.stringify({ success: true, submission }), {
       status: 201,

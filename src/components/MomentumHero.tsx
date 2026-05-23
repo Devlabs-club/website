@@ -93,6 +93,14 @@ const companies = [
     className: "h-8 sm:h-10",
   },
   {
+    name: "Radix",
+    logo: "/sponsors/momentum/radix.png",
+    alt: "Radix",
+    url: "https://startup.tech/",
+    className:
+      "h-6 w-auto max-w-[min(7rem,36vw)] object-contain sm:h-7 md:max-w-[8rem]",
+  },
+  {
     name: "Autosend",
     logo: "/sponsors/momentum/autosend.png",
     alt: "Autosend",

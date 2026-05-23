@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, XCircle, Clock, Loader2, ExternalLink, Trophy } from "lucide-react";
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  ExternalLink,
+  Trophy,
+} from "lucide-react";
 import { TASK_LABELS } from "../../models/momentumTaskSubmission";
 
 export function MomentumAdminTasks() {
   const [tasks, setTasks] = useState<any[]>([]);
-  const [pointsTable, setPointsTable] = useState<{ group: string; points: number }[]>([]);
+  const [pointsTable, setPointsTable] = useState<
+    { group: string; points: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -15,14 +24,14 @@ export function MomentumAdminTasks() {
     try {
       const [tasksRes, pointsRes] = await Promise.all([
         fetch("/api/momentum/admin/tasks"),
-        fetch("/api/momentum/points")
+        fetch("/api/momentum/points"),
       ]);
-      
+
       if (tasksRes.ok) {
         const data = await tasksRes.json();
         setTasks(data.submissions || []);
       }
-      
+
       if (pointsRes.ok) {
         const data = await pointsRes.json();
         setPointsTable(data.pointsTable || []);
@@ -44,11 +53,11 @@ export function MomentumAdminTasks() {
       const res = await fetch("/api/momentum/admin/tasks", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ submissionId, status })
+        body: JSON.stringify({ submissionId, status }),
       });
-      
+
       if (!res.ok) throw new Error("Failed to update status");
-      
+
       await loadData();
     } catch (err) {
       alert("Error updating task status");
@@ -58,8 +67,10 @@ export function MomentumAdminTasks() {
   };
 
   const getStatusIcon = (status: string) => {
-    if (status === 'approved') return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
-    if (status === 'rejected') return <XCircle className="h-4 w-4 text-rose-400" />;
+    if (status === "approved")
+      return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
+    if (status === "rejected")
+      return <XCircle className="h-4 w-4 text-rose-400" />;
     return <Clock className="h-4 w-4 text-amber-400" />;
   };
 
@@ -76,9 +87,9 @@ export function MomentumAdminTasks() {
     );
   }
 
-  const filteredTasks = showCompleted 
-    ? tasks 
-    : tasks.filter(t => t.status === 'pending');
+  const filteredTasks = showCompleted
+    ? tasks
+    : tasks.filter((t) => t.status === "pending");
 
   return (
     <div className="space-y-8 mt-12 border-t border-white/10 pt-12">
@@ -96,7 +107,7 @@ export function MomentumAdminTasks() {
             onClick={() => setShowCompleted(!showCompleted)}
             className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/70 transition-colors hover:bg-white/10 hover:text-white"
           >
-            {showCompleted ? 'Hide' : 'Show'} Approved/Rejected
+            {showCompleted ? "Hide" : "Show"} Approved/Rejected
           </button>
         </div>
       </div>
@@ -112,7 +123,9 @@ export function MomentumAdminTasks() {
                   <th className="px-5 py-4 font-semibold">Task</th>
                   <th className="px-5 py-4 font-semibold">Points</th>
                   <th className="px-5 py-4 font-semibold">Proof</th>
-                  <th className="px-5 py-4 font-semibold text-right">Actions</th>
+                  <th className="px-5 py-4 font-semibold text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -130,7 +143,8 @@ export function MomentumAdminTasks() {
                           {task.group}
                         </span>
                         <span className="font-medium text-white">
-                          {task.application?.firstName} {task.application?.lastName}
+                          {task.application?.firstName}{" "}
+                          {task.application?.lastName}
                         </span>
                       </div>
                       <div className="text-xs text-white/45 mt-1">
@@ -140,38 +154,56 @@ export function MomentumAdminTasks() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         {getStatusIcon(task.status)}
-                        <span className="text-white/80">{taskTypeLabel(task.taskType)}</span>
+                        <span className="text-white/80">
+                          {taskTypeLabel(task.taskType)}
+                        </span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="text-xs text-orange-400 mt-1">+{task.points} pts</div>
+                      <div className="text-xs text-orange-400 mt-1">
+                        +{task.points} pts
+                      </div>
                     </td>
                     <td className="px-5 py-4">
-                      {task.proofLink ? (
-                        <a 
-                          href={task.proofLink} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300"
-                        >
-                          View <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-white/30">—</span>
-                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        {task.proofLink ? (
+                          <a
+                            href={task.proofLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-orange-400 hover:text-orange-300"
+                          >
+                            Video / post{" "}
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="text-white/30">—</span>
+                        )}
+                        {task.proofLinkSecondary ? (
+                          <a
+                            href={task.proofLinkSecondary}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-orange-400/90 hover:text-orange-300"
+                          >
+                            Deck{" "}
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                          </a>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-5 py-4">
-                      {task.status === 'pending' ? (
+                      {task.status === "pending" ? (
                         <div className="flex justify-end gap-2">
                           <button
-                            onClick={() => setStatus(task._id, 'approved')}
+                            onClick={() => setStatus(task._id, "approved")}
                             disabled={busyId === task._id}
                             className="rounded-full bg-emerald-500/90 px-3 py-1.5 text-xs font-semibold text-black hover:bg-emerald-400 disabled:opacity-50"
                           >
                             Approve
                           </button>
                           <button
-                            onClick={() => setStatus(task._id, 'rejected')}
+                            onClick={() => setStatus(task._id, "rejected")}
                             disabled={busyId === task._id}
                             className="rounded-full border border-rose-500/50 bg-rose-500/15 px-3 py-1.5 text-xs font-medium text-rose-200 hover:bg-rose-500/25 disabled:opacity-50"
                           >
@@ -190,7 +222,9 @@ export function MomentumAdminTasks() {
             </table>
             {filteredTasks.length === 0 && (
               <p className="py-8 text-center text-sm text-white/45">
-                {tasks.length > 0 ? "No pending tasks. Click 'Show Approved/Rejected' to view completed tasks." : "No tasks submitted yet."}
+                {tasks.length > 0
+                  ? "No pending tasks. Click 'Show Approved/Rejected' to view completed tasks."
+                  : "No tasks submitted yet."}
               </p>
             )}
           </div>
@@ -202,22 +236,28 @@ export function MomentumAdminTasks() {
             <Trophy className="h-5 w-5 text-orange-400" />
             <h3 className="font-seasons text-xl">Leaderboard</h3>
           </div>
-          
+
           <div className="space-y-3">
             {pointsTable.map((row, i) => (
-              <div 
-                key={row.group} 
+              <div
+                key={row.group}
                 className="flex items-center justify-between p-3 rounded-xl border border-white/5 bg-white/5"
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-white/40 font-mono text-sm w-4">{i + 1}</span>
+                  <span className="text-white/40 font-mono text-sm w-4">
+                    {i + 1}
+                  </span>
                   <span className="font-medium text-white/90">{row.group}</span>
                 </div>
-                <span className="font-bold text-orange-400">{row.points} pts</span>
+                <span className="font-bold text-orange-400">
+                  {row.points} pts
+                </span>
               </div>
             ))}
             {pointsTable.length === 0 && (
-              <div className="text-center text-sm text-white/40 py-4">No points recorded yet.</div>
+              <div className="text-center text-sm text-white/40 py-4">
+                No points recorded yet.
+              </div>
             )}
           </div>
         </div>
