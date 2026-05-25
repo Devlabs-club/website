@@ -1,10 +1,9 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import Main from '../components/Main.astro';
-import Events from '../components/Events.astro';
-import Team from '../components/Team.astro';
-import CenteredSection from '../components/CenteredSection.astro';
-
+import Layout from "../layouts/Layout.astro";
+import Main from "../components/Main.astro";
+import Events from "../components/Events.astro";
+import Team from "../components/Team.astro";
+import CenteredSection from "../components/CenteredSection.astro";
 
 import WrappedText from "../components/text/WrappedText.astro";
 import Heading from "../components/text/Heading.astro";
@@ -13,99 +12,37 @@ import Paragraph from "../components/text/Paragraph.astro";
 
 import ContactForm from "../components/ContactForm.astro";
 
-import LinkButton from '../components/LinkButton.astro';
-import Scroll from '../components/Scroll.astro';
-import Cards from '../components/Cards.astro';
+import LinkButton from "../components/LinkButton.astro";
+import Scroll from "../components/Scroll.astro";
+import Cards from "../components/Cards.astro";
 
-import GradientBlob from '../components/GradientBlob.astro';
-import HeroSection from '../components/HeroSection.astro';
-import Polaroid from '../components/Polaroid.astro';
-import CompanyMarquee from '../components/CompanyMarquee.astro';
-
+import GradientBlob from "../components/GradientBlob.astro";
+import HeroSection from "../components/HeroSection.astro";
+import IntroSection from "../components/IntroSection.astro";
+import PressSection from "../components/PressSection.astro";
+import ManifestoSection from "../components/ManifestoSection.astro";
+import EventsShowcase from "../components/EventsShowcase.astro";
+import Polaroid from "../components/Polaroid.astro";
+import JoinNowCTA from "../components/JoinNowCTA.astro";
 ---
 
-
-
 <Layout title="Devlabs">
-    <HeroSection />
- 
+  <HeroSection />
 
-    <div id="about" class="relative flex flex-col items-center mb-24">
-        <GradientBlob top="" right="" left="0" scale="1.5" />
-        <Polaroid image="https://dhanush.wtf/media/dt6y9pnhy5.jpg?file=" rotate="8deg" top="60%" right="5%" />
-        <Polaroid image="https://dhanush.wtf/media/ngpubzgtzsn.jpg?file=" rotate="-12deg" top="10%" left="10%" />
+  <IntroSection />
 
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20 relative z-20">
-            <WrappedText size="normal" className=''>about</WrappedText>
-            <Heading>What is <Highlight>DevLabs</Highlight>?</Heading>
-            
-            <Paragraph>Devlabs started as a small college club at Arizona State University, built by students passionate about tech and entrepreneurship. Since then, we've grown into so much more. Today, we're a thriving ecosystem:</Paragraph>
-            
-            <div class="flex flex-col gap-6 items-center">
-                <div class="flex flex-wrap gap-2 justify-center">
-                    <WrappedText size="large" className="border-orange-300 text-orange-300">a student launchpad to build and grow startups</WrappedText>
-                    <WrappedText size="large" className="border-orange-300 text-orange-300">a talent network for mid-sized companies</WrappedText>
-                    <WrappedText size="large" className="border-orange-300 text-orange-300">an investment hub where VCs spot early founders</WrappedText>
-                </div>
-              
-            </div>
-            
-        </div>
- 
-    </div>
+  <PressSection />
 
-    <!-- Our Numbers Section -->
-    <CenteredSection id="numbers" className="mb-24">
-        <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
-        
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>our numbers</WrappedText>
-            <Heading>The <Highlight>impact</Highlight> we're making</Heading>
-            
-            <div class="grid md:grid-cols-3 grid-cols-1 gap-8 w-full max-w-4xl">
-                <!-- Member Count -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-6xl md:text-7xl font-black text-orange-300">350+</div>
-                    <div class="text-lg font-semibold text-white">Active Members</div>
-                    <Paragraph className="text-sm">Students building the future</Paragraph>
-                </div>
-                
-                <!-- Projects Built -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-6xl md:text-7xl font-black text-orange-300">50+</div>
-                    <div class="text-lg font-semibold text-white">Projects Built</div>
-                    <Paragraph className="text-sm">From ideas to real products</Paragraph>
-                </div>
-                
-                <!-- Startups Launched -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-6xl md:text-7xl font-black text-orange-300">12+</div>
-                    <div class="text-lg font-semibold text-white">Startups Launched</div>
-                    <Paragraph className="text-sm">By our alumni founders</Paragraph>
-                </div>
-            </div>
-            
-            <div class="grid md:grid-cols-2 grid-cols-1 gap-8 w-full max-w-3xl mt-8">
-                <!-- Events Hosted -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-5xl md:text-6xl font-black text-orange-300">25+</div>
-                    <div class="text-lg font-semibold text-white">Events Hosted</div>
-                    <Paragraph className="text-sm">Hackathons, workshops, and demo nights</Paragraph>
-                </div>
-                
-                <!-- Funding Raised -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="text-5xl md:text-6xl font-black text-orange-300">$50K+</div>
-                    <div class="text-lg font-semibold text-white">Funding Raised</div>
-                    <Paragraph className="text-sm">By our startup alumni</Paragraph>
-                </div>
-            </div>
-        </div>
-    </CenteredSection>
+  <ManifestoSection />
 
-   
 
-<!--     
+  <EventsShowcase />
+
+  <Events />
+
+  <JoinNowCTA />
+
+  <!--     
 
   <Team
     members={[
@@ -162,17 +99,18 @@ import CompanyMarquee from '../components/CompanyMarquee.astro';
             </div>
         </div>
     </CenteredSection> -->
+  <!-- 
+  <CenteredSection id="contact" className="mb-24">
+    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
 
-    <CenteredSection id="contact" className="mb-24">
-        <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
-
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20">
-            <WrappedText size="normal" className=''>want to talk to us?</WrappedText>
-            <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
-            <ContactForm />
-        </div>
-    </CenteredSection>
-
+    <div
+      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
+    >
+      <WrappedText size="normal" className="">want to talk to us?</WrappedText>
+      <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
+      <ContactForm />
+    </div>
+  </CenteredSection> -->
 </Layout>
 
 <style>
@@ -180,9 +118,8 @@ import CompanyMarquee from '../components/CompanyMarquee.astro';
   #about .polaroid {
     z-index: 5;
   }
-  
+
   #about > div {
     z-index: 20;
   }
 </style>
-

@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB, Application } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { connectAdminDB } from '../../../lib/mongodb.ts';
+import mongoose from 'mongoose';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 
 export const GET: APIRoute = async ({ request, url }) => {
@@ -60,8 +60,19 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
+    // Get connection and users collection directly (unified schema)
+    const connection = mongoose.connection;
+    const usersCollection = connection.db?.collection('users');
+    
+    if (!usersCollection) {
+      throw new Error('Failed to get users collection');
+    }
+
     // Find user by ID
-    const user = await User.findById(userId);
+    const user = await usersCollection.findOne({ 
+      _id: new mongoose.Types.ObjectId(userId) 
+    });
+
     if (!user) {
       return new Response(
         JSON.stringify({ 
@@ -75,49 +86,56 @@ export const GET: APIRoute = async ({ request, url }) => {
       );
     }
 
-    // Find application by email
-    let application = null;
-    if (Application) {
-      try {
-        application = await Application.findOne({ email: user.email });
-      } catch (error) {
-        console.error('Error fetching application:', error);
-        // Continue without application data if fetch fails
-      }
-    }
-
-    // Return user data with application data
+    // Return user data in unified schema format, with backward compatibility
     return new Response(
       JSON.stringify({
         success: true,
         user: {
           _id: user._id,
-          name: user.name,
-          email: user.email,
-          major: user.major,
-          resumeUrl: user.resumeUrl,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt
+          name: user.fullName || user.name || 'Unknown',
+          email: user.email || '',
+          major: user.major || '',
+          resumeUrl: user.resumeUrl || null,
+          createdAt: user.createdAt || new Date(),
+          updatedAt: user.updatedAt || new Date(),
+          // Include unified schema fields
+          fullName: user.fullName,
+          age: user.age,
+          phone: user.phone,
+          photoUrl: user.photoUrl,
+          yearOfStudy: user.yearOfStudy,
+          expectedGraduationYear: user.expectedGraduationYear,
+          linkedinUrl: user.linkedinUrl,
+          githubOrPortfolioUrl: user.githubOrPortfolioUrl,
+          eligibleToWorkInUS: user.eligibleToWorkInUS,
+          requiresVisaSponsorship: user.requiresVisaSponsorship,
+          visaType: user.visaType,
+          role: user.role,
+          season: user.season,
+          checkedIn: user.checkedIn,
+          flag: user.flag || null
         },
-        application: application ? {
-          _id: application._id,
-          name: application.name,
-          age: application.age,
-          email: application.email,
-          phone: application.phone,
-          major: application.major,
-          yearOfStudy: application.yearOfStudy,
-          expectedGradYear: application.expectedGradYear,
-          linkedin: application.linkedin,
-          website: application.website,
-          workEligibility: application.workEligibility,
-          needSponsorship: application.needSponsorship,
-          sponsorshipType: application.sponsorshipType,
-          progress: application.progress,
-          resumeUrl: application.resumeUrl,
-          createdAt: application.createdAt,
-          updatedAt: application.updatedAt
-        } : null
+        // Format as application for backward compatibility
+        application: {
+          _id: user._id,
+          name: user.fullName || user.name || 'Unknown',
+          age: user.age || null,
+          email: user.email || '',
+          phone: user.phone || null,
+          major: user.major || '',
+          yearOfStudy: user.yearOfStudy || null,
+          expectedGradYear: user.expectedGraduationYear || null,
+          linkedin: user.linkedinUrl || null,
+          website: user.githubOrPortfolioUrl || null,
+          workEligibility: user.eligibleToWorkInUS ? 'Yes' : 'No',
+          needSponsorship: user.requiresVisaSponsorship ? 'Yes' : 'No',
+          sponsorshipType: user.visaType || null,
+          progress: 100,
+          resumeUrl: user.resumeUrl || null,
+          createdAt: user.createdAt || new Date(),
+          updatedAt: user.updatedAt || new Date(),
+          flag: user.flag || null
+        }
       }),
       {
         status: 200,
@@ -130,7 +148,8 @@ export const GET: APIRoute = async ({ request, url }) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        message: 'Internal server error' 
+        message: 'Internal server error',
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       { 
         status: 500,

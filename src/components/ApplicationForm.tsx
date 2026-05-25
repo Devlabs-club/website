@@ -22,16 +22,12 @@ const formSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   phone: z.string().min(10, "Please enter a valid phone number"),
   major: z.string().min(2, "Please enter your major"),
-  yearOfStudy: z.enum([
-    "Freshman",
-    "Sophomore",
-    "Junior",
-    "Senior",
-    "Masters",
-    "PhD",
-  ], {
-    required_error: "Please select your year of study",
-  }),
+  yearOfStudy: z.enum(
+    ["Freshman", "Sophomore", "Junior", "Senior", "Masters", "PhD"],
+    {
+      required_error: "Please select your year of study",
+    },
+  ),
   expectedGradYear: z
     .number({ invalid_type_error: "Graduation year must be a number" })
     .int("Graduation year must be a whole number")
@@ -41,6 +37,11 @@ const formSchema = z.object({
     .string()
     .transform((v) => normalizeUrl(v))
     .pipe(z.string().url("Please enter a valid LinkedIn URL")),
+  github: z
+    .string()
+    .transform((v) => normalizeUrl(v))
+    .pipe(z.union([z.string().url(), z.literal("")]))
+    .optional(),
   website: z
     .string()
     .transform((v) => normalizeUrl(v))
@@ -53,6 +54,7 @@ const formSchema = z.object({
     required_error: "Please select your sponsorship requirement",
   }),
   sponsorshipType: z.string().optional(),
+  resumeUrl: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -72,12 +74,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [saveStatus, setSaveStatus] = useState(
-    null as "saved" | "saving" | "error" | null
+    null as "saved" | "saving" | "error" | null,
   );
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [previousFormData, setPreviousFormData] = useState(
-    null as FormData | null
+    null as FormData | null,
   );
   const [submitError, setSubmitError] = useState(null as string | null);
   const [toast, setToast] = useState<{
@@ -89,7 +91,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   // Toast notification function
   const showToast = (
     message: string,
-    type: "error" | "warning" | "success"
+    type: "error" | "warning" | "success",
   ) => {
     setToast({ message, type });
     // Auto-hide toast after 5 seconds
@@ -117,10 +119,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       yearOfStudy: "" as any,
       expectedGradYear: undefined as unknown as number,
       linkedin: "",
+      github: "",
       website: "",
       workEligibility: "" as any,
       needSponsorship: "" as any,
       sponsorshipType: "",
+      resumeUrl: "",
     },
   });
 
@@ -137,8 +141,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     "linkedin",
     "workEligibility",
     "needSponsorship",
-   ];
-   const completedRequiredCount = required.reduce((acc, key) => {
+  ];
+  const completedRequiredCount = required.reduce((acc, key) => {
     const val = formData[key];
     if (val === undefined || val === null) return acc;
     if (typeof val === "number") return acc + (Number.isFinite(val) ? 1 : 0);
@@ -184,20 +188,28 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   // Load saved data (Note: localStorage not available in Claude artifacts)
   useEffect(() => {
     const loadSavedData = async () => {
-      // Simulate loading saved data - in real app this would use localStorage
+      // Load saved data from API for authenticated user
       try {
-        const email = localStorage.getItem("applicationEmail");
-        if (email) {
-          const response = await fetch(`/api/application?email=${email}`);
-          const { data } = await response.json();
-          if (data) {
-            Object.entries(data).forEach(([key, value]) => {
-              if (key in formSchema.shape && value != null) {
-                setValue(key as keyof FormData, value as any);
-              }
-            });
-            setCurrentStep(data.progress || 1);
-          }
+        const response = await fetch(`/api/application`);
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const data = result.data;
+          // Only set form fields that exist in the schema, exclude 'user', '_id', etc.
+          Object.entries(data).forEach(([key, value]) => {
+            // Skip non-form fields like _id, user, __v, createdAt
+            if (key.startsWith("_") || key === "user" || key === "createdAt") {
+              return;
+            }
+            if (key in formSchema.shape && value != null) {
+              setValue(key as keyof FormData, value as any, {
+                shouldDirty: false,
+                shouldTouch: false,
+                shouldValidate: false,
+              });
+            }
+          });
+          setCurrentStep(data.progress || 1);
         }
       } catch (error) {
         console.error("Error loading saved data:", error);
@@ -250,7 +262,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             return !!formData.major && !!formData.yearOfStudy;
           case 3:
             return Number.isFinite(
-              formData.expectedGradYear as unknown as number
+              formData.expectedGradYear as unknown as number,
             );
           case 4:
             return (
@@ -292,6 +304,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         // Only show missing fields that are actually in the schema
         const missingFields = required.filter((key) => {
           const val = formData[key];
+          // Handle numeric fields (age, expectedGradYear)
+          if (key === "age" || key === "expectedGradYear") {
+            return (
+              val === undefined ||
+              val === null ||
+              !Number.isFinite(val as number)
+            );
+          }
+          // Handle string fields
           return (
             val === undefined || val === null || String(val).trim().length === 0
           );
@@ -307,16 +328,18 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             yearOfStudy: "Year of Study",
             expectedGradYear: "Expected Graduation Year",
             linkedin: "LinkedIn Profile",
+            github: "GitHub Profile",
+            website: "Personal Website",
             workEligibility: "U.S. Work Eligibility",
             needSponsorship: "Visa Sponsorship Requirement",
-            sponsorshipType: "Sponsorship Type / N/A",
+            sponsorshipType: "Sponsorship Type",
           };
 
           const missingLabels = missingFields.map(
-            (field) => fieldLabels[field] || field
+            (field) => fieldLabels[field] || field,
           );
           const message = `Please fill in the following required fields: ${missingLabels.join(
-            ", "
+            ", ",
           )}`;
           showToast(message, "warning");
           throw new Error(message);
@@ -341,8 +364,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       console.log("Submission Result: ", result);
 
       if (response.ok) {
-        localStorage.setItem("applicationEmail", data.email);
-
         showToast("Application submitted successfully! 🎉", "success");
 
         setIsSubmitted(true);
@@ -387,7 +408,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           </h2>
           <p className="text-gray-300 mb-6 relative z-10">
             Thank you for applying to{" "}
-            <span className="text-gray-200 font-semibold">DevLabs</span>. We
+            <span className="text-gray-200 font-semibold">Devlabs</span>. We
             will review your application and get back to you soon.
           </p>
           <button
@@ -423,7 +444,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.name && (
-                  <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.name.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -445,7 +468,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.age && (
-                  <p className="mt-1 text-sm text-red-400">{errors.age.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.age.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -466,7 +491,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 />
                 <p className="mt-1 text-xs text-gray-500">.asu.edu</p>
                 {errors.email && (
-                  <p className="mt-1 text-sm text-red-400">{errors.email.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -491,7 +518,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   />
                 </div>
                 {errors.phone && (
-                  <p className="mt-1 text-sm text-red-400">{errors.phone.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.phone.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -504,7 +533,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Major (Required: Ira Fulton Schools of Engineering)
+                  Major
                 </label>
                 <Controller
                   name="major"
@@ -513,13 +542,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     <input
                       {...field}
                       type="text"
+                      placeholder="Computer Science"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="e.g., Computer Science"
                     />
                   )}
                 />
                 {errors.major && (
-                  <p className="mt-1 text-sm text-red-400">{errors.major.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.major.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -546,7 +577,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.yearOfStudy && (
-                  <p className="mt-1 text-sm text-red-400">{errors.yearOfStudy.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.yearOfStudy.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -556,27 +589,32 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       case 3:
         return (
           <div className="space-y-6 border-2 border-dashed border-gray-500/50 p-6 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                Expected Graduation Year
-              </label>
-              <Controller
-                name="expectedGradYear"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    type="number"
-                    min={2024}
-                    max={2100}
-                    className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    onChange={(e) => field.onChange(Number(e.target.value))}
-                  />
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Expected Graduation Year
+                </label>
+                <Controller
+                  name="expectedGradYear"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="number"
+                      min={2024}
+                      max={2100}
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      placeholder="2025"
+                    />
+                  )}
+                />
+                {errors.expectedGradYear && (
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.expectedGradYear.message}
+                  </p>
                 )}
-              />
-              {errors.expectedGradYear && (
-                <p className="mt-1 text-sm text-red-400">{errors.expectedGradYear.message}</p>
-              )}
+              </div>
             </div>
           </div>
         );
@@ -598,16 +636,50 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                       type="url"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                       placeholder="https://linkedin.com/in/yourname"
+                      onBlur={(e) => {
+                        const normalized = normalizeUrl(e.target.value);
+                        field.onChange(normalized);
+                        field.onBlur();
+                      }}
                     />
                   )}
                 />
                 {errors.linkedin && (
-                  <p className="mt-1 text-sm text-red-400">{errors.linkedin.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.linkedin.message}
+                  </p>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  GitHub / Portfolio / Website (optional)
+                  GitHub Profile (optional)
+                </label>
+                <Controller
+                  name="github"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="url"
+                      className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
+                      placeholder="https://github.com/yourusername"
+                      onBlur={(e) => {
+                        const normalized = normalizeUrl(e.target.value);
+                        field.onChange(normalized);
+                        field.onBlur();
+                      }}
+                    />
+                  )}
+                />
+                {errors.github && (
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.github.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">
+                  Personal Website (optional)
                 </label>
                 <Controller
                   name="website"
@@ -617,16 +689,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                       {...field}
                       type="url"
                       className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                      placeholder="https://github.com/you or https://your-portfolio.com"
+                      placeholder="https://yourwebsite.com"
+                      onBlur={(e) => {
+                        const normalized = normalizeUrl(e.target.value);
+                        field.onChange(normalized);
+                        field.onBlur();
+                      }}
                     />
                   )}
                 />
+                {errors.website && (
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.website.message}
+                  </p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Are you eligible to work in the U.S.? 
+                  Are you eligible to work in the U.S.?
                 </label>
                 <Controller
                   name="workEligibility"
@@ -644,7 +726,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.workEligibility && (
-                  <p className="mt-1 text-sm text-red-400">{errors.workEligibility.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.workEligibility.message}
+                  </p>
                 )}
               </div>
               <div>
@@ -667,7 +751,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   )}
                 />
                 {errors.needSponsorship && (
-                  <p className="mt-1 text-sm text-red-400">{errors.needSponsorship.message}</p>
+                  <p className="mt-1 text-sm text-red-400">
+                    {errors.needSponsorship.message}
+                  </p>
                 )}
               </div>
             </div>
@@ -689,7 +775,6 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
             </div>
-            
           </div>
         );
 
@@ -709,8 +794,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               Personal information
             </h2>
             <p className="text-sm text-gray-400 mt-1">
-              Tell us a bit about you. Name and email are sufficient to save
-              progress.
+              Tell us a bit about you. All fields are required.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -754,12 +838,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
               {errors.age && (
-                <p className="mt-1 text-sm text-red-400">{errors.age.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.age.message}
+                </p>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email
+                Email (ASU Email Preferred)
               </label>
               <Controller
                 name="email"
@@ -768,10 +854,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   <input
                     {...field}
                     type="email"
+                    placeholder="example@asu.edu"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                   />
                 )}
               />
+              <p className="mt-1 text-xs text-gray-500">.asu.edu</p>
               {errors.email && (
                 <p className="mt-1 text-sm text-red-400">
                   {errors.email.message}
@@ -780,7 +868,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Phone
+                Phone No.
               </label>
               <div className="mt-1 flex">
                 <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-neutral-700 bg-neutral-800 text-gray-300 text-sm">
@@ -805,16 +893,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 </p>
               )}
             </div>
-            
-          </div>
-        </div>
-
-        {/* Academics */}
-        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Major (Required: Ira Fulton Schools of Engineering)
+                Major
               </label>
               <Controller
                 name="major"
@@ -823,15 +904,31 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   <input
                     {...field}
                     type="text"
+                    placeholder="Computer Science"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
-                    placeholder="e.g., Computer Science"
                   />
                 )}
               />
               {errors.major && (
-                <p className="mt-1 text-sm text-red-400">{errors.major.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.major.message}
+                </p>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Academic Information */}
+        <div className="space-y-6 rounded-xl border border-white/10 bg-neutral-900/60 p-5">
+          <div>
+            <h2 className="text-xl font-semibold text-white">
+              Academic Information
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Tell us about your academic journey.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Year of Study
@@ -856,7 +953,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
               {errors.yearOfStudy && (
-                <p className="mt-1 text-sm text-red-400">{errors.yearOfStudy.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.yearOfStudy.message}
+                </p>
               )}
             </div>
             <div>
@@ -872,13 +971,16 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     type="number"
                     min={2024}
                     max={2100}
+                    placeholder="2025"
                     className="mt-1 block w-full rounded-md bg-neutral-900 border-neutral-700 text-white shadow-sm focus:border-white focus:ring-white"
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 )}
               />
               {errors.expectedGradYear && (
-                <p className="mt-1 text-sm text-red-400">{errors.expectedGradYear.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.expectedGradYear.message}
+                </p>
               )}
             </div>
           </div>
@@ -905,7 +1007,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
               {errors.linkedin && (
-                <p className="mt-1 text-sm text-red-400">{errors.linkedin.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.linkedin.message}
+                </p>
               )}
             </div>
             <div>
@@ -930,7 +1034,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Are you eligible to work in the U.S.? 
+                Are you eligible to work in the U.S.?
               </label>
               <Controller
                 name="workEligibility"
@@ -948,7 +1052,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
               {errors.workEligibility && (
-                <p className="mt-1 text-sm text-red-400">{errors.workEligibility.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.workEligibility.message}
+                </p>
               )}
             </div>
             <div>
@@ -971,13 +1077,16 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 )}
               />
               {errors.needSponsorship && (
-                <p className="mt-1 text-sm text-red-400">{errors.needSponsorship.message}</p>
+                <p className="mt-1 text-sm text-red-400">
+                  {errors.needSponsorship.message}
+                </p>
               )}
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              If yes, what type of sponsorship would you require? (e.g., H-1B, OPT, CPT, Green Card, Other - please specify) or mention N/A
+              If yes, what type of sponsorship would you require? (e.g., H-1B,
+              OPT, CPT, Green Card, Other - please specify) or mention N/A
             </label>
             <Controller
               name="sponsorshipType"
@@ -992,10 +1101,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               )}
             />
             {errors.sponsorshipType && (
-              <p className="mt-1 text-sm text-red-400">{errors.sponsorshipType.message}</p>
+              <p className="mt-1 text-sm text-red-400">
+                {errors.sponsorshipType.message}
+              </p>
             )}
           </div>
-          
         </div>
       </div>
     );
@@ -1026,8 +1136,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -1134,7 +1244,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                       const isValid = await trigger(fieldsToValidate);
                       if (isValid) {
                         setCurrentStep((prev) =>
-                          Math.min(totalSteps, prev + 1)
+                          Math.min(totalSteps, prev + 1),
                         );
                         saveProgress().catch(console.error);
                       }
@@ -1156,7 +1266,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                     disabled={isSubmitting || !isValid}
                     className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-4 py-2 flex items-center justify-center text-center"
                   >
-                    {isSubmitting ? "Submitting..." : "Submit Application"}
+                    {isSubmitting ? "Submitting..." : "Update Profile"}
                   </button>
                 </WrappedText>
               )}
@@ -1176,8 +1286,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -1207,7 +1317,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               className="h-1 bg-orange-500/70 rounded transition-all duration-300"
               style={{
                 width: `${Math.round(
-                  (completedRequiredCount / totalRequiredCount) * 100
+                  (completedRequiredCount / totalRequiredCount) * 100,
                 )}%`,
               }}
             />
@@ -1236,7 +1346,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 disabled={isSubmitting || !isValid}
                 className="w-full bg-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 px-6 py-3 flex items-center justify-center text-center"
               >
-                {isSubmitting ? "Submitting..." : "Submit Application"}
+                {isSubmitting ? "Submitting..." : "Update Profile"}
               </button>
             </WrappedText>
           </div>

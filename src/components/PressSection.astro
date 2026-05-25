@@ -1,0 +1,75 @@
+---
+const pressItems = [
+  {
+    logo: "/sponsors/gpec.png",
+    name: "Greater Phoenix Economic Council (GPEC)",
+    quote: "Arizona’s first <strong>Devlabs DevHouse hacker house</strong> launches at Loloft to accelerate founders building purpose-driven tech.",
+    date: "August 2025",
+    link: "https://www.gpec.org/news/press-releases/devlabs-launches-hacker-house/"
+  },
+  {
+    logo: "/asu.png",
+    name: "ASU News",
+    quote: "A <strong>powerhouse for innovation</strong> that is changing how students build.",
+    date: "October 2023",
+    link: "https://entrepreneurship.engineering.asu.edu/2025/06/devhacks-2025-ignites-innovation-at-arizona-state-university/"
+  },
+  {
+    logo: "/sponsors/siliconoasis.png",
+    name: "Silicon Oasis",
+    quote: "Transforming Arizona into a <strong>global tech hub</strong> — led by local founders, built for the future.",
+    date: "2024",
+    link: "https://thesiliconoasis.org/f/arizona-builders-headed-to-san-francisco-for-devlabs-devhouse"
+  }
+];
+---
+
+<section class="w-full bg-transparent relative overflow-hidden py-24 border-t border-white/5" data-parallax-section data-parallax-depth="0.04">
+    <!-- Let the Intro background overflow show through, then fade into theme -->
+    <div aria-hidden="true" class="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#151413]/25 to-transparent"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <!-- Section Title (Mobile/Responsive) -->
+  <div class="absolute -top-10 left-0 right-0 flex flex-col items-center z-20 pointer-events-none">
+    <span class="monospace text-white/40 text-lg sm:text-xl tracking-wide">
+      As Seen In
+    </span>
+    <span
+      aria-hidden="true"
+      class="block w-28 sm:w-36 h-0.5 mt-2 rounded-full  bg-gradient-to-r from-transparent via-orange-400/50 to-transparent " 
+      
+    ></span>
+  </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10">
+            {pressItems.map((item) => (
+                <a href={item.link} target="_blank" rel="noopener noreferrer" class="group px-6 py-12 md:py-4 md:px-12 flex flex-col justify-between h-full transition-all duration-300 hover:bg-white/5">
+                    <div class="flex flex-col gap-8">
+                        <!-- Logo -->
+                        <div class="h-8 flex items-center">
+                            <img src={item.logo} alt={item.name} class="h-full w-auto object-contain brightness-0 invert opacity-40 group-hover:opacity-100 transition-opacity duration-300" />
+                        </div>
+                        
+                        <!-- Quote -->
+                        <p class="text-xl md:text-2xl font-medium text-gray-200 leading-relaxed">
+                            <Fragment set:html={item.quote} />
+                        </p>
+                    </div>
+
+                    <!-- Metadata -->
+                    <div class="mt-8 pt-8 border-t border-white/10 flex items-center justify-between text-xs text-gray-500 uppercase tracking-widest font-semibold">
+                        <span>{item.name}</span>
+                        <span>{item.date}</span>
+                    </div>
+                </a>
+            ))}
+        </div>
+    </div>
+
+</section>
+
+<style>
+    .bg-noise {
+        background-image: url("/noise.png");
+        background-size: 100px 100px;
+        background-repeat: repeat;
+    }
+</style>

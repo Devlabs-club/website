@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 interface User {
   id: string;
@@ -104,10 +105,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
+      const data = await response.json();
+      
+      if (data.logoutUrl && data.logoutUrl !== '/login') {
+        window.location.href = data.logoutUrl;
+        // Don't set user to null here to avoid race condition with React router/effects
+        return;
+      }
+      
       setUser(null);
     } catch (error) {
       console.error('Logout failed:', error);

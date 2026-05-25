@@ -1,0 +1,283 @@
+---
+
+---
+
+<section
+  class="join-now-section relative w-full py-16 md:py-24"
+  data-parallax-section
+  data-parallax-depth="0.05"
+>
+  <div
+    class="join-now-container mx-auto max-w-[1200px] px-4 md:px-6 flex flex-col gap-12 md:gap-16"
+  >
+    <div
+      class="join-now-cta group relative overflow-hidden rounded-[2rem] py-14 md:py-20 px-8 md:px-20 ring-1 ring-white/10"
+      data-join-now-content
+    >
+      <!-- Background image -->
+      <div class="join-now-cta__bg" aria-hidden="true"></div>
+      <!-- Glassmorphic overlay -->
+      <div class="join-now-cta__glass" aria-hidden="true"></div>
+      <!-- Gradient for text contrast -->
+      <div class="join-now-cta__gradient" aria-hidden="true"></div>
+      <!-- Grain texture -->
+      <div class="join-now-cta__noise" aria-hidden="true"></div>
+
+      <!-- Content -->
+      <div
+        class="relative z-10 flex flex-col items-center text-center gap-6 md:gap-8"
+      >
+        <h2 class="join-now-heading">
+          <span class="join-now-heading-intro">join over</span>
+          <span class="join-now-heading-emphasis">600+ builders</span>
+        </h2>
+        <p class="join-now-subheading">
+          we are hosting events that might <strong class="join-now-highlight"
+            >change your life.</strong
+          > apply now to be a part of our newsletter and be the first ones to know
+          about any event part of <strong class="join-now-highlight"
+            >the community</strong
+          > that started it all.
+        </p>
+        <a
+          href="/api/auth/oauth/login"
+          class="join-now-button inline-flex items-center justify-center gap-2 px-10 py-4 md:px-12 md:py-5 rounded-full bg-white text-[#1a1a1a] font-semibold text-lg tracking-wide"
+        >
+          <span>Join now</span>
+          <span class="join-now-button-arrow" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path d="M5 12h14M12 5l7 7-7 7"></path></svg
+            >
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .join-now-section {
+    position: relative;
+    z-index: 10;
+  }
+
+  .join-now-cta {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.1),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 0 60px rgba(250, 125, 34, 0.08);
+    transition:
+      box-shadow 0.4s ease,
+      transform 0.4s ease;
+  }
+
+  .join-now-cta:hover {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 16px 48px rgba(0, 0, 0, 0.25),
+      0 0 80px rgba(250, 125, 34, 0.12);
+  }
+
+  .join-now-cta__bg {
+    position: absolute;
+    inset: 0;
+    background-image: url("/join_now.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.45;
+    transition: transform 0.7s ease;
+  }
+
+  .join-now-cta.group:hover .join-now-cta__bg {
+    transform: scale(1.05);
+  }
+
+  .join-now-cta__glass {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    pointer-events: none;
+  }
+
+  .join-now-cta__gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.25) 50%,
+      rgba(0, 0, 0, 0.4) 100%
+    );
+    pointer-events: none;
+  }
+
+  .join-now-cta__noise {
+    position: absolute;
+    inset: 0;
+    background-image: url("/noise.png");
+    background-repeat: repeat;
+    background-size: 80px 80px;
+    opacity: 0.5;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  .join-now-heading {
+    font-family: "Times New Roman", Times, Georgia, serif;
+    font-size: 2rem;
+    line-height: 1.25;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: baseline;
+    gap: 0.25em;
+  }
+
+  @media (min-width: 640px) {
+    .join-now-heading {
+      font-size: 2.5rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .join-now-heading {
+      font-size: 3rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .join-now-heading {
+      font-size: 3.5rem;
+    }
+  }
+
+  .join-now-heading-intro {
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .join-now-heading-emphasis {
+    font-family: Manrope, system-ui, sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .join-now-subheading {
+    font-family:
+      Manrope,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    font-size: 1rem;
+    line-height: 1.65;
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 36rem;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (min-width: 768px) {
+    .join-now-subheading {
+      font-size: 1.125rem;
+    }
+  }
+
+  .join-now-highlight {
+    color: #f0c080;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .join-now-button {
+    font-family:
+      Manrope,
+      system-ui,
+      -apple-system,
+      sans-serif;
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      0 0 40px rgba(250, 125, 34, 0.2);
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .join-now-button:hover {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.35),
+      0 12px 48px rgba(0, 0, 0, 0.25),
+      0 0 56px rgba(250, 125, 34, 0.3);
+  }
+
+  .join-now-button-arrow {
+    display: inline-flex;
+    transition: transform 0.3s ease;
+  }
+
+  .join-now-button-arrow svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    display: block;
+  }
+
+  .join-now-button:hover .join-now-button-arrow {
+    transform: translateX(4px);
+  }
+
+  .join-now-button:hover {
+    transform: scale(1.04) translateY(-2px);
+  }
+
+  .join-now-button:active {
+    transform: scale(0.98);
+  }
+
+  [data-join-now-content] {
+    opacity: 0;
+    transform: translateY(30px);
+    transition:
+      opacity 0.8s ease-out,
+      transform 0.8s ease-out;
+  }
+
+  [data-join-now-content].is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+
+<script>
+  // Intersection Observer for scroll-triggered animation
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      threshold: 0.2,
+      rootMargin: "0px 0px -50px 0px",
+    },
+  );
+
+  const content = document.querySelector("[data-join-now-content]");
+  if (content) {
+    observer.observe(content);
+  }
+</script>

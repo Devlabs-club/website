@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import { AuthProvider, useAuth } from "./auth_manager";
 import AdminDashboard from "./AdminDashboard";
 import { UserProfile } from "./UserProfile";
@@ -138,13 +139,71 @@ function PDFViewer({ resumeUrl }: { resumeUrl: string }) {
   );
 }
 
+// New component for the Newsletter CTA
+function NewsletterCTA({ email }: { email: string }) {
+  const newsletterUrl = `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
+    email,
+  )}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+      className="relative overflow-hidden rounded-[2rem] p-10 mb-8 shadow-2xl group ring-1 ring-white/10"
+    >
+      {/* Background image */}
+      <div className="absolute inset-0 bg-[url('/join_now.png')] bg-cover bg-center opacity-40 transition-transform duration-700 group-hover:scale-105" />
+
+      {/* Glassmorphic overlay */}
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-xl border border-white/20" />
+
+      {/* Gradient overlay for better text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
+
+      {/* Grain texture overlay */}
+      <div
+        className="absolute inset-0 opacity-50 mix-blend-overlay pointer-events-none"
+        style={{
+          backgroundImage: "url('/noise.png')",
+          backgroundSize: "80px 80px",
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left">
+        <div className="max-w-2xl space-y-3">
+          <h3 className="font-serif italic text-3xl md:text-4xl text-white">
+            join our
+            <span className="block mt-1 font-sans font-bold text-5xl md:text-6xl text-white tracking-tight drop-shadow-lg">
+              newsletter
+            </span>
+          </h3>
+          <p className="text-gray-100 text-lg md:text-xl leading-relaxed font-sans max-w-xl  drop-shadow-md">
+            Stay updated with our new programs and grants for our buidlers.
+          </p>
+        </div>
+
+        <a
+          href={newsletterUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-shrink-0 inline-flex items-center justify-center px-10 py-4 rounded-full bg-white text-black font-bold text-lg hover:bg-gray-100 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] transform hover:-translate-y-1"
+        >
+          Join now
+        </a>
+      </div>
+    </motion.div>
+  );
+}
+
 function DashboardContent() {
   const { user, loading } = useAuth();
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [messageType, setMessageType] = useState<"success" | "error">(
-    "success"
+    "success",
   );
   const [hasApplicationChanges, setHasApplicationChanges] = useState(false);
   const [toast, setToast] = useState<{
@@ -153,11 +212,36 @@ function DashboardContent() {
   } | null>(null);
   const [currentResumeFile, setCurrentResumeFile] = useState<File | null>(null);
   const applicationFormRef = useRef<HTMLDivElement>(null);
+  const [showNewsletterDialog, setShowNewsletterDialog] = useState(false);
+  const [isNewsletterSubscribed, setIsNewsletterSubscribed] = useState<
+    boolean | null
+  >(null);
+
+  // Check Beehiv subscription status - wait for response before showing CTA/dialog
+  useEffect(() => {
+    if (!user?.email) return;
+    fetch("/api/newsletter/check-subscription", { credentials: "include" })
+      .then((res) => res.json())
+      .then((data) => setIsNewsletterSubscribed(data.subscribed === true))
+      .catch(() => setIsNewsletterSubscribed(false));
+  }, [user?.email]);
+
+  // Show newsletter dialog only when we know user is not subscribed (once per session)
+  useEffect(() => {
+    if (!user?.email || isNewsletterSubscribed !== false) return;
+    const dismissed = sessionStorage.getItem("newsletter-dialog-dismissed");
+    if (!dismissed) setShowNewsletterDialog(true);
+  }, [user?.email, isNewsletterSubscribed]);
+
+  const closeNewsletterDialog = () => {
+    setShowNewsletterDialog(false);
+    sessionStorage.setItem("newsletter-dialog-dismissed", "true");
+  };
 
   // Toast notification function
   const showToast = (
     message: string,
-    type: "error" | "warning" | "success"
+    type: "error" | "warning" | "success",
   ) => {
     setToast({ message, type });
     // Auto-hide toast after 5 seconds
@@ -231,7 +315,7 @@ function DashboardContent() {
     if (!hasApplicationChanges) {
       showToast(
         "Please update your application profile before uploading a resume",
-        "error"
+        "error",
       );
       // Auto-scroll to application form
       setTimeout(() => {
@@ -278,7 +362,7 @@ function DashboardContent() {
 
   // Auto-upload when a file is selected
   const handleResumeFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0] || null;
     setCurrentResumeFile(file);
@@ -291,7 +375,7 @@ function DashboardContent() {
     if (!hasApplicationChanges) {
       showToast(
         "Please update your application profile before uploading a resume",
-        "error"
+        "error",
       );
       // Auto-scroll to application form
       setTimeout(() => {
@@ -328,7 +412,7 @@ function DashboardContent() {
   }
   if (!user) {
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      window.location.href = "/";
     }
     return null;
   }
@@ -336,10 +420,70 @@ function DashboardContent() {
   if (user.role === "admin") {
     return <AdminDashboard />;
   }
- 
 
-  return   (
+  const newsletterUrl = user?.email
+    ? `https://magic.beehiiv.com/v1/e8245ada-ecf0-4097-9243-31a366c8625a?email=${encodeURIComponent(
+        user.email,
+      )}`
+    : "#";
+
+  return (
     <div className="min-h-screen text-gray-400">
+      {/* Newsletter signup dialog - only when we know user is not subscribed */}
+      {showNewsletterDialog &&
+        user?.email &&
+        isNewsletterSubscribed === false && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={closeNewsletterDialog}
+              aria-hidden="true"
+            />
+            <div
+              className="relative w-full max-w-md rounded-2xl border border-white/20 bg-white/5 p-8 shadow-2xl backdrop-blur-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="newsletter-dialog-title"
+            >
+              <button
+                type="button"
+                onClick={closeNewsletterDialog}
+                className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors p-1"
+                aria-label="Close"
+              >
+                <span className="text-2xl leading-none">×</span>
+              </button>
+              <h2
+                id="newsletter-dialog-title"
+                className="font-serif italic text-2xl md:text-3xl text-white mb-2"
+              >
+                Join the newsletter now
+              </h2>
+              <p className="text-gray-300 text-lg mb-6">
+                Stay updated with our new programs and grants for our builders.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <a
+                  href={newsletterUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeNewsletterDialog}
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-white text-black font-bold hover:bg-gray-100 transition-colors"
+                >
+                  Join now
+                </a>
+                <button
+                  type="button"
+                  onClick={closeNewsletterDialog}
+                  className="inline-flex items-center justify-center px-6 py-3 rounded-full border border-white/30 text-gray-300 hover:bg-white/10 transition-colors"
+                >
+                  Maybe later
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       {/* Toast Notification */}
       {toast && (
         <div
@@ -347,8 +491,8 @@ function DashboardContent() {
             toast.type === "error"
               ? "bg-red-500/20 border-red-500/30 text-red-300"
               : toast.type === "warning"
-              ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
-              : "bg-green-500/20 border-green-500/30 text-green-300"
+                ? "bg-yellow-500/20 border-yellow-500/30 text-yellow-300"
+                : "bg-green-500/20 border-green-500/30 text-green-300"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -370,8 +514,36 @@ function DashboardContent() {
         </div>
       )}
 
-      <main className="relative z-10 max-w-7xl mx-auto py-24 sm:px-6 lg:px-8">
+      <main className="relative z-10 max-w-7xl mx-auto mt-20 py-24 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Welcome greeting */}
+          <h1 className=" text-5xl   text-white mb-6">
+            hey{" "}
+            <span className="font-serif italic  text-7xl text-white relative inline-block">
+              {user?.name?.split(" ")[0] ?? "there"}
+              <span
+                className="sponsor-benefit-underline"
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  bottom: "0.0em",
+                  left: 0,
+                  width: "100%",
+                  height: "0.2em",
+                  backgroundColor: "#f97316",
+                  opacity: 0.8,
+                  zIndex: -1,
+                  transform: "rotate(-1deg)",
+                  transformOrigin: "left center",
+                  display: "block",
+                  pointerEvents: "none",
+                }}
+              ></span>
+            </span>
+          </h1>
+          {user?.email && isNewsletterSubscribed === false && (
+            <NewsletterCTA email={user.email} />
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <UserProfile />
@@ -410,8 +582,6 @@ function DashboardContent() {
                             required
                           />
                         </div>
-
-                       
                       </form>
                     </div>
                     {/* PDF Viewer */}
@@ -422,7 +592,7 @@ function DashboardContent() {
                 ) : (
                   <div>
                     <p className="text-gray-400 mb-6">
-                      Upload your resume to enhance your DevLabs profile.
+                      Upload your resume to enhance your Devlabs profile.
                     </p>
 
                     {/* Initial Upload Form */}
@@ -431,7 +601,7 @@ function DashboardContent() {
                         <label
                           htmlFor="resume"
                           className="block text-sm font-medium text-gray-300 mb-2"
-                          >
+                        >
                           Upload Resume (PDF only, max 10MB)
                         </label>
                         <input
@@ -451,8 +621,6 @@ function DashboardContent() {
                           required
                         />
                       </div>
-
-                     
                     </form>
                   </div>
                 )}
@@ -477,7 +645,7 @@ function DashboardContent() {
                 className="p-8 border-2 border-dashed border-gray-500/50 "
               >
                 <h2 className="text-2xl font-bold mb-6 text-white">
-                  Application Form
+                  Your Profile
                 </h2>
                 <ApplicationForm
                   variant="single"

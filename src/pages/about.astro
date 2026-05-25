@@ -1,0 +1,807 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="About - Devlabs">
+  <!-- Hero: static (no parallax or scroll animations) -->
+  <section
+    class="relative min-h-screen flex flex-col items-center justify-center px-6 pb-16 pt-[10vh] md:pt-[28vh]  max-md:px-4"
+    id="about-hero"
+  >
+    <h1
+      class="z-[300] font-[Mistrully,ui-serif,Georgia,serif] text-[clamp(4rem,12vw,10rem)] max-md:text-[clamp(3rem,14vw,5rem)] font-normal text-white leading-[0.9] m-0 text-center -mb-[0.2em] max-md:-mb-[0.1em]"
+      id="about-hero-text"
+    >
+      Meet the Team
+    </h1>
+    <div
+      class="z-[200] w-[min(88vw,960px)] max-md:w-[95vw] -mt-[0.15em] relative max-md:rotate-[-0.8deg] rotate-[-1.2deg] overflow-visible p-8 max-md:p-6"
+    >
+      <img
+        src="/frame.png"
+        alt=""
+        class="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
+        aria-hidden
+      />
+      <div
+        class="relative w-full aspect-video rounded overflow-hidden bg-[#0a0a0a] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.1)] z-[1]"
+      >
+        <video
+          id="about-hero-video"
+          controls
+          loop
+          playsinline
+          autoplay
+          muted
+          preload="auto"
+          class="w-full h-full object-cover block"
+        >
+          <source
+            src="https://pub-bdc5a5628514472d904835747cff21f2.r2.dev/DEVHOUSE_draft4.mp4"
+            type="video/mp4"
+          />
+        </video>
+      </div>
+    </div>
+    <p
+      class="font-[Manrope,system-ui,sans-serif] text-[0.7rem] max-md:text-[0.65rem] tracking-[0.2em] max-md:tracking-[0.15em] uppercase text-white/85 font-medium mt-6 max-md:mt-5"
+      id="about-hero-tagline"
+    >
+      WE HELP BUILDERS GO BIG OR GET HIRED
+    </p>
+  </section>
+
+  <!-- Who we are -->
+  <section class="relative py-16 md:py-24">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start">
+        <div>
+          <p
+            class="text-white/70 text-sm md:text-base font-medium tracking-wide"
+          >
+            who we are
+          </p>
+          <h2 class="mt-3 text-3xl md:text-4xl font-bold text-white">
+            A community built for people who
+            <span class="italic font-serif font-normal text-orange-300"
+              >ship</span
+            >
+          </h2>
+        </div>
+
+        <div class="text-lg md:text-xl leading-relaxed space-y-6">
+          <p>
+            <span class="font-serif italic text-[3rem] text-white">Devlabs</span
+            >
+            started as a bunch of friends who wanted a space that place where builders
+            could learn, build and meet collaborators,
+            <span class="relative inline-block" style="vertical-align: middle;">
+              <span
+                class="absolute inset-0 -z-10 rounded-sm"
+                style="
+                  background: rgba(255,255,255,0.12);
+                  padding: 3px 5px;
+                  transform: rotate(-3deg);
+                  border-radius: 0.25rem;
+                  pointer-events: none;
+                  filter: blur(0.5px);
+                "
+                aria-hidden="true"></span>
+              <span class="font-serif italic text-white highlight text-[1.5rem]"
+                >*turning ideas into real products</span
+              >
+            </span>.
+          </p>
+          <p>
+            Today, we host <span class="font-serif italic text-white">
+              hackathons
+            </span>, <span class="font-serif italic text-white"
+              >founder programs</span
+            >, and <span class="font-serif italic text-white"
+              >hacker houses</span
+            > to help ambitious builders grow faster — with <span
+              class="font-serif italic text-white text-[2rem]">community</span
+            >, not alone.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Our growth timeline (anchored rail, dark theme) -->
+  <section class="relative py-16 md:py-24 overflow-visible">
+    <!-- Full-bleed wrapper: timeline uses full width of screen -->
+    <div class="w-screen relative isolate left-1/2 -translate-x-1/2 px-0">
+      <!-- Corner stars (sit above fades, below content); left star hidden on phone -->
+      <img
+        src="/star.svg"
+        alt=""
+        aria-hidden="true"
+        class="absolute left-0 -translate-x-1/2 -top-24 w-[22rem] sm:w-[28rem] md:w-[32rem] pointer-events-none select-none z-10 rotate-[20deg] hidden sm:block"
+      />
+      <img
+        src="/star.svg"
+        alt=""
+        aria-hidden="true"
+        class="absolute right-0 top-0 translate-x-1/3 -translate-y-1/2 w-56 sm:w-72 md:w-80 rotate-[8deg] pointer-events-none select-none z-10"
+      />
+      <div class="overflow-visible relative z-20">
+        <div class="" aria-hidden="true"></div>
+        <div class="relative z-10 px-4 sm:px-6 pt-10 sm:pt-12 pb-6 sm:pb-8">
+          <div
+            class="flex flex-col items-center justify-between gap-6 px-4 sm:px-0"
+          >
+            <div class="">
+              <p
+                class="text-xs text-gray-500 uppercase tracking-[0.2em] font-bold mb-2"
+              >
+                our growth
+              </p>
+              <div class="flex-row">
+                <h2
+                  class="text-5xl md:text-7xl font-bold leading-[0.9] tracking-tight text-white font-sans"
+                >
+                  one <span class="relative inline-block font-bold text-white">
+                    story
+                    <svg
+                      class="absolute w-full h-4 -bottom-2 left-0 text-orange-500"
+                      viewBox="0 0 100 10"
+                      preserveAspectRatio="none"
+                    >
+                      <path
+                        d="M0 5 Q 50 10 100 5"
+                        stroke="currentColor"
+                        stroke-width="8"
+                        fill="none"></path>
+                    </svg>
+                  </span> to tell
+                </h2>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-0 pb-10 sm:pb-12 mt-12">
+            <div
+              class="relative pt-2.5 px-0 sm:px-2 pb-0"
+              aria-label="Devlabs growth timeline"
+            >
+              <!-- Timeline mechanics:
+              - TimelineRail (single continuous line)
+              - YearMarker (year label + dot anchored on rail)
+              - TimelineCard (cards hang below via stem)
+            -->
+              <div class="relative">
+                <div
+                  class="overflow-x-auto overflow-y-hidden pt-1 pb-20 pl-5 pr-0 sm:pt-20 sm:pb-24 sm:px-4.5 snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                  id="growth-timeline-scroll"
+                >
+                  <div
+                    class="relative grid grid-flow-col auto-cols-[var(--year-col)] gap-x-[var(--year-gap)] items-start w-max py-0 px-0 sm:px-2.5 [--year-col:360px] [--year-gap:44px] [--rail-y:66px] [--anchor-x:34px] max-[420px]:[--year-col:320px] max-[420px]:[--year-gap:28px] max-[420px]:[--rail-y:62px] max-[420px]:[--anchor-x:28px]"
+                    id="growth-timeline"
+                  >
+                    <div
+                      class="timeline-ticks absolute inset-0 pointer-events-none z-[1]"
+                      aria-hidden="true"
+                    >
+                    </div>
+
+                    {
+                      [
+                        {
+                          year: "2024",
+                          cards: [
+                            {
+                              dateLabel: "March 2024",
+                              title: "The beginning",
+                              image: "/events/DevHacks6.jpg",
+                              rotate: "-2.6deg",
+                              y: "-10px",
+                              bullets: [
+                                "We started in a dorm study room with a group of 10 friends",
+                                "0 connections, 0 network, 0 direction",
+                              ],
+                            },
+                            {
+                              dateLabel: "August 2024",
+                              title: "First event",
+                              image: "/events/devspace.webp",
+                              rotate: "2.4deg",
+                              y: "18px",
+                              bullets: ["50+ attendees"],
+                            },
+                          ],
+                        },
+                        {
+                          year: "2025",
+                          cards: [
+                            {
+                              dateLabel: "March 2025",
+                              title: "DevHacks",
+                              image: "/events/devhacks.jpg",
+                              rotate: "-2.8deg",
+                              y: "-16px",
+                              bullets: [
+                                "Arizona's biggest student-led hackathon with 150+ students",
+                                "Product Hunt sponsored us",
+                                "60+ projects in 36 hours",
+                              ],
+                            },
+                            {
+                              dateLabel: "June 2025",
+                              title: "DevHouse AZ",
+                              image: "/events/devhouse.png",
+                              rotate: "3.1deg",
+                              y: "12px",
+                              bullets: [
+                                "Hosted Arizona's first hacker house",
+                                "Became Arizona's biggest builder community with 500+ members",
+                                "Partnered with the state's top 4 VC's — AZVC, PHX Ventures, Arizona Commerce Authority",
+                                "10 graduated startups from Class of 2025, Dev House, Arizona",
+                              ],
+                            },
+                            {
+                              dateLabel: "November 2025",
+                              title: "Devspace",
+                              image: "/events/devspace.webp",
+                              rotate: "-2.1deg",
+                              y: "34px",
+                              bullets: [
+                                "We gave away $10k grants to two startups",
+                              ],
+                            },
+                            {
+                              dateLabel: "December 2025",
+                              title: "DevHouse SF",
+                              image: "/events/devhouse-sf.jpg",
+                              rotate: "2.2deg",
+                              y: "22px",
+                              bullets: [
+                                "500+ applications",
+                                "Builders flew in from Canada, London and the east coast",
+                                "1 got hired for $150k job offer @ Supermemory",
+                                "$10k in prizes for the top builders",
+                              ],
+                            },
+                          ],
+                        },
+                        {
+                          year: "2026",
+                          cards: [
+                            {
+                              dateLabel: "Coming soon",
+                              title: "Momentum",
+                              image: "/hands-touching.png",
+                              rotate: "2.2deg",
+                              y: "22px",
+                              bullets: ["Nationwide startup program"],
+                            },
+                          ],
+                        },
+                      ]
+                        .flatMap((block) =>
+                          block.cards.map((card) => ({
+                            year: block.year,
+                            ...card,
+                          })),
+                        )
+                        .map((item, idx, arr) => {
+                          const showYear =
+                            idx === 0 || arr[idx - 1].year !== item.year;
+                          const dateDisplay = item.dateLabel ?? item.year;
+                          return (
+                            <div class="snap-start relative min-h-[560px]">
+                              <div class="h-[var(--rail-y)] relative z-[2]">
+                                <div
+                                  class="absolute left-[var(--anchor-x)] top-0 -translate-x-1/2 font-sans font-bold text-2xl tracking-tight leading-none text-white/75 select-none"
+                                  style={showYear ? undefined : "opacity: 0;"}
+                                >
+                                  {dateDisplay}
+                                </div>
+                                <div
+                                  class="absolute left-[var(--anchor-x)] top-full -translate-x-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-white/80 shadow-[0_0_0_5px_rgba(255,255,255,0.08)] z-[3]"
+                                  aria-hidden="true"
+                                />
+                              </div>
+
+                              <div
+                                class="w-px h-7 bg-white/20 left-[var(--anchor-x)] -translate-x-1/2 relative z-[2]"
+                                aria-hidden="true"
+                              />
+
+                              <div class="flex items-start gap-4 -mt-2.5 relative z-[4] ml-[calc(var(--anchor-x)-18px)]">
+                                <div
+                                  class="w-80 max-[420px]:w-[290px] bg-[rgba(24,24,24,0.92)] border border-white/10 rounded-lg py-3.5 px-3.5 pb-5 shadow-[0_26px_70px_rgba(0,0,0,0.55),0_2px_0_rgba(255,255,255,0.04)] origin-[20%_0%]"
+                                  style={`transform: rotate(${item.rotate}) translateY(${item.y});`}
+                                >
+                                  <div class="rounded-xl overflow-hidden bg-white/5 aspect-[4/3] border border-white/10">
+                                    <img
+                                      src={item.image}
+                                      alt={item.title}
+                                      loading="lazy"
+                                      class="w-full h-full object-cover block"
+                                    />
+                                  </div>
+                                  <div class="mt-3 px-0.5">
+                                    <div class="font-sans font-bold text-xl tracking-tight text-white">
+                                      <span class="relative inline">
+                                        {item.title}
+                                        <span
+                                          class="absolute bottom-0.5 left-0 w-full h-[6px] bg-orange-500 -z-10 transform -rotate-1 opacity-80 mix-blend-screen"
+                                          aria-hidden="true"
+                                        />
+                                      </span>
+                                    </div>
+                                    {item.bullets && item.bullets.length > 0 ? (
+                                      <ul class="mt-2.5 space-y-1.5 text-base text-gray-300 leading-relaxed font-light list-disc list-inside font-sans">
+                                        {item.bullets.map((b) => (
+                                          <li>{b}</li>
+                                        ))}
+                                      </ul>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="mt-4 sm:hidden flex items-center justify-center gap-2 px-4"
+            >
+              <button
+                type="button"
+                id="timeline-prev-mobile"
+                aria-label="Scroll timeline left"
+                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-white/20 bg-white/10 text-white/85 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:bg-white/10 hover:border-white/25"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M15 18l-6-6 6-6"></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                id="timeline-next-mobile"
+                aria-label="Scroll timeline right"
+                class="inline-flex items-center justify-center w-[42px] h-[42px] rounded-xl border border-white/20 bg-white/10 text-white/85 transition-all duration-150 shadow-[0_10px_26px_rgba(0,0,0,0.35)] backdrop-blur-[10px] hover:-translate-y-px hover:bg-white/15 hover:border-white/25"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="h-5 w-5"
+                >
+                  <path d="M9 6l6 6-6 6"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <section class="relative py-16 md:py-24">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-start"
+        >
+          <div>
+            <h2
+              class="text-5xl md:text-6xl leading-[0.95] text-white flex items-end gap-4 flex-wrap"
+            >
+              <span class="font-extrabold tracking-tight">The</span>
+              <span
+                class="relative inline-block py-[0.06em] px-[0.14em] font-serif italic"
+                style="font-family: 'Times New Roman', Times, serif;"
+              >
+                <span
+                  class="absolute -left-[0.12em] -right-[0.12em] top-[55%] bottom-[0.06em] bg-orange-300/30 -z-10 rounded-[0.22em] blur-[0.5px] pointer-events-none rotate-[-2.2deg]"
+                  aria-hidden="true"></span>
+                team
+              </span>
+            </h2>
+          </div>
+
+          <div class="max-w-2xl">
+            <p class="mt-2 text-lg md:text-xl text-gray-300 leading-relaxed">
+              A small team with a big obsession: create a home where builders
+              can grow faster together.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-12">
+          {
+            [
+              {
+                name: "Dhanush Vardhan",
+                title: "Co-founder",
+                meta: "Ex-Cloudflare · Incoming Google",
+                image: "/team/dhanush.jpg",
+                linkedin:
+                  "https://www.linkedin.com/in/dhanush-vardhan-30bb881b0/",
+              },
+              {
+                name: "Bhoomi Sahajsinghani",
+                title: "Co-founder",
+                image: "/team/bhoomi.webp",
+                linkedin: "https://www.linkedin.com/in/bhoomi-sahajsinghani/",
+              },
+              {
+                name: "Pranay Siddu",
+                title: "Head of Partnerships",
+                image: "/team/pranay.jpg",
+                linkedin:
+                  "https://www.linkedin.com/in/pranay-siddu-athipathala-3061512b0/",
+              },
+            ].map((member, i) => {
+              const rotation = (i % 2 === 0 ? 1 : -1) * ((i % 5) + 2);
+              return (
+                <a
+                  href={member.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <div
+                    class="group bg-white p-3 pb-20 shadow-[0_4px_6px_rgba(0,0,0,0.1),0_10px_20px_rgba(0,0,0,0.15)] transition-[transform,box-shadow,z-index] duration-300 w-full max-w-xs mx-auto relative flex flex-col hover:z-10 hover:rotate-0 hover:scale-105 hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)]"
+                    style={`transform: rotate(${rotation}deg)`}
+                  >
+                    <div class="w-full aspect-square overflow-hidden bg-gray-200 border border-black/10">
+                      <img
+                        src={member.image}
+                        alt={member.name}
+                        class="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 transition-[filter] duration-300"
+                      />
+                    </div>
+                    <div class="absolute bottom-0 left-0 w-full h-20 flex flex-col items-center justify-center text-center font-[Mistrully,cursive] text-gray-700">
+                      <h3 class="text-[1.8rem] font-bold leading-none mb-0.5 text-gray-900">
+                        {member.name}
+                      </h3>
+                      <p class="mt-2 text-sm text-gray-500 font-semibold font-[Manrope,system-ui,sans-serif]">
+                        {member.title}
+                      </p>
+                    </div>
+                  </div>
+                </a>
+              );
+            })
+          }
+        </div>
+
+        <!-- Book a call CTA -->
+        <div
+          class="mt-20 md:mt-28 flex flex-col items-center justify-center text-center"
+        >
+          <p
+            class="text-white/70 text-sm font-medium tracking-wide uppercase mb-4"
+          >
+            Want to chat?
+          </p>
+          <a
+            href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
+            class="group relative inline-flex items-center justify-center px-4 py-2.5 md:px-10 md:py-4
+                 rounded-full whitespace-nowrap
+                 bg-gradient-to-br from-white/15 via-white/10 to-white/5
+                 backdrop-blur-xl border border-white/35
+                 text-white font-medium text-sm md:text-lg
+                 transition-all duration-400
+                 shadow-[0_12px_40px_rgba(255,255,255,0.12)] scale-[1.02]"
+          >
+            <span class="relative z-10 drop-shadow-sm">book a call</span>
+          </a>
+          <p
+            class="mt-3 text-white/50 text-sm font-[Manrope,system-ui,sans-serif]"
+          >
+            30-min meeting with the Devlabs team
+          </p>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <script>
+    const byId = (id: string) => document.getElementById(id);
+
+    // ── About hero video: autoplay when ready ──
+    (() => {
+      const video = document.getElementById("about-hero-video");
+      if (!(video instanceof HTMLVideoElement)) return;
+      const play = () => {
+        video.play().catch(() => {});
+      };
+      if (video.readyState >= 2) play();
+      else video.addEventListener("loadeddata", play, { once: true });
+    })();
+
+    // ── About hero: scroll-driven video frame scaling ──
+    (() => {
+      const heroScroll = byId("about-hero-scroll");
+      const heroFrame = byId("about-hero-frame");
+      const heroText = byId("about-hero-text");
+      const heroTagline = byId("about-hero-tagline");
+
+      if (!heroScroll || !heroFrame) return;
+
+      const MIN_SCALE = 0.55;
+      const MAX_SCALE = 1;
+      let ticking = false;
+
+      const update = () => {
+        const rect = heroScroll.getBoundingClientRect();
+        const total = heroScroll.offsetHeight - window.innerHeight;
+        const scrolled = Math.max(0, -rect.top);
+        const progress = Math.max(0, Math.min(1, scrolled / total));
+
+        // Sine bell curve: smooth scale up then back down
+        const t = Math.sin(progress * Math.PI);
+        const scale = MIN_SCALE + (MAX_SCALE - MIN_SCALE) * t;
+
+        heroFrame.style.transform = `scale(${scale})`;
+
+        // Fade heading + tagline at peak scale
+        const textOp = (1 - 0.65 * t).toFixed(3);
+        if (heroText instanceof HTMLElement) heroText.style.opacity = textOp;
+        if (heroTagline instanceof HTMLElement)
+          heroTagline.style.opacity = textOp;
+
+        ticking = false;
+      };
+
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (!ticking) {
+            requestAnimationFrame(update);
+            ticking = true;
+          }
+        },
+        { passive: true },
+      );
+
+      update();
+    })();
+
+    const timelineScroll = byId("growth-timeline-scroll");
+    const timelineContent = byId("growth-timeline");
+    const prev = byId("timeline-prev");
+    const next = byId("timeline-next");
+    const prevM = byId("timeline-prev-mobile");
+    const nextM = byId("timeline-next-mobile");
+
+    const readPx = (value) => {
+      const n = parseFloat(String(value || ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const scrollByOneYear = () => {
+      if (!timelineContent) return 420;
+      const style = getComputedStyle(timelineContent);
+      const col = readPx(style.getPropertyValue("--year-col"));
+      const gap = readPx(style.getPropertyValue("--year-gap"));
+      return Math.max(320, Math.round(col + gap));
+    };
+
+    const scrollTimeline = (dir) => {
+      if (!timelineScroll) return;
+      timelineScroll.scrollBy({
+        left: dir * scrollByOneYear(),
+        behavior: "smooth",
+      });
+    };
+
+    const bind = (el, dir) => {
+      if (!el) return;
+      el.addEventListener("click", () => scrollTimeline(dir));
+    };
+
+    bind(prev, -1);
+    bind(next, 1);
+    bind(prevM, -1);
+    bind(nextM, 1);
+
+    // Scroll reveal for video placeholders
+    const revealTargets: HTMLElement[] = [
+      byId("growth-video-placeholder"),
+    ].filter((el): el is HTMLElement => Boolean(el));
+
+    if (revealTargets.length && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            e.target.classList.add("is-visible");
+            io.unobserve(e.target);
+          }
+        },
+        { threshold: 0.35 },
+      );
+
+      for (const el of revealTargets) io.observe(el);
+    } else {
+      for (const el of revealTargets) el.classList.add("is-visible");
+    }
+
+    // TimelineTicks (Tailwind-only, no custom CSS)
+    // - Full height of timeline container
+    // - Random lengths with noticeable variance (all > 50% of container height)
+    // - More evident color + thicker lines
+    const ticksEl = document.querySelector(".timeline-ticks");
+    const railEl = document.querySelector(".timeline-rail");
+
+    const renderTimelineTicks = () => {
+      if (!timelineContent) return;
+      if (!(ticksEl instanceof HTMLElement)) return;
+
+      ticksEl.innerHTML = "";
+
+      const totalW = timelineContent.scrollWidth;
+      const totalH = Math.max(
+        timelineContent.getBoundingClientRect().height,
+        timelineScroll?.getBoundingClientRect().height || 0,
+      );
+
+      if (!totalW || !totalH) return;
+
+      // Read rail top from computed position (fallback to 66px)
+      const railTop = railEl instanceof HTMLElement ? railEl.offsetTop : 66;
+
+      // Dot anchor X positions (used to avoid "double ticks" near the aligned dot tick)
+      const contentRect = timelineContent.getBoundingClientRect();
+      const dots = timelineContent.querySelectorAll(".year-dot");
+      const anchorXs: number[] = [];
+      for (const dot of dots) {
+        if (!(dot instanceof HTMLElement)) continue;
+        const r = dot.getBoundingClientRect();
+        anchorXs.push(r.left - contentRect.left + r.width / 2);
+      }
+
+      const gap = 72; // px between ticks (reduced occurrence)
+      const minH = totalH * 0.55;
+      const maxH = totalH * 0.98;
+
+      // Avoid the "ticks start at the column edge" feel by offsetting the first tick.
+      const startOffset = gap * (0.35 + Math.random() * 0.3); // ~25px–47px
+
+      for (let x = startOffset; x <= totalW; x += gap) {
+        // More noticeable variance: choose between "short" and "long" buckets
+        const bucket = Math.random() < 0.55;
+        const a = bucket ? 0.55 : 0.78;
+        const b = bucket ? 0.72 : 0.98;
+        const h = totalH * (a + Math.random() * (b - a));
+
+        const jitter = (Math.random() - 0.5) * 10; // ±5px
+        const heightPx = Math.max(minH, Math.min(maxH, h));
+        const topMax = Math.max(0, totalH - heightPx);
+
+        // Randomize vertical positioning (not always stuck to the top/rail).
+        // Most ticks hover around the rail, but some roam freely.
+        const aroundRail = Math.random() < 0.55;
+        const spread = Math.min(topMax, totalH * 0.18); // prevents clamping to 0
+        const rawTop = aroundRail
+          ? railTop + (Math.random() - 0.5) * 2 * spread
+          : Math.random() * topMax;
+        let topPx = Math.max(0, Math.min(topMax, rawTop));
+        // Nudge away from extremes so it doesn't look "stuck" to the top/bottom.
+        if (topMax > 20) {
+          if (topPx < 6) topPx = 6 + Math.random() * 10;
+          if (topPx > topMax - 6) topPx = topMax - 6 - Math.random() * 10;
+        }
+
+        const tick = document.createElement("div");
+        tick.className =
+          "absolute w-[3px] bg-white/35 rounded-full shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_18px_30px_rgba(0,0,0,0.25)]";
+        const leftPx = Math.max(0, x + jitter);
+        const tickCenterX = leftPx + 1.5; // w-[3px]
+
+        // If there's a dedicated tick under a dot, don't allow any tick near it.
+        // This prevents the "two ticks close to each other" case.
+        const noGoRadius = 34; // px
+        if (anchorXs.some((ax) => Math.abs(ax - tickCenterX) < noGoRadius)) {
+          continue;
+        }
+
+        tick.style.left = `${leftPx}px`;
+        tick.style.top = `${topPx}px`;
+        tick.style.height = `${heightPx}px`;
+        ticksEl.appendChild(tick);
+      }
+
+      // Ensure a dedicated tick is ALWAYS aligned under each year dot
+      // (so a "particular tick below the dot" lines up perfectly).
+      for (const dot of dots) {
+        if (!(dot instanceof HTMLElement)) continue;
+
+        const dotRect = dot.getBoundingClientRect();
+        const centerX = dotRect.left - contentRect.left + dotRect.width / 2;
+
+        // Start just below the dot (dot is centered on rail)
+        const dotBottomY = dotRect.top - contentRect.top + dotRect.height; // ~bottom of dot
+        const topPx = Math.max(0, Math.round(dotBottomY + 2));
+
+        const minH2 = totalH * 0.55;
+        const maxH2 = totalH * 0.98;
+        const maxFromTop = Math.max(0, totalH - topPx);
+        const heightTarget =
+          minH2 + Math.random() * (Math.min(maxFromTop, maxH2) - minH2);
+        const heightPx = Math.max(
+          minH2,
+          Math.min(maxFromTop, maxH2, heightTarget),
+        );
+
+        const anchorTick = document.createElement("div");
+        anchorTick.className =
+          "absolute w-[3px] bg-white/45 rounded-full shadow-[0_0_0_1px_rgba(255,255,255,0.14),0_18px_30px_rgba(0,0,0,0.25)]";
+        anchorTick.style.left = `${Math.max(0, Math.round(centerX - 1.5))}px`;
+        anchorTick.style.top = `${topPx}px`;
+        anchorTick.style.height = `${heightPx}px`;
+        ticksEl.appendChild(anchorTick);
+      }
+    };
+
+    const debounce = (fn, ms) => {
+      let t;
+      return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), ms);
+      };
+    };
+
+    const ensureTicks = () => {
+      if (!(ticksEl instanceof HTMLElement)) return;
+      renderTimelineTicks();
+      // Retry a few frames if layout not stable yet
+      let tries = 0;
+      const retry = () => {
+        tries += 1;
+        if (ticksEl.childElementCount > 0 || tries > 12) return;
+        renderTimelineTicks();
+        requestAnimationFrame(retry);
+      };
+      requestAnimationFrame(retry);
+    };
+
+    requestAnimationFrame(ensureTicks);
+    window.addEventListener("load", () => {
+      renderTimelineTicks();
+      setTimeout(renderTimelineTicks, 200);
+    });
+    window.addEventListener("resize", debounce(renderTimelineTicks, 120));
+  </script>
+
+  <style>
+    /* CSS mask on the scroll container: fades content to transparent at edges,
+       letting the page texture background show through seamlessly. */
+    #growth-timeline-scroll {
+      -webkit-mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        transparent 0%,
+        black 7%,
+        black 93%,
+        transparent 100%
+      );
+    }
+  </style>
+</Layout>

@@ -1,0 +1,197 @@
+---
+// NewFooter.astro
+// Replacement for the existing footer
+const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === "/momentum/";
+---
+
+<div class:list={[isMomentum && "footer-wrapper-momentum"]}>
+<footer
+  class:list={[
+    "footer-below-cta w-full bg-transparent text-white pt-24 pb-10 overflow-hidden relative font-manrope z-10",
+    isMomentum && "footer-momentum",
+  ]}
+>
+  <!-- Content Container -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+    <div
+      class="flex flex-col md:flex-row justify-between items-start mb-16 md:mb-24"
+    >
+      <!-- Left Column -->
+      <div class="flex flex-col gap-6 md:gap-8">
+        <!-- Logo Section -->
+        <div class="flex flex-col gap-4">
+          <div class="flex items-center gap-3">
+            <img src="/logo.png" alt="Devlabs Logo" class="h-8 w-auto" />
+            <span class="text-2xl font-medium tracking-tight">Devlabs</span>
+          </div>
+          <p class="text-gray-400 text-lg max-w-xs leading-relaxed font-light">
+            a home for ambitious inventors, builders, and creatives.
+          </p>
+        </div>
+
+        <!-- Social Icons -->
+        <div class="flex gap-6 items-center mt-2">
+          <!-- X (Twitter) -->
+          <a
+            href="https://twitter.com/devlabs_club"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white hover:text-gray-300 transition-colors"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+              ></path>
+            </svg>
+          </a>
+          <!-- LinkedIn -->
+          <a
+            href="https://www.linkedin.com/company/devlabsclub/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white hover:text-gray-300 transition-colors"
+          >
+            <img src="/socials/linkedin.svg" alt="LinkedIn" class="w-6 h-6" />
+          </a>
+          <!-- Instagram -->
+          <a
+            href="https://www.instagram.com/devlabs.asu/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white hover:text-gray-300 transition-colors"
+          >
+            <img src="/socials/instagram.svg" alt="Instagram" class="w-6 h-6" />
+          </a>
+          <!-- Discord -->
+          <a
+            href="https://discord.gg/4XPKg2nWcj"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-white hover:text-gray-300 transition-colors"
+          >
+            <img src="/socials/discord.svg" alt="Discord" class="w-7 h-7" />
+          </a>
+        </div>
+        <style>
+          .footer-social-icon {
+            filter: grayscale(1) brightness(2) contrast(1.2);
+            transition: filter 0.2s;
+          }
+          .footer-social-icon:hover {
+            filter: grayscale(0.2) brightness(2.5) contrast(1.1);
+          }
+        </style>
+      </div>
+
+      <!-- Right Column (Navigation) -->
+      <div class="flex flex-col gap-3 text-left md:text-right mt-12 md:mt-0">
+        <a
+          href="/"
+          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
+          >main</a
+        >
+        <a
+          href="/about"
+          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
+          >about us</a
+        >
+        <a
+          href="/dashboard"
+          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
+          >join our newsletter</a
+        >
+
+        <a
+          href="/sponsor"
+          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
+          >sponsor us</a
+        >
+        <a
+          href="/sponsor#testimonials"
+          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
+          >contact us</a
+        >
+      </div>
+    </div>
+    <!-- Big Clipped Text - Full Width -->
+    <div class="w-full flex justify-center items-end mt-4 relative z-0">
+      <h1
+        class="w-full text-[18vw] md:text-[22vw] leading-[0.7] font-bold tracking-tighter text-center clipped-text select-none"
+      >
+        devlabs
+      </h1>
+    </div>
+
+    <!-- Copyright (Mobile) -->
+    <div class="block md:hidden text-center text-gray-500 text-sm pb-8">
+      © 2026 - made with love and care for viewers like you
+    </div>
+  </div>
+
+  <style>
+    .clipped-text {
+      font-family: "Times New Roman", Times, serif;
+      font-style: italic;
+      background-image: url("/join_now.png");
+      background-size: cover;
+      background-position: center;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      width: 100%;
+    }
+    /* Momentum page: force footer text (links, paragraphs, copyright) to black for light theme */
+    :global(.footer-momentum) {
+      background: linear-gradient(135deg, #ffb347 0%, #ff7b00 100%) !important;
+      border-radius: 32px;
+      margin: 0 auto 16px auto !important;
+      width: calc(100% - 32px) !important;
+      max-width: calc(100% - 32px) !important;
+      color: black !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+    }
+    /* Wrapper to provide the white background behind the rounded footer */
+    :global(body:has(.footer-momentum)) {
+      background-color: #fdfdfd;
+    }
+    :global(.footer-wrapper-momentum) {
+      background-color: #fdfdfd;
+      padding-top: 24px;
+      padding-bottom: 24px;
+      width: 100%;
+      position: relative;
+      z-index: 26;
+    }
+    :global(.footer-momentum) p,
+    :global(.footer-momentum) a,
+    :global(.footer-momentum) span {
+      color: rgba(0, 0, 0, 0.8) !important;
+    }
+    :global(.footer-momentum) a:hover {
+      color: rgba(0, 0, 0, 1) !important;
+    }
+    :global(.footer-momentum) .text-gray-400,
+    :global(.footer-momentum) .text-gray-500 {
+      color: rgba(0, 0, 0, 0.6) !important;
+    }
+    :global(.footer-momentum) img {
+      filter: grayscale(1) brightness(0) opacity(0.8);
+    }
+    :global(.footer-momentum) svg {
+      color: rgba(0, 0, 0, 0.8) !important;
+    }
+    :global(.footer-momentum) .clipped-text {
+      background-image: none !important;
+      color:  rgba(75, 63, 63, 0.4) !important;
+      -webkit-background-clip: border-box !important;
+      background-clip: border-box !important;
+      -webkit-text-fill-color: rgba(75, 63, 63, 0.4) !important;
+    }
+  </style>
+</footer>
+</div>

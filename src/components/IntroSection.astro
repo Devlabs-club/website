@@ -1,0 +1,115 @@
+---
+
+---
+
+<section
+  class="relative w-full overflow-visible min-h-[80vh] flex items-center"
+  data-parallax-section
+  data-parallax-depth="0.06"
+>
+  <!-- Full-bleed background that overflows into adjacent sections (z above hero bg so overflow shows in hero) -->
+  <div
+    aria-hidden="true"
+    class="absolute left-1/2 -translate-x-1/2 z-[10] -top-[50%] h-[200%] w-[100vw] sm:w-[110vw]  pointer-events-none overflow-visible opacity-40 mix-blend-lighten"
+  >
+    <img
+      src="/news-bg.webp"
+      alt=""
+      class="w-full h-full object-cover z-[10]"
+      loading="lazy"
+      decoding="async"
+    />
+    <!-- Gradient Mask for edges -->
+    <div
+      class="absolute inset-0 bg-gradient-to-r from-[#151413] via-transparent to-[#151413]"
+    >
+    </div>
+    <div
+      class="absolute inset-0 bg-gradient-to-b from-[#151413] via-transparent to-[#151413] opacity-80"
+    >
+    </div>
+  </div>
+
+  <!-- Centered Testimonials block on top of news background -->
+  <div
+    class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-24"
+  >
+    <div class="w-full flex justify-center items-center">
+      <!-- Container for Image + Text -->
+      <div class="relative w-full max-w-3xl">
+        <!-- Text: Top Left -->
+        <div
+          class="absolute -top-12 md:-top-20 left-4 md:left-0 z-30 pointer-events-none"
+        >
+          <div
+            class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-32 bg-white/20 blur-[60px] rounded-full"
+          >
+          </div>
+          <h2
+            class="relative font-serif italic text-4xl md:text-6xl lg:text-7xl text-white drop-shadow-lg"
+            style="font-family: 'Times New Roman', Times, serif;"
+          >
+            for the builders
+          </h2>
+        </div>
+
+        <!-- Top Gradient Overlay -->
+        <div
+          class="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-[#151413] to-transparent z-25 pointer-events-none"
+        >
+        </div>
+
+        <!-- The Image -->
+        <img
+          src="/testimonials.webp"
+          alt="Testimonials from our community"
+          class="relative z-20 w-full h-auto object-cover shadow-2xl"
+          loading="lazy"
+          decoding="async"
+        />
+
+        <!-- Bottom Gradient Overlay -->
+        <div
+          class="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#151413] to-transparent z-25 pointer-events-none"
+        >
+        </div>
+
+        <!-- Text: Bottom Right -->
+        <div
+          class="absolute -bottom-12 md:-bottom-20 right-4 md:right-0 z-30 text-right pointer-events-none"
+        >
+          <h2
+            class="relative font-serif italic text-4xl md:text-6xl lg:text-7xl text-white drop-shadow-lg"
+            style="font-family: 'Times New Roman', Times, serif;"
+          >
+            by the builders
+          </h2>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Fade the background out on left/right edges */
+  .news-bg-edge-fade {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 10%,
+      black 90%,
+      transparent
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+  }
+</style>

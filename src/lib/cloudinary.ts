@@ -26,6 +26,8 @@ export async function uploadResumeToCloudinary(buffer: Buffer, filename: string)
   });
 }
 
+
+
 export async function deleteResumeFromCloudinary(resumeUrl: string): Promise<boolean> {
   try {
     // Extract public_id from Cloudinary URL

@@ -66,7 +66,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             {/* Google OAuth Button */}
             <button
               type="button"
-              onClick={() => (window.location.href = "/api/auth/oauth/login")}
+              onClick={() => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect');
+                window.location.href = `/api/auth/oauth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`;
+              }}
               className="w-full flex items-center justify-center gap-3 bg-white/10 border border-white/20 
                        hover:bg-white/20 text-white py-3 px-6 rounded-xl backdrop-blur-sm
                        transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-white/30

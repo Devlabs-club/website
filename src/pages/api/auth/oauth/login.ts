@@ -1,18 +1,23 @@
 import type { APIRoute } from 'astro';
 import { WorkOS } from '@workos-inc/node';
 
-// Initialize WorkOS client with proper configuration
-const workos = new WorkOS(process.env.WORKOS_API_KEY!, {
-  clientId: process.env.WORKOS_CLIENT_ID!,
+// Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
+const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
+  clientId: import.meta.env.WORKOS_CLIENT_ID,
 });
 
 export const GET: APIRoute = async ({ request, redirect }) => {
   try {
-    // Get the authorization URL from WorkOS using AuthKit (not specific OAuth provider)
+    const url = new URL(request.url);
+    const redirectParam = url.searchParams.get('redirect') || '';
+
+    // Get the authorization URL from WorkOS for Google OAuth
     const authorizationUrl = workos.userManagement.getAuthorizationUrl({
-      provider: 'authkit', // Use authkit as the provider (not GoogleOAuth)
-      redirectUri: process.env.WORKOS_REDIRECT_URI!,
-      clientId: process.env.WORKOS_CLIENT_ID!,
+      provider: 'GoogleOAuth', // Use GoogleOAuth directly to skip AuthKit page
+      redirectUri: import.meta.env.WORKOS_REDIRECT_URI,
+      clientId: import.meta.env.WORKOS_CLIENT_ID,
+      state: redirectParam ? JSON.stringify({ redirect: redirectParam }) : undefined,
+      prompt: 'select_account',
     });
 
     // Create redirect response
@@ -26,7 +31,11 @@ export const GET: APIRoute = async ({ request, redirect }) => {
   } catch (error) {
     console.error('OAuth login initiation failed:', error);
     
+    const url = new URL(request.url);
+    const redirectParam = url.searchParams.get('redirect');
+    const redirectQuery = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : '';
+    
     // Redirect to login page with error
-    return redirect('/login?error=oauth_init_failed');
+    return redirect(`/login?error=oauth_init_failed${redirectQuery}`);
   }
 };

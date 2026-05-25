@@ -32,11 +32,15 @@ export default function RegisterPage() {
   }, []);
 
   const handleSuccess = () => {
-    window.location.href = "/dashboard";
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    window.location.href = redirect || '/dashboard';
   };
 
   const handleSwitchToLogin = () => {
-    window.location.href = "/login";
+    const urlParams = new URLSearchParams(window.location.search);
+    const redirect = urlParams.get('redirect');
+    window.location.href = `/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`;
   };
 
   return (

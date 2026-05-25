@@ -1,57 +1,490 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import CenteredSection from '../components/CenteredSection.astro';
-import WrappedText from '../components/text/WrappedText.astro';
-import Heading from '../components/text/Heading.astro';
-import Paragraph from '../components/text/Paragraph.astro';
-import Highlight from '../components/text/Highlight.astro';
-import GradientBlob from '../components/GradientBlob.astro';
+import Layout from "../layouts/Layout.astro";
+import CompanyMarquee from "../components/CompanyMarquee.astro";
 ---
 
-<Layout title="Sponsor Devlabs - Support Student Innovation">
-    <!-- Hero Section with Image -->
-    <CenteredSection id="hero" className="mb-24">
-        <GradientBlob top="" right="" left="0" scale="1.5" />
-        <GradientBlob top="60%" left="-15%" right="" scale="1.2" />
-        
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-40 md:pb-32 py-20">
-            <!-- Image with dashed border and opacity -->
-            <div class="w-full max-w-4xl mx-auto relative">
-                <div class="w-full h-[450px] md:h-[550px] bg-white/20 rounded-3xl p-2 shadow-2xl overflow-hidden backdrop-blur-sm border-2 border-dashed border-white/30">
-                    <img src="events/devhack1.jpg" alt="Devlabs Event" class="w-full h-full object-cover opacity-70 rounded-2xl" />
+<Layout title="Sponsor Devlabs">
+  <main class="relative min-h-screen">
+    <!-- Hero Section (uses global Layout background: texture + noise) -->
+    <section
+      class="relative  pt-32 pb-20 px-4 md:pt-48 md:pb-32 flex flex-col items-center"
+    >
+      <!-- Decorative stars only; no overlay so site background shows through -->
+      <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div
+          class="absolute top-[15%] left-[10%] w-[40vw] max-w-[500px] opacity-50"
+        >
+          <img
+            src="/star.svg"
+            alt=""
+            class="w-full h-auto animate-pulse-slow"
+          />
+        </div>
+        <div
+          class="absolute top-[20%] right-[5%] w-16 h-16 md:w-24 md:h-24 opacity-60"
+        >
+          <img src="/star.svg" alt="" class="w-full h-auto" />
+        </div>
+      </div>
+
+      <!-- Hero Content -->
+      <div
+        class="relative mt-20 z-10 w-full max-w-5xl mx-auto text-center flex flex-col items-center"
+      >
+        <h1 class="text-white mb-8 md:mb-12">
+          <span
+            class="block font-manrope text-xl md:text-3xl font-light tracking-wide text-white/80 mb-2"
+          >
+            empower the next wave of
+          </span>
+          <span
+            class="block font-serif italic text-6xl md:text-8xl lg:text-9xl text-white leading-[0.9]"
+          >
+            builders
+          </span>
+        </h1>
+
+        <p
+          class="max-w-2xl mx-auto text-lg md:text-xl text-white/70 leading-relaxed mb-10 font-manrope"
+        >
+          Join us in shaping the launchpad for the next 100 student founders.
+          Support student founders, hackers, and creators building the next big
+          thing.
+        </p>
+
+        <a
+          href="mailto:people@devlabs.club"
+          class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 md:px-12 md:py-5
+               rounded-full overflow-hidden
+               bg-white text-[#1a1a1a] font-semibold text-lg md:text-xl tracking-wide
+               shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
+               transition-all duration-400 ease-out
+               hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
+               hover:-translate-y-0.5"
+        >
+          <span class="relative z-10">Become a Partner</span>
+          <span
+            class="relative z-10 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="w-full h-full"><path d="M5 12h14M12 5l7 7-7 7"></path></svg
+            >
+          </span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Marquee Section (no solid bg; matches site background) -->
+    <section class="relative border-y border-white/5">
+      <div class="max-w-7xl mx-auto px-4 pt-8 pb-4 text-center">
+        <p
+          class="text-white/50 text-sm font-semibold tracking-[0.2em] uppercase font-manrope"
+        >
+          Trusted by Industry Leaders
+        </p>
+      </div>
+      <CompanyMarquee className="py-6" showTitle={false} />
+    </section>
+
+    <!-- Impact/Benefits Section -->
+    <section class="relative py-24 px-4 z-10">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <!-- Card 1 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                ></path><circle cx="9" cy="7" r="4"></circle><path
+                  d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path
+                  d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg
+              >
+            </div>
+            <h3
+              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
+            >
+              <span class="relative inline-block">
+                Access Top Talent
+                <span class="sponsor-benefit-underline" aria-hidden="true"
+                ></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Connect with Arizona's most ambitious student engineers,
+              designers, and product minds before they graduate.
+            </p>
+          </div>
+
+          <!-- Card 2 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="12" cy="12" r="10"></circle><line
+                  x1="2"
+                  y1="12"
+                  x2="22"
+                  y2="12"></line><path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                ></path></svg
+              >
+            </div>
+            <h3
+              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
+            >
+              <span class="relative inline-block">
+                Brand Visibility
+                <span class="sponsor-benefit-underline" aria-hidden="true"
+                ></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Showcase your brand to thousands of students through our events,
+              social media, and newsletter network.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div
+            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+          >
+            <div
+              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><line x1="12" y1="1" x2="12" y2="23"></line><path
+                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                ></path></svg
+              >
+            </div>
+            <h3
+              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
+            >
+              <span class="relative inline-block">
+                Support Innovation
+                <span class="sponsor-benefit-underline" aria-hidden="true"
+                ></span>
+              </span>
+            </h3>
+            <p class="text-xl text-gray-300 leading-relaxed font-light">
+              Directly fund the resources, hardware, and space students need to
+              turn their wild ideas into reality.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Proof / Testimonials Section (matches site dark theme) -->
+    <section class="relative py-24 px-4 overflow-hidden z-10" id="testimonials">
+      <div class="max-w-7xl mx-auto relative z-10">
+        <!-- Header -->
+        <div class="text-center mb-20">
+          <h2 class="text-4xl md:text-6xl text-white mb-6 font-serif italic">
+            Social proof? <span class="text-orange-400">Here.</span>
+          </h2>
+          <p
+            class="text-white/70 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-manrope"
+          >
+            From industry giants to rising startups. Everyone loves the energy
+            at Devlabs.
+          </p>
+
+          <!-- Buttons -->
+          <div
+            class="flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
+            <a
+              href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
+              class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 md:px-10 md:py-4 rounded-full overflow-hidden bg-white text-[#1a1a1a] font-semibold text-lg tracking-wide shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)] transition-all duration-400 ease-out hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)] hover:-translate-y-0.5"
+            >
+              Book a call
+              <span
+                class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="w-full h-full"
+                  ><path d="M5 12h14M12 5l7 7-7 7"></path></svg
+                >
+              </span>
+            </a>
+            <a
+              href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry"
+              class="inline-flex items-center justify-center gap-2 text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white pb-1 text-lg font-manrope"
+            >
+              Prefer writing instead? Email us.
+            </a>
+          </div>
+        </div>
+
+        <!-- Testimonials Grid -->
+        <div
+          class="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mt-16 px-4 md:px-0"
+        >
+          <!-- Card 1: Paige Bailey -->
+          <div
+            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform -rotate-2 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10"
+          >
+            <img
+              src="/sponsors/deepmind.png"
+              alt="Google DeepMind"
+              class="h-14 w-auto object-contain mx-auto"
+            />
+
+            <p
+              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
+            >
+              "The energy was electric and I've never seen a crowd like this
+              before."
+            </p>
+            <div
+              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
+                >
+                  <img
+                    src="/team/paige.png"
+                    alt="Paige Bailey"
+                    class="w-full h-full object-cover"
+                  />
                 </div>
+                <div>
+                  <div class="font-bold text-base leading-tight text-white">
+                    Paige Bailey
+                  </div>
+                  <div class="text-sm text-gray-400 leading-tight">
+                    Lead DevRel, Google DeepMind
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <Heading>Support the Next Generation of <Highlight>Student Founders</Highlight></Heading>
-            <Paragraph className="text-lg md:text-xl max-w-3xl mx-auto">
-                At Devlabs, we empower student builders through hands-on programs like DevHouse, DevHacks, and Build Nights. By sponsoring DevLabs, you're not just funding events — you're fueling innovation and backing Arizona's next wave of startups.
-            </Paragraph>
+          </div>
 
-            <div class="flex flex-wrap gap-2 justify-center">
-                <WrappedText size="large" className="border-orange-300 text-orange-300">amplify brand</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">support builders</WrappedText>
-                <WrappedText size="large" className="border-orange-300 text-orange-300">shape ecosystem</WrappedText>
-            </div>
-        </div>
-    </CenteredSection>
+          <!-- Card 2: Dhravya Shah -->
+          <div
+            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform rotate-1 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10 md:-mt-8"
+          >
+            <img
+              src="/sponsors/supermemory.png"
+              alt="Supermemory"
+              class="h-24 w-auto object-contain"
+            />
 
-    <!-- CTA Section -->
-    <CenteredSection id="cta" className="mb-24 ">
-        <GradientBlob top="-300px" right="-200px" left="" scale="1.2" />
-        
-        <div class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:pt-8 md:pb-32 py-8">
-            <WrappedText size="normal" className="">get in touch</WrappedText>
-            <Heading>Ready to Partner with Us?</Heading>
-            <Paragraph className="max-w-2xl">
-                Let's discuss how your sponsorship can make a real impact on Arizona's student innovation ecosystem. We'll work together to create a partnership that benefits both your brand and our community.
-            </Paragraph>
-            
-            <!-- Contact Buttons -->
-            <div class="flex flex-col sm:flex-row gap-6 mt-4 mb-8">
-                <WrappedText size="large" className="border-orange-300 text-orange-300 bg-transparent font hover:bg-orange-300 hover:text-black "><a href="mailto:people@devlabs.club" class="font-bold text-xl md:text-2xl">email us</a></WrappedText>
-               
-                
+            <p
+              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
+            >
+              "I ended up hiring from the Devhouse. I'm super satisfied and this
+              is the kind of talent you dont see in any hackathon."
+            </p>
+            <div
+              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
+                >
+                  <img
+                    src="/team/dhravya.png"
+                    alt="Dhravya Shah"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div class="font-bold text-base leading-tight text-white">
+                    Dhravya Shah
+                  </div>
+                  <div class="text-sm text-gray-400 leading-tight">
+                    Founder, Supermemory
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Card 3: Saurav Panda -->
+          <div
+            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform rotate-3 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10"
+          >
+            <div class="testimonial-card-texture" aria-hidden="true"></div>
+
+            <img
+              src="/sponsors/browser-use.png"
+              alt="Browser Use"
+              class="h-24 w-auto object-contain"
+            />
+
+            <p
+              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
+            >
+              "This is one of the best hackathons we've sponsored."
+            </p>
+            <div
+              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
+            >
+              <div class="flex items-center gap-4">
+                <div
+                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
+                >
+                  <img
+                    src="/team/saurav.png"
+                    alt="Saurav Panda"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div class="font-bold text-base leading-tight text-white">
+                    Saurav Panda
+                  </div>
+                  <div class="text-sm text-gray-400 leading-tight">
+                    Founding Engineer, Browser Use
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-    </CenteredSection>
+      </div>
+    </section>
+  </main>
 </Layout>
+
+<style>
+  .font-manrope {
+    font-family: Manrope, sans-serif;
+  }
+
+  /* Benefit h3 underline + typography (matches events.astro) */
+  .sponsor-benefit-heading {
+    font-family: Manrope, system-ui, sans-serif;
+  }
+
+  .sponsor-benefit-underline {
+    position: absolute;
+    bottom: 0.1em;
+    left: 0;
+    width: 100%;
+    height: 0.2em;
+    background-color: #f97316;
+    opacity: 0.8;
+    z-index: -1;
+    transform: rotate(-1deg);
+    transform-origin: left center;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+
+  /* Jagged / torn paper edges for testimonial cards */
+  .testimonial-card-paper {
+    overflow: hidden;
+    clip-path: polygon(
+      0% 4%,
+      8% 0%,
+      16% 4%,
+      24% 0%,
+      32% 3%,
+      40% 0%,
+      48% 4%,
+      56% 0%,
+      64% 3%,
+      72% 0%,
+      80% 4%,
+      88% 0%,
+      100% 3%,
+      100% 96%,
+      92% 100%,
+      84% 96%,
+      76% 100%,
+      68% 97%,
+      60% 100%,
+      52% 96%,
+      44% 100%,
+      36% 97%,
+      28% 100%,
+      20% 96%,
+      12% 100%,
+      4% 96%,
+      0% 100%
+    );
+    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.25))
+      drop-shadow(0 0 0 1px rgba(255, 255, 255, 0.08));
+  }
+
+  /* Paper texture overlay inside card */
+  .testimonial-card-texture {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("/texture.webp");
+    background-size: cover;
+    background-position: center;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+  }
+
+  /* Content above texture */
+  .testimonial-card > *:not(.testimonial-card-texture) {
+    position: relative;
+    z-index: 1;
+  }
+</style>

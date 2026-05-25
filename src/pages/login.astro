@@ -1,14 +1,14 @@
 ---
-import LoginPage from '../components/LoginPage';
+import LoginPage from "../components/LoginPage";
 
-const title = 'Login - DevLabs';
-const description = 'Login to your DevLabs account';
+const title = "Login - Devlabs";
+const description = "Login to your Devlabs account";
 ---
 
 <html lang="en">
-<head>
+  <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
@@ -16,57 +16,70 @@ const description = 'Login to your DevLabs account';
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Caveat:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap"
       rel="stylesheet"
     />
-</head>
+    <link
+      href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully"
+      rel="stylesheet"
+    />
+  </head>
 
-<body class="bg-neutral-950 text-gray-400 min-h-screen overflow-x-hidden">
+  <body class="bg-black text-gray-400 min-h-screen overflow-x-hidden">
     <!-- Fixed background with noise texture -->
-    <div class="fixed inset-0 bg-neutral-950 pointer-events-none z-0">
-        <div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-900 to-neutral-950"></div>
-        <div class="absolute inset-0 bg-noise opacity-40"></div>
+    <div class="fixed inset-0 bg-black pointer-events-none z-0">
+      <div
+        class="absolute inset-0 bg-gradient-to-r from-black via-black to-black"
+      >
+      </div>
+      <div class="absolute inset-0 bg-noise opacity-40"></div>
     </div>
 
     <!-- Floating gradient orbs -->
-    <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
-    <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+    <div
+      class="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"
+    >
+    </div>
+    <div
+      class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"
+    >
+    </div>
 
     <div class="relative z-10 container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto">
-            <div class="text-center mb-8">
-                <a href="/" class="inline-block group">
-                    <img src="/logo.svg" alt="DevLabs" class="h-12 mx-auto mb-4 group-hover:scale-110 transition-transform duration-200" />
-                </a>
-                <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-                <p class="text-gray-400">Sign in to your DevLabs account</p>
-            </div>
-
-            <LoginPage client:load />
-
-            <div class="text-center mt-6">
-                <a href="/" class="text-orange-400 hover:text-orange-300 transition-colors duration-200 flex items-center justify-center gap-2">
-                    <span>←</span> Back to Home
-                </a>
-            </div>
+      <div class="max-w-md mx-auto">
+        <div class="text-center mb-8">
+          <a href="/" class="inline-block group">
+            <img
+              src="/logo.png"
+              alt="Devlabs"
+              class="h-12 mx-auto mb-4 group-hover:scale-110 transition-transform duration-200"
+            />
+          </a>
+          <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+          <p class="text-gray-400">Sign in to your Devlabs account</p>
         </div>
+
+        <LoginPage client:load />
+
+        <div class="text-center mt-6">
+          <a
+            href="/"
+            class="text-orange-400 hover:text-orange-300 transition-colors duration-200 flex items-center justify-center gap-2"
+          >
+            <span>←</span> Back to Home
+          </a>
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
 
 <style>
-    html {
-        font-family: Manrope, sans-serif;
-    }
+  html {
+    font-family: Manrope, sans-serif;
+  }
 
-    body {
-        background-color: #080808;
-    }
-
-    .bg-noise {
-        background-image: url("/noise.png");
-        background-size: 200px 200px;
-        background-repeat: repeat;
-        background-position: center;
-    }
+  body {
+    background-color: #000000;
+  }
 </style>

@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
+import { connectAdminDB, Application } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 import { uploadResumeToCloudinary, deleteResumeFromCloudinary } from '../../../lib/cloudinary.ts';
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Generate safe filename using user ID
     const safeFilename = `${decoded.userId}-${Date.now()}`;
 
-    // Get current user to check for existing resume
+    // Get current user
     const currentUser = await User.findById(decoded.userId);
     if (!currentUser) {
       return new Response(
@@ -120,11 +120,14 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Delete old resume from Cloudinary if it exists
-    if (currentUser.resumeUrl) {
-      console.log('Deleting old resume from Cloudinary:', currentUser.resumeUrl);
+    // Get current application to check for existing resume
+    const currentApplication = await Application.findOne({ user: decoded.userId });
+    
+    // Delete old resume from Cloudinary if it exists in the application
+    if (currentApplication?.resumeUrl) {
+      console.log('Deleting old resume from Cloudinary:', currentApplication.resumeUrl);
       try {
-        const deleteResult = await deleteResumeFromCloudinary(currentUser.resumeUrl);
+        const deleteResult = await deleteResumeFromCloudinary(currentApplication.resumeUrl);
         if (deleteResult) {
           console.log('Successfully deleted old resume from Cloudinary');
         } else {
@@ -155,23 +158,23 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Update user in database
-    const user = await User.findByIdAndUpdate(
-      decoded.userId,
-      { resumeUrl },
-      { new: true }
+    // Update or create application with resume URL
+    let application = await Application.findOneAndUpdate(
+      { user: decoded.userId },
+      { $set: { resumeUrl } },
+      { new: true, upsert: false }
     );
 
-    console.log('User updated with resumeUrl:', user?.resumeUrl); // Debug log
+    console.log('Application updated with resumeUrl:', application?.resumeUrl); // Debug log
 
-    if (!user) {
+    if (!application) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          message: 'Failed to update user record' 
+          message: 'Application not found. Please complete your application first.' 
         }),
         { 
-          status: 500,
+          status: 404,
           headers: { 'Content-Type': 'application/json' }
         }
       );
@@ -180,7 +183,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Process resume for embedding storage
     try {
       console.log('Processing resume for embeddings...');
-      await upsertResume(buffer, decoded.userId, user.major || 'Not specified');
+      await upsertResume(buffer, decoded.userId, application.major || currentUser.major || 'Not specified');
       console.log('Resume embeddings processed successfully');
     } catch (embeddingError) {
       console.error('Error processing resume embeddings:', embeddingError);

@@ -1,0 +1,27 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import MomentumBadgePreview from "../../components/momentum/MomentumBadgePreview";
+
+const title = "Badge Preview · Momentum";
+const description = "Internal preview of Momentum Builder badges.";
+---
+
+<Layout title={title} description={description}>
+  <Fragment slot="head">
+    <link rel="stylesheet" href="https://use.typekit.net/tlh5dan.css" />
+  </Fragment>
+  <div class="relative z-10 min-h-screen bg-[#131415] pt-28 pb-24 px-4 sm:px-6">
+    <div
+      class="pointer-events-none fixed inset-0 z-0 opacity-40"
+      style="background-image: url('/momentum_bg.png'); background-repeat: repeat-y; background-size: cover; background-position: center top;"
+    />
+    <div class="relative z-10 mx-auto max-w-7xl">
+      <div class="mb-12 text-center">
+        <h1 class="font-seasons text-4xl text-white sm:text-5xl md:text-6xl">Momentum</h1>
+        <p class="mt-2 text-sm  text-white/50">don't wait for the future, build it now.</p>
+        <h2 class="mt-8 font-seasons text-3xl text-white/90 sm:text-4xl">Builder Pass · Teams</h2>
+      </div>
+      <MomentumBadgePreview client:only="react" />
+    </div>
+  </div>
+</Layout>

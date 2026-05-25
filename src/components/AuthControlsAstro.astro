@@ -54,11 +54,10 @@
             credentials: "include",
           });
           // Redirect to login or home page
-          window.location.href = "/login";
+          window.location.href = "/";
         } catch (error) {
           console.error("Logout failed:", error);
-          // Even if the API call fails, redirect
-          window.location.href = "/login";
+          window.location.href = "/";
         }
       };
 
