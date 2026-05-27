@@ -11,9 +11,10 @@ interface Props {
   ogImage?: string;
   ogImageAlt?: string;
   keywords?: string;
+  hideNavbar?: boolean;
 }
 
-const { title, description, ogImage, ogImageAlt, keywords } = Astro.props;
+const { title, description, ogImage, ogImageAlt, keywords, hideNavbar = false } = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
@@ -36,7 +37,7 @@ const metaKeywords = keywords ?? defaultKeywords;
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth overflow-x-hidden">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={metaDescription} />
@@ -78,7 +79,7 @@ const metaKeywords = keywords ?? defaultKeywords;
       rel="stylesheet"
     />
   </head>
-  <body class="text-gray-400 overflow-x-hidden loader-visible">
+  <body class="text-gray-400 loader-visible">
     <PageLoader />
     <!-- Fixed background -->
     <div class="fixed inset-0 pointer-events-none z-0">
@@ -89,7 +90,7 @@ const metaKeywords = keywords ?? defaultKeywords;
       </div>
     </div>
 
-    <Navbar />
+    {!hideNavbar && <Navbar />}
     <main class="relative z-10">
       <slot />
     </main>

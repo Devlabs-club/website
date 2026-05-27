@@ -79,3 +79,27 @@
     border-color: hsl(var(--border));
   }
 }
+
+@layer utilities {
+  .hero-underline {
+    position: relative;
+    display: inline-block;
+  }
+  .hero-underline::after {
+    content: "";
+    position: absolute;
+    left: 0.1em;
+    right: 0.1em;
+    bottom: 0.03em;
+    height: 0.24em;
+    background-color: #fa7d22;
+    opacity: 0.8;
+    z-index: -1;
+    transform: rotate(-3.5deg);
+    transform-origin: left center;
+  }
+  .font-manrope {
+    font-family: Manrope, sans-serif;
+  }
+}
+

@@ -5,7 +5,7 @@ import Layout from "../layouts/Layout.astro";
 const title = "Dashboard - Devlabs";
 ---
 
-<Layout title={title}>
+<Layout title={title} hideNavbar>
   <DashboardPage client:load />
   <style>
     .page-spacing {

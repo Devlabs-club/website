@@ -1,0 +1,62 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+const payloadExample = `{
+  "rows": [
+    {
+      "eventName": "DevHacks S2",
+      "projectTitle": "RAG Sprint Assistant",
+      "submissionUrl": "https://devpost.com/...",
+      "submitterEmail": "builder@example.com",
+      "submitterFirstName": "Alex",
+      "submitterLastName": "R",
+      "contribution": "Built frontend + integrated OpenAI API",
+      "techStack": ["Next.js", "OpenAI", "Supabase"]
+    }
+  ],
+  "dryRun": true
+}`;
+---
+
+<Layout title="Admin Talent Graph · DevLabs">
+  <main class="relative pt-44 pb-24 px-4 md:px-8">
+    <div class="max-w-7xl mx-auto">
+      <header class="mb-8">
+        <p class="text-[#fa7d22] uppercase tracking-[0.2em] text-xs font-semibold">Admin Command Center</p>
+        <h1 class="text-white text-5xl md:text-6xl mt-3 leading-tight">proof-of-work graph operations</h1>
+        <p class="text-white/60 mt-4 max-w-3xl">Run deterministic imports, track exclusions, and monitor profile/data quality from one operator dashboard.</p>
+      </header>
+
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <div class="rounded-2xl border border-white/15 bg-black/35 backdrop-blur-lg p-5">
+          <p class="text-white/50 text-sm">Import Policy</p>
+          <p class="text-white text-2xl mt-2">Deterministic Only</p>
+          <p class="text-white/55 text-sm mt-2">email_exact · full_name_unique · first_last_unique</p>
+        </div>
+        <div class="rounded-2xl border border-white/15 bg-black/35 backdrop-blur-lg p-5">
+          <p class="text-white/50 text-sm">Verification Flow</p>
+          <p class="text-white text-2xl mt-2">Evidence-first</p>
+          <p class="text-white/55 text-sm mt-2">imported → builder confirmed → admin/founder verified</p>
+        </div>
+        <div class="rounded-2xl border border-white/15 bg-black/35 backdrop-blur-lg p-5">
+          <p class="text-white/50 text-sm">Theme</p>
+          <p class="text-white text-2xl mt-2">Live DevLabs UI</p>
+          <p class="text-white/55 text-sm mt-2">glass panels, texture/noise layers, orange signal accents</p>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-white/15 bg-black/35 backdrop-blur-xl p-6 md:p-8">
+        <h2 class="text-white text-2xl font-semibold">Run CSV import (dry run or write)</h2>
+        <p class="text-white/55 text-sm mt-2">POST your normalized rows into <code class="text-[#fa7d22]">/api/talent/import-devpost</code> with <code class="text-[#fa7d22]">dryRun: true/false</code>.</p>
+
+        <div class="mt-6 rounded-2xl border border-dashed border-white/20 bg-white/[0.03] p-4 overflow-auto">
+          <pre class="text-xs text-white/75">{payloadExample}</pre>
+        </div>
+
+        <div class="mt-4 text-sm text-white/60">
+          Output includes accepted rows, excluded rows, match method, and confidence.
+        </div>
+      </section>
+    </div>
+  </main>
+</Layout>

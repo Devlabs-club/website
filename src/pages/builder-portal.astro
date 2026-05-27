@@ -9,10 +9,9 @@ import ConversationalShell from '@/components/portal/ConversationalShell';
       <div class="mb-10">
         <p class="text-[#fa7d22] uppercase tracking-[0.2em] text-xs font-semibold">Builder OS</p>
         <h1 class="text-white text-5xl md:text-7xl leading-[0.95] mt-3">
-          get hired for what you've
-          <span class="block font-[Mistrully] italic">actually built</span>
+          claim your <span class="font-[Mistrully] italic">proof-of-work</span>
         </h1>
-        <p class="text-white/60 mt-5 max-w-3xl text-lg">Claim your profile, confirm your projects, and keep availability fresh through a conversational interface.</p>
+        <p class="text-white/60 mt-5 max-w-3xl text-lg">Attend → Build → Submit → Get feedback → Update availability → Get matched. This is your living DevLabs profile.</p>
       </div>
 
       <ConversationalShell
@@ -23,12 +22,12 @@ import ConversationalShell from '@/components/portal/ConversationalShell';
           {
             label: 'Claim Profile',
             action: 'claim_profile',
-            placeholder: 'Say what you want to update in your profile',
+            placeholder: 'Enter your Builder Profile ID to claim your profile',
           },
           {
             label: 'Update Availability',
             action: 'update_availability',
-            placeholder: 'yes|15|45/hr|remote',
+            placeholder: 'builderId | available(true/false) | hours/week | comp | remote/hybrid/in_person',
           },
         ]}
       />

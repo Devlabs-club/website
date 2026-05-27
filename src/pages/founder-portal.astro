@@ -9,16 +9,16 @@ import ConversationalShell from '@/components/portal/ConversationalShell';
       <div class="mb-10">
         <p class="text-[#fa7d22] uppercase tracking-[0.2em] text-xs font-semibold">Founder OS</p>
         <h1 class="text-white text-5xl md:text-7xl leading-[0.95] mt-3">
-          explain your startup once,
-          <span class="block font-[Mistrully] italic">get a trusted shortlist fast</span>
+          tell us what you're building,
+          <span class="block font-[Mistrully] italic">we’ll find who can ship it</span>
         </h1>
-        <p class="text-white/60 mt-5 max-w-3xl text-lg">Conversational founder intake that transforms messy context into role briefs, match logic, and candidate cards.</p>
+        <p class="text-white/60 mt-5 max-w-3xl text-lg">Conversational founder intake that generates role briefs, structured search criteria, and shortlist cards with proof-of-work.</p>
       </div>
 
       <ConversationalShell
         client:load
         title="Founder Intake & Matching Agent"
-        subtitle="Tell me what you’re building, who you need, and your timeline. I’ll do the structuring and search."
+        subtitle="Describe your startup and role in plain text. I’ll create a role brief and run a search."
         options={[
           {
             label: 'Create Role Brief',
@@ -28,7 +28,7 @@ import ConversationalShell from '@/components/portal/ConversationalShell';
           {
             label: 'Run Candidate Search',
             action: 'run_candidate_search',
-            placeholder: 'Paste the opportunity ID from role-brief response',
+            placeholder: 'Paste the opportunity ID generated above',
           },
         ]}
       />
