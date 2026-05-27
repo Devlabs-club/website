@@ -146,9 +146,9 @@ function BuilderOSDashboard() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const profileScore = builder?.profileCompletion?.profileScore || builder?.profileCompletion?.score || 0;
-  const proofScore = builder?.profileCompletion?.proofScore || 0;
-  const matchScore = builder?.profileCompletion?.matchScore || 0;
+  const profileScore = builder?.profileCompletion?.profileScore ?? builder?.profileCompletion?.score ?? 0;
+  const proofScore = builder?.profileCompletion?.proofScore ?? 0;
+  const matchScore = builder?.profileCompletion?.matchScore ?? 0;
   const qualityScore = builder?.profileQuality?.overallScore || 0;
   const qualityLabel = builder?.profileQuality?.label || 'Needs Work';
   const unreadCount = Math.max(0, uiBlocks.length);

@@ -1,0 +1,88 @@
+--- src/pages/api/agent/actions.ts
++++ src/pages/api/agent/actions.ts
+@@ -250,6 +250,14 @@
+   return ratio;
+ }
+ 
++async function updateBuilderScores(builder: any) {
++  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
++  const completion = computeBuilderScores(builder, projects);
++  builder.profileCompletion = completion;
++  await builder.save();
++  return completion;
++}
++
+ async function applyClaimProfile(builder: any, claimConfirmed: boolean) {
+   if (claimConfirmed) builder.verificationStatus = 'builder_confirmed';
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ async function applyAvailabilityUpdate(
+@@ -274,10 +282,7 @@
+     remotePreference: updates.remotePreference ?? builder.availability?.remotePreference ?? 'unspecified',
+     refreshedAt: new Date(),
+   };
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ async function applyLinksUpdate(
+@@ -293,10 +298,7 @@
+     ...(updates.portfolio !== undefined ? { portfolio: updates.portfolio } : {}),
+   };
+ 
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ async function applyProfileBasicsUpdate(builder: any, updates: { headline?: string | null; bio?: string | null }) {
+   if (updates.headline !== undefined) builder.headline = updates.headline;
+   if (updates.bio !== undefined) builder.bio = updates.bio;
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ async function applyRoleSkillUpdate(builder: any, updates: { roles?: string[]; skills?: string[] }) {
+@@ -308,10 +310,7 @@
+   (updates.skills || []).forEach((skill) => existing.add(skill));
+   builder.rolePreference = Array.from(existing);
+ 
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ async function applyWorkPreferencesUpdate(
+@@ -330,10 +329,7 @@
+     };
+   }
+ 
+-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+-  const completion = computeBuilderScores(builder, projects);
+-  builder.profileCompletion = completion;
+-  await builder.save();
+-  return completion;
++  return await updateBuilderScores(builder);
+ }
+ 
+ function extractAvailabilityFromText(text: string) {

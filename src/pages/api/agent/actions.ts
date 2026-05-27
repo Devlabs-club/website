@@ -251,13 +251,17 @@ function getSkillSignals(builder: any, requiredSkills: string[]) {
   return ratio;
 }
 
-async function applyClaimProfile(builder: any, claimConfirmed: boolean) {
-  if (claimConfirmed) builder.verificationStatus = 'builder_confirmed';
+async function updateBuilderScores(builder: any) {
   const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
   const completion = computeBuilderScores(builder, projects);
   builder.profileCompletion = completion;
   await builder.save();
   return completion;
+}
+
+async function applyClaimProfile(builder: any, claimConfirmed: boolean) {
+  if (claimConfirmed) builder.verificationStatus = 'builder_confirmed';
+  return await updateBuilderScores(builder);
 }
 
 async function applyAvailabilityUpdate(
@@ -272,11 +276,7 @@ async function applyAvailabilityUpdate(
     remotePreference: updates.remotePreference ?? builder.availability?.remotePreference ?? 'unspecified',
     refreshedAt: new Date(),
   };
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-  const completion = computeBuilderScores(builder, projects);
-  builder.profileCompletion = completion;
-  await builder.save();
-  return completion;
+  return await updateBuilderScores(builder);
 }
 
 async function applyLinksUpdate(
@@ -291,11 +291,7 @@ async function applyLinksUpdate(
     ...(updates.portfolio !== undefined ? { portfolio: updates.portfolio } : {}),
   };
 
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-  const completion = computeBuilderScores(builder, projects);
-  builder.profileCompletion = completion;
-  await builder.save();
-  return completion;
+  return await updateBuilderScores(builder);
 }
 
 async function resolveAuthedBuilder(request: Request) {
@@ -453,11 +449,7 @@ function extractRolesAndSkillsFromText(text: string) {
 async function applyProfileBasicsUpdate(builder: any, updates: { headline?: string | null; bio?: string | null }) {
   if (updates.headline !== undefined) builder.headline = updates.headline;
   if (updates.bio !== undefined) builder.bio = updates.bio;
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-  const completion = computeBuilderScores(builder, projects);
-  builder.profileCompletion = completion;
-  await builder.save();
-  return completion;
+  return await updateBuilderScores(builder);
 }
 
 async function applyRoleSkillUpdate(builder: any, updates: { roles?: string[]; skills?: string[] }) {
@@ -466,11 +458,7 @@ async function applyRoleSkillUpdate(builder: any, updates: { roles?: string[]; s
   (updates.skills || []).forEach((skill) => existing.add(skill));
   builder.rolePreference = Array.from(existing);
 
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-  const completion = computeBuilderScores(builder, projects);
-  builder.profileCompletion = completion;
-  await builder.save();
-  return completion;
+  return await updateBuilderScores(builder);
 }
 
 async function applyWorkPreferencesUpdate(
@@ -490,11 +478,7 @@ async function applyWorkPreferencesUpdate(
     };
   }
 
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-  const completion = computeBuilderScores(builder, projects);
-  builder.profileCompletion = completion;
-  await builder.save();
-  return completion;
+  return await updateBuilderScores(builder);
 }
 
 function extractWorkTypesFromText(text: string) {
@@ -1221,12 +1205,7 @@ export const POST: APIRoute = async ({ request }) => {
         } else {
           try {
             const project = await scrapeAndImportProject(url, builder._id);
-            const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-            const completion = computeBuilderScores(builder, projects);
-            if (builder.profileCompletion?.score !== completion.score) {
-              builder.profileCompletion = completion;
-              await builder.save();
-            }
+            const completion = await updateBuilderScores(builder);
             importProjectMessage = `Imported "${project.projectName}" into your Proof of Work. Review the card and tell me what you personally built so I can strengthen the founder-facing contribution.`;
             uiBlocks = [
               {
@@ -1331,10 +1310,7 @@ export const POST: APIRoute = async ({ request }) => {
             verificationStatus: 'builder_confirmed',
             status: typeof updates.status === 'string' ? updates.status : 'unknown',
           });
-          const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
-          const completion = computeBuilderScores(builder, projects);
-          builder.profileCompletion = completion;
-          await builder.save();
+          const completion = await updateBuilderScores(builder);
           projectCrudMessage = `Created "${project.projectName}" and added it to your Proof of Work.`;
           uiBlocks = [
             projectSummaryBlock(project, 'project_created'),
@@ -1382,6 +1358,7 @@ export const POST: APIRoute = async ({ request }) => {
             { $set: updates },
             { new: true }
           );
+          await updateBuilderScores(builder);
           projectCrudMessage = `Updated "${updatedProject.projectName}" successfully.`;
           uiBlocks = [projectSummaryBlock(updatedProject, 'project_updated')];
         }
@@ -1417,6 +1394,7 @@ export const POST: APIRoute = async ({ request }) => {
           }];
         } else {
           await ProjectRecord.deleteOne({ _id: project._id, builderId: builder._id });
+          await updateBuilderScores(builder);
           projectCrudMessage = `Deleted "${project.projectName}" from your Proof of Work.`;
           uiBlocks = [{
             type: 'summary_card',
