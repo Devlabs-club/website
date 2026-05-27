@@ -884,6 +884,7 @@ export const POST: APIRoute = async ({ request }) => {
         | 'update_project'
         | 'delete_project'
         | 'evaluate_profile_quality'
+        | 'resume_uploaded'
         | 'none' = 'none';
       let toolArgs: Record<string, unknown> = {};
       const extractedLinks = extractProfileLinksFromText(userText);
@@ -915,6 +916,9 @@ export const POST: APIRoute = async ({ request }) => {
       } else if (extractedLinks.github || extractedLinks.linkedin) {
         tool = 'update_links';
         toolArgs = extractedLinks;
+      } else if (resumeUrl && userText.includes('The parser extracted')) {
+        tool = 'resume_uploaded';
+        toolArgs = { resume: resumeUrl };
       } else if (resumeUrl) {
         tool = 'update_links';
         toolArgs = { resume: resumeUrl };
@@ -954,7 +958,7 @@ export const POST: APIRoute = async ({ request }) => {
         try {
           const routingRaw = await generateOpenRouterReply({
             systemPrompt:
-              'You route builder chat into tools. Return strict JSON with keys: tool, args. Tools: claim_profile, update_availability, update_links, update_role_skills, update_work_preferences, update_profile_basics, read_profile_basics, link_summary, profile_summary, recommend_next_steps, suggest_evidence_improvements, evaluate_profile_quality, import_project, create_project, list_projects, read_project, update_project, delete_project, none. Never request any ID. args for import_project: url(string). Project CRUD args may include projectName, newProjectName, description, problemSolved, builderContribution, techStack(string[]), contributionTags(string[]), githubUrl, demoUrl, devpostUrl, status, confirmDelete(boolean). args for update_availability: availableNow(boolean optional), hoursPerWeek(number optional), desiredCompensation(string optional), remotePreference(remote|hybrid|in_person|unspecified optional). args for update_links: github(string optional), linkedin(string optional), resume(string optional). args for update_work_preferences: preferredWorkTypes(string[]), availableNow(boolean optional). args for update_profile_basics: headline(string optional), bio(string optional). No markdown.',
+              'You route builder chat into tools. Return strict JSON with keys: tool, args. Tools: claim_profile, update_availability, update_links, update_role_skills, update_work_preferences, update_profile_basics, read_profile_basics, link_summary, profile_summary, recommend_next_steps, suggest_evidence_improvements, evaluate_profile_quality, import_project, create_project, list_projects, read_project, update_project, delete_project, resume_uploaded, none. Never request any ID. args for import_project: url(string). Project CRUD args may include projectName, newProjectName, description, problemSolved, builderContribution, techStack(string[]), contributionTags(string[]), githubUrl, demoUrl, devpostUrl, status, confirmDelete(boolean). args for update_availability: availableNow(boolean optional), hoursPerWeek(number optional), desiredCompensation(string optional), remotePreference(remote|hybrid|in_person|unspecified optional). args for update_links: github(string optional), linkedin(string optional), resume(string optional). args for update_work_preferences: preferredWorkTypes(string[]), availableNow(boolean optional). args for update_profile_basics: headline(string optional), bio(string optional). No markdown.',
             userPrompt: `Builder says: "${userText}"`,
             temperature: 0,
             maxTokens: 180,
@@ -980,6 +984,7 @@ export const POST: APIRoute = async ({ request }) => {
             routed?.tool === 'update_project' ||
             routed?.tool === 'delete_project' ||
             routed?.tool === 'evaluate_profile_quality' ||
+            routed?.tool === 'resume_uploaded' ||
             routed?.tool === 'none'
           ) {
             tool = routed.tool;
@@ -1087,6 +1092,24 @@ export const POST: APIRoute = async ({ request }) => {
             type: 'summary_card',
             title: 'Your profile basics',
             body: `Headline: ${builder.headline || 'Not set'}\nBio: ${builder.bio || 'Not set'}`,
+          },
+        ];
+      }
+
+      if (tool === 'resume_uploaded') {
+        const completion = await applyLinksUpdate(builder, { resume: typeof toolArgs.resume === 'string' ? toolArgs.resume : null });
+        uiBlocks = [
+          {
+            type: 'summary_card',
+            title: 'Resume Processed',
+            body: `I've analyzed your resume and extracted your skills and projects.`,
+          },
+          {
+            type: 'profile_completion',
+            title: 'Profile strength',
+            score: completion.score,
+            missingItems: completion.missingItems,
+            eligibility: completion.eligibility,
           },
         ];
       }
@@ -1554,13 +1577,15 @@ export const POST: APIRoute = async ({ request }) => {
                   ? `I listed evidence upgrades that directly improve founder trust and shortlist outcomes.`
                   : tool === 'evaluate_profile_quality'
                     ? `I've evaluated your profile quality. Check the suggestions to improve your founder clarity.`
+                  : tool === 'resume_uploaded'
+                    ? `I've processed your resume and updated your profile with the extracted skills and projects. Let me know if you want to review or edit anything.`
                   : tool === 'import_project'
                     ? (importProjectMessage || `I could not import that project yet. Please try a valid Devpost or GitHub project URL.`)
                     : tool === 'create_project' || tool === 'list_projects' || tool === 'read_project' || tool === 'update_project' || tool === 'delete_project'
                       ? (projectCrudMessage || 'I handled that project request.')
                     : `I can do this from your login: claim profile, update availability, summarize your profile, suggest next steps, or improve proof-of-work evidence.`;
 
-      const deterministicOnlyTools = new Set(['import_project', 'create_project', 'list_projects', 'read_project', 'update_project', 'delete_project', 'read_profile_basics']);
+      const deterministicOnlyTools = new Set(['import_project', 'create_project', 'list_projects', 'read_project', 'update_project', 'delete_project', 'read_profile_basics', 'resume_uploaded']);
       const message = deterministicOnlyTools.has(tool)
         ? deterministicReply
         : await getAgentMessage({

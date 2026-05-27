@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { uploadResumeToCloudinary } from '@/lib/cloudinary';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
+import { parseAndExtractResume } from '@/lib/talent/resumeParser';
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -46,10 +47,16 @@ export const POST: APIRoute = async ({ request }) => {
     };
     await builder.save();
 
+    // Fire and forget parsing to not block the upload response too long, 
+    // or we can await it if we want to return the extracted data.
+    // Let's await it so the frontend can immediately see the results.
+    const extractedData = await parseAndExtractResume(buffer, builder._id.toString());
+
     return json(200, {
       success: true,
       message: 'Resume uploaded',
       resumeUrl,
+      extractedData,
     });
   } catch (error) {
     console.error('[agent/upload-resume] failed', error);

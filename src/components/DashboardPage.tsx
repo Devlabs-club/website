@@ -301,7 +301,16 @@ function BuilderOSDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'builder_chat', payload: { message: 'I uploaded my resume', attachments: { resumeUrl: uploadData.resumeUrl } } }),
+        body: JSON.stringify({ 
+          action: 'builder_chat', 
+          payload: { 
+            message: uploadData.extractedData 
+              ? `I uploaded my resume. The parser extracted these skills: ${(uploadData.extractedData.skills || []).join(', ')}. It also found ${uploadData.extractedData.projects?.length || 0} projects. Please summarize what was added to my profile and suggest any next steps.` 
+              : 'I uploaded my resume', 
+            attachments: { resumeUrl: uploadData.resumeUrl },
+            history: agentMessages.map(m => ({ role: m.sender === 'agent' ? 'assistant' : 'user', content: m.text }))
+          } 
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Resume update failed');
