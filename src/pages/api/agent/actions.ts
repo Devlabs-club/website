@@ -229,7 +229,7 @@ async function getAgentMessage(params: {
   try {
     return await generateOpenRouterReply({
       systemPrompt:
-        'You are the Builder Profile Agent for a talent marketplace connecting builders with founders. Your goal is to help builders improve their profile quality and proof-of-work so they can get hired. Be concise, specific, and useful. Never invent data. If the user asks about their current profile (headline/bio/summary), summarize it accurately based on the context provided. Provide actionable advice to improve their profile quality. Keep most replies under 2-4 sentences. Ask one follow-up question at a time. You can use markdown formatting like bold text, bullet points, and paragraph breaks to make your responses more readable.',
+        'You are the Builder Profile Agent for a talent marketplace connecting builders with founders. Your goal is to help builders improve their profile quality and proof-of-work so they can get hired. Be concise, specific, and useful. Never invent data. If the user asks about their current profile (headline/bio/summary), summarize it accurately based on the context provided. Provide actionable advice to improve their profile quality. Keep most replies under 2-4 sentences. Ask one follow-up question at a time. You can use markdown formatting like bold text, bullet points, and paragraph breaks to make your responses more readable. If you evaluate the profile quality and the user has a chat history, communicate the strengths, issues, and suggested fixes in your text response instead of relying on UI cards.',
       userPrompt: `Intent: ${params.intent}\nContext JSON:\n${JSON.stringify(params.context)}`,
       temperature: 0.15,
       maxTokens: 250,
@@ -1498,28 +1498,32 @@ export const POST: APIRoute = async ({ request }) => {
         builder.profileQuality.evaluatedAt = new Date();
         await builder.save();
 
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Profile Quality Evaluated',
-            body: quality.oneLineSummary,
+        const hasHistory = Array.isArray(payload?.history) && payload.history.length > 0;
+
+        if (!hasHistory) {
+          uiBlocks = [
+            {
+              type: 'summary_card',
+              title: 'Profile Quality Evaluated',
+              body: quality.oneLineSummary,
+            }
+          ];
+          
+          if (quality.issues?.length > 0) {
+            uiBlocks.push({
+              type: 'issues_list',
+              title: 'Needs Improvement',
+              items: quality.issues.map(i => `${i.title}: ${i.detail}`)
+            });
           }
-        ];
-        
-        if (quality.issues?.length > 0) {
-          uiBlocks.push({
-            type: 'issues_list',
-            title: 'Needs Improvement',
-            items: quality.issues.map(i => `${i.title}: ${i.detail}`)
-          });
-        }
-        
-        if (quality.suggestedFixes?.length > 0) {
-          uiBlocks.push({
-            type: 'suggested_fixes',
-            title: 'Suggested Fixes',
-            items: quality.suggestedFixes.map(f => f.action)
-          });
+          
+          if (quality.suggestedFixes?.length > 0) {
+            uiBlocks.push({
+              type: 'suggested_fixes',
+              title: 'Suggested Fixes',
+              items: quality.suggestedFixes.map(f => f.action)
+            });
+          }
         }
       }
 
