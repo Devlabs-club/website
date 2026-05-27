@@ -111,9 +111,23 @@ function BuilderOSDashboard() {
   const [events, setEvents] = useState<any[]>([]);
   const [momentum, setMomentum] = useState<any[]>([]);
   const [projectStats, setProjectStats] = useState<ProjectStats>({ total: 0, devpostImports: 0, githubProjects: 0, verifiedContributions: 0 });
-  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([
-    { sender: 'agent', text: 'Hey — I identified your profile from login. I can update it and improve your match readiness.' },
-  ]);
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('devlabs_agent_messages');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load chat history', e);
+      }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && agentMessages.length > 0) {
+      localStorage.setItem('devlabs_agent_messages', JSON.stringify(agentMessages));
+    }
+  }, [agentMessages]);
   const [agentInput, setAgentInput] = useState('');
   const [agentBusy, setAgentBusy] = useState(false);
   const [agentModel, setAgentModel] = useState<string>('');
@@ -189,16 +203,18 @@ function BuilderOSDashboard() {
         const qualityLabel = data.builder.profileQuality?.label || 'Needs Work';
         const missing = data.builder.profileCompletion?.missingItems?.[0];
         
-        if (!silent && agentMessages.length <= 1) {
-          const baseGreeting = `Hey ${data.builder.name.split(' ')[0]} — I reviewed your profile. Your quality score is ${qualityLabel}.`;
-          const priorityAction = missing ? ` The highest priority right now is to ${missing.toLowerCase()}.` : ' Your profile looks strong!';
-          
-          setAgentMessages([
-            { 
-              sender: 'agent', 
-              text: `${baseGreeting}${priorityAction} I can help you update your availability, summarize your profile, or add a project.`
-            }
-          ]);
+        if (!silent) {
+          setAgentMessages((prev) => {
+            if (prev.length > 0) return prev;
+            const baseGreeting = `Hey ${data.builder.name.split(' ')[0]} — I reviewed your profile. Your quality score is ${qualityLabel}.`;
+            const priorityAction = missing ? ` The highest priority right now is to ${missing.toLowerCase()}.` : ' Your profile looks strong!';
+            return [
+              { 
+                sender: 'agent', 
+                text: `${baseGreeting}${priorityAction} I can help you update your availability, summarize your profile, or add a project.`
+              }
+            ];
+          });
         }
       }
 
@@ -231,8 +247,8 @@ function BuilderOSDashboard() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [agentMessages, agentBusy]);
 
-  const handleAgentSend = async (overrideText?: string) => {
-    const text = (overrideText || agentInput).trim();
+  const handleAgentSend = async (overrideText?: string | React.MouseEvent | React.KeyboardEvent) => {
+    const text = (typeof overrideText === 'string' ? overrideText : agentInput).trim();
     if (!text || agentBusy) return;
     
     const newMessages = [...agentMessages, { sender: 'user' as const, text }];
@@ -929,7 +945,7 @@ function BuilderOSDashboard() {
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-[400px] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-xl p-4 space-y-4 mb-4 shadow-inner">
+                <div className="flex-1 min-h-[400px] overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-xl p-4 space-y-4 mb-4 shadow-inner">
                   {agentMessages.map((message, index) => (
                     <div key={`${message.sender}-${index}`} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed ${message.sender === 'agent' ? 'bg-white/10 text-white border border-white/5 shadow-sm' : 'bg-gradient-to-br from-[#fa7d22] to-[#ff9b4e] text-black font-medium shadow-[0_4px_15px_rgba(250,125,34,0.2)]'}`}>
