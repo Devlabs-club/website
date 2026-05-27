@@ -223,15 +223,17 @@ async function getAgentMessage(params: {
   fallback: string;
   intent: string;
   context: Record<string, unknown>;
+  history?: Array<{ role: string; content: string }>;
 }) {
   if (!hasOpenRouterConfig()) return params.fallback;
   try {
     return await generateOpenRouterReply({
       systemPrompt:
-        'You are the Builder Profile Agent for a talent marketplace connecting builders with founders. Your goal is to help builders improve their profile quality and proof-of-work so they can get hired. Be concise, specific, and useful. Never invent data. If the user asks about their current profile (headline/bio/summary), summarize it accurately based on the context provided. Provide actionable advice to improve their profile quality. Keep most replies under 2-4 sentences. Ask one follow-up question at a time.',
+        'You are the Builder Profile Agent for a talent marketplace connecting builders with founders. Your goal is to help builders improve their profile quality and proof-of-work so they can get hired. Be concise, specific, and useful. Never invent data. If the user asks about their current profile (headline/bio/summary), summarize it accurately based on the context provided. Provide actionable advice to improve their profile quality. Keep most replies under 2-4 sentences. Ask one follow-up question at a time. You can use markdown formatting like bold text, bullet points, and paragraph breaks to make your responses more readable.',
       userPrompt: `Intent: ${params.intent}\nContext JSON:\n${JSON.stringify(params.context)}`,
       temperature: 0.15,
       maxTokens: 250,
+      history: params.history,
     });
   } catch {
     return params.fallback;
@@ -1578,6 +1580,7 @@ export const POST: APIRoute = async ({ request }) => {
               projects: projects.map(p => ({ title: p.projectName, description: p.description, contribution: p.builderContribution })),
               mustNeverAskForBuilderId: true,
             },
+            history: Array.isArray(payload?.history) ? payload.history : undefined,
           });
       console.log('[agent/actions] builder_chat:final', {
         builderId: String(builder._id),

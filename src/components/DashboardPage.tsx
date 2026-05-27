@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LayoutGrid, Users, Bot, User, Sparkles, Medal, Check, AlertCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { AuthProvider, useAuth } from './auth_manager';
 import AdminDashboard from './AdminDashboard';
 import { DottedGlowBackground } from './ui/dotted-glow-background';
@@ -233,7 +234,10 @@ function BuilderOSDashboard() {
   const handleAgentSend = async (overrideText?: string) => {
     const text = (overrideText || agentInput).trim();
     if (!text || agentBusy) return;
-    setAgentMessages((prev) => [...prev, { sender: 'user', text }]);
+    
+    const newMessages = [...agentMessages, { sender: 'user' as const, text }];
+    setAgentMessages(newMessages);
+    
     if (!overrideText) setAgentInput('');
     setAgentBusy(true);
 
@@ -242,7 +246,13 @@ function BuilderOSDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'builder_chat', payload: { message: text } }),
+        body: JSON.stringify({ 
+          action: 'builder_chat', 
+          payload: { 
+            message: text,
+            history: agentMessages.map(m => ({ role: m.sender === 'agent' ? 'assistant' : 'user', content: m.text }))
+          } 
+        }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Action failed');
@@ -922,8 +932,14 @@ function BuilderOSDashboard() {
                 <div className="flex-1 min-h-[400px] max-h-[70vh] overflow-y-auto rounded-2xl border border-white/10 bg-gradient-to-b from-black/40 to-black/60 backdrop-blur-xl p-4 space-y-4 mb-4 shadow-inner">
                   {agentMessages.map((message, index) => (
                     <div key={`${message.sender}-${index}`} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-sm leading-relaxed ${message.sender === 'agent' ? 'bg-white/10 text-white border border-white/5 shadow-sm' : 'bg-gradient-to-br from-[#fa7d22] to-[#ff9b4e] text-black font-medium shadow-[0_4px_15px_rgba(250,125,34,0.2)]'}`}>
-                        {message.text}
+                      <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed ${message.sender === 'agent' ? 'bg-white/10 text-white border border-white/5 shadow-sm' : 'bg-gradient-to-br from-[#fa7d22] to-[#ff9b4e] text-black font-medium shadow-[0_4px_15px_rgba(250,125,34,0.2)]'}`}>
+                        {message.sender === 'agent' ? (
+                          <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-ul:my-1.5">
+                            <ReactMarkdown>{message.text}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          message.text
+                        )}
                       </div>
                     </div>
                   ))}

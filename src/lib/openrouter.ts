@@ -13,10 +13,17 @@ export async function generateOpenRouterReply(params: {
   userPrompt: string;
   temperature?: number;
   maxTokens?: number;
+  history?: Array<{ role: string; content: string }>;
 }) {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error('OPENROUTER_API_KEY is not configured');
   }
+
+  const messages = [
+    { role: 'system', content: params.systemPrompt },
+    ...(params.history || []),
+    { role: 'user', content: params.userPrompt },
+  ];
 
   const response = await fetch(OPENROUTER_BASE_URL, {
     method: 'POST',
@@ -28,10 +35,7 @@ export async function generateOpenRouterReply(params: {
     },
     body: JSON.stringify({
       model: getOpenRouterChatModel(),
-      messages: [
-        { role: 'system', content: params.systemPrompt },
-        { role: 'user', content: params.userPrompt },
-      ],
+      messages,
       temperature: params.temperature ?? 0.2,
       max_tokens: params.maxTokens ?? 220,
     }),
