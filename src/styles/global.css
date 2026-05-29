@@ -12,6 +12,9 @@
 
 @layer base {
   :root {
+    --surface-base: 8 8 9;
+    --surface-elevated: 12 12 14;
+
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -80,6 +83,64 @@
   }
 }
 
+@layer components {
+  .app-surface-overlay {
+    background-color: hsl(var(--surface-base) / 0.55);
+  }
+
+  .bg-texture {
+    background-image: url("/texture.webp");
+    background-size: cover;
+    background-position: center;
+    background-repeat: repeat;
+  }
+
+  .bg-noise {
+    background-image: url("/noise.png");
+    background-size: 100px 100px;
+    background-repeat: repeat;
+  }
+
+  /* Glassmorphism panels */
+  .glass-panel {
+    border-radius: 1.5rem;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.06),
+      rgb(255 255 255 / 0.02)
+    );
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow:
+      0 8px 32px rgb(0 0 0 / 0.25),
+      inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+
+  .glass-panel-strong {
+    border-radius: 1.5rem;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.08),
+      rgb(0 0 0 / 0.35)
+    );
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    box-shadow:
+      0 24px 80px rgb(0 0 0 / 0.4),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+
+  .glass-input {
+    border-radius: 0.75rem;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
 @layer utilities {
   .hero-underline {
     position: relative;
@@ -102,4 +163,51 @@
     font-family: Manrope, sans-serif;
   }
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 

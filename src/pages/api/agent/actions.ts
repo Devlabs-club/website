@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { connectDB } from '@/lib/mongodb';
+import { connectAdminDB } from '@/lib/mongodb';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import Opportunity from '@/models/talent/Opportunity';
 import MatchRecord from '@/models/talent/MatchRecord';
@@ -11,6 +11,72 @@ import { evaluateBuilderProfileQuality, evaluateDeterministicQuality } from '@/l
 import mongoose from 'mongoose';
 import { generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig } from '@/lib/openrouter';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
+import {
+  buildFounderUiBlocks,
+  mergeExtractedIntoOpportunity,
+  parseFounderAgentTurn,
+} from '@/lib/talent/founderAgent';
+import {
+  applyEditFromText,
+  buildCandidateAnswer,
+  buildPreviewExplanation,
+  canRunPreviewAnyway,
+  inferSkipFieldKey,
+  isDoneMessage,
+  isSkipMessage,
+  matchCandidateByName,
+  getMissingRequiredFields,
+} from '@/lib/talent/founderSearchQuality';
+import {
+  buildTalentPreviewUiBlock,
+  rankBuildersForOpportunity,
+  toAnonymousCandidates,
+  toPublicShortlist,
+} from '@/lib/talent/builderSearch';
+import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
+import {
+  buildFounderPipeline,
+  buildSuggestedIntroMessage,
+  PIPELINE_TO_MATCH_STATUS,
+  pipelineStatusLabel,
+} from '@/lib/talent/founderPipeline';
+import {
+  generateTrialProject,
+  normalizeTrialProject,
+} from '@/lib/talent/founderTrialProject';
+import Shortlist from '@/models/talent/Shortlist';
+import IntroRequest from '@/models/talent/IntroRequest';
+import CallSchedule from '@/models/talent/CallSchedule';
+import User from '@/models/user.tsx';
+import {
+  countUnreadForBuilder,
+  countUnreadForFounder,
+  getNotificationsForBuilder,
+  getNotificationsForFounder,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '@/lib/talent/notifications';
+import {
+  getBuilderIntroInbox,
+  notifyBuilderIntroReceived,
+  respondToIntro,
+} from '@/lib/talent/introFlow';
+import {
+  completeCallByFounder,
+  confirmCallScheduleByFounder,
+  getBuilderUpcomingCalls,
+  getCallScheduleForMatch,
+  respondCallScheduleByBuilder,
+  scheduleCallByFounder,
+} from '@/lib/talent/callSchedule';
+import {
+  getBuilderActiveTrials,
+  hireBuilder,
+  rejectBuilder,
+  reviewTrialSubmission,
+  sendTrialProjectToBuilder,
+  submitTrialByBuilder,
+} from '@/lib/talent/trialFlow';
 
 type ImportedProjectData = {
   projectName: string;
@@ -252,9 +318,22 @@ function getSkillSignals(builder: any, requiredSkills: string[]) {
 }
 
 async function updateBuilderScores(builder: any) {
-  const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+  const [projects, events, momentum] = await Promise.all([
+    ProjectRecord.find({ builderId: builder._id }).lean(),
+    EventRecord.find({ builderId: builder._id }).lean(),
+    MomentumUpdate.find({ builderId: builder._id }).lean(),
+  ]);
   const completion = computeBuilderScores(builder, projects);
   builder.profileCompletion = completion;
+
+  try {
+    const quality = await evaluateBuilderProfileQuality(builder, projects, events, momentum);
+    builder.profileQuality = quality;
+    builder.profileQuality.evaluatedAt = new Date();
+  } catch (err) {
+    console.error('[updateBuilderScores] Quality evaluation failed:', err);
+  }
+
   await builder.save();
   return completion;
 }
@@ -292,6 +371,40 @@ async function applyLinksUpdate(
   };
 
   return await updateBuilderScores(builder);
+}
+
+async function resolveAuthedFounder(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  const cookieHeader = request.headers.get('Cookie') || '';
+  const token = extractTokenFromHeader(authHeader) || extractTokenFromCookies(cookieHeader);
+  if (!token) {
+    return { error: 'Please log in to continue.' as const };
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return { error: 'Session expired. Please log in again.' as const };
+  }
+
+  if (decoded.role !== 'founder') {
+    return { error: 'Founder account required.' as const };
+  }
+
+  const email = (decoded.email || '').toLowerCase().trim();
+  if (!email) {
+    return { error: 'Authenticated email not available in session.' as const };
+  }
+
+  let founderName = email.split('@')[0];
+  try {
+    await connectAdminDB();
+    const user = await User.findById(decoded.userId).select('name').lean();
+    if (user?.name) founderName = user.name;
+  } catch {
+    // use email fallback
+  }
+
+  return { decoded, email, founderName };
 }
 
 async function resolveAuthedBuilder(request: Request) {
@@ -688,7 +801,7 @@ async function routeProjectCrudWithLLM(userText: string) {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    await connectDB();
+    await connectAdminDB();
     const body = await request.json();
     const action = body?.action;
     const payload = body?.payload || {};
@@ -1788,6 +1901,864 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    if (action === 'get_founder_dashboard') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunities = await Opportunity.find({ founderEmail: email })
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      const opportunityIds = opportunities.map((o: any) => o._id);
+      const shortlistDocs = await Shortlist.find({ opportunityId: { $in: opportunityIds } }).lean();
+      const oppById = new Map(opportunities.map((o: any) => [String(o._id), o]));
+
+      const shortlists = await Promise.all(
+        shortlistDocs.map(async (sl: any) => {
+          const pub = toPublicShortlist(sl);
+          if (!pub) return null;
+          if (sl.unlocked) {
+            const opportunity = oppById.get(String(sl.opportunityId));
+            const fullCandidates = await buildFullCandidatesForShortlist(sl, opportunity, {
+              BuilderProfile,
+              ProjectRecord,
+              MatchRecord,
+            });
+            return { ...pub, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) };
+          }
+          return { ...pub, fullCandidates: null };
+        })
+      );
+
+      const shortlistByOpp = new Map(
+        shortlists.filter(Boolean).map((s: any) => [String(s.opportunityId), s])
+      );
+
+      const opportunitiesWithSearch = opportunities.map((opp: any) => {
+        const sl = shortlistByOpp.get(String(opp._id));
+        return {
+          ...opp,
+          searchStats: sl
+            ? {
+                totalMatches: sl.totalMatches,
+                strongMatchCount: sl.strongMatchCount,
+                previewGenerated: Boolean(sl.previewGeneratedAt),
+                locked: !sl.unlocked,
+              }
+            : null,
+        };
+      });
+
+      const pipeline = await buildFounderPipeline(email, {
+        Opportunity,
+        Shortlist,
+        MatchRecord,
+        BuilderProfile,
+        IntroRequest,
+        CallSchedule,
+      });
+
+      const [notifications, unreadCount] = await Promise.all([
+        getNotificationsForFounder(email),
+        countUnreadForFounder(email),
+      ]);
+
+      return ok({
+        opportunities: opportunitiesWithSearch,
+        shortlists: shortlists.filter(Boolean),
+        pipeline,
+        notifications,
+        unreadNotificationCount: unreadCount,
+      });
+    }
+
+    if (action === 'suggest_intro_message') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, founderName } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist?.unlocked) return bad('Unlock the shortlist before requesting intros.', 403);
+
+      const [opportunity, builder, match] = await Promise.all([
+        Opportunity.findOne({ _id: opportunityId, founderEmail: email }).lean(),
+        BuilderProfile.findById(builderId).lean(),
+        MatchRecord.findOne({ opportunityId, builderId }).lean(),
+      ]);
+      if (!opportunity || !builder) return bad('Candidate or search not found', 404);
+
+      const projects = await ProjectRecord.find({ builderId })
+        .select('projectName techStack builderContribution')
+        .limit(3)
+        .lean();
+      const topProject = projects[0];
+      const shortlistCandidate = (shortlist.candidates || []).find(
+        (c: any) => String(c.builderId) === builderId
+      );
+      const topSkills =
+        shortlistCandidate?.topSkills?.length > 0
+          ? shortlistCandidate.topSkills
+          : (topProject?.techStack || []).slice(0, 3);
+
+      const suggestedMessage = buildSuggestedIntroMessage({
+        founderName,
+        builderName: builder.name,
+        opportunity,
+        matchReasoning: match?.reasoning,
+        topSkills,
+        projectHighlight: topProject?.projectName || null,
+      });
+
+      return ok({ suggestedMessage });
+    }
+
+    if (action === 'request_intro') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, founderName } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const introMessage = String(payload?.introMessage || '').trim();
+
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      if (!introMessage || introMessage.length < 20) {
+        return bad('Please provide an intro message (at least 20 characters).');
+      }
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist) return bad('Shortlist not found', 404);
+      if (!shortlist.unlocked) return bad('Unlock the shortlist before requesting intros.', 403);
+
+      const onShortlist = (shortlist.candidates || []).some(
+        (c: any) => String(c.builderId) === builderId
+      );
+      if (!onShortlist) return bad('Candidate is not on this shortlist', 404);
+
+      const match = await MatchRecord.findOne({ opportunityId, builderId });
+      if (!match) return bad('Match not found', 404);
+
+      const intro = await IntroRequest.findOneAndUpdate(
+        { opportunityId, builderId },
+        {
+          $set: {
+            opportunityId,
+            builderId,
+            matchRecordId: match._id,
+            founderEmail: email,
+            founderName,
+            introMessage,
+            status: 'requested',
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      match.status = 'intro_requested';
+      match.pipelineNextStep = 'Awaiting builder response';
+      await match.save();
+
+      const [builderDoc, opportunityDoc] = await Promise.all([
+        BuilderProfile.findById(builderId).select('email name').lean(),
+        Opportunity.findById(opportunityId).lean(),
+      ]);
+
+      if (builderDoc?.email) {
+        await notifyBuilderIntroReceived({
+          builderId,
+          builderEmail: builderDoc.email,
+          founderName: founderName || email.split('@')[0],
+          roleTitle: opportunityDoc?.roleTitle || 'Role',
+          company: opportunityDoc?.company || 'Startup',
+          introRequestId: String(intro._id),
+        });
+      }
+
+      return ok({
+        message: 'Intro request sent. The candidate will appear in your pipeline.',
+        introRequest: {
+          _id: String(intro._id),
+          status: intro.status,
+          introMessage: intro.introMessage,
+        },
+        matchStatus: match.status,
+      });
+    }
+
+    if (action === 'update_candidate_status') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const pipelineStatus = String(payload?.status || payload?.pipelineStatus || '').trim();
+
+      if (!opportunityId || !builderId || !pipelineStatus) {
+        return bad('opportunityId, builderId, and status are required');
+      }
+
+      const matchStatus = PIPELINE_TO_MATCH_STATUS[pipelineStatus as keyof typeof PIPELINE_TO_MATCH_STATUS];
+      if (!matchStatus) return bad('Invalid pipeline status');
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist?.unlocked) return bad('Unlock the shortlist first.', 403);
+
+      const match = await MatchRecord.findOne({ opportunityId, builderId });
+      if (!match) return bad('Match not found', 404);
+
+      match.status = matchStatus;
+      match.pipelineNextStep = null;
+      await match.save();
+
+      return ok({
+        message: `Status updated to ${pipelineStatusLabel(pipelineStatus as any)}.`,
+        matchStatus: match.status,
+        pipelineStatus,
+      });
+    }
+
+    if (action === 'unlock_shortlist') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist) return bad('Shortlist not found. Run a builder search first.', 404);
+
+      if (!shortlist.previewGeneratedAt) {
+        return bad('Generate a preview search before unlocking.', 400);
+      }
+
+      shortlist.unlocked = true;
+      shortlist.unlockedAt = new Date();
+      await shortlist.save();
+
+      const opportunity = await Opportunity.findById(opportunityId).lean();
+      const fullCandidates = await buildFullCandidatesForShortlist(shortlist, opportunity, {
+        BuilderProfile,
+        ProjectRecord,
+        MatchRecord,
+      });
+
+      const opportunityDoc = await Opportunity.findById(opportunityId);
+      if (opportunityDoc && opportunityDoc.status === 'preview') {
+        opportunityDoc.status = 'shortlisted';
+        await opportunityDoc.save();
+      }
+
+      const pub = toPublicShortlist(shortlist);
+
+      return ok({
+        message: 'Shortlist unlocked. You can now view full candidate profiles and request intros.',
+        shortlist: { ...pub, fullCandidates },
+        meta: { unlockMode: 'dev' },
+      });
+    }
+
+    if (action === 'generate_trial_project') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(
+        payload?.opportunityId || payload?.searchId || ''
+      ).trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) {
+        return bad('opportunityId (or searchId) and builderId are required');
+      }
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist?.unlocked) {
+        return bad('Unlock the shortlist before generating a trial project.', 403);
+      }
+
+      const [opportunity, builder, match] = await Promise.all([
+        Opportunity.findOne({ _id: opportunityId, founderEmail: email }).lean(),
+        BuilderProfile.findById(builderId).lean(),
+        MatchRecord.findOne({ opportunityId, builderId }),
+      ]);
+      if (!opportunity || !builder) return bad('Search or candidate not found', 404);
+      if (!match) return bad('Match not found', 404);
+
+      const projects = await ProjectRecord.find({ builderId })
+        .select('projectName techStack builderContribution description')
+        .limit(5)
+        .lean();
+
+      const shortlistCandidate = (shortlist.candidates || []).find(
+        (c: any) => String(c.builderId) === builderId
+      );
+      const topSkills =
+        shortlistCandidate?.topSkills?.length > 0
+          ? shortlistCandidate.topSkills
+          : [
+              ...(builder.rolePreference || []),
+              ...projects.flatMap((p: any) => p.techStack || []).slice(0, 4),
+            ].slice(0, 8);
+
+      const { trialProject, source } = await generateTrialProject({
+        opportunity,
+        builderName: builder.name,
+        topSkills,
+        projects,
+        matchReasoning: match.reasoning,
+      });
+
+      match.trialProject = { ...trialProject, status: 'draft', updatedAt: new Date() };
+      await match.save();
+
+      return ok({
+        message: 'Trial project draft generated.',
+        trialProject,
+        source,
+        matchStatus: match.status,
+      });
+    }
+
+    if (action === 'save_trial_project') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const draft = payload?.trialProject || payload?.draft;
+
+      if (!opportunityId || !builderId) {
+        return bad('opportunityId and builderId are required');
+      }
+
+      const normalized = normalizeTrialProject(draft);
+      if (!normalized) {
+        return bad('Invalid trial project — title, deliverables, and success criteria are required.');
+      }
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist?.unlocked) return bad('Unlock the shortlist first.', 403);
+
+      const match = await MatchRecord.findOne({ opportunityId, builderId });
+      if (!match) return bad('Match not found', 404);
+
+      match.trialProject = { ...normalized, status: match.trialProject?.status || 'draft', updatedAt: new Date() };
+      await match.save();
+
+      return ok({
+        message: 'Trial project draft saved.',
+        trialProject: { ...normalized, updatedAt: match.trialProject.updatedAt },
+      });
+    }
+
+    if (action === 'founder_candidate_action') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const candidateAction = String(payload?.candidateAction || '').trim();
+
+      if (!opportunityId || !builderId || !candidateAction) {
+        return bad('opportunityId, builderId, and candidateAction are required');
+      }
+
+      const shortlist = await Shortlist.findOne({ opportunityId, founderEmail: email });
+      if (!shortlist) return bad('Shortlist not found', 404);
+      if (!shortlist.unlocked) return bad('Unlock the shortlist first.', 403);
+
+      const match = await MatchRecord.findOne({ opportunityId, builderId });
+      if (!match) return bad('Match not found', 404);
+
+      if (candidateAction === 'request_intro') {
+        return bad('Use suggest_intro_message and request_intro with an intro message.');
+      }
+
+      if (candidateAction === 'save') {
+        match.status = 'approved';
+        await match.save();
+        return ok({ message: 'Candidate saved to your shortlist.', matchStatus: match.status, saved: true });
+      }
+
+      if (candidateAction === 'hide') {
+        const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+        hidden.add(builderId);
+        shortlist.hiddenBuilderIds = Array.from(hidden);
+        await shortlist.save();
+        return ok({ message: 'Candidate hidden from this shortlist.', hidden: true });
+      }
+
+      return bad('Unknown candidateAction');
+    }
+
+    if (action === 'run_builder_search') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      if (!opportunity) return bad('Search not found', 404);
+
+      const oppPlain =
+        typeof opportunity.toObject === 'function' ? opportunity.toObject() : opportunity;
+
+      if (!canRunPreviewAnyway(oppPlain)) {
+        return bad(
+          'Add at least a role title, what they will build, and required skills before running preview.'
+        );
+      }
+
+      const builders = await BuilderProfile.find({
+        verificationStatus: {
+          $in: ['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'],
+        },
+        visibilityStatus: { $ne: 'hidden' },
+      })
+        .limit(200)
+        .lean();
+
+      const builderIds = builders.map((b: any) => b._id);
+      const allProjects = await ProjectRecord.find({ builderId: { $in: builderIds } })
+        .select(
+          'builderId projectName description problemSolved techStack builderContribution contributionTags verificationStatus links'
+        )
+        .lean();
+
+      const projectsByBuilder = new Map<string, any[]>();
+      for (const project of allProjects) {
+        const key = String(project.builderId);
+        if (!projectsByBuilder.has(key)) projectsByBuilder.set(key, []);
+        projectsByBuilder.get(key)!.push(project);
+      }
+
+      const ranked = rankBuildersForOpportunity(builders, projectsByBuilder, oppPlain, 12);
+      const previewCandidates = toAnonymousCandidates(ranked, 6);
+      const strongMatchCount = ranked.filter((r) => r.matchLabel === 'Strong Match').length;
+
+      const candidatesWithMatchIds: any[] = [];
+      for (const anon of previewCandidates) {
+        const entry = ranked.find((r) => r.builderId === anon.builderId);
+        if (!entry) continue;
+
+        const match = await MatchRecord.findOneAndUpdate(
+          { builderId: entry.builderId, opportunityId },
+          {
+            $set: {
+              builderId: entry.builderId,
+              opportunityId,
+              matchScore: entry.matchScore,
+              matchLabel: entry.matchLabel,
+              anonymousLabel: anon.anonymousLabel,
+              signalScores: entry.signals,
+              reasoning: entry.whyTheyMatch,
+              evidence: [],
+              riskFlags: entry.projects.length === 0 ? ['Limited verified proof'] : [],
+              status: 'generated',
+            },
+          },
+          { upsert: true, new: true }
+        );
+
+        candidatesWithMatchIds.push({
+          ...anon,
+          matchRecordId: match._id,
+          builderId: entry.builderId,
+        });
+      }
+
+      const shortlist = await Shortlist.findOneAndUpdate(
+        { opportunityId },
+        {
+          $set: {
+            opportunityId,
+            founderEmail: email,
+            unlocked: false,
+            totalMatches: ranked.length,
+            strongMatchCount,
+            candidates: candidatesWithMatchIds,
+            previewGeneratedAt: new Date(),
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      opportunity.status = 'preview';
+      await opportunity.save();
+
+      const publicShortlist = toPublicShortlist(shortlist);
+      const previewExplanation = buildPreviewExplanation(oppPlain, ranked.length, strongMatchCount);
+      const uiBlocks: any[] = [
+        buildTalentPreviewUiBlock(shortlist, oppPlain),
+        ...(previewExplanation
+          ? [
+              {
+                type: 'preview_explanation',
+                title: 'Why 0 strong matches?',
+                body: previewExplanation,
+              },
+            ]
+          : []),
+        ...previewCandidates.map((c) => ({
+          type: 'anonymous_candidate',
+          title: `${c.anonymousLabel} · ${c.matchLabel}`,
+          subtitle: c.roleType,
+          body: c.whyTheyMatch,
+          items: c.topSkills,
+          meta: {
+            proofSummary: c.proofSummary,
+            availabilitySummary: c.availabilitySummary,
+            matchScore: c.matchScore,
+            matchLabel: c.matchLabel,
+            locked: true,
+          },
+        })),
+      ];
+
+      const previewMsg =
+        strongMatchCount === 0 && ranked.length > 0
+          ? `Preview ready for ${oppPlain.roleTitle}: ${ranked.length} potential match${ranked.length === 1 ? '' : 'es'}, 0 strong matches. See why on the right — you can still unlock to review.`
+          : `Preview generated for ${oppPlain.roleTitle}. ${ranked.length} potential matches (${strongMatchCount} strong). Unlock the shortlist to see full profiles.`;
+
+      return ok({
+        message: previewMsg,
+        opportunity: oppPlain,
+        shortlist: publicShortlist,
+        searchStats: {
+          totalMatches: ranked.length,
+          strongMatchCount,
+          previewGenerated: true,
+          locked: true,
+        },
+        uiBlocks,
+        meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
+      });
+    }
+
+    if (action === 'update_role_brief') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      if (!opportunity) return bad('Search not found', 404);
+
+      const fields = payload?.fields && typeof payload.fields === 'object' ? payload.fields : payload;
+      const allowed = [
+        'company',
+        'startupSummary',
+        'industry',
+        'roleTitle',
+        'roleType',
+        'skillsNeeded',
+        'niceToHaveSkills',
+        'workType',
+        'timeline',
+        'budget',
+        'locationPreference',
+        'availabilityNeeded',
+        'builderWillDo',
+        'successIn30Days',
+        'seniority',
+        'hoursPerWeek',
+        'deliverables',
+        'fundingStage',
+      ] as const;
+
+      for (const key of allowed) {
+        const val = fields[key];
+        if (val === undefined) continue;
+        if (key === 'roleType' || key === 'skillsNeeded' || key === 'niceToHaveSkills' || key === 'deliverables') {
+          opportunity[key] = Array.isArray(val)
+            ? val.map(String).filter(Boolean)
+            : typeof val === 'string'
+              ? val.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : [];
+        } else if (typeof val === 'string') {
+          opportunity[key] = val.trim() || null;
+          if (key === 'locationPreference' && val.trim()) {
+            opportunity.availabilityNeeded = val.trim();
+          }
+        }
+      }
+
+      await opportunity.save();
+      const oppPlain = opportunity.toObject();
+      const uiBlocks = buildFounderUiBlocks(oppPlain);
+
+      return ok({
+        message: 'I updated the brief.',
+        opportunity: oppPlain,
+        uiBlocks,
+      });
+    }
+
+    if (action === 'archive_opportunity') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      if (!opportunity) return bad('Search not found', 404);
+
+      opportunity.status = 'closed';
+      await opportunity.save();
+
+      return ok({ message: 'Search archived.', opportunity: opportunity.toObject() });
+    }
+
+    if (action === 'founder_chat') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, founderName } = resolved;
+
+      const userText = String(payload?.message || '').trim();
+      if (!userText) return bad('message is required');
+
+      const opportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
+      let opportunity: any = null;
+
+      if (opportunityId && mongoose.Types.ObjectId.isValid(opportunityId)) {
+        opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      }
+      if (!opportunity) {
+        opportunity = await Opportunity.findOne({ founderEmail: email, status: 'draft' }).sort({ updatedAt: -1 });
+      }
+
+      const isFirstMessage =
+        !opportunity ||
+        (Array.isArray(payload?.history) && payload.history.filter((h: any) => h.role === 'user').length <= 1);
+      const isDone = isDoneMessage(userText);
+      const oppObj = opportunity ? opportunity.toObject?.() || opportunity : null;
+
+      let shortlistDoc: any = null;
+      let unlockedCandidates: any[] = [];
+      if (opportunity) {
+        shortlistDoc = await Shortlist.findOne({ opportunityId: opportunity._id, founderEmail: email });
+        if (shortlistDoc?.unlocked) {
+          const oppForCards = oppObj;
+          unlockedCandidates = await buildFullCandidatesForShortlist(shortlistDoc, oppForCards, {
+            BuilderProfile,
+            ProjectRecord,
+            MatchRecord,
+          });
+          unlockedCandidates = unlockedCandidates.filter((c: any) => !c.hidden);
+        }
+      }
+
+      if (/(tell me more about|more about|who is|what about).*(for this role|for the role|for this)/i.test(userText) ||
+        /tell me more about\s+[A-Za-z]/i.test(userText)) {
+
+        // Extract Candidate letter/name from text (e.g. "Candidate A", "A", or "Dkalaise")
+        const nameMatch = userText.match(/(?:about|on)\s+([A-Za-z][A-Za-z0-9_-]+)/i) || userText.match(/candidate\s+([a-zA-Z])/i);
+        const queryName = nameMatch?.[1] || userText;
+
+        if (!shortlistDoc?.unlocked) {
+          // Locked state - we can ONLY discuss anonymous candidates!
+          const candidatesList = shortlistDoc?.candidates || [];
+          // Try to match Candidate A, Candidate B, etc.
+          const matchedAnon = candidatesList.find((c: any) => {
+            const label = String(c.anonymousLabel || '').toLowerCase();
+            const q = queryName.toLowerCase();
+            return label.includes(q) || q.includes(label) || label.endsWith(` ${q}`);
+          });
+
+          if (matchedAnon) {
+            const answer = `**${matchedAnon.anonymousLabel}** (${matchedAnon.matchLabel}):
+- **Role Type**: ${matchedAnon.roleType}
+- **Top Skills**: ${Array.isArray(matchedAnon.topSkills) ? matchedAnon.topSkills.join(', ') : 'React, TypeScript'}
+- **Proof Summary**: ${matchedAnon.proofSummary}
+- **Availability**: ${matchedAnon.availabilitySummary}
+- **Why they match**: ${matchedAnon.whyTheyMatch}
+
+*Unlock this shortlist for $499 to reveal their identity, see full portfolios, and request a direct intro.*`;
+            return ok({
+              message: answer,
+              intent: 'ask_about_candidate',
+              opportunity: oppObj,
+              uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
+            });
+          }
+
+          return ok({
+            message: 'You can ask me about anonymous candidates (e.g. "Candidate A") or unlock the shortlist for $499 to search and ask about specific candidates by name.',
+            intent: 'ask_about_candidate',
+            opportunity: oppObj,
+            uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
+          });
+        }
+
+        // Unlocked state - we can discuss specific candidate details by name or by anon label!
+        const matched = matchCandidateByName(
+          queryName,
+          unlockedCandidates.map((c: any) => ({ name: c.name, builderId: c.builderId }))
+        ) || unlockedCandidates.find((c: any) => {
+          const anonLabel = String(c.anonymousLabel || '').toLowerCase();
+          const q = queryName.toLowerCase();
+          return anonLabel.includes(q) || q.includes(anonLabel) || anonLabel.endsWith(` ${q}`);
+        });
+
+        if (!matched) {
+          return ok({
+            message: "I don't see that candidate in this shortlist. Double check the name or spelling.",
+            intent: 'ask_about_candidate',
+            opportunity: oppObj,
+            uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
+          });
+        }
+
+        const candidate = unlockedCandidates.find((c: any) => c.builderId === matched.builderId);
+        const answer = buildCandidateAnswer(candidate);
+
+        return ok({
+          message: answer,
+          intent: 'ask_about_candidate',
+          opportunity: oppObj,
+          uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
+          session: {
+            currentSearchId: String(opportunity._id),
+            unlockedCandidates: unlockedCandidates.map((c: any) => c.name),
+            shortlistState: 'unlocked',
+          },
+        });
+      }
+
+      const parsed = await parseFounderAgentTurn({
+        userText,
+        history: Array.isArray(payload?.history) ? payload.history : undefined,
+        opportunity: oppObj,
+        founderName,
+        isDone,
+        isFirstMessage,
+      });
+
+      if (opportunity && isSkipMessage(userText)) {
+        const skipKey = inferSkipFieldKey(userText, oppObj || {});
+        if (skipKey) {
+          const skipped = Array.isArray(opportunity.skippedFields) ? [...opportunity.skippedFields] : [];
+          if (!skipped.includes(skipKey)) skipped.push(skipKey);
+          opportunity.skippedFields = skipped;
+          await opportunity.save();
+        }
+      }
+
+      if (opportunity && /(change|update|edit|switch)/i.test(userText)) {
+        const edits = applyEditFromText(userText, oppObj || {});
+        Object.assign(opportunity, edits);
+      }
+
+      const hasExtractedFields = Object.keys(parsed.extractedData).some((k) => {
+        const v = parsed.extractedData[k as keyof typeof parsed.extractedData];
+        return v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : String(v).trim() !== '');
+      });
+
+      const shouldPersist =
+        parsed.intent !== 'role_summary' &&
+        parsed.intent !== 'recommend_next_question' &&
+        parsed.intent !== 'ask_about_candidate' &&
+        (hasExtractedFields || !opportunity || isDone);
+
+      if (shouldPersist) {
+        if (!opportunity) {
+          const initial = { ...parsed.extractedData };
+          if (!initial.builderWillDo && userText.length > 20) {
+            initial.builderWillDo = userText.trim().slice(0, 400);
+          }
+          if (!initial.roleTitle || initial.roleTitle === 'New role') {
+            if (/engineer|developer|designer|builder/i.test(userText)) {
+              initial.roleTitle = initial.roleTitle || 'Builder';
+            }
+          }
+          opportunity = await Opportunity.create({
+            founderName,
+            founderEmail: email,
+            company: initial.company || 'Your startup',
+            startupSummary: initial.startupSummary || null,
+            industry: initial.industry || null,
+            roleTitle: initial.roleTitle || 'New role',
+            roleType: initial.roleType || [],
+            skillsNeeded: initial.skillsNeeded || [],
+            niceToHaveSkills: initial.niceToHaveSkills || [],
+            workType: initial.workType || null,
+            timeline: initial.timeline || null,
+            budget: initial.budget || null,
+            locationPreference: initial.locationPreference || null,
+            builderWillDo: initial.builderWillDo || null,
+            successIn30Days: initial.successIn30Days || null,
+            seniority: initial.seniority || null,
+            hoursPerWeek: initial.hoursPerWeek || null,
+            deliverables: initial.deliverables || [],
+            fundingStage: initial.fundingStage || null,
+            skippedFields: [],
+            status: 'draft',
+          });
+        } else {
+          mergeExtractedIntoOpportunity(opportunity, parsed.extractedData);
+          if (!opportunity.company) opportunity.company = 'Your startup';
+          if (!opportunity.roleTitle) opportunity.roleTitle = 'New role';
+          await opportunity.save();
+        }
+      }
+
+      const oppPlain = opportunity
+        ? typeof opportunity.toObject === 'function'
+          ? opportunity.toObject()
+          : opportunity
+        : null;
+
+      const uiBlocks = oppPlain ? buildFounderUiBlocks(oppPlain) : [];
+
+      let replyMessage = parsed.message;
+      if (isDone && !replyMessage.includes('run')) {
+        replyMessage = 'Got it. Your brief is ready. Want me to run the builder search?';
+      }
+
+      const skipped = oppPlain?.skippedFields || [];
+      const missingRequired = oppPlain ? getMissingRequiredFields(oppPlain, skipped) : [];
+
+      return ok({
+        message: replyMessage,
+        intent: parsed.intent,
+        opportunity: oppPlain,
+        uiBlocks,
+        session: oppPlain
+          ? {
+              currentSearchId: String(oppPlain._id),
+              currentRoleBrief: oppPlain,
+              skippedFields: skipped,
+              missingRequiredFields: missingRequired,
+              shortlistState: shortlistDoc?.unlocked ? 'unlocked' : shortlistDoc ? 'locked' : 'none',
+              unlockedCandidates: unlockedCandidates.map((c: any) => c.name),
+            }
+          : null,
+        meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
+      });
+    }
+
     if (action === 'get_builder_dashboard') {
       const resolved = await resolveAuthedBuilder(request);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
@@ -1860,8 +2831,308 @@ export const POST: APIRoute = async ({ request }) => {
         events,
         momentum,
         projectStats,
+        introInbox: await getBuilderIntroInbox(String(builder._id)),
+        activeTrials: await getBuilderActiveTrials(String(builder._id)),
+        upcomingCalls: await getBuilderUpcomingCalls(String(builder._id)),
+        notifications: await getNotificationsForBuilder(String(builder._id)),
+        unreadNotificationCount: await countUnreadForBuilder(String(builder._id)),
         meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
       });
+    }
+
+    if (action === 'get_notifications') {
+      const founderResolved = await resolveAuthedFounder(request);
+      if (!('error' in founderResolved)) {
+        const notifications = await getNotificationsForFounder(founderResolved.email);
+        const unreadCount = await countUnreadForFounder(founderResolved.email);
+        return ok({ notifications, unreadCount, recipientType: 'founder' });
+      }
+      const builderResolved = await resolveAuthedBuilder(request);
+      if ('error' in builderResolved) return bad('Please log in to continue.', 401);
+      const notifications = await getNotificationsForBuilder(String(builderResolved.builder._id));
+      const unreadCount = await countUnreadForBuilder(String(builderResolved.builder._id));
+      return ok({ notifications, unreadCount, recipientType: 'builder' });
+    }
+
+    if (action === 'mark_notification_read') {
+      const notificationId = String(payload?.notificationId || '').trim();
+      const markAll = payload?.all === true;
+      const founderResolved = await resolveAuthedFounder(request);
+      if (!('error' in founderResolved)) {
+        if (markAll) {
+          await markAllNotificationsRead({ type: 'founder', email: founderResolved.email });
+          return ok({ message: 'All notifications marked read.' });
+        }
+        if (!notificationId) return bad('notificationId is required');
+        const updated = await markNotificationRead(notificationId, {
+          type: 'founder',
+          email: founderResolved.email,
+        });
+        if (!updated) return bad('Notification not found', 404);
+        return ok({ notification: updated });
+      }
+      const builderResolved = await resolveAuthedBuilder(request);
+      if ('error' in builderResolved) return bad('Please log in to continue.', 401);
+      if (markAll) {
+        await markAllNotificationsRead({
+          type: 'builder',
+          builderId: String(builderResolved.builder._id),
+        });
+        return ok({ message: 'All notifications marked read.' });
+      }
+      if (!notificationId) return bad('notificationId is required');
+      const updated = await markNotificationRead(notificationId, {
+        type: 'builder',
+        builderId: String(builderResolved.builder._id),
+      });
+      if (!updated) return bad('Notification not found', 404);
+      return ok({ notification: updated });
+    }
+
+    if (action === 'get_builder_intro_inbox') {
+      const resolved = await resolveAuthedBuilder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const introInbox = await getBuilderIntroInbox(String(resolved.builder._id));
+      return ok({ introInbox });
+    }
+
+    if (action === 'respond_intro') {
+      const resolved = await resolveAuthedBuilder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const introRequestId = String(payload?.introRequestId || '').trim();
+      const response = String(payload?.response || '').trim() as 'view' | 'accept' | 'decline';
+      if (!introRequestId || !['view', 'accept', 'decline'].includes(response)) {
+        return bad('introRequestId and response (view|accept|decline) are required');
+      }
+      const result = await respondToIntro({
+        introRequestId,
+        builderId: String(resolved.builder._id),
+        response,
+        note: payload?.note,
+        declineReason: payload?.declineReason,
+      });
+      if ('error' in result && result.error) {
+        return bad(result.error, result.status || 400);
+      }
+      return ok({
+        message:
+          response === 'accept'
+            ? 'Intro accepted.'
+            : response === 'decline'
+              ? 'Intro declined.'
+              : 'Intro marked as viewed.',
+        introRequest: result.intro
+          ? {
+              _id: String(result.intro._id),
+              status: result.intro.status,
+              viewedAt: result.intro.viewedAt,
+              respondedAt: result.intro.respondedAt,
+            }
+          : null,
+        matchStatus: result.match?.status || null,
+      });
+    }
+
+    if (action === 'schedule_call') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const slot = payload?.slot || payload?.proposedSlot;
+      if (!opportunityId || !builderId || !slot) {
+        return bad('opportunityId, builderId, and slot are required');
+      }
+      const result = await scheduleCallByFounder({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+        slot,
+        meetingUrl: payload?.meetingUrl,
+        notes: payload?.notes,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: 'Call proposed to builder.',
+        callSchedule: result.schedule,
+        matchStatus: result.match?.status || null,
+      });
+    }
+
+    if (action === 'respond_call_schedule') {
+      const resolved = await resolveAuthedBuilder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const callScheduleId = String(payload?.callScheduleId || '').trim();
+      const scheduleAction = String(payload?.scheduleAction || payload?.action || '').trim();
+      if (!callScheduleId || !['accept', 'counter'].includes(scheduleAction)) {
+        return bad('callScheduleId and scheduleAction (accept|counter) are required');
+      }
+      const result = await respondCallScheduleByBuilder({
+        callScheduleId,
+        builderId: String(resolved.builder._id),
+        action: scheduleAction as 'accept' | 'counter',
+        slot: payload?.slot,
+        notes: payload?.notes,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: scheduleAction === 'accept' ? 'Call confirmed.' : 'Counter-proposal sent.',
+        callSchedule: result.schedule,
+      });
+    }
+
+    if (action === 'confirm_call_schedule') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const callScheduleId = String(payload?.callScheduleId || '').trim();
+      if (!callScheduleId) return bad('callScheduleId is required');
+      const result = await confirmCallScheduleByFounder({
+        callScheduleId,
+        founderEmail: resolved.email,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({ message: 'Call confirmed.', callSchedule: result.schedule });
+    }
+
+    if (action === 'complete_call') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      const result = await completeCallByFounder({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: 'Call marked complete. You can hire or start a trial.',
+        callSchedule: result.schedule,
+        callCompletedAt: result.match?.callCompletedAt || null,
+      });
+    }
+
+    if (action === 'get_call_schedule') {
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      const founderResolved = await resolveAuthedFounder(request);
+      if (!('error' in founderResolved)) {
+        const opp = await Opportunity.findOne({
+          _id: opportunityId,
+          founderEmail: founderResolved.email,
+        }).lean();
+        if (!opp) return bad('Not authorized', 403);
+      } else {
+        const builderResolved = await resolveAuthedBuilder(request);
+        if ('error' in builderResolved) return bad('Please log in to continue.', 401);
+        if (String(builderResolved.builder._id) !== builderId) return bad('Not authorized', 403);
+      }
+      const callSchedule = await getCallScheduleForMatch(opportunityId, builderId);
+      return ok({ callSchedule });
+    }
+
+    if (action === 'send_trial_project') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      const result = await sendTrialProjectToBuilder({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: 'Trial project sent to builder.',
+        trialProject: result.trialProject,
+        matchStatus: result.matchStatus,
+      });
+    }
+
+    if (action === 'submit_trial') {
+      const resolved = await resolveAuthedBuilder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(resolved.builder._id);
+      const demoUrl = String(payload?.demoUrl || '').trim();
+      const githubUrl = String(payload?.githubUrl || '').trim();
+      if (!opportunityId) return bad('opportunityId is required');
+      const result = await submitTrialByBuilder({
+        opportunityId,
+        builderId,
+        demoUrl,
+        githubUrl,
+        notes: payload?.notes,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: 'Trial submitted for founder review.',
+        trialProject: result.trialProject,
+        matchStatus: result.matchStatus,
+      });
+    }
+
+    if (action === 'review_trial_submission') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const decision = String(payload?.decision || '').trim() as 'approve' | 'reject';
+      if (!opportunityId || !builderId || !['approve', 'reject'].includes(decision)) {
+        return bad('opportunityId, builderId, and decision (approve|reject) are required');
+      }
+      const result = await reviewTrialSubmission({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+        decision,
+        note: payload?.note,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: decision === 'approve' ? 'Trial approved.' : 'Trial rejected with feedback.',
+        trialProject: result.trialProject,
+        matchStatus: result.matchStatus,
+      });
+    }
+
+    if (action === 'hire_builder') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      const result = await hireBuilder({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+        note: payload?.note,
+        skipTrial: payload?.skipTrial === true,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({
+        message: 'Builder hired.',
+        matchStatus: result.matchStatus,
+        opportunityStatus: result.opportunityStatus,
+      });
+    }
+
+    if (action === 'reject_builder') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      const result = await rejectBuilder({
+        opportunityId,
+        builderId,
+        founderEmail: resolved.email,
+        note: payload?.note,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({ message: 'Candidate closed.', matchStatus: result.matchStatus });
     }
 
     return bad(`Unsupported action: ${action}`);

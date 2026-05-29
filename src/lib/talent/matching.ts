@@ -87,6 +87,11 @@ export function computeBuilderScores(builder: any, projects: any[] = []) {
   ];
   const profileScore = Math.round((profileChecks.filter(Boolean).length / profileChecks.length) * 100);
 
+  const profileCompletionLabel =
+    profileScore < 50 ? 'Incomplete'
+      : profileScore < 85 ? 'Mostly Filled'
+        : 'Complete';
+
   // 2. Proof Strength Score
   let proofScore = 0;
   let hasProofLink = false;
@@ -111,6 +116,19 @@ export function computeBuilderScores(builder: any, projects: any[] = []) {
   }
   
   proofScore = Math.min(100, proofScore);
+
+  // Compute Proof Strength Label
+  const hasVerifiedProject = projects.some(p =>
+    ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(p.verificationStatus)
+  );
+  const isVerifiedBuilder = ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(builder?.verificationStatus);
+
+  const proofStrengthLabel =
+    (hasVerifiedProject || isVerifiedBuilder) ? 'Verified Proof'
+      : proofScore >= 80 ? 'Strong Proof'
+        : proofScore >= 50 ? 'Solid Proof'
+          : proofScore >= 20 ? 'Basic Proof'
+            : 'Thin Proof';
 
   // 3. Match Readiness Score
   // Requires profile completion + at least one proof-of-work project
@@ -137,7 +155,9 @@ export function computeBuilderScores(builder: any, projects: any[] = []) {
     matchScore, 
     score: matchScore, // legacy fallback
     missingItems, 
-    eligibility 
+    eligibility,
+    profileCompletionLabel,
+    proofStrengthLabel
   };
 }
 

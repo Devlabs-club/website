@@ -1,5 +1,8 @@
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import type { IUser } from '../models/user.tsx';
+
+dotenv.config();
 
 export interface JWTPayload {
   userId: string;
@@ -7,31 +10,31 @@ export interface JWTPayload {
   role: string;
 }
 
-// Generate JWT token
-export function generateToken(user: IUser): string {
-  if (!process.env.JWT_SECRET) {
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
+  return secret;
+}
 
+// Generate JWT token
+export function generateToken(user: IUser): string {
   const payload: JWTPayload = {
-    userId: user._id!,
+    userId: String(user._id),
     email: user.email,
-    role: user.role
+    role: user.role,
   };
 
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '7d' // Token expires in 7 days
+  return jwt.sign(payload, getJwtSecret(), {
+    expiresIn: '7d',
   });
 }
 
 // Verify JWT token
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as JWTPayload;
     return decoded;
   } catch (error) {
     console.error('Token verification failed:', error);

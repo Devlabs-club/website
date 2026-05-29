@@ -1,6 +1,6 @@
 import { generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig } from '@/lib/openrouter';
 
-export type ProfileQualityLabel = 'Needs Work' | 'Getting Clearer' | 'Strong' | 'Excellent';
+export type ProfileQualityLabel = 'Unclear' | 'Needs Sharpening' | 'Understandable' | 'Founder-Friendly' | 'Standout';
 
 export interface ProfileQualityEvaluation {
   overallScore: number;
@@ -28,10 +28,11 @@ export interface ProfileQualityEvaluation {
 }
 
 function getLabel(score: number): ProfileQualityLabel {
-  if (score >= 85) return 'Excellent';
-  if (score >= 70) return 'Strong';
-  if (score >= 40) return 'Getting Clearer';
-  return 'Needs Work';
+  if (score >= 90) return 'Standout';
+  if (score >= 75) return 'Founder-Friendly';
+  if (score >= 60) return 'Understandable';
+  if (score >= 40) return 'Needs Sharpening';
+  return 'Unclear';
 }
 
 export function evaluateDeterministicQuality(builder: any, projects: any[]): ProfileQualityEvaluation {
@@ -163,11 +164,11 @@ export async function evaluateBuilderProfileQuality(builder: any, projects: any[
 Schema:
 {
   "overallScore": number (0-100),
-  "label": "Needs Work" | "Getting Clearer" | "Strong" | "Excellent",
+  "label": "Unclear" | "Needs Sharpening" | "Understandable" | "Founder-Friendly" | "Standout",
   "oneLineSummary": string,
   "founderClarity": {
     "score": number (0-100),
-    "label": string,
+    "label": "Unclear" | "Needs Sharpening" | "Understandable" | "Founder-Friendly" | "Standout",
     "summary": string
   },
   "strengths": [ { "title": string, "detail": string } ],

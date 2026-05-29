@@ -9,7 +9,7 @@ export const POST: APIRoute = async ({ request }) => {
     await connectAdminDB();
 
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, role } = body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -74,7 +74,7 @@ export const POST: APIRoute = async ({ request }) => {
       name: name.trim(),
       email: email.toLowerCase(),
       password,
-      role: 'user'
+      role: role === 'founder' ? 'founder' : 'user'
     });
 
     await newUser.save();

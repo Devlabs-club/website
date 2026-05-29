@@ -5,13 +5,15 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'founder';
   createdAt?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authError: string | null;
+  refreshAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
@@ -24,34 +26,50 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const AUTH_CHECK_TIMEOUT_MS = 12_000;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Check if user is authenticated on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const checkAuth = async () => {
+    setAuthError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_CHECK_TIMEOUT_MS);
+
     try {
       const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include',
+        signal: controller.signal,
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
           setUser(data.user);
+          return;
         }
       }
+      setUser(null);
     } catch (error) {
       console.error('Auth check failed:', error);
+      setUser(null);
+      if (error instanceof Error && error.name === 'AbortError') {
+        setAuthError('Session check timed out. Please try again.');
+      } else {
+        setAuthError('Could not verify your session. Please try again.');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -125,9 +143,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshAuth = async () => {
+    setLoading(true);
+    await checkAuth();
+  };
+
   const value: AuthContextType = {
     user,
     loading,
+    authError,
+    refreshAuth,
     login,
     register,
     logout,

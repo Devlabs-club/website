@@ -9,6 +9,26 @@ const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
   clientId: import.meta.env.WORKOS_CLIENT_ID,
 });
 
+function nameFromWorkOSUser(workosUser: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+}) {
+  const full = `${workosUser.firstName || ''} ${workosUser.lastName || ''}`.trim();
+  if (full) return full;
+
+  const localPart = workosUser.email.split('@')[0] || 'user';
+  return localPart
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+    .trim() || 'DevLabs User';
+}
+
+function authCookieFlags(): string {
+  const secure = import.meta.env.PROD ? '; Secure' : '';
+  return `HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${secure}`;
+}
+
 export const GET: APIRoute = async ({ request, redirect, url }) => {
   try {
     // Connect to database
@@ -68,7 +88,7 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
       const updatedUser = await User.findByIdAndUpdate(
         user._id,
         {
-          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+          name: nameFromWorkOSUser(workosUser),
           // Add OAuth provider info if not already present
           ...(user.oauthProvider ? {} : { 
             oauthProvider: 'google',
@@ -81,7 +101,7 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     } else {
       // Create new user from OAuth profile
       user = new User({
-        name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
+        name: nameFromWorkOSUser(workosUser),
         email: workosUser.email.toLowerCase(),
         password: crypto.randomUUID(), // Generate random password for OAuth users
         role: 'user',
@@ -95,17 +115,21 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
     // Generate JWT token for the user
     const token = generateToken(user);
 
-    // Create response with redirect to dashboard and set cookies
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': redirectUrl,
-        'Set-Cookie': [
-          `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`,
-          `wos-session=${sealedSession}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`
-        ].join(', ')
-      }
-    });
+    // Multiple Set-Cookie headers must be separate — comma-joining breaks parsing
+    const headers = new Headers();
+    headers.set('Location', redirectUrl);
+    headers.append(
+      'Set-Cookie',
+      `auth-token=${token}; ${authCookieFlags()}`
+    );
+    if (sealedSession) {
+      headers.append(
+        'Set-Cookie',
+        `wos-session=${sealedSession}; ${authCookieFlags()}`
+      );
+    }
+
+    return new Response(null, { status: 302, headers });
 
   } catch (error) {
     console.error('OAuth callback error:', error);

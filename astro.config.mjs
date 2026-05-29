@@ -16,17 +16,37 @@ export default defineConfig({
   integrations: [tailwind(), react()],
   output: "server",
   adapter: vercel({
-    edgeMiddleware:false,
-    analytics: true,
-    maxDuration: 60
+    edgeMiddleware: false,
+    analytics: false,
+    maxDuration: 60,
   }),
   compilerOptions: {
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
   },
   vite: {
+    // Heavy deps + full discovery can hang esbuild for many minutes
+    optimizeDeps: {
+      noDiscovery: true,
+      include: [
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime",
+        "react-markdown",
+        "style-to-js",
+        "style-to-object",
+      ],
+      exclude: ["@xenova/transformers"],
+    },
     ssr: {
-      noExternal: ["react-tweet"],
+      noExternal: ["react-tweet", "react-markdown", "style-to-js", "style-to-object"],
+      external: ["@xenova/transformers"],
+    },
+    build: {
+      rollupOptions: {
+        external: ["@xenova/transformers"],
+      },
     },
   },
 });

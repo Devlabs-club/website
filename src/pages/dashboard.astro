@@ -5,8 +5,10 @@ import Layout from "../layouts/Layout.astro";
 const title = "Dashboard - Devlabs";
 ---
 
-<Layout title={title} hideNavbar>
-  <DashboardPage client:load />
+<Layout title={title} hideNavbar skipPageLoader>
+  <div class="min-h-screen">
+    <DashboardPage client:load />
+  </div>
   <style>
     .page-spacing {
       padding-top: 6rem;

@@ -12,9 +12,10 @@ interface Props {
   ogImageAlt?: string;
   keywords?: string;
   hideNavbar?: boolean;
+  skipPageLoader?: boolean;
 }
 
-const { title, description, ogImage, ogImageAlt, keywords, hideNavbar = false } = Astro.props;
+const { title, description, ogImage, ogImageAlt, keywords, hideNavbar = false, skipPageLoader = false } = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
@@ -79,15 +80,13 @@ const metaKeywords = keywords ?? defaultKeywords;
       rel="stylesheet"
     />
   </head>
-  <body class="text-gray-400 loader-visible">
-    <PageLoader />
-    <!-- Fixed background -->
+  <body class:list={['text-gray-400 bg-[hsl(8,8%,3.5%)]', !skipPageLoader && 'loader-visible']}>
+    {!skipPageLoader ? <PageLoader /> : null}
+    <!-- Fixed background: texture + grain -->
     <div class="fixed inset-0 pointer-events-none z-0">
-      <!-- Texture background -->
       <div class="absolute inset-0 bg-texture"></div>
-      <!-- Noise texture -->
-      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay">
-      </div>
+      <div class="absolute inset-0 app-surface-overlay"></div>
+      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay"></div>
     </div>
 
     {!hideNavbar && <Navbar />}
@@ -104,24 +103,11 @@ const metaKeywords = keywords ?? defaultKeywords;
   }
 
   body {
-    background-color: transparent;
+    background-color: hsl(8 8% 3.5%);
   }
 
   body.loader-visible {
     overflow: hidden;
-  }
-
-  .bg-texture {
-    background-image: url("/texture.webp");
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat;
-  }
-
-  .bg-noise {
-    background-image: url("/noise.png");
-    background-size: 100px 100px;
-    background-repeat: repeat;
   }
 
   /* Global section parallax: reveal + depth */

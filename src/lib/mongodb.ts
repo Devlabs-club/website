@@ -34,37 +34,34 @@ if (!globalAny.momentum_connection) {
     globalAny.momentum_connection = cachedMomentum;
 }
 
-async function makeConnection(mongo_url: string | undefined) {
-    // Use cached connection if available
-    if (cached.conn) {
-        return cached.conn;
+async function makeConnection(
+    mongo_url: string | undefined,
+    cache: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null }
+) {
+    if (cache.conn) {
+        return cache.conn;
     }
 
-    // Create new connection if none exists
-    if (!cached.promise) {
-        const opts = {
-            bufferCommands: false,
-        };
-
-        cached.promise = mongoose.connect(mongo_url as string, opts);
+    if (!cache.promise) {
+        cache.promise = mongoose.connect(mongo_url as string, { bufferCommands: false });
     }
 
     try {
-        cached.conn = await cached.promise;
+        cache.conn = await cache.promise;
     } catch (e) {
-        cached.promise = null;
+        cache.promise = null;
         throw e;
     }
 
-    return cached.conn;
+    return cache.conn;
 }
 
 async function connectDB() {
-    return makeConnection(MONGODB_URI);
+    return makeConnection(MONGODB_URI, cached);
 }
 
 async function connectAdminDB() {
-    return makeConnection(MONGODB_ADMIN_URI);
+    return makeConnection(MONGODB_ADMIN_URI, cachedAdmin);
 }
 
 async function connectMomentumDB(): Promise<mongoose.Connection> {

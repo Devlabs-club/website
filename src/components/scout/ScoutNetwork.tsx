@@ -24,7 +24,7 @@ export default function ScoutNetwork() {
 
   return (
     <section
-      className="relative bg-[#080808] py-24 px-6 overflow-hidden"
+      className="relative py-24 px-6 overflow-hidden"
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {/* Square grid pattern bg */}
@@ -33,13 +33,6 @@ export default function ScoutNetwork() {
         style={{
           backgroundImage:
             "repeating-linear-gradient(0deg, transparent, transparent 38px, rgba(255,255,255,0.5) 39px), repeating-linear-gradient(90deg, transparent, transparent 38px, rgba(255,255,255,0.5) 39px)",
-        }}
-      />
-      {/* Center orange glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(250,125,34,0.07) 0%, transparent 70%)",
         }}
       />
 

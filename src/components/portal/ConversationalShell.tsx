@@ -103,7 +103,7 @@ export default function ConversationalShell({
 
   return (
     <section className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8">
-      <div className="rounded-3xl border border-white/20 bg-gradient-to-b from-white/[0.08] to-black/50 backdrop-blur-2xl p-6 md:p-8 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+      <div className="glass-panel-strong p-6 md:p-8">
         <h2 className="text-white text-3xl md:text-4xl font-semibold leading-tight">{title}</h2>
         <p className="text-white/70 mt-3 max-w-2xl">Text naturally. DevLabs agent converts it into structured hiring data and actions.</p>
 
@@ -151,7 +151,7 @@ export default function ConversationalShell({
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/20 bg-gradient-to-b from-white/[0.06] to-black/50 backdrop-blur-2xl p-6 md:p-7 shadow-[0_24px_80px_rgba(0,0,0,0.4)]">
+      <div className="glass-panel p-6 md:p-7 shadow-glass-lg">
         <h3 className="text-white text-xl font-semibold">Generated UI</h3>
         <p className="text-white/65 mt-2 text-sm">Agent-created cards from your conversation.</p>
 

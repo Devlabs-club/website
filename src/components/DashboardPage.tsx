@@ -1,9 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Home, LayoutGrid, Users, Bot, User, Sparkles, Medal, Check, AlertCircle } from 'lucide-react';
+import { Home, LayoutGrid, Users, Bot, User, Sparkles, Medal, Check, AlertCircle, Mail, ClipboardList, Phone } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { AuthProvider, useAuth } from './auth_manager';
 import AdminDashboard from './AdminDashboard';
+import FounderOSDashboard from './founder/FounderOSDashboard';
+import BuilderIntroInbox from './builder/BuilderIntroInbox';
+import BuilderCallPanel from './builder/BuilderCallPanel';
+import BuilderTrialPanel from './builder/BuilderTrialPanel';
+import NotificationCenter from './talent/NotificationCenter';
+import type { NotificationItem } from './founder/founderTypes';
 import { DottedGlowBackground } from './ui/dotted-glow-background';
+import { AmbientBackground } from './ui/AmbientBackground';
 
 type BuilderData = {
   _id: string;
@@ -57,10 +64,18 @@ type MatchData = {
   company?: string;
   matchLabel?: 'strong' | 'good' | 'possible' | 'needs_more_proof';
   missingProof?: string[];
-  workType?: string[];
+  workType?: string | string[];
   compensation?: string;
   timeline?: string;
 };
+
+function formatWorkType(workType?: string | string[] | null): string {
+  if (!workType) return 'Any';
+  if (Array.isArray(workType)) {
+    return workType.map((w) => w.replace(/_/g, ' ')).join(', ') || 'Any';
+  }
+  return String(workType).replace(/_/g, ' ');
+}
 
 type AgentMessage = { sender: 'agent' | 'user'; text: string };
 type UiBlock = {
@@ -73,12 +88,15 @@ type UiBlock = {
   eligibility?: string;
 };
 
-type TabKey = 'home' | 'projects' | 'matches' | 'agent' | 'profile';
+type TabKey = 'home' | 'projects' | 'matches' | 'intros' | 'calls' | 'trials' | 'agent' | 'profile';
 
-const navItems: Array<{ key: TabKey; label: string; icon: React.ReactNode }> = [
+const navItems: Array<{ key: TabKey; label: string; icon: React.ReactNode; badgeKey?: string }> = [
   { key: 'home', label: 'Home', icon: <Home className="w-5 h-5" /> },
   { key: 'projects', label: 'Proof of Work', icon: <LayoutGrid className="w-5 h-5" /> },
   { key: 'matches', label: 'Matches', icon: <Users className="w-5 h-5" /> },
+  { key: 'intros', label: 'Intros', icon: <Mail className="w-5 h-5" />, badgeKey: 'intros' },
+  { key: 'calls', label: 'Calls', icon: <Phone className="w-5 h-5" />, badgeKey: 'calls' },
+  { key: 'trials', label: 'Trials', icon: <ClipboardList className="w-5 h-5" />, badgeKey: 'trials' },
   { key: 'agent', label: 'Agent', icon: <Bot className="w-5 h-5" /> },
   { key: 'profile', label: 'Profile', icon: <User className="w-5 h-5" /> },
 ];
@@ -108,6 +126,11 @@ function BuilderOSDashboard() {
   const [builder, setBuilder] = useState<BuilderData | null>(null);
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [matches, setMatches] = useState<MatchData[]>([]);
+  const [introInbox, setIntroInbox] = useState<any[]>([]);
+  const [activeTrials, setActiveTrials] = useState<any[]>([]);
+  const [upcomingCalls, setUpcomingCalls] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [events, setEvents] = useState<any[]>([]);
   const [momentum, setMomentum] = useState<any[]>([]);
   const [projectStats, setProjectStats] = useState<ProjectStats>({ total: 0, devpostImports: 0, githubProjects: 0, verifiedContributions: 0 });
@@ -152,6 +175,18 @@ function BuilderOSDashboard() {
   const qualityScore = builder?.profileQuality?.overallScore || 0;
   const qualityLabel = builder?.profileQuality?.label || 'Needs Work';
   const unreadCount = Math.max(0, uiBlocks.length);
+  const introBadgeCount = introInbox.length;
+  const callsBadgeCount = upcomingCalls.filter((c) => c.status === 'pending_builder').length;
+  const trialsBadgeCount = activeTrials.filter((t) =>
+    ['sent', 'rejected'].includes(t.trialProject?.status)
+  ).length;
+
+  const tabBadge = (key?: string) => {
+    if (key === 'intros') return introBadgeCount;
+    if (key === 'calls') return callsBadgeCount;
+    if (key === 'trials') return trialsBadgeCount;
+    return 0;
+  };
 
   const topRoles = useMemo(() => {
     return Array.isArray(builder?.rolePreference) ? builder.rolePreference.slice(0, 3) : [];
@@ -167,11 +202,15 @@ function BuilderOSDashboard() {
     if (silent) setRefreshing(true);
     else setLoading(true);
 
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 30_000);
+
     try {
       const response = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({ action: 'get_builder_dashboard', payload: {} }),
       });
       const data = await response.json();
@@ -180,6 +219,13 @@ function BuilderOSDashboard() {
       setBuilder(data.builder || null);
       setProjects(Array.isArray(data.projects) ? data.projects : []);
       setMatches(Array.isArray(data.matches) ? data.matches : []);
+      setIntroInbox(Array.isArray(data.introInbox) ? data.introInbox : []);
+      setActiveTrials(Array.isArray(data.activeTrials) ? data.activeTrials : []);
+      setUpcomingCalls(Array.isArray(data.upcomingCalls) ? data.upcomingCalls : []);
+      setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+      setUnreadNotificationCount(
+        typeof data.unreadNotificationCount === 'number' ? data.unreadNotificationCount : 0
+      );
       setEvents(Array.isArray(data.events) ? data.events : []);
       setMomentum(Array.isArray(data.momentum) ? data.momentum : []);
       setProjectStats(data.projectStats || { total: 0, devpostImports: 0, githubProjects: 0, verifiedContributions: 0 });
@@ -232,8 +278,15 @@ function BuilderOSDashboard() {
       }
       setSettingsWorkTypes(Array.isArray(data.builder?.preferredWorkType) ? data.builder.preferredWorkType : []);
     } catch (error) {
-      setAgentMessages((prev) => [...prev, { sender: 'agent', text: error instanceof Error ? error.message : 'Could not load dashboard.' }]);
+      const message =
+        error instanceof Error && error.name === 'AbortError'
+          ? 'Dashboard load timed out. Please refresh the page.'
+          : error instanceof Error
+            ? error.message
+            : 'Could not load dashboard.';
+      setAgentMessages((prev) => [...prev, { sender: 'agent', text: message }]);
     } finally {
+      clearTimeout(timeoutId);
       if (silent) setRefreshing(false);
       else setLoading(false);
     }
@@ -241,6 +294,13 @@ function BuilderOSDashboard() {
 
   useEffect(() => {
     loadDashboard();
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      const validTabs: TabKey[] = ['home', 'projects', 'matches', 'intros', 'calls', 'trials', 'agent', 'profile'];
+      if (tab && validTabs.includes(tab as TabKey)) {
+        setActiveTab(tab as TabKey);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -406,19 +466,26 @@ function BuilderOSDashboard() {
 
   return (
     <div className="relative min-h-screen w-full text-white font-manrope flex flex-col">
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[url('/texture.webp')] bg-cover bg-center bg-repeat" />
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[#090a0c]/55" />
-      <div className="fixed inset-0 z-0 opacity-[0.08] mix-blend-overlay pointer-events-none" style={{ backgroundImage: "url('/noise.png')", backgroundSize: '100px 100px' }} />
+      <AmbientBackground />
 
       <div className="relative z-10 w-full max-w-[1600px] mx-auto px-4 xl:px-10 pt-8 pb-12 flex-1 flex flex-col">
         <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-8 flex-1 items-start">
-          <aside className="sticky top-8 rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] backdrop-blur-xl p-6 flex flex-col h-[calc(100vh_-_4rem)] overflow-y-auto">
+          <aside className="sticky top-8 glass-panel p-6 flex flex-col h-[calc(100vh_-_4rem)] overflow-y-auto">
             <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/10">
               <img src="/logo.png" alt="DevLabs" className="w-10 h-10" />
-              <div>
+              <div className="flex-1">
                 <p className="text-[10px] uppercase tracking-[0.25em] text-[#fa7d22] font-bold">Builder OS</p>
                 <p className="text-2xl font-semibold tracking-tight leading-none mt-0.5">DevLabs</p>
               </div>
+              <NotificationCenter
+                initialNotifications={notifications}
+                initialUnreadCount={unreadNotificationCount}
+                onNavigate={(link) => {
+                  const url = new URL(link, window.location.origin);
+                  const tab = url.searchParams.get('tab');
+                  if (tab) setActiveTab(tab as TabKey);
+                }}
+              />
             </div>
 
             <div className="space-y-2 flex-1">
@@ -434,6 +501,11 @@ function BuilderOSDashboard() {
                     {item.key === 'agent' && unreadCount > 0 ? (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-[#fa7d22]/20 border border-[#fa7d22]/30 text-[#ffb580] font-semibold">{unreadCount}</span>
                     ) : null}
+                    {item.badgeKey && tabBadge(item.badgeKey) > 0 ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#fa7d22]/20 border border-[#fa7d22]/30 text-[#ffb580] font-semibold">
+                        {tabBadge(item.badgeKey)}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -445,25 +517,27 @@ function BuilderOSDashboard() {
               <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 space-y-3">
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white/70 uppercase tracking-wider font-semibold">Profile</span>
+                    <span className="text-white/75 uppercase tracking-wider font-semibold">Completion</span>
                     <span className="text-white font-medium">{profileScore}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
                     <div className="h-full bg-emerald-400" style={{ width: `${profileScore}%` }} />
                   </div>
+                  <p className="text-[10px] text-white/50">Status: <span className="text-emerald-400 font-semibold">{builder.profileCompletion?.profileCompletionLabel || 'Incomplete'}</span></p>
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white/70 uppercase tracking-wider font-semibold">Proof</span>
+                    <span className="text-white/75 uppercase tracking-wider font-semibold">Proof Strength</span>
                     <span className="text-white font-medium">{proofScore}%</span>
                   </div>
-                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
                     <div className="h-full bg-blue-400" style={{ width: `${proofScore}%` }} />
                   </div>
+                  <p className="text-[10px] text-white/50">Level: <span className="text-blue-400 font-semibold">{builder.profileCompletion?.proofStrengthLabel || 'Thin Proof'}</span></p>
                 </div>
                 <div>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-white/70 uppercase tracking-wider font-semibold">Match</span>
+                    <span className="text-white/75 uppercase tracking-wider font-semibold">Match Score</span>
                     <span className="text-white font-medium">{matchScore}%</span>
                   </div>
                   <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -486,7 +560,7 @@ function BuilderOSDashboard() {
             {activeTab === 'home' && (
               <div className="space-y-6">
                 {/* Hero / Welcome Section */}
-                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-[#fa7d22]/10 to-black/20 backdrop-blur-xl p-8 md:p-12 text-center flex flex-col items-center shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
+                <div className="relative overflow-hidden glass-panel-strong p-8 md:p-12 text-center flex flex-col items-center">
                   <div className="absolute inset-0 pointer-events-none opacity-70" style={{ maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)", WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)" }}>
                     <DottedGlowBackground className="w-full h-full" color="rgba(255,255,255,0.5)" glowColor="rgba(250, 125, 34, 0.75)" gap={14} radius={2} opacity={0.7} speedMin={0.3} speedMax={1} speedScale={0.8} />
                   </div>
@@ -507,7 +581,7 @@ function BuilderOSDashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Profile Quality Card */}
-                  <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-black/30 backdrop-blur-xl p-6 flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.2)] hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
+                  <div className="glass-panel p-6 flex flex-col h-full hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="text-xl font-semibold">Profile Quality</h3>
                       <span className={`px-3 py-1 text-sm rounded-full border ${scoreTone(qualityScore)}`}>{qualityLabel} · {qualityScore}%</span>
@@ -543,7 +617,7 @@ function BuilderOSDashboard() {
                   </div>
 
                   {/* Founder Preview Card */}
-                  <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-black/30 backdrop-blur-xl p-6 flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.2)] hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
+                  <div className="glass-panel p-6 flex flex-col h-full hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="text-xl font-semibold">Founder Preview</h3>
                       <span className={`px-3 py-1 text-xs rounded-full border ${builder.profileQuality?.founderClarity?.score >= 70 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-400'}`}>
@@ -585,7 +659,7 @@ function BuilderOSDashboard() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Proof of Work Summary */}
-                  <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-black/30 backdrop-blur-xl p-6 flex flex-col h-full shadow-[0_8px_32px_rgba(0,0,0,0.2)] hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
+                  <div className="glass-panel p-6 flex flex-col h-full hover:border-white/20 hover:shadow-[0_12px_40px_rgba(0,0,0,0.3)] transition-all duration-300">
                     <h3 className="text-xl font-semibold mb-4">Proof of Work</h3>
                     <div className="grid grid-cols-2 gap-4 flex-1">
                       <div className="bg-gradient-to-br from-white/[0.06] to-transparent backdrop-blur-md border border-white/5 rounded-xl p-4 text-center">
@@ -843,7 +917,7 @@ function BuilderOSDashboard() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-sm">
                           <div>
                             <p className="text-white/40 uppercase tracking-wider text-[10px] mb-1">Work Type</p>
-                            <p className="text-white/90 capitalize">{match.workType?.join(', ') || 'Any'}</p>
+                            <p className="text-white/90 capitalize">{formatWorkType(match.workType)}</p>
                           </div>
                           <div>
                             <p className="text-white/40 uppercase tracking-wider text-[10px] mb-1">Compensation</p>
@@ -878,15 +952,30 @@ function BuilderOSDashboard() {
                         </div>
 
                         <div className="mt-6 flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/10">
+                          {match.status === 'hired' ? (
+                            <span className="px-4 py-2 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-sm font-semibold">
+                              Hired
+                            </span>
+                          ) : null}
                           {match.missingProof && match.missingProof.length > 0 && (
                             <button onClick={() => { setAgentInput(`Help me add proof for the ${match.company || 'startup'} match`); setActiveTab('agent'); }} className="group relative inline-flex items-center justify-center px-5 py-2.5 rounded-full whitespace-nowrap bg-gradient-to-br from-white/10 via-white/5 to-transparent backdrop-blur-xl border border-white/20 text-white font-medium transition-all duration-400 shadow-[0_8px_32px_rgba(255,255,255,0.06)] hover:scale-[1.02] hover:border-white/35 hover:shadow-[0_12px_40px_rgba(255,255,255,0.12)] hover:from-white/15 hover:via-white/10 hover:to-white/5 text-sm">
                               <span className="relative z-10 drop-shadow-sm">Improve match</span>
                             </button>
                           )}
-                          <button onClick={() => { setAgentInput(`I'm interested in the ${match.company || 'startup'} role`); setActiveTab('agent'); }} className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)] transition-all duration-400 ease-out hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)] hover:-translate-y-0.5 active:scale-[0.98] text-sm">
-                            <span className="relative z-10">Express interest</span>
-                            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#fa7d22]/0 via-[#fa7d22]/10 to-[#fa7d22]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-400" aria-hidden="true"></span>
-                          </button>
+                          {match.status === 'intro_requested' || introInbox.some((i) => i.roleTitle === match.roleTitle && i.company === match.company) ? (
+                            <button onClick={() => setActiveTab('intros')} className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide text-sm">
+                              View intro request
+                            </button>
+                          ) : match.status === 'trial' ? (
+                            <button onClick={() => setActiveTab('trials')} className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide text-sm">
+                              Open trial
+                            </button>
+                          ) : match.status !== 'hired' ? (
+                            <button onClick={() => { setAgentInput(`I'm interested in the ${match.company || 'startup'} role`); setActiveTab('agent'); }} className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)] transition-all duration-400 ease-out hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)] hover:-translate-y-0.5 active:scale-[0.98] text-sm">
+                              <span className="relative z-10">Express interest</span>
+                              <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#fa7d22]/0 via-[#fa7d22]/10 to-[#fa7d22]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-400" aria-hidden="true"></span>
+                            </button>
+                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -920,6 +1009,36 @@ function BuilderOSDashboard() {
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'intros' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold">Intro requests</h3>
+                  <p className="text-white/65 text-sm mt-1">Founders who want to connect about a role.</p>
+                </div>
+                <BuilderIntroInbox items={introInbox} onResponded={() => loadDashboard({ silent: true })} />
+              </div>
+            )}
+
+            {activeTab === 'calls' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold">Intro calls</h3>
+                  <p className="text-white/65 text-sm mt-1">Confirm or reschedule proposed meeting times.</p>
+                </div>
+                <BuilderCallPanel calls={upcomingCalls} onUpdated={() => loadDashboard({ silent: true })} />
+              </div>
+            )}
+
+            {activeTab === 'trials' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-semibold">Work trials</h3>
+                  <p className="text-white/65 text-sm mt-1">Build and submit trial projects from founders.</p>
+                </div>
+                <BuilderTrialPanel trials={activeTrials} onSubmitted={() => loadDashboard({ silent: true })} />
               </div>
             )}
 
@@ -1271,15 +1390,59 @@ function BuilderOSDashboard() {
 }
 
 function DashboardContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, authError, refreshAuth } = useAuth();
 
-  if (loading) return <div className="min-h-screen bg-[#080909] text-white p-10">Checking session…</div>;
+  useEffect(() => {
+    if (loading || user) return;
+    const id = window.setTimeout(() => {
+      window.location.href = '/login?redirect=/dashboard';
+    }, 400);
+    return () => window.clearTimeout(id);
+  }, [loading, user]);
+
+  if (loading) {
+    return (
+      <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10">
+        <AmbientBackground />
+        <p className="relative z-10 text-white/70">Loading your workspace…</p>
+        <div className="relative z-10 w-8 h-8 border-2 border-[#fa7d22]/30 border-t-[#fa7d22] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10 text-center">
+        <AmbientBackground />
+        <p className="relative z-10 text-amber-200 max-w-md">{authError}</p>
+        <div className="relative z-10 flex gap-3">
+          <button
+            type="button"
+            onClick={() => refreshAuth()}
+            className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold"
+          >
+            Retry
+          </button>
+          <a href="/login?redirect=/dashboard" className="px-4 py-2 rounded-xl border border-white/20 text-sm">
+            Sign in again
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    if (typeof window !== 'undefined') window.location.href = '/login?redirect=/dashboard';
-    return <div className="min-h-screen bg-[#080909] text-white p-10">Redirecting to login…</div>;
+    return (
+      <div className="relative min-h-screen text-white flex items-center justify-center p-10">
+        <AmbientBackground />
+        <p className="relative z-10">Redirecting to sign in…</p>
+      </div>
+    );
   }
   if (user.role === 'admin') return <AdminDashboard />;
+  if (user.role === 'founder') return <FounderOSDashboard />;
 
+  // Default: builders and legacy `user` role → Builder OS
   return <BuilderOSDashboard />;
 }
 

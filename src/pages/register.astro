@@ -1,5 +1,6 @@
 ---
 import RegisterPage from "../components/RegisterPage";
+import "../styles/global.css";
 
 const title = "Register - Devlabs";
 const description = "Create your Devlabs account";
@@ -25,24 +26,12 @@ const description = "Create your Devlabs account";
     />
   </head>
 
-  <body class="bg-black text-gray-400 min-h-screen overflow-x-hidden">
-    <!-- Fixed background with noise texture -->
-    <div class="fixed inset-0 bg-black pointer-events-none z-0">
-      <div
-        class="absolute inset-0 bg-gradient-to-r from-black via-black to-black"
-      >
-      </div>
-      <div class="absolute inset-0 bg-noise opacity-40"></div>
-    </div>
-
-    <!-- Floating gradient orbs -->
-    <div
-      class="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl animate-pulse"
-    >
-    </div>
-    <div
-      class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-orange-400/10 rounded-full blur-2xl animate-pulse delay-1000"
-    >
+  <body class="bg-[hsl(8,8%,3.5%)] text-gray-400 min-h-screen overflow-x-hidden">
+    <!-- Fixed background: texture + grain -->
+    <div class="fixed inset-0 pointer-events-none z-0">
+      <div class="absolute inset-0 bg-texture"></div>
+      <div class="absolute inset-0 app-surface-overlay"></div>
+      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay"></div>
     </div>
 
     <div class="relative z-10 container mx-auto px-4 py-8">
@@ -77,9 +66,5 @@ const description = "Create your Devlabs account";
 <style>
   html {
     font-family: Manrope, sans-serif;
-  }
-
-  body {
-    background-color: #000000;
   }
 </style>

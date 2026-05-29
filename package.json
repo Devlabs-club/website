@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 astro build",
+    "build:clean": "rm -rf .astro dist node_modules/.vite node_modules/.astro .vercel/output && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "vercel deploy --prod",
