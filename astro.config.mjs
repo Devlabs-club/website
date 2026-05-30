@@ -3,6 +3,28 @@ import tailwind from "@astrojs/tailwind";
 import vercel from "@astrojs/vercel";
 import react from "@astrojs/react";
 
+/** Native / heavy server deps — keep out of Rollup SSR bundles. */
+const SSR_EXTERNAL = [
+  "@xenova/transformers",
+  "mongoose",
+  "mongodb",
+  "pdf-parse",
+  "nodemailer",
+  "bcryptjs",
+  "jsonwebtoken",
+  "@workos-inc/node",
+  "cloudinary",
+  "@sendgrid/mail",
+  "@sendgrid/client",
+  "@langchain/core",
+  "@langchain/mongodb",
+  "pdf-lib",
+  "@pdf-lib/fontkit",
+  "qrcode",
+  "nunjucks",
+  "@dqbd/tiktoken",
+];
+
 export default defineConfig({
   server: {
     allowedHosts: true,
@@ -20,12 +42,10 @@ export default defineConfig({
     analytics: false,
     maxDuration: 60,
   }),
-  compilerOptions: {
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
-  },
   vite: {
-    // Heavy deps + full discovery can hang esbuild for many minutes
+    // Lock dependency pre-bundling to a fixed list so cache invalidation (504 Outdated
+    // Optimize Dep) does not happen on every config save. react-markdown is lazy-loaded
+    // in ChatMarkdown.tsx — do not pre-bundle it (aria-query hangs esbuild for minutes).
     optimizeDeps: {
       noDiscovery: true,
       include: [
@@ -33,20 +53,17 @@ export default defineConfig({
         "react-dom",
         "react/jsx-runtime",
         "react/jsx-dev-runtime",
-        "react-markdown",
-        "style-to-js",
-        "style-to-object",
+        "@astrojs/react/client.js",
       ],
-      exclude: ["@xenova/transformers"],
+      exclude: ["@xenova/transformers", "react-markdown"],
     },
     ssr: {
-      noExternal: ["react-tweet", "react-markdown", "style-to-js", "style-to-object"],
-      external: ["@xenova/transformers"],
+      noExternal: ["react-tweet"],
+      external: SSR_EXTERNAL,
     },
     build: {
-      rollupOptions: {
-        external: ["@xenova/transformers"],
-      },
+      sourcemap: false,
+      target: "es2022",
     },
   },
 });

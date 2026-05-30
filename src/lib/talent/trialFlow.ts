@@ -38,14 +38,21 @@ export async function sendTrialProjectToBuilder(params: {
   opportunityId: string;
   builderId: string;
   founderEmail: string;
+  deadlineAt: Date;
 }) {
   const ctx = await loadFounderMatch(params);
   if ('error' in ctx) return ctx;
 
   const { opportunity, builder, match } = ctx;
 
-  if (!match.callCompletedAt) {
-    return { error: 'Mark the intro call complete before sending a trial project.', status: 400 as const };
+  // RESTORE BEFORE GIT PUSH — intro call required before sending trial
+  // if (!match.callCompletedAt) {
+  //   return { error: 'Complete the intro call before sending a trial project.', status: 400 as const };
+  // }
+
+  const existingStatus = match.trialProject?.status;
+  if (existingStatus && !['draft', 'rejected'].includes(existingStatus)) {
+    return { error: 'A trial has already been sent for this builder.', status: 400 as const };
   }
 
   const draft = normalizeTrialProject(match.trialProject);
@@ -56,6 +63,7 @@ export async function sendTrialProjectToBuilder(params: {
   match.trialProject = {
     ...match.trialProject,
     ...draft,
+    deadlineAt: params.deadlineAt,
     status: 'sent',
     sentAt: new Date(),
     updatedAt: new Date(),
@@ -84,7 +92,7 @@ export async function sendTrialProjectToBuilder(params: {
 export async function submitTrialByBuilder(params: {
   opportunityId: string;
   builderId: string;
-  demoUrl: string;
+  videoUrl: string;
   githubUrl: string;
   notes?: string;
 }) {
@@ -98,17 +106,17 @@ export async function submitTrialByBuilder(params: {
     return { error: 'No active trial project to submit', status: 400 as const };
   }
 
-  const demoUrl = params.demoUrl.trim();
+  const videoUrl = params.videoUrl.trim();
   const githubUrl = params.githubUrl.trim();
-  if (!demoUrl || !githubUrl) {
-    return { error: 'Demo URL and GitHub URL are required', status: 400 as const };
+  if (!videoUrl || !githubUrl) {
+    return { error: 'GitHub URL and walkthrough video link (Google Drive) are required', status: 400 as const };
   }
 
   const now = new Date();
   match.trialProject.status = 'submitted';
   match.trialProject.submittedAt = now;
   match.trialProject.submission = {
-    demoUrl,
+    videoUrl,
     githubUrl,
     notes: params.notes?.trim() || null,
     submittedAt: now,
@@ -232,9 +240,10 @@ export async function hireBuilder(params: {
 
   const { opportunity, builder, match } = ctx;
 
-  if (!params.skipTrial && !match.callCompletedAt) {
-    return { error: 'Complete the intro call before hiring.', status: 400 as const };
-  }
+  // RESTORE BEFORE GIT PUSH — intro call required before hiring
+  // if (!params.skipTrial && !match.callCompletedAt) {
+  //   return { error: 'Complete the intro call before hiring.', status: 400 as const };
+  // }
 
   if (match.status === 'trial' && match.trialProject?.status !== 'approved' && !params.skipTrial) {
     return { error: 'Approve the trial submission before hiring, or hire directly after call.', status: 400 as const };

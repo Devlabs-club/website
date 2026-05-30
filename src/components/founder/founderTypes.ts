@@ -3,14 +3,14 @@ export type TrialProjectDraft = {
   goal: string;
   deliverables: string[];
   timeline: string;
-  suggestedPayRange: string;
+  deadlineAt?: string | null;
   successCriteria: string[];
   updatedAt?: string | null;
   status?: 'draft' | 'sent' | 'in_progress' | 'submitted' | 'approved' | 'rejected';
   sentAt?: string | null;
   submittedAt?: string | null;
   submission?: {
-    demoUrl?: string | null;
+    videoUrl?: string | null;
     githubUrl?: string | null;
     notes?: string | null;
     submittedAt?: string | null;
@@ -130,6 +130,8 @@ export type PipelineEntry = {
   callCompletedAt?: string | null;
   callScheduleStatus?: string | null;
   callScheduleId?: string | null;
+  confirmedCallStartAt?: string | null;
+  confirmedCallEndAt?: string | null;
 };
 
 export type FounderPipeline = {

@@ -46,7 +46,6 @@ export type RankedBuilderMatch = {
   projects: any[];
 };
 
-const ANONYMOUS_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((l) => `Candidate ${l}`);
 
 const VERIFIED_PROJECT_STATUSES = new Set([
   'builder_confirmed',
@@ -351,8 +350,8 @@ export function rankBuildersForOpportunity(
 }
 
 export function toAnonymousCandidates(matches: RankedBuilderMatch[], previewCount = 6) {
-  return matches.slice(0, previewCount).map((entry, index) => ({
-    anonymousLabel: ANONYMOUS_LABELS[index] || `Candidate ${index + 1}`,
+  return matches.slice(0, previewCount).map((entry) => ({
+    anonymousLabel: `${entry.roleType || 'Builder'} · ${entry.matchLabel}`,
     builderId: entry.builderId,
     matchScore: entry.matchScore,
     matchLabel: entry.matchLabel,

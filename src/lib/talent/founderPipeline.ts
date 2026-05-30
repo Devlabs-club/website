@@ -109,6 +109,9 @@ export function buildSuggestedIntroMessage(params: {
     company?: string | null;
     roleTitle?: string | null;
     startupSummary?: string | null;
+    builderWillDo?: string | null;
+    successIn30Days?: string | null;
+    skillsNeeded?: string[];
     timeline?: string | null;
   };
   matchReasoning?: string | null;
@@ -117,10 +120,18 @@ export function buildSuggestedIntroMessage(params: {
 }): string {
   const founder = params.founderName.split(' ')[0] || 'the founder';
   const builder = params.builderName.split(' ')[0] || 'there';
-  const startup = params.opportunity.company || 'a startup';
+  const startup = params.opportunity.company || 'our startup';
   const role = params.opportunity.roleTitle || 'a builder role';
-  const timeline = params.opportunity.timeline
-    ? ` for ${params.opportunity.timeline}`
+  const timeline = params.opportunity.timeline ? ` (${params.opportunity.timeline})` : '';
+
+  const jobFocus =
+    params.opportunity.builderWillDo ||
+    params.opportunity.successIn30Days ||
+    params.opportunity.startupSummary?.split('.')[0]?.trim() ||
+    null;
+
+  const skillsLine = params.opportunity.skillsNeeded?.length
+    ? `We're looking for ${params.opportunity.skillsNeeded.slice(0, 4).join(', ')}. `
     : '';
 
   let proofBit = '';
@@ -134,12 +145,9 @@ export function buildSuggestedIntroMessage(params: {
   }
   if (!proofBit) proofBit = 'Your proof-of-work on DevLabs';
 
-  const summary = params.opportunity.startupSummary
-    ? params.opportunity.startupSummary.split('.')[0]?.trim()
-    : null;
-  const building = summary ? `${founder} is building ${summary}` : `${founder} is building at ${startup}`;
+  const roleDesc = jobFocus ? `The role focuses on: ${jobFocus}. ` : '';
 
-  return `Hey ${builder}, ${building} and looking for a ${role}${timeline}. ${proofBit} looks like a strong fit. Are you open to a quick intro?`;
+  return `Hey ${builder}, I'm ${founder} at ${startup}. We're hiring a ${role}${timeline}. ${roleDesc}${skillsLine}${proofBit} looks like a strong fit for what we need. Would you be open to a quick intro to discuss the role?`;
 }
 
 export async function buildFounderPipeline(
@@ -284,6 +292,12 @@ export function buildPipelineEntry(params: {
     callCompletedAt: match.callCompletedAt || null,
     callScheduleStatus: callSchedule?.status || null,
     callScheduleId: callSchedule?._id ? String(callSchedule._id) : null,
+    confirmedCallStartAt: callSchedule?.confirmedSlot?.startAt
+      ? new Date(callSchedule.confirmedSlot.startAt).toISOString()
+      : null,
+    confirmedCallEndAt: callSchedule?.confirmedSlot?.endAt
+      ? new Date(callSchedule.confirmedSlot.endAt).toISOString()
+      : null,
     updatedAt: match.updatedAt || match.createdAt,
   };
 }

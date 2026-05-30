@@ -59,11 +59,11 @@ export default function TrialReviewPanel({
 
         {trialProject.submission ? (
           <div className="rounded-xl bg-white/5 border border-white/10 p-4 mb-4 space-y-2 text-sm">
-            {trialProject.submission.demoUrl ? (
+            {trialProject.submission.videoUrl ? (
               <p>
-                <span className="text-white/45">Demo: </span>
-                <a href={trialProject.submission.demoUrl} target="_blank" rel="noreferrer" className="text-[#ffb580] hover:underline">
-                  {trialProject.submission.demoUrl}
+                <span className="text-white/45">Walkthrough video: </span>
+                <a href={trialProject.submission.videoUrl} target="_blank" rel="noreferrer" className="text-[#ffb580] hover:underline">
+                  {trialProject.submission.videoUrl}
                 </a>
               </p>
             ) : null}

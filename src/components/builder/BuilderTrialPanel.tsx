@@ -20,11 +20,11 @@ export default function BuilderTrialPanel({
   onSubmitted: () => void;
 }) {
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [forms, setForms] = useState<Record<string, { demoUrl: string; githubUrl: string; notes: string }>>({});
+  const [forms, setForms] = useState<Record<string, { videoUrl: string; githubUrl: string; notes: string }>>({});
   const [error, setError] = useState<string | null>(null);
 
   const getForm = (id: string) =>
-    forms[id] || { demoUrl: '', githubUrl: '', notes: '' };
+    forms[id] || { videoUrl: '', githubUrl: '', notes: '' };
 
   const submit = async (trial: BuilderTrialItem) => {
     const form = getForm(trial.matchId);
@@ -39,7 +39,7 @@ export default function BuilderTrialPanel({
           action: 'submit_trial',
           payload: {
             opportunityId: trial.opportunityId,
-            demoUrl: form.demoUrl,
+            videoUrl: form.videoUrl,
             githubUrl: form.githubUrl,
             notes: form.notes,
           },
@@ -97,7 +97,10 @@ export default function BuilderTrialPanel({
                   ))}
                 </ul>
                 <p className="text-xs text-white/50 mb-4">
-                  Timeline: {project.timeline} · Pay: {project.suggestedPayRange}
+                  Timeline: {project.timeline}
+                  {project.deadlineAt
+                    ? ` · Due ${new Date(project.deadlineAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
+                    : ''}
                 </p>
               </>
             ) : null}
@@ -114,10 +117,10 @@ export default function BuilderTrialPanel({
             {isSubmitted && project?.submission ? (
               <div className="rounded-xl bg-emerald-500/10 border border-emerald-400/20 p-3 text-sm text-white/80">
                 Submitted — awaiting founder review.
-                {project.submission.demoUrl ? (
+                {project.submission.videoUrl ? (
                   <p className="mt-1">
-                    <a href={project.submission.demoUrl} className="text-[#ffb580] hover:underline" target="_blank" rel="noreferrer">
-                      Demo link
+                    <a href={project.submission.videoUrl} className="text-[#ffb580] hover:underline" target="_blank" rel="noreferrer">
+                      Walkthrough video
                     </a>
                   </p>
                 ) : null}
@@ -127,17 +130,6 @@ export default function BuilderTrialPanel({
             {canSubmit ? (
               <div className="space-y-3 pt-3 border-t border-white/10">
                 <input
-                  value={getForm(trial.matchId).demoUrl}
-                  onChange={(e) =>
-                    setForms((f) => ({
-                      ...f,
-                      [trial.matchId]: { ...getForm(trial.matchId), demoUrl: e.target.value },
-                    }))
-                  }
-                  placeholder="Demo URL"
-                  className="w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white"
-                />
-                <input
                   value={getForm(trial.matchId).githubUrl}
                   onChange={(e) =>
                     setForms((f) => ({
@@ -146,6 +138,17 @@ export default function BuilderTrialPanel({
                     }))
                   }
                   placeholder="GitHub repo URL"
+                  className="w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white"
+                />
+                <input
+                  value={getForm(trial.matchId).videoUrl}
+                  onChange={(e) =>
+                    setForms((f) => ({
+                      ...f,
+                      [trial.matchId]: { ...getForm(trial.matchId), videoUrl: e.target.value },
+                    }))
+                  }
+                  placeholder="Walkthrough video link (Google Drive)"
                   className="w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white"
                 />
                 <textarea

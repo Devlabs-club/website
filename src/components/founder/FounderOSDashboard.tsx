@@ -13,7 +13,9 @@ import FounderRoleIntakeChat from './FounderRoleIntakeChat';
 import FounderUnifiedWorkspace from './FounderUnifiedWorkspace';
 import CallScheduleModal from './CallScheduleModal';
 import TrialReviewPanel from './TrialReviewPanel';
+import FounderTrialSidebar from './FounderTrialSidebar';
 import HireConfirmModal from './HireConfirmModal';
+import { useTalentRealtime } from '@/hooks/useTalentRealtime';
 import NotificationCenter from '../talent/NotificationCenter';
 import { DottedGlowBackground } from '../ui/dotted-glow-background';
 import { AmbientBackground } from '../ui/AmbientBackground';
@@ -94,10 +96,17 @@ export default function FounderOSDashboard() {
   // Modal/Drawer States
   const [drawerCandidate, setDrawerCandidate] = useState<FullCandidate | null>(null);
   const [drawerOpportunityId, setDrawerOpportunityId] = useState<string | null>(null);
+  const [trialSidebar, setTrialSidebar] = useState<{
+    opportunityId: string;
+    builderId: string;
+    builderName: string;
+    roleTitle?: string;
+  } | null>(null);
   const [introModal, setIntroModal] = useState<{
     candidate: FullCandidate;
     opportunityId: string;
   } | null>(null);
+  const [searchActionBusy, setSearchActionBusy] = useState(false);
 
   // Load dashboard search data from API
   const loadSearches = useCallback(async () => {
@@ -141,6 +150,13 @@ export default function FounderOSDashboard() {
   useEffect(() => {
     loadSearches();
   }, [loadSearches]);
+
+  useTalentRealtime({
+    enabled: Boolean(activeOpportunityId) && onboardingCompleted,
+    scope: 'founder',
+    opportunityId: activeOpportunityId,
+    onEvent: () => loadSearches(),
+  });
 
   // Keep shortlists and drawer candidate in sync
   useEffect(() => {
@@ -287,6 +303,57 @@ export default function FounderOSDashboard() {
     loadSearches();
   };
 
+  const rerunSearch = async (opportunityId: string) => {
+    setSearchActionBusy(true);
+    try {
+      const response = await fetch('/api/agent/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'rerun_search', payload: { opportunityId } }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Search failed');
+      if (data.shortlist) {
+        setShortlists((prev) => {
+          const next = prev.filter((s) => s.opportunityId !== opportunityId);
+          return [...next, data.shortlist];
+        });
+      }
+      await loadSearches();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Search failed');
+    } finally {
+      setSearchActionBusy(false);
+    }
+  };
+
+  const archiveSearch = async (opportunityId: string) => {
+    if (!confirm('Archive this search? You can start a new one anytime.')) return;
+    setSearchActionBusy(true);
+    try {
+      const response = await fetch('/api/agent/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'archive_opportunity', payload: { opportunityId } }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Archive failed');
+      setActiveOpportunityId(null);
+      await loadSearches();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Archive failed');
+    } finally {
+      setSearchActionBusy(false);
+    }
+  };
+
+  const editSearch = (opportunityId: string) => {
+    setActiveOpportunityId(opportunityId);
+    setShowIntakeChat(true);
+  };
+
   // 1. Onboarding Screen
   if (!onboardingCompleted && !searchesLoading && searches.length === 0) {
     return <FounderOnboardingChat onCompleted={handleOnboardingCompleted} />;
@@ -409,6 +476,27 @@ export default function FounderOSDashboard() {
                 .find((c) => c.builderId === entry.builderId);
               if (cand) openDrawer(cand, entry.opportunityId);
             }}
+            onGenerateTrial={(candidate, opportunityId) =>
+              setTrialSidebar({
+                opportunityId,
+                builderId: candidate.builderId,
+                builderName: candidate.name,
+                roleTitle: searches.find((s) => s._id === opportunityId)?.roleTitle,
+              })
+            }
+            onHireCandidate={(candidate, opportunityId) =>
+              setHireModal({
+                opportunityId,
+                builderId: candidate.builderId,
+                builderName: candidate.name,
+                skipTrial: false,
+              })
+            }
+            onRerunSearch={rerunSearch}
+            onEditSearch={editSearch}
+            onArchiveSearch={archiveSearch}
+            searchActionBusy={searchActionBusy}
+            onKanbanRefresh={loadSearches}
           />
         )}
       </div>
@@ -457,22 +545,6 @@ export default function FounderOSDashboard() {
             );
             if (sl) openIntroModal(drawerCandidate, sl.opportunityId);
           }}
-          onSave={() => {
-            const sl = shortlists.find((s) =>
-              s.fullCandidates?.some((c) => c.builderId === drawerCandidate.builderId)
-            );
-            if (sl) runCandidateAction(sl.opportunityId, drawerCandidate.builderId, 'save');
-          }}
-          onHide={() => {
-            const sl = shortlists.find((s) =>
-              s.fullCandidates?.some((c) => c.builderId === drawerCandidate.builderId)
-            );
-            if (sl) {
-              runCandidateAction(sl.opportunityId, drawerCandidate.builderId, 'hide');
-              setDrawerCandidate(null);
-            }
-          }}
-          onAskAgent={() => setDrawerCandidate(null)}
           onScheduleCall={(pendingConfirm) =>
             openScheduleCall(
               {
@@ -494,7 +566,6 @@ export default function FounderOSDashboard() {
               true
             )
           }
-          onCompleteCall={() => completeCall(drawerOpportunityId, drawerCandidate.builderId)}
           onHire={(skipTrial) =>
             setHireModal({
               opportunityId: drawerOpportunityId,
@@ -548,6 +619,17 @@ export default function FounderOSDashboard() {
           trialProject={trialReviewModal.trialProject}
           onClose={() => setTrialReviewModal(null)}
           onReviewed={loadSearches}
+        />
+      ) : null}
+
+      {trialSidebar ? (
+        <FounderTrialSidebar
+          opportunityId={trialSidebar.opportunityId}
+          builderId={trialSidebar.builderId}
+          builderName={trialSidebar.builderName}
+          roleTitle={trialSidebar.roleTitle}
+          onClose={() => setTrialSidebar(null)}
+          onSent={loadSearches}
         />
       ) : null}
     </div>

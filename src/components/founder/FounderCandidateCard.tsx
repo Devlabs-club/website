@@ -1,5 +1,6 @@
 import React from 'react';
 import type { FullCandidate } from './founderTypes';
+import { getIntroButtonLabel } from '@/lib/talent/founderIntroUi';
 
 function verificationTone(label: string) {
   if (label === 'DevLabs Verified') return 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10';
@@ -21,21 +22,16 @@ export default function FounderCandidateCard({
   unlocked,
   onViewDetails,
   onRequestIntro,
-  onSave,
-  onHide,
-  onAskAgent,
   actionBusy,
 }: {
   candidate: FullCandidate;
   unlocked: boolean;
   onViewDetails: () => void;
   onRequestIntro?: () => void;
-  onSave?: () => void;
-  onHide?: () => void;
-  onAskAgent?: () => void;
   actionBusy?: boolean;
 }) {
   if (!unlocked) return null;
+  const introButton = getIntroButtonLabel(candidate, null);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4 flex flex-col">
@@ -172,38 +168,16 @@ export default function FounderCandidateCard({
         >
           View details
         </button>
-        <button
-          type="button"
-          disabled={actionBusy || candidate.introRequested}
-          onClick={onRequestIntro}
-          className="px-3 py-1.5 rounded-lg bg-[#fa7d22] text-black text-xs font-semibold hover:bg-[#ff9b4e] disabled:opacity-50"
-        >
-          {candidate.introRequested ? 'Intro requested' : 'Request intro'}
-        </button>
-        <button
-          type="button"
-          disabled={actionBusy}
-          onClick={onSave}
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/80 text-xs hover:bg-white/5 disabled:opacity-50"
-        >
-          {candidate.saved ? 'Saved' : 'Save'}
-        </button>
-        <button
-          type="button"
-          disabled={actionBusy}
-          onClick={onHide}
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/50 text-xs hover:bg-white/5 disabled:opacity-50"
-        >
-          Hide
-        </button>
-        <button
-          type="button"
-          disabled={actionBusy}
-          onClick={onAskAgent}
-          className="px-3 py-1.5 rounded-lg border border-white/15 text-white/70 text-xs hover:bg-white/5 disabled:opacity-50"
-        >
-          Ask Agent
-        </button>
+        {introButton.show && onRequestIntro ? (
+          <button
+            type="button"
+            disabled={actionBusy || introButton.disabled}
+            onClick={onRequestIntro}
+            className="px-3 py-1.5 rounded-lg bg-[#fa7d22] text-black text-xs font-semibold hover:bg-[#ff9b4e] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {introButton.label}
+          </button>
+        ) : null}
       </div>
     </div>
   );

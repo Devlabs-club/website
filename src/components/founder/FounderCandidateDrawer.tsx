@@ -2,6 +2,12 @@ import React from 'react';
 import { X } from 'lucide-react';
 import type { FullCandidate } from './founderTypes';
 import FounderTrialProjectCard from './FounderTrialProjectCard';
+import {
+  canConfirmCallTime,
+  canShowPostMeetingActions,
+  getIntroButtonLabel,
+  getScheduleMeetButtonState,
+} from '@/lib/talent/founderIntroUi';
 
 function verificationTone(label: string) {
   if (label === 'DevLabs Verified') return 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10';
@@ -18,13 +24,9 @@ export default function FounderCandidateDrawer({
   pipelineEntry,
   onClose,
   onRequestIntro,
-  onSave,
-  onHide,
-  onAskAgent,
   onTrialSaved,
   onScheduleCall,
   onConfirmCall,
-  onCompleteCall,
   onHire,
   onReviewTrial,
   actionBusy,
@@ -35,36 +37,26 @@ export default function FounderCandidateDrawer({
     callScheduleStatus?: string | null;
     callScheduleId?: string | null;
     callCompletedAt?: string | null;
+    confirmedCallEndAt?: string | null;
     trialProjectStatus?: string | null;
+    introRequestStatus?: string | null;
+    status?: string;
   } | null;
   onClose: () => void;
   onRequestIntro: () => void;
-  onSave: () => void;
-  onHide: () => void;
-  onAskAgent: () => void;
   onTrialSaved: () => void;
   onScheduleCall: (pendingConfirm?: boolean) => void;
   onConfirmCall: () => void;
-  onCompleteCall: () => void;
   onHire: (skipTrial?: boolean) => void;
   onReviewTrial: () => void;
   actionBusy?: boolean;
 }) {
   const matchStatus = candidate.matchStatus;
-  const callCompleted = Boolean(candidate.callCompletedAt || pipelineEntry?.callCompletedAt);
-  const callPendingFounder = pipelineEntry?.callScheduleStatus === 'pending_founder';
-  const callConfirmed =
-    pipelineEntry?.callScheduleStatus === 'confirmed' && !callCompleted;
-  const showScheduleCall =
-    matchStatus === 'builder_interested' ||
-    (matchStatus === 'interviewing' && !callCompleted && !callConfirmed);
-  const showCompleteCall = callConfirmed;
-  const showPostCallActions = callCompleted && !['hired', 'closed', 'rejected'].includes(matchStatus);
+  const introButton = getIntroButtonLabel(candidate, pipelineEntry as any);
+  const scheduleMeet = getScheduleMeetButtonState(candidate, pipelineEntry as any);
+  const showConfirmTime = canConfirmCallTime(pipelineEntry as any);
+  const postMeeting = canShowPostMeetingActions(pipelineEntry as any, candidate);
   const showReviewTrial = candidate.trialProject?.status === 'submitted';
-  const showHire =
-    matchStatus === 'offer' ||
-    (showPostCallActions && matchStatus !== 'trial') ||
-    candidate.trialProject?.status === 'approved';
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
@@ -201,121 +193,79 @@ export default function FounderCandidateDrawer({
             </ul>
           </section>
 
-          <FounderTrialProjectCard
-            opportunityId={opportunityId}
-            builderId={candidate.builderId}
-            initialProject={candidate.trialProject}
-            onSaved={onTrialSaved}
-            callCompleted={callCompleted}
-          />
-
-          {(showScheduleCall || callPendingFounder || showCompleteCall || showPostCallActions || showReviewTrial || showHire) ? (
-            <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-              <h3 className="text-xs uppercase tracking-wider text-white/45">Next steps</h3>
-              <div className="flex flex-wrap gap-2">
-                {showScheduleCall ? (
-                  <button
-                    type="button"
-                    disabled={actionBusy}
-                    onClick={() => onScheduleCall(false)}
-                    className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold disabled:opacity-50"
-                  >
-                    Schedule call
-                  </button>
-                ) : null}
-                {callPendingFounder ? (
-                  <button
-                    type="button"
-                    disabled={actionBusy}
-                    onClick={onConfirmCall}
-                    className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold disabled:opacity-50"
-                  >
-                    Confirm proposed time
-                  </button>
-                ) : null}
-                {showCompleteCall ? (
-                  <button
-                    type="button"
-                    disabled={actionBusy}
-                    onClick={onCompleteCall}
-                    className="px-4 py-2 rounded-xl border border-white/20 text-white text-sm hover:bg-white/10 disabled:opacity-50"
-                  >
-                    Mark call complete
-                  </button>
-                ) : null}
-                {showPostCallActions ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={actionBusy}
-                      onClick={() => onHire(true)}
-                      className="px-4 py-2 rounded-xl bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50"
-                    >
-                      Hire now
-                    </button>
-                    <p className="w-full text-xs text-white/50">
-                      Or generate and send a work trial below.
-                    </p>
-                  </>
-                ) : null}
-                {showReviewTrial ? (
-                  <button
-                    type="button"
-                    disabled={actionBusy}
-                    onClick={onReviewTrial}
-                    className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold disabled:opacity-50"
-                  >
-                    Review submission
-                  </button>
-                ) : null}
-                {showHire && matchStatus !== 'hired' ? (
-                  <button
-                    type="button"
-                    disabled={actionBusy}
-                    onClick={() => onHire(false)}
-                    className="px-4 py-2 rounded-xl bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50"
-                  >
-                    Hire now
-                  </button>
-                ) : null}
-              </div>
-            </section>
+          {postMeeting ? (
+            <FounderTrialProjectCard
+              opportunityId={opportunityId}
+              builderId={candidate.builderId}
+              initialProject={candidate.trialProject}
+              onSaved={onTrialSaved}
+              callCompleted={postMeeting}
+            />
           ) : null}
+        </div>
 
-          <div className="flex flex-wrap gap-2 pt-4 border-t border-white/10">
+        <div className="sticky bottom-0 border-t border-white/10 bg-[#0c0d0f]/95 backdrop-blur px-6 py-4 flex flex-wrap gap-2">
+          {scheduleMeet.show && !scheduleMeet.disabled ? (
             <button
               type="button"
-              disabled={actionBusy || candidate.introRequested}
+              disabled={actionBusy}
+              onClick={() => onScheduleCall(false)}
+              className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold disabled:opacity-50"
+            >
+              {scheduleMeet.label}
+            </button>
+          ) : null}
+          {scheduleMeet.show && scheduleMeet.disabled ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl border border-white/15 text-white/45 text-sm font-semibold cursor-not-allowed"
+            >
+              {scheduleMeet.label}
+            </button>
+          ) : null}
+          {showConfirmTime ? (
+            <button
+              type="button"
+              disabled={actionBusy}
+              onClick={onConfirmCall}
+              className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold disabled:opacity-50"
+            >
+              Confirm proposed time
+            </button>
+          ) : null}
+          {postMeeting && matchStatus !== 'hired' ? (
+            <>
+              <button
+                type="button"
+                disabled={actionBusy}
+                onClick={() => onHire(true)}
+                className="px-4 py-2.5 rounded-xl bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50"
+              >
+                Hire now
+              </button>
+              {showReviewTrial ? (
+                <button
+                  type="button"
+                  disabled={actionBusy}
+                  onClick={onReviewTrial}
+                  className="px-4 py-2.5 rounded-xl border border-[#fa7d22]/40 text-[#ffb580] text-sm font-semibold disabled:opacity-50"
+                >
+                  Review submission
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          {introButton.show ? (
+            <button
+              type="button"
+              disabled={actionBusy || introButton.disabled}
               onClick={onRequestIntro}
-              className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold hover:bg-[#ff9b4e] disabled:opacity-50"
+              className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl border border-[#fa7d22]/40 text-[#ffb580] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {candidate.introRequested ? 'Intro requested' : 'Request intro'}
+              {introButton.label}
             </button>
-            <button
-              type="button"
-              disabled={actionBusy}
-              onClick={onSave}
-              className="px-4 py-2 rounded-xl border border-white/20 text-white text-sm hover:bg-white/10 disabled:opacity-50"
-            >
-              {candidate.saved ? 'Saved' : 'Save candidate'}
-            </button>
-            <button
-              type="button"
-              disabled={actionBusy}
-              onClick={onHide}
-              className="px-4 py-2 rounded-xl border border-white/15 text-white/60 text-sm hover:bg-white/5 disabled:opacity-50"
-            >
-              Hide
-            </button>
-            <button
-              type="button"
-              disabled={actionBusy}
-              onClick={onAskAgent}
-              className="px-4 py-2 rounded-xl border border-white/15 text-white/80 text-sm hover:bg-white/5 disabled:opacity-50"
-            >
-              Ask Agent
-            </button>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

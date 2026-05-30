@@ -5,8 +5,20 @@ export type TrialProjectDraft = {
   goal: string;
   deliverables: string[];
   timeline: string;
-  suggestedPayRange: string;
+  deadlineAt?: string | null;
   successCriteria: string[];
+  updatedAt?: string | null;
+  status?: 'draft' | 'sent' | 'in_progress' | 'submitted' | 'approved' | 'rejected';
+  sentAt?: string | null;
+  submittedAt?: string | null;
+  submission?: {
+    videoUrl?: string | null;
+    githubUrl?: string | null;
+    notes?: string | null;
+    submittedAt?: string | null;
+  } | null;
+  rejectionNotes?: Array<{ note: string; rejectedAt?: string | null }>;
+  rejectionCount?: number;
 };
 
 export function normalizeTrialProject(input: Partial<TrialProjectDraft> | null | undefined): TrialProjectDraft | null {
@@ -33,7 +45,7 @@ export function normalizeTrialProject(input: Partial<TrialProjectDraft> | null |
     goal: String(input.goal || '').trim(),
     deliverables,
     timeline: String(input.timeline || '1 week').trim(),
-    suggestedPayRange: String(input.suggestedPayRange || '').trim(),
+    deadlineAt: input.deadlineAt ? String(input.deadlineAt) : null,
     successCriteria,
     updatedAt: input.updatedAt ? String(input.updatedAt) : null,
     status: input.status || 'draft',
@@ -41,7 +53,7 @@ export function normalizeTrialProject(input: Partial<TrialProjectDraft> | null |
     submittedAt: input.submittedAt ? String(input.submittedAt) : null,
     submission: input.submission
       ? {
-          demoUrl: input.submission.demoUrl || null,
+          videoUrl: input.submission.videoUrl || null,
           githubUrl: input.submission.githubUrl || null,
           notes: input.submission.notes || null,
           submittedAt: input.submission.submittedAt ? String(input.submission.submittedAt) : null,
@@ -59,7 +71,7 @@ export function mapTrialProjectFromMatch(trialProject: any): TrialProjectDraft |
     goal: trialProject.goal,
     deliverables: trialProject.deliverables,
     timeline: trialProject.timeline,
-    suggestedPayRange: trialProject.suggestedPayRange,
+    deadlineAt: trialProject.deadlineAt ? new Date(trialProject.deadlineAt).toISOString() : null,
     successCriteria: trialProject.successCriteria,
     updatedAt: trialProject.updatedAt ? new Date(trialProject.updatedAt).toISOString() : null,
     status: trialProject.status,
@@ -67,7 +79,7 @@ export function mapTrialProjectFromMatch(trialProject: any): TrialProjectDraft |
     submittedAt: trialProject.submittedAt ? new Date(trialProject.submittedAt).toISOString() : null,
     submission: trialProject.submission
       ? {
-          demoUrl: trialProject.submission.demoUrl || null,
+          videoUrl: trialProject.submission.videoUrl || trialProject.submission.demoUrl || null,
           githubUrl: trialProject.submission.githubUrl || null,
           notes: trialProject.submission.notes || null,
           submittedAt: trialProject.submission.submittedAt
@@ -93,15 +105,6 @@ function parseTimelineWeeks(timeline?: string | null): number {
   return 1;
 }
 
-function budgetToPayRange(budget?: string | null, weeks = 1): string {
-  const b = String(budget || '').toLowerCase();
-  if (b.includes('500') || b.includes('1k') || b.includes('1000')) return '$500–$1,000';
-  if (b.includes('2k') || b.includes('2000')) return '$1,000–$2,000';
-  if (b.includes('5k') || b.includes('5000')) return '$2,500–$5,000';
-  if (weeks >= 2) return '$1,000–$2,500';
-  return '$500–$1,500';
-}
-
 export function buildDeterministicTrialProject(params: {
   opportunity: {
     roleTitle?: string | null;
@@ -109,7 +112,6 @@ export function buildDeterministicTrialProject(params: {
     startupSummary?: string | null;
     builderWillDo?: string | null;
     timeline?: string | null;
-    budget?: string | null;
     successIn30Days?: string | null;
     skillsNeeded?: string[];
   };
@@ -138,7 +140,7 @@ export function buildDeterministicTrialProject(params: {
   }
   deliverables.push('Working demo or staging environment the founder can click through');
   deliverables.push('Code in a shared GitHub repo with a short README');
-  deliverables.push('15-minute walkthrough + handoff notes');
+  deliverables.push('Walkthrough video (Drive link) + handoff notes');
 
   const successCriteria: string[] = [];
   if (params.opportunity.successIn30Days) {
@@ -149,11 +151,10 @@ export function buildDeterministicTrialProject(params: {
   successCriteria.push(`${params.builderName.split(' ')[0] || 'Builder'} documents setup and next steps`);
 
   return {
-    title: `${weekLabel} ${role} sprint @ ${company}`,
+    title: `${weekLabel} ${role} take-home @ ${company}`,
     goal: goalFromBrief,
     deliverables: deliverables.slice(0, 6),
     timeline: params.opportunity.timeline || (weeks === 1 ? '1 week' : `${weeks} weeks`),
-    suggestedPayRange: budgetToPayRange(params.opportunity.budget, weeks),
     successCriteria: successCriteria.slice(0, 5),
   };
 }
@@ -178,7 +179,6 @@ function extractJsonObject(text: string): TrialProjectDraft | null {
       goal: parsed.goal,
       deliverables,
       timeline: parsed.timeline,
-      suggestedPayRange: parsed.suggestedPayRange || parsed.suggested_pay_range,
       successCriteria,
     });
   } catch {
@@ -213,16 +213,15 @@ export async function generateTrialProject(params: {
     )
     .join('\n');
 
-  const systemPrompt = `You help startup founders scope paid trial sprints for hiring builders.
-Return ONLY valid JSON with keys: title, goal, deliverables (array of strings), timeline, suggestedPayRange, successCriteria (array of strings).
-Keep it concrete, shippable in the stated timeline, and founder-friendly — not a generic job description.`;
+  const systemPrompt = `You help startup founders scope unpaid take-home assignments for hiring builders.
+Return ONLY valid JSON with keys: title, goal, deliverables (array of strings), timeline, successCriteria (array of strings).
+Keep it concrete, shippable in the stated timeline, and aligned to the job description — not a generic job posting.`;
 
   const userPrompt = `Role brief:
 Company: ${opp.company || 'Startup'}
 Role: ${opp.roleTitle || 'Builder'}
 What they'll do: ${opp.builderWillDo || 'Not specified'}
 Timeline: ${opp.timeline || '1 week'}
-Budget hint: ${opp.budget || 'Not specified'}
 30-day success: ${opp.successIn30Days || 'Not specified'}
 Skills needed: ${(opp.skillsNeeded as string[] | undefined)?.join(', ') || 'Not specified'}
 
@@ -235,11 +234,10 @@ ${projectLines || 'None listed'}
 
 Example shape:
 {
-  "title": "1-week AI dashboard MVP sprint",
+  "title": "1-week AI dashboard take-home",
   "goal": "Build a working prototype for restaurant Instagram ad generation.",
-  "deliverables": ["Authenticated dashboard", "Form for restaurant details", "AI-generated ad copy", "Basic campaign history"],
+  "deliverables": ["Authenticated dashboard", "Form for restaurant details", "AI-generated ad copy", "GitHub repo + walkthrough video"],
   "timeline": "1 week",
-  "suggestedPayRange": "$500–$1,000",
   "successCriteria": ["Working deployed demo", "Code pushed to GitHub", "Founder can test end-to-end flow"]
 }`;
 
@@ -265,7 +263,9 @@ export function trialProjectToSummary(project: TrialProjectDraft): string {
     `Goal: ${project.goal}`,
     `Deliverables: ${project.deliverables.join('; ')}`,
     `Timeline: ${project.timeline}`,
-    `Pay: ${project.suggestedPayRange}`,
+    project.deadlineAt ? `Deadline: ${project.deadlineAt}` : null,
     `Success: ${project.successCriteria.join('; ')}`,
-  ].join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }

@@ -1,13 +1,25 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Home, LayoutGrid, Users, Bot, User, Sparkles, Medal, Check, AlertCircle, Mail, ClipboardList, Phone } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
 import { AuthProvider, useAuth } from './auth_manager';
-import AdminDashboard from './AdminDashboard';
-import FounderOSDashboard from './founder/FounderOSDashboard';
-import BuilderIntroInbox from './builder/BuilderIntroInbox';
+import ChatMarkdown from './ChatMarkdown';
+
+const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const FounderOSDashboard = lazy(() => import('./founder/FounderOSDashboard'));
+
+function RoleDashboardFallback() {
+  return (
+    <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10">
+      <AmbientBackground />
+      <div className="relative z-10 w-8 h-8 border-2 border-[#fa7d22]/30 border-t-[#fa7d22] rounded-full animate-spin" />
+    </div>
+  );
+}
 import BuilderCallPanel from './builder/BuilderCallPanel';
 import BuilderTrialPanel from './builder/BuilderTrialPanel';
+import MessagesPanel from './talent/MessagesPanel';
 import NotificationCenter from './talent/NotificationCenter';
+import { agentStorageKey, clearAgentStorageForUser } from '@/lib/talent/builderChatHelpers';
+import { useTalentRealtime } from '@/hooks/useTalentRealtime';
 import type { NotificationItem } from './founder/founderTypes';
 import { DottedGlowBackground } from './ui/dotted-glow-background';
 import { AmbientBackground } from './ui/AmbientBackground';
@@ -88,13 +100,13 @@ type UiBlock = {
   eligibility?: string;
 };
 
-type TabKey = 'home' | 'projects' | 'matches' | 'intros' | 'calls' | 'trials' | 'agent' | 'profile';
+type TabKey = 'home' | 'projects' | 'matches' | 'messages' | 'calls' | 'trials' | 'agent' | 'profile';
 
 const navItems: Array<{ key: TabKey; label: string; icon: React.ReactNode; badgeKey?: string }> = [
   { key: 'home', label: 'Home', icon: <Home className="w-5 h-5" /> },
   { key: 'projects', label: 'Proof of Work', icon: <LayoutGrid className="w-5 h-5" /> },
   { key: 'matches', label: 'Matches', icon: <Users className="w-5 h-5" /> },
-  { key: 'intros', label: 'Intros', icon: <Mail className="w-5 h-5" />, badgeKey: 'intros' },
+  { key: 'messages', label: 'Messages', icon: <Mail className="w-5 h-5" />, badgeKey: 'messages' },
   { key: 'calls', label: 'Calls', icon: <Phone className="w-5 h-5" />, badgeKey: 'calls' },
   { key: 'trials', label: 'Trials', icon: <ClipboardList className="w-5 h-5" />, badgeKey: 'trials' },
   { key: 'agent', label: 'Agent', icon: <Bot className="w-5 h-5" /> },
@@ -134,26 +146,39 @@ function BuilderOSDashboard() {
   const [events, setEvents] = useState<any[]>([]);
   const [momentum, setMomentum] = useState<any[]>([]);
   const [projectStats, setProjectStats] = useState<ProjectStats>({ total: 0, devpostImports: 0, githubProjects: 0, verifiedContributions: 0 });
-  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('devlabs_agent_messages');
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to load chat history', e);
-      }
-    }
-    return [];
-  });
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [chatUserId, setChatUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && agentMessages.length > 0) {
-      localStorage.setItem('devlabs_agent_messages', JSON.stringify(agentMessages));
+    if (!user?.id) return;
+    if (chatUserId && chatUserId !== user.id) {
+      clearAgentStorageForUser(chatUserId);
+      setAgentMessages([]);
     }
-  }, [agentMessages]);
+    setChatUserId(user.id);
+    try {
+      const saved = localStorage.getItem(agentStorageKey(user.id));
+      if (saved) {
+        setAgentMessages(JSON.parse(saved));
+      } else {
+        setAgentMessages([]);
+        localStorage.removeItem('devlabs_agent_messages');
+      }
+    } catch {
+      setAgentMessages([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && user?.id && agentMessages.length > 0) {
+      localStorage.setItem(agentStorageKey(user.id), JSON.stringify(agentMessages));
+    }
+  }, [agentMessages, user?.id]);
   const [agentInput, setAgentInput] = useState('');
   const [agentBusy, setAgentBusy] = useState(false);
   const [agentModel, setAgentModel] = useState<string>('');
+  const [messagesThreadId, setMessagesThreadId] = useState<string | null>(null);
+  const [messagesIntroId, setMessagesIntroId] = useState<string | null>(null);
   const [uiBlocks, setUiBlocks] = useState<UiBlock[]>([]);
   const [uploadingResume, setUploadingResume] = useState(false);
   const [settingsHours, setSettingsHours] = useState<string>('');
@@ -182,7 +207,7 @@ function BuilderOSDashboard() {
   ).length;
 
   const tabBadge = (key?: string) => {
-    if (key === 'intros') return introBadgeCount;
+    if (key === 'messages') return introInbox.filter((i) => i.status === 'requested').length;
     if (key === 'calls') return callsBadgeCount;
     if (key === 'trials') return trialsBadgeCount;
     return 0;
@@ -295,13 +320,24 @@ function BuilderOSDashboard() {
   useEffect(() => {
     loadDashboard();
     if (typeof window !== 'undefined') {
-      const tab = new URLSearchParams(window.location.search).get('tab');
-      const validTabs: TabKey[] = ['home', 'projects', 'matches', 'intros', 'calls', 'trials', 'agent', 'profile'];
-      if (tab && validTabs.includes(tab as TabKey)) {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      const validTabs: TabKey[] = ['home', 'projects', 'matches', 'messages', 'calls', 'trials', 'agent', 'profile'];
+      if (tab === 'intros' || tab === 'messages') {
+        setActiveTab('messages');
+      } else if (tab && validTabs.includes(tab as TabKey)) {
         setActiveTab(tab as TabKey);
       }
+      setMessagesThreadId(params.get('threadId'));
+      setMessagesIntroId(params.get('introId'));
     }
   }, []);
+
+  useTalentRealtime({
+    enabled: Boolean(user?.id),
+    scope: 'builder',
+    onEvent: () => loadDashboard({ silent: true }),
+  });
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -336,6 +372,19 @@ function BuilderOSDashboard() {
       setAgentMessages((prev) => [...prev, { sender: 'agent', text: data.message || 'Done.' }]);
       setUiBlocks(Array.isArray(data.uiBlocks) ? data.uiBlocks : []);
       if (data.meta?.model) setAgentModel(data.meta.model);
+      if (data.builder) {
+        setBuilder((prev) => ({ ...(prev || {}), ...data.builder } as BuilderData));
+        setSettingsHeadline(data.builder.headline || '');
+        setSettingsBio(data.builder.bio || '');
+        setSettingsGithub(data.builder.links?.github || '');
+        setSettingsLinkedin(data.builder.links?.linkedin || '');
+        setSettingsPortfolio(data.builder.links?.portfolio || '');
+        if (data.builder.availability) {
+          setSettingsHours(data.builder.availability.hoursPerWeek ? String(data.builder.availability.hoursPerWeek) : '');
+          setSettingsRemote(data.builder.availability.remotePreference || 'unspecified');
+          setSettingsAvailable(Boolean(data.builder.availability.availableNow));
+        }
+      }
       await loadDashboard({ silent: true });
     } catch (error) {
       setAgentMessages((prev) => [...prev, { sender: 'agent', text: error instanceof Error ? error.message : 'Agent action failed.' }]);
@@ -559,6 +608,32 @@ function BuilderOSDashboard() {
           <section className="rounded-3xl   min-h-[calc(100vh-64px)] flex flex-col">
             {activeTab === 'home' && (
               <div className="space-y-6">
+                {introInbox.length > 0 ? (
+                  <div className="rounded-2xl border border-[#fa7d22]/30 bg-[#fa7d22]/10 p-5 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        {introInbox.length === 1
+                          ? 'You have a new intro request'
+                          : `You have ${introInbox.length} intro requests`}
+                      </p>
+                      <p className="text-sm text-white/70 mt-1">
+                        Open Messages to read the founder&apos;s note and accept or decline.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const intro = introInbox[0];
+                        if (intro?.threadId) setMessagesThreadId(intro.threadId);
+                        if (intro?._id) setMessagesIntroId(intro._id);
+                        setActiveTab('messages');
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold hover:bg-[#ff9b4e]"
+                    >
+                      Review intro
+                    </button>
+                  </div>
+                ) : null}
                 {/* Hero / Welcome Section */}
                 <div className="relative overflow-hidden glass-panel-strong p-8 md:p-12 text-center flex flex-col items-center">
                   <div className="absolute inset-0 pointer-events-none opacity-70" style={{ maskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)", WebkitMaskImage: "radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)" }}>
@@ -963,7 +1038,17 @@ function BuilderOSDashboard() {
                             </button>
                           )}
                           {match.status === 'intro_requested' || introInbox.some((i) => i.roleTitle === match.roleTitle && i.company === match.company) ? (
-                            <button onClick={() => setActiveTab('intros')} className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide text-sm">
+                            <button
+                              onClick={() => {
+                                const intro = introInbox.find(
+                                  (i) => i.roleTitle === match.roleTitle && i.company === match.company
+                                );
+                                if (intro?.threadId) setMessagesThreadId(intro.threadId);
+                                if (intro?._id) setMessagesIntroId(intro._id);
+                                setActiveTab('messages');
+                              }}
+                              className="group relative inline-flex items-center justify-center px-6 py-2.5 rounded-full overflow-hidden whitespace-nowrap bg-white text-[#1a1a1a] font-semibold tracking-wide text-sm"
+                            >
                               View intro request
                             </button>
                           ) : match.status === 'trial' ? (
@@ -1012,13 +1097,18 @@ function BuilderOSDashboard() {
               </div>
             )}
 
-            {activeTab === 'intros' && (
+            {activeTab === 'messages' && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-xl font-semibold">Intro requests</h3>
-                  <p className="text-white/65 text-sm mt-1">Founders who want to connect about a role.</p>
+                  <h3 className="text-xl font-semibold">Messages</h3>
+                  <p className="text-white/65 text-sm mt-1">Chat with founders about roles and intros.</p>
                 </div>
-                <BuilderIntroInbox items={introInbox} onResponded={() => loadDashboard({ silent: true })} />
+                <MessagesPanel
+                  viewer="builder"
+                  initialThreadId={messagesThreadId}
+                  initialIntroRequestId={messagesIntroId}
+                  onIntroResponded={() => loadDashboard({ silent: true })}
+                />
               </div>
             )}
 
@@ -1079,7 +1169,7 @@ function BuilderOSDashboard() {
                       <div className={`max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed ${message.sender === 'agent' ? 'bg-white/10 text-white border border-white/5 shadow-sm' : 'bg-gradient-to-br from-[#fa7d22] to-[#ff9b4e] text-black font-medium shadow-[0_4px_15px_rgba(250,125,34,0.2)]'}`}>
                         {message.sender === 'agent' ? (
                           <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-ul:my-1.5">
-                            <ReactMarkdown>{message.text}</ReactMarkdown>
+                            <ChatMarkdown text={message.text} />
                           </div>
                         ) : (
                           message.text
@@ -1117,10 +1207,12 @@ function BuilderOSDashboard() {
 
                   {agentBusy ? (
                     <div className="flex justify-start">
-                      <div className="rounded-2xl px-5 py-3 bg-white/5 border border-white/5 text-white/50 text-sm flex items-center gap-2">
-                        <span className="animate-bounce">●</span>
-                        <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>●</span>
-                        <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>●</span>
+                      <div className="rounded-2xl px-5 py-4 bg-gradient-to-r from-[#fa7d22]/10 via-purple-500/10 to-blue-500/10 border border-white/10 text-white/70 text-sm flex items-center gap-3 shadow-[0_0_30px_rgba(250,125,34,0.15)]">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fa7d22] opacity-40" />
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-[#fa7d22]" />
+                        </span>
+                        Thinking...
                       </div>
                     </div>
                   ) : null}
@@ -1439,8 +1531,20 @@ function DashboardContent() {
       </div>
     );
   }
-  if (user.role === 'admin') return <AdminDashboard />;
-  if (user.role === 'founder') return <FounderOSDashboard />;
+  if (user.role === 'admin') {
+    return (
+      <Suspense fallback={<RoleDashboardFallback />}>
+        <AdminDashboard />
+      </Suspense>
+    );
+  }
+  if (user.role === 'founder') {
+    return (
+      <Suspense fallback={<RoleDashboardFallback />}>
+        <FounderOSDashboard />
+      </Suspense>
+    );
+  }
 
   // Default: builders and legacy `user` role → Builder OS
   return <BuilderOSDashboard />;

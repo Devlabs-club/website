@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { clearAgentStorageForUser } from '@/lib/talent/builderChatHelpers';
 
 interface User {
   id: string;
@@ -122,12 +123,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = async () => {
+    const previousUserId = user?.id;
     try {
       const response = await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',
       });
       const data = await response.json();
+
+      if (previousUserId) clearAgentStorageForUser(previousUserId);
       
       if (data.logoutUrl && data.logoutUrl !== '/login') {
         window.location.href = data.logoutUrl;

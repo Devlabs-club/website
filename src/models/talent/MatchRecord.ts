@@ -45,7 +45,7 @@ const MatchRecordSchema = new mongoose.Schema(
       goal: { type: String, default: null },
       deliverables: [{ type: String }],
       timeline: { type: String, default: null },
-      suggestedPayRange: { type: String, default: null },
+      deadlineAt: { type: Date, default: null },
       successCriteria: [{ type: String }],
       updatedAt: { type: Date, default: null },
       status: {
@@ -56,7 +56,7 @@ const MatchRecordSchema = new mongoose.Schema(
       sentAt: { type: Date, default: null },
       submittedAt: { type: Date, default: null },
       submission: {
-        demoUrl: { type: String, default: null },
+        videoUrl: { type: String, default: null },
         githubUrl: { type: String, default: null },
         notes: { type: String, default: null },
         submittedAt: { type: Date, default: null },

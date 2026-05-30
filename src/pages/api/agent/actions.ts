@@ -77,6 +77,23 @@ import {
   sendTrialProjectToBuilder,
   submitTrialByBuilder,
 } from '@/lib/talent/trialFlow';
+import {
+  extractBioDraftFromHistory,
+  extractBioFromUserText,
+  extractHeadlineFromText,
+  isAffirmativeConfirmation,
+  wantsBioUpdate,
+  type ChatTurn,
+} from '@/lib/talent/builderChatHelpers';
+import {
+  getBuilderThreads,
+  getFounderThreads,
+  getOrCreateThread,
+  getThreadMessages,
+  seedThreadFromIntro,
+  sendThreadMessage,
+} from '@/lib/talent/messageFlow';
+import { sendTalentEmail, dashboardDeepLink } from '@/lib/talent/talentEmail';
 
 type ImportedProjectData = {
   projectName: string;
@@ -441,7 +458,7 @@ async function resolveAuthedBuilder(request: Request) {
       verificationStatus: 'builder_confirmed',
       availability: {
         availableNow: true,
-        hoursPerWeek: 10,
+        hoursPerWeek: null,
         remotePreference: 'unspecified',
         refreshedAt: new Date(),
       },
@@ -560,9 +577,53 @@ function extractRolesAndSkillsFromText(text: string) {
 }
 
 async function applyProfileBasicsUpdate(builder: any, updates: { headline?: string | null; bio?: string | null }) {
-  if (updates.headline !== undefined) builder.headline = updates.headline;
-  if (updates.bio !== undefined) builder.bio = updates.bio;
+  if (updates.headline !== undefined) builder.headline = updates.headline?.trim() || null;
+  if (updates.bio !== undefined) builder.bio = updates.bio?.trim() || null;
+  await builder.save();
   return await updateBuilderScores(builder);
+}
+
+async function reloadBuilderForAgent(builderId: any) {
+  return BuilderProfile.findById(builderId);
+}
+
+async function buildBuilderAgentContext(builder: any) {
+  const [projects, matches, introInbox, activeTrials, upcomingCalls, threads] = await Promise.all([
+    ProjectRecord.find({ builderId: builder._id }).select('projectName description techStack builderContribution verificationStatus').limit(8).lean(),
+    MatchRecord.find({ builderId: builder._id }).sort({ updatedAt: -1 }).limit(6).populate('opportunityId').lean(),
+    getBuilderIntroInbox(String(builder._id)),
+    getBuilderActiveTrials(String(builder._id)),
+    getBuilderUpcomingCalls(String(builder._id)),
+    getBuilderThreads(String(builder._id)),
+  ]);
+  const completion = computeBuilderScores(builder, projects);
+  return {
+    builderName: builder.name,
+    headline: builder.headline,
+    bio: builder.bio,
+    rolePreference: builder.rolePreference,
+    preferredWorkType: builder.preferredWorkType,
+    availability: builder.availability,
+    links: builder.links,
+    completion,
+    profileQuality: builder.profileQuality,
+    projects: projects.map((p: any) => ({
+      title: p.projectName,
+      description: p.description,
+      contribution: p.builderContribution,
+      techStack: p.techStack,
+    })),
+    matches: matches.map((m: any) => ({
+      status: m.status,
+      roleTitle: m.opportunityId?.roleTitle,
+      company: m.opportunityId?.company,
+    })),
+    introInboxCount: introInbox.length,
+    activeTrials,
+    upcomingCalls,
+    messageThreads: threads,
+    mustNeverAskForBuilderId: true,
+  };
 }
 
 async function applyRoleSkillUpdate(builder: any, updates: { roles?: string[]; skills?: string[] }) {
@@ -1106,7 +1167,29 @@ export const POST: APIRoute = async ({ request }) => {
         });
       }
 
-      const projects = await ProjectRecord.find({ builderId: builder._id }).select('projectName techStack links').lean();
+      const chatHistory: ChatTurn[] = Array.isArray(payload?.history) ? payload.history : [];
+
+      if (
+        (tool === 'none' || tool === 'update_profile_basics') &&
+        (isAffirmativeConfirmation(userText) || wantsBioUpdate(userText))
+      ) {
+        const draftBio = extractBioDraftFromHistory(chatHistory);
+        if (draftBio) {
+          tool = 'update_profile_basics';
+          toolArgs = { ...toolArgs, bio: draftBio };
+        }
+      }
+
+      if (tool === 'update_profile_basics' && !toolArgs.bio && !toolArgs.headline) {
+        const fromText = extractBioFromUserText(userText);
+        const fromHistory = extractBioDraftFromHistory(chatHistory);
+        const headline = extractHeadlineFromText(userText);
+        if (fromText) toolArgs.bio = fromText;
+        else if (fromHistory) toolArgs.bio = fromHistory;
+        if (headline) toolArgs.headline = headline;
+      }
+
+      const projects = await ProjectRecord.find({ builderId: builder._id }).select('projectName techStack links description builderContribution').lean();
       const projectCount = projects.length;
       let uiBlocks: any[] = [];
       let importProjectMessage: string | null = null;
@@ -1677,6 +1760,8 @@ export const POST: APIRoute = async ({ request }) => {
                     : `I can do this from your login: claim profile, update availability, summarize your profile, suggest next steps, or improve proof-of-work evidence.`;
 
       const deterministicOnlyTools = new Set(['import_project', 'create_project', 'list_projects', 'read_project', 'update_project', 'delete_project', 'read_profile_basics', 'resume_uploaded']);
+      const freshBuilder = await reloadBuilderForAgent(builder._id);
+      const agentContext = freshBuilder ? await buildBuilderAgentContext(freshBuilder) : {};
       const message = deterministicOnlyTools.has(tool)
         ? deterministicReply
         : await getAgentMessage({
@@ -1688,19 +1773,9 @@ export const POST: APIRoute = async ({ request }) => {
               toolArgs,
               extractedLinks,
               extractedRoleSkills,
-              builderName: builder.name,
-              headline: builder.headline,
-              bio: builder.bio,
-              rolePreference: builder.rolePreference,
-              preferredWorkType: builder.preferredWorkType,
-              availability: builder.availability,
-              links: builder.links,
-              completion,
-              profileQuality: builder.profileQuality,
-              projects: projects.map(p => ({ title: p.projectName, description: p.description, contribution: p.builderContribution })),
-              mustNeverAskForBuilderId: true,
+              ...agentContext,
             },
-            history: Array.isArray(payload?.history) ? payload.history : undefined,
+            history: chatHistory,
           });
       console.log('[agent/actions] builder_chat:final', {
         builderId: String(builder._id),
@@ -1709,9 +1784,26 @@ export const POST: APIRoute = async ({ request }) => {
         uiBlocks: uiBlocks.map((block) => block.type),
       });
 
+      const profileForClient = freshBuilder
+        ? {
+            _id: String(freshBuilder._id),
+            name: freshBuilder.name,
+            email: freshBuilder.email,
+            headline: freshBuilder.headline,
+            bio: freshBuilder.bio,
+            links: freshBuilder.links,
+            availability: freshBuilder.availability,
+            rolePreference: freshBuilder.rolePreference,
+            preferredWorkType: freshBuilder.preferredWorkType,
+            profileCompletion: computeBuilderScores(freshBuilder, projects),
+            profileQuality: freshBuilder.profileQuality,
+          }
+        : null;
+
       return ok({
         message,
         uiBlocks,
+        builder: profileForClient,
         meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
       });
     }
@@ -2079,6 +2171,8 @@ export const POST: APIRoute = async ({ request }) => {
         });
       }
 
+      await seedThreadFromIntro(intro);
+
       return ok({
         message: 'Intro request sent. The candidate will appear in your pipeline.',
         introRequest: {
@@ -2192,6 +2286,16 @@ export const POST: APIRoute = async ({ request }) => {
       if (!opportunity || !builder) return bad('Search or candidate not found', 404);
       if (!match) return bad('Match not found', 404);
 
+      // RESTORE BEFORE GIT PUSH — intro call required before trial generation
+      // if (!match.callCompletedAt) {
+      //   return bad('Complete the intro call before generating a trial project.', 400);
+      // }
+
+      const existingStatus = match.trialProject?.status;
+      if (existingStatus && !['draft', 'rejected'].includes(existingStatus)) {
+        return bad('A trial has already been sent for this builder.', 400);
+      }
+
       const projects = await ProjectRecord.find({ builderId })
         .select('projectName techStack builderContribution description')
         .limit(5)
@@ -2301,7 +2405,7 @@ export const POST: APIRoute = async ({ request }) => {
       return bad('Unknown candidateAction');
     }
 
-    if (action === 'run_builder_search') {
+    if (action === 'run_builder_search' || action === 'rerun_search') {
       const resolved = await resolveAuthedFounder(request);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
@@ -2322,6 +2426,10 @@ export const POST: APIRoute = async ({ request }) => {
           'Add at least a role title, what they will build, and required skills before running preview.'
         );
       }
+
+      const isRerun = action === 'rerun_search';
+      const existingShortlist = await Shortlist.findOne({ opportunityId, founderEmail: email }).lean();
+      const wasUnlocked = isRerun && Boolean(existingShortlist?.unlocked);
 
       const builders = await BuilderProfile.find({
         verificationStatus: {
@@ -2347,7 +2455,8 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       const ranked = rankBuildersForOpportunity(builders, projectsByBuilder, oppPlain, 12);
-      const previewCandidates = toAnonymousCandidates(ranked, 6);
+      const previewCount = wasUnlocked ? ranked.length : 6;
+      const previewCandidates = toAnonymousCandidates(ranked, previewCount);
       const strongMatchCount = ranked.filter((r) => r.matchLabel === 'Strong Match').length;
 
       const candidatesWithMatchIds: any[] = [];
@@ -2355,22 +2464,29 @@ export const POST: APIRoute = async ({ request }) => {
         const entry = ranked.find((r) => r.builderId === anon.builderId);
         if (!entry) continue;
 
+        const existingMatch = await MatchRecord.findOne({
+          builderId: entry.builderId,
+          opportunityId,
+        }).lean();
+
+        const matchUpdate: Record<string, unknown> = {
+          builderId: entry.builderId,
+          opportunityId,
+          matchScore: entry.matchScore,
+          matchLabel: entry.matchLabel,
+          anonymousLabel: anon.anonymousLabel,
+          signalScores: entry.signals,
+          reasoning: entry.whyTheyMatch,
+          evidence: [],
+          riskFlags: entry.projects.length === 0 ? ['Limited verified proof'] : [],
+        };
+        if (!existingMatch || existingMatch.status === 'generated') {
+          matchUpdate.status = 'generated';
+        }
+
         const match = await MatchRecord.findOneAndUpdate(
           { builderId: entry.builderId, opportunityId },
-          {
-            $set: {
-              builderId: entry.builderId,
-              opportunityId,
-              matchScore: entry.matchScore,
-              matchLabel: entry.matchLabel,
-              anonymousLabel: anon.anonymousLabel,
-              signalScores: entry.signals,
-              reasoning: entry.whyTheyMatch,
-              evidence: [],
-              riskFlags: entry.projects.length === 0 ? ['Limited verified proof'] : [],
-              status: 'generated',
-            },
-          },
+          { $set: matchUpdate },
           { upsert: true, new: true }
         );
 
@@ -2381,26 +2497,66 @@ export const POST: APIRoute = async ({ request }) => {
         });
       }
 
+      // Keep in-pipeline builders on the board even if they fall out of the new top ranks
+      const seenBuilderIds = new Set(candidatesWithMatchIds.map((c) => String(c.builderId)));
+      if (isRerun && existingShortlist?.candidates?.length) {
+        const pipelineMatches = await MatchRecord.find({
+          opportunityId,
+          status: { $nin: ['generated', 'closed', 'rejected'] },
+        }).lean();
+
+        for (const pipelineMatch of pipelineMatches) {
+          const builderId = String(pipelineMatch.builderId);
+          if (seenBuilderIds.has(builderId)) continue;
+          const prior = (existingShortlist.candidates as any[]).find(
+            (c) => String(c.builderId) === builderId
+          );
+          if (!prior) continue;
+          candidatesWithMatchIds.push({
+            ...prior,
+            matchRecordId: pipelineMatch._id,
+            builderId: pipelineMatch.builderId,
+          });
+          seenBuilderIds.add(builderId);
+        }
+      }
+
+      const shortlistFields: Record<string, unknown> = {
+        opportunityId,
+        founderEmail: email,
+        totalMatches: ranked.length,
+        strongMatchCount,
+        candidates: candidatesWithMatchIds,
+        previewGeneratedAt: new Date(),
+      };
+
+      if (wasUnlocked) {
+        shortlistFields.unlocked = true;
+        shortlistFields.unlockedAt = existingShortlist?.unlockedAt || new Date();
+      } else if (!isRerun) {
+        shortlistFields.unlocked = false;
+      } else {
+        shortlistFields.unlocked = false;
+      }
+
       const shortlist = await Shortlist.findOneAndUpdate(
         { opportunityId },
-        {
-          $set: {
-            opportunityId,
-            founderEmail: email,
-            unlocked: false,
-            totalMatches: ranked.length,
-            strongMatchCount,
-            candidates: candidatesWithMatchIds,
-            previewGeneratedAt: new Date(),
-          },
-        },
+        { $set: shortlistFields },
         { upsert: true, new: true }
       );
 
-      opportunity.status = 'preview';
+      opportunity.status = wasUnlocked ? 'shortlisted' : 'preview';
       await opportunity.save();
 
       const publicShortlist = toPublicShortlist(shortlist);
+      let fullCandidates: Awaited<ReturnType<typeof buildFullCandidatesForShortlist>> | null = null;
+      if (wasUnlocked) {
+        fullCandidates = await buildFullCandidatesForShortlist(shortlist, oppPlain, {
+          BuilderProfile,
+          ProjectRecord,
+          MatchRecord,
+        });
+      }
       const previewExplanation = buildPreviewExplanation(oppPlain, ranked.length, strongMatchCount);
       const uiBlocks: any[] = [
         buildTalentPreviewUiBlock(shortlist, oppPlain),
@@ -2429,20 +2585,23 @@ export const POST: APIRoute = async ({ request }) => {
         })),
       ];
 
-      const previewMsg =
-        strongMatchCount === 0 && ranked.length > 0
+      const previewMsg = wasUnlocked
+        ? `Search refreshed for ${oppPlain.roleTitle}. ${candidatesWithMatchIds.length} builder${candidatesWithMatchIds.length === 1 ? '' : 's'} on your board (${strongMatchCount} strong).`
+        : strongMatchCount === 0 && ranked.length > 0
           ? `Preview ready for ${oppPlain.roleTitle}: ${ranked.length} potential match${ranked.length === 1 ? '' : 'es'}, 0 strong matches. See why on the right — you can still unlock to review.`
           : `Preview generated for ${oppPlain.roleTitle}. ${ranked.length} potential matches (${strongMatchCount} strong). Unlock the shortlist to see full profiles.`;
 
       return ok({
         message: previewMsg,
         opportunity: oppPlain,
-        shortlist: publicShortlist,
+        shortlist: fullCandidates
+          ? { ...publicShortlist, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) }
+          : publicShortlist,
         searchStats: {
           totalMatches: ranked.length,
           strongMatchCount,
           previewGenerated: true,
-          locked: true,
+          locked: !wasUnlocked,
         },
         uiBlocks,
         meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
@@ -3037,11 +3196,17 @@ export const POST: APIRoute = async ({ request }) => {
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
+      const deadlineDate = String(payload?.deadlineDate || payload?.deadline || '').trim();
       if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+      if (!deadlineDate) return bad('deadlineDate is required (YYYY-MM-DD)');
+      const deadlineAt = new Date(deadlineDate);
+      if (Number.isNaN(deadlineAt.getTime())) return bad('Invalid deadlineDate');
+      deadlineAt.setHours(12, 0, 0, 0);
       const result = await sendTrialProjectToBuilder({
         opportunityId,
         builderId,
         founderEmail: resolved.email,
+        deadlineAt,
       });
       if ('error' in result && result.error) return bad(result.error, result.status || 400);
       return ok({
@@ -3056,13 +3221,13 @@ export const POST: APIRoute = async ({ request }) => {
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(resolved.builder._id);
-      const demoUrl = String(payload?.demoUrl || '').trim();
+      const videoUrl = String(payload?.videoUrl || payload?.demoUrl || '').trim();
       const githubUrl = String(payload?.githubUrl || '').trim();
       if (!opportunityId) return bad('opportunityId is required');
       const result = await submitTrialByBuilder({
         opportunityId,
         builderId,
-        demoUrl,
+        videoUrl,
         githubUrl,
         notes: payload?.notes,
       });
@@ -3133,6 +3298,67 @@ export const POST: APIRoute = async ({ request }) => {
       });
       if ('error' in result && result.error) return bad(result.error, result.status || 400);
       return ok({ message: 'Candidate closed.', matchStatus: result.matchStatus });
+    }
+
+    if (action === 'get_founder_threads') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const threads = await getFounderThreads(resolved.email);
+      return ok({ threads });
+    }
+
+    if (action === 'get_builder_threads') {
+      const resolved = await resolveAuthedBuilder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const threads = await getBuilderThreads(String(resolved.builder._id));
+      return ok({ threads });
+    }
+
+    if (action === 'get_thread_messages') {
+      const threadId = String(payload?.threadId || '').trim();
+      if (!threadId) return bad('threadId is required');
+
+      const founderResolved = await resolveAuthedFounder(request);
+      if (!('error' in founderResolved)) {
+        const result = await getThreadMessages(threadId, { type: 'founder', email: founderResolved.email });
+        if ('error' in result && result.error) return bad(result.error, result.status || 400);
+        return ok(result);
+      }
+
+      const builderResolved = await resolveAuthedBuilder(request);
+      if ('error' in builderResolved) return bad('Please log in to continue.', 401);
+      const result = await getThreadMessages(threadId, { type: 'builder', builderId: String(builderResolved.builder._id) });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok(result);
+    }
+
+    if (action === 'send_message') {
+      const threadId = String(payload?.threadId || '').trim();
+      const body = String(payload?.body || payload?.message || '').trim();
+      if (!threadId || !body) return bad('threadId and body are required');
+
+      const founderResolved = await resolveAuthedFounder(request);
+      if (!('error' in founderResolved)) {
+        const result = await sendThreadMessage({
+          threadId,
+          senderType: 'founder',
+          senderEmail: founderResolved.email,
+          body,
+        });
+        if ('error' in result && result.error) return bad(result.error, result.status || 400);
+        return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
+      }
+
+      const builderResolved = await resolveAuthedBuilder(request);
+      if ('error' in builderResolved) return bad('Please log in to continue.', 401);
+      const result = await sendThreadMessage({
+        threadId,
+        senderType: 'builder',
+        senderEmail: builderResolved.builder.email,
+        body,
+      });
+      if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
     }
 
     return bad(`Unsupported action: ${action}`);

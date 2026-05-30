@@ -1,11 +1,21 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "../auth_manager";
-import MomentumApplicationWizard from "./MomentumApplicationWizard";
-import MomentumUserDashboard from "./MomentumUserDashboard";
-import MomentumAdminDashboard from "./MomentumAdminDashboard";
 import type { MomentumApplicationRecord, PortalUser } from "./types";
+
+const MomentumApplicationWizard = lazy(() => import("./MomentumApplicationWizard"));
+const MomentumUserDashboard = lazy(() => import("./MomentumUserDashboard"));
+const MomentumAdminDashboard = lazy(() => import("./MomentumAdminDashboard"));
+
+function PortalSectionFallback() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-orange-400" />
+      <p className="text-sm text-white/45">Loading portal…</p>
+    </div>
+  );
+}
 
 interface PortalPayload {
   success: boolean;
@@ -95,25 +105,35 @@ function PortalInner() {
   const application = payload.application ?? null;
 
   if (portalUser.role === "admin") {
-    return <MomentumAdminDashboard />;
+    return (
+      <Suspense fallback={<PortalSectionFallback />}>
+        <MomentumAdminDashboard />
+      </Suspense>
+    );
   }
 
   if (application) {
-    return <MomentumUserDashboard application={application} />;
+    return (
+      <Suspense fallback={<PortalSectionFallback />}>
+        <MomentumUserDashboard application={application} />
+      </Suspense>
+    );
   }
 
   const { first, last } = splitName(authUser.name);
 
   return (
-    <MomentumApplicationWizard
-      user={{
-        ...portalUser,
-        email: portalUser.email || authUser.email,
-      }}
-      defaultFirstName={first}
-      defaultLastName={last}
-      onSuccess={() => void fetchPortal()}
-    />
+    <Suspense fallback={<PortalSectionFallback />}>
+      <MomentumApplicationWizard
+        user={{
+          ...portalUser,
+          email: portalUser.email || authUser.email,
+        }}
+        defaultFirstName={first}
+        defaultLastName={last}
+        onSuccess={() => void fetchPortal()}
+      />
+    </Suspense>
   );
 }
 

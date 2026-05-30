@@ -1,5 +1,6 @@
 import Notification from '@/models/talent/Notification';
 import type { NOTIFICATION_TYPES } from '@/models/talent/Notification';
+import { sendTalentEmail, dashboardDeepLink } from '@/lib/talent/talentEmail';
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -41,6 +42,20 @@ export async function createNotification(params: CreateNotificationParams) {
     entityType: params.entityType || null,
     entityId: params.entityId || null,
   });
+
+  const tabFromLink = params.link?.includes('tab=')
+    ? params.link.split('tab=')[1]?.split('&')[0]
+    : params.recipientType === 'builder'
+      ? 'home'
+      : 'messages';
+  await sendTalentEmail({
+    to: params.recipientEmail,
+    subject: params.title,
+    body: `${params.body} View this on your builder dashboard.`,
+    ctaLabel: 'Open dashboard',
+    ctaUrl: dashboardDeepLink(tabFromLink || 'home'),
+  });
+
   return serializeNotification(doc);
 }
 

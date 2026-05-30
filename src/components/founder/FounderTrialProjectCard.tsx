@@ -6,7 +6,6 @@ const emptyDraft = (): TrialProjectDraft => ({
   goal: '',
   deliverables: [''],
   timeline: '1 week',
-  suggestedPayRange: '',
   successCriteria: [''],
 });
 
@@ -130,11 +129,25 @@ export default function FounderTrialProjectCard({
     }
   };
 
-  const statusBadge = draft?.status && draft.status !== 'draft' ? (
-    <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#fa7d22]/30 text-[#ffb580]">
-      {draft.status.replace(/_/g, ' ')}
-    </span>
-  ) : null;
+  if (!callCompleted) return null;
+
+  const statusBadge =
+    draft?.status && draft.status !== 'draft' ? (
+      <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-[#fa7d22]/30 text-[#ffb580]">
+        {draft.status.replace(/_/g, ' ')}
+      </span>
+    ) : null;
+
+  const trialLocked = draft?.status && !['draft', 'rejected'].includes(draft.status);
+  if (trialLocked) {
+    return (
+      <section className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2">
+        <h3 className="text-xs uppercase tracking-wider text-white/45">Work trial</h3>
+        <p className="text-sm text-white/80">{draft?.title}</p>
+        <p className="text-xs text-white/50">Status: {draft?.status?.replace(/_/g, ' ')}</p>
+      </section>
+    );
+  }
 
   const canSend =
     callCompleted &&
@@ -148,7 +161,7 @@ export default function FounderTrialProjectCard({
       <section className="rounded-xl border border-[#fa7d22]/25 bg-[#fa7d22]/10 p-4">
         <h3 className="text-xs uppercase tracking-wider text-[#ffb580] mb-2">Trial project</h3>
         <p className="text-sm text-white/70 mb-4">
-          Scope a paid sprint before a longer engagement — concrete deliverables, timeline, and success bar.
+          Generate a take-home from the candidate card after your intro call. Unpaid · GitHub + walkthrough video submission.
         </p>
         {error ? <p className="text-sm text-amber-300 mb-3">{error}</p> : null}
         <button
@@ -193,20 +206,12 @@ export default function FounderTrialProjectCard({
             className="mt-1 w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white resize-none"
           />
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <label className="block">
             <span className="text-[10px] uppercase tracking-wider text-white/45">Timeline</span>
             <input
               value={form.timeline}
               onChange={(e) => setForm({ ...form, timeline: e.target.value })}
-              className="mt-1 w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] uppercase tracking-wider text-white/45">Suggested pay</span>
-            <input
-              value={form.suggestedPayRange}
-              onChange={(e) => setForm({ ...form, suggestedPayRange: e.target.value })}
               className="mt-1 w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white"
             />
           </label>
@@ -270,8 +275,12 @@ export default function FounderTrialProjectCard({
       <p className="text-sm text-white/70">
         <span className="text-white/45">Timeline · </span>
         {draft?.timeline}
-        <span className="text-white/45"> · Pay · </span>
-        {draft?.suggestedPayRange}
+        {draft?.deadlineAt ? (
+          <>
+            <span className="text-white/45"> · Due · </span>
+            {new Date(draft.deadlineAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          </>
+        ) : null}
       </p>
       <div>
         <p className="text-[10px] uppercase tracking-wider text-white/45 mb-1">Success criteria</p>

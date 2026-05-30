@@ -1,6 +1,7 @@
 import React from 'react';
 import type { FullCandidate, AnonymousCandidate } from './founderTypes';
-import { Zap, ShieldCheck, Check, Heart, Ban, AlertCircle, ArrowUpRight } from 'lucide-react';
+import { Zap, ShieldCheck, Check, ArrowUpRight } from 'lucide-react';
+import { canScheduleMeet, getIntroButtonLabel, getScheduleMeetButtonState } from '@/lib/talent/founderIntroUi';
 
 function getMetricColor(value: string) {
   const v = value.toLowerCase();
@@ -25,8 +26,12 @@ interface BuilderSnapshotCardProps {
   onViewDetails: () => void;
   onRequestIntro?: () => void;
   onUnlock?: () => void;
-  onSave?: () => void;
-  onHide?: () => void;
+  onScheduleMeet?: () => void;
+  pipelineEntry?: { introRequestStatus?: string | null; callScheduleStatus?: string | null; status?: string; callCompletedAt?: string | null; confirmedCallEndAt?: string | null } | null;
+  onGenerateTrial?: () => void;
+  onHireNow?: () => void;
+  callCompleted?: boolean;
+  trialSent?: boolean;
   actionBusy?: boolean;
 }
 
@@ -36,8 +41,12 @@ export default function BuilderSnapshotCard({
   onViewDetails,
   onRequestIntro,
   onUnlock,
-  onSave,
-  onHide,
+  onScheduleMeet,
+  pipelineEntry,
+  onGenerateTrial,
+  onHireNow,
+  callCompleted,
+  trialSent,
   actionBusy,
 }: BuilderSnapshotCardProps) {
   const isAnon = !unlocked;
@@ -63,6 +72,8 @@ export default function BuilderSnapshotCard({
   const profileCompletion = candidate.profileCompletionLabel || (candidate.profileCompletion?.label) || 'Mostly Filled';
   const founderClarity = candidate.founderClarityLabel || (candidate.profileQuality?.founderClarityLabel) || 'Understandable';
   const proofStrength = candidate.proofStrengthLabel || (candidate.profileQuality?.proofStrengthLabel) || 'Solid Proof';
+  const introButton = !isAnon ? getIntroButtonLabel(candidate, pipelineEntry) : null;
+  const scheduleMeet = !isAnon ? getScheduleMeetButtonState(candidate, pipelineEntry || null) : null;
 
   return (
     <div className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-6 flex flex-col justify-between transition-all duration-300 hover:border-[#fa7d22]/30 shadow-lg hover:shadow-[#fa7d22]/5">
@@ -146,6 +157,22 @@ export default function BuilderSnapshotCard({
               Unlock Profile
             </button>
           </>
+        ) : trialSent && onHireNow ? (
+          <>
+            <button
+              onClick={onHireNow}
+              disabled={actionBusy}
+              className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400 transition disabled:opacity-50"
+            >
+              Hire now
+            </button>
+            <button
+              onClick={onViewDetails}
+              className="py-2.5 px-4 rounded-xl border border-white/10 bg-white/5 text-white font-semibold hover:bg-white/10 transition"
+            >
+              View
+            </button>
+          </>
         ) : (
           <>
             <button
@@ -154,43 +181,39 @@ export default function BuilderSnapshotCard({
             >
               Explore Profile
             </button>
-            {onRequestIntro && (
+            {scheduleMeet?.show && !scheduleMeet.disabled && onScheduleMeet ? (
               <button
-                onClick={onRequestIntro}
-                disabled={actionBusy || candidate.introRequested}
+                onClick={onScheduleMeet}
+                disabled={actionBusy}
                 className="flex-1 py-2 px-3 rounded-xl bg-[#fa7d22] text-black font-bold hover:bg-[#ff9b4e] transition disabled:opacity-50"
               >
-                {candidate.introRequested ? 'Intro requested' : 'Request Intro'}
+                {scheduleMeet.label}
               </button>
-            )}
-            
-            {/* Save/Hide small utility buttons */}
-            <div className="flex gap-1 shrink-0">
-              {onSave && (
-                <button
-                  onClick={onSave}
-                  disabled={actionBusy}
-                  className={`p-2 rounded-xl border transition ${
-                    candidate.saved
-                      ? 'border-[#fa7d22]/40 bg-[#fa7d22]/10 text-[#ffb580]'
-                      : 'border-white/10 bg-white/5 text-white/60 hover:text-white'
-                  }`}
-                  title="Save Candidate"
-                >
-                  <Heart className={`w-4 h-4 ${candidate.saved ? 'fill-[#ffb580]' : ''}`} />
-                </button>
-              )}
-              {onHide && (
-                <button
-                  onClick={onHide}
-                  disabled={actionBusy}
-                  className="p-2 rounded-xl border border-white/10 bg-white/5 text-white/40 hover:text-white/60 hover:border-white/20 transition"
-                  title="Hide Candidate"
-                >
-                  <Ban className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+            ) : scheduleMeet?.show && scheduleMeet.disabled ? (
+              <button
+                type="button"
+                disabled
+                className="flex-1 py-2 px-3 rounded-xl border border-white/15 text-white/45 font-bold cursor-not-allowed"
+              >
+                {scheduleMeet.label}
+              </button>
+            ) : callCompleted && onGenerateTrial && !trialSent ? (
+              <button
+                onClick={onGenerateTrial}
+                disabled={actionBusy}
+                className="flex-1 py-2 px-3 rounded-xl border border-[#fa7d22]/40 text-[#ffb580] font-semibold hover:bg-[#fa7d22]/10 transition disabled:opacity-50"
+              >
+                Generate work trial
+              </button>
+            ) : introButton?.show && onRequestIntro ? (
+              <button
+                onClick={onRequestIntro}
+                disabled={actionBusy || introButton.disabled}
+                className="flex-1 py-2 px-3 rounded-xl bg-[#fa7d22] text-black font-bold hover:bg-[#ff9b4e] transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {introButton.label}
+              </button>
+            ) : null}
           </>
         )}
       </div>

@@ -21,6 +21,8 @@ Do not include any markdown formatting or extra text.
 
 Schema:
 {
+  "headline": "string | null (short professional title, max 120 chars)",
+  "bio": "string | null (2-4 sentence professional summary, max 500 chars)",
   "skills": ["string"],
   "links": {
     "github": "string | null",
@@ -42,6 +44,8 @@ Schema:
 }
 
 Rules:
+- headline: One-line professional title (e.g. "Full-stack developer · React & Node").
+- bio: Concise summary of background, strengths, and what they want to build.
 - skills: Extract programming languages, frameworks, and tools.
 - links: Extract URLs for GitHub, LinkedIn, and personal portfolio/website.
 - projects: Extract any personal, academic, or work projects. 
@@ -64,6 +68,16 @@ Rules:
     const builder = await BuilderProfile.findById(builderId);
     if (builder) {
       let updated = false;
+
+      // Update headline & bio
+      if (extractedData.headline && !builder.headline) {
+        builder.headline = String(extractedData.headline).trim().slice(0, 120);
+        updated = true;
+      }
+      if (extractedData.bio && !builder.bio) {
+        builder.bio = String(extractedData.bio).trim().slice(0, 2000);
+        updated = true;
+      }
 
       // Update skills
       if (Array.isArray(extractedData.skills) && extractedData.skills.length > 0) {

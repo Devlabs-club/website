@@ -1,4 +1,5 @@
 import IntroRequest from '@/models/talent/IntroRequest';
+import MessageThread from '@/models/talent/MessageThread';
 import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
@@ -24,7 +25,7 @@ export async function notifyBuilderIntroReceived(params: {
     type: 'intro_received',
     title: 'New intro request',
     body: `${params.founderName} invited you to discuss ${params.roleTitle} at ${params.company}.`,
-    link: builderDashboardLink('intros', { introId: params.introRequestId }),
+    link: builderDashboardLink('messages', { introId: params.introRequestId }),
     entityType: 'IntroRequest',
     entityId: params.introRequestId,
   });
@@ -39,16 +40,22 @@ export async function getBuilderIntroInbox(builderId: string) {
     .lean();
 
   const oppIds = intros.map((i) => i.opportunityId);
-  const opportunities = await Opportunity.find({ _id: { $in: oppIds } }).lean();
+  const [opportunities, threads] = await Promise.all([
+    Opportunity.find({ _id: { $in: oppIds } }).lean(),
+    MessageThread.find({ builderId }).select('_id opportunityId introRequestId').lean(),
+  ]);
   const oppById = new Map(opportunities.map((o) => [String(o._id), o]));
+  const threadByOpp = new Map(threads.map((t) => [String(t.opportunityId), t]));
 
   return intros.map((intro) => {
     const opp = oppById.get(String(intro.opportunityId));
+    const thread = threadByOpp.get(String(intro.opportunityId));
     return {
       _id: String(intro._id),
       opportunityId: String(intro.opportunityId),
       builderId: String(intro.builderId),
       matchRecordId: intro.matchRecordId ? String(intro.matchRecordId) : null,
+      threadId: thread ? String(thread._id) : null,
       founderEmail: intro.founderEmail,
       founderName: intro.founderName || intro.founderEmail.split('@')[0],
       introMessage: intro.introMessage,
