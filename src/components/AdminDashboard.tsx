@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import PDFViewer from './PDFViewer';
+import AdminResumeViewer from './admin/AdminResumeViewer';
 import EventAdminPanel from './events/EventAdminPanel';
 import AdminShell from './admin/AdminShell';
 import type { AdminSection } from './admin/AdminSidebar';
@@ -1006,14 +1006,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               )}
-              {selectedApplication.resumeUrl && (
-                <div className="mt-4">
-                  <p className="text-sm text-gray-500 mb-2">Resume</p>
-                  <div className="border border-dashed border-gray-600 p-1">
-                    <PDFViewer url={selectedApplication.resumeUrl} />
-                  </div>
-                </div>
-              )}
+              <AdminResumeViewer resumeUrl={selectedApplication.resumeUrl} />
             </div>
           ) : selectedSearchResult ? (
             <div className="bg-[#111111] p-4 md:p-6 border border-dashed border-gray-700">
@@ -1221,37 +1214,9 @@ const AdminDashboard: React.FC = () => {
                       )}
                     </div>
                     
-                    {/* Resume Section */}
-                    {(selectedApplicationData?.resumeUrl || selectedUserData.resumeUrl) ? (
-                      <div className="mt-3 pt-3 border-t border-dashed border-gray-600">
-                        <p className="text-xs text-gray-500 mb-2">Resume</p>
-                        <div className="flex items-center gap-2 mb-3">
-                          <a 
-                            href={selectedApplicationData?.resumeUrl || selectedUserData.resumeUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 text-xs border border-dashed border-[#ef9248] transition-colors"
-                          >
-                            Open in New Tab
-                          </a>
-                          <a 
-                            href={selectedApplicationData?.resumeUrl || selectedUserData.resumeUrl} 
-                            download
-                            className="bg-[#222] hover:bg-[#333] text-gray-300 px-3 py-1 text-xs border border-dashed border-gray-600 transition-colors"
-                          >
-                            Download
-                          </a>
-                        </div>
-                        <div className="border border-dashed border-gray-600 p-1">
-                          <PDFViewer url={selectedApplicationData?.resumeUrl || selectedUserData?.resumeUrl || ''} />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mt-3 pt-3 border-t border-dashed border-gray-600">
-                        <p className="text-xs text-gray-500 mb-2">Resume</p>
-                        <p className="text-gray-400 text-xs">No resume uploaded</p>
-                      </div>
-                    )}
+                    <AdminResumeViewer
+                      resumeUrl={selectedApplicationData?.resumeUrl || selectedUserData.resumeUrl}
+                    />
                   </div>
                 </div>
               ) : null}
