@@ -67,6 +67,24 @@ export function agentStorageKey(userId: string) {
   return `devlabs_agent_messages_${userId}`;
 }
 
+const DASHBOARD_SYSTEM_MESSAGE =
+  /dashboard load timed out|failed to fetch|could not load dashboard|networkerror/i;
+
+/** Strip one-off dashboard/sync failures from persisted agent chat history. */
+export function sanitizeAgentMessages(
+  messages: Array<{ sender: string; text: string }>
+): Array<{ sender: 'agent' | 'user'; text: string }> {
+  return messages
+    .filter((m) => {
+      if (m.sender !== 'agent') return true;
+      return !DASHBOARD_SYSTEM_MESSAGE.test(m.text);
+    })
+    .map((m) => ({
+      sender: m.sender === 'user' ? 'user' : 'agent',
+      text: m.text,
+    }));
+}
+
 export function clearAgentStorageForUser(userId: string) {
   if (typeof window === 'undefined') return;
   try {

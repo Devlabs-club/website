@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { OsButton } from '@/components/os';
 
 export default function HireConfirmModal({
   opportunityId,
@@ -49,35 +58,31 @@ export default function HireConfirmModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-md rounded-2xl border border-white/15 bg-[#111] p-6 shadow-2xl">
-        <h2 className="text-lg font-semibold text-white mb-1">Hire {builderName}?</h2>
-        <p className="text-sm text-white/60 mb-4">
-          This marks the role as filled and notifies the builder.
-        </p>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="glass-panel-strong border-white/15 bg-[#111]/95 text-white sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Hire {builderName}?</DialogTitle>
+          <DialogDescription className="text-white/60">
+            This marks the role as filled and notifies the builder.
+          </DialogDescription>
+        </DialogHeader>
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Optional note for the builder…"
           rows={3}
-          className="w-full rounded-lg bg-black/30 border border-white/15 px-3 py-2 text-sm text-white resize-none mb-3"
+          className="w-full rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm text-white resize-none"
         />
-        {error ? <p className="text-sm text-amber-300 mb-3">{error}</p> : null}
-        <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border border-white/20 text-white/80 text-sm">
+        {error ? <p className="text-sm text-amber-300">{error}</p> : null}
+        <DialogFooter className="gap-2 sm:gap-2">
+          <OsButton variant="glass" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={hire}
-            className="px-4 py-2 rounded-xl bg-emerald-500 text-black text-sm font-semibold disabled:opacity-50"
-          >
+          </OsButton>
+          <OsButton variant="shimmer" onClick={hire} disabled={busy} className="bg-emerald-500">
             {busy ? 'Hiring…' : 'Confirm hire'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </OsButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

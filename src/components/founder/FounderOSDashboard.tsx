@@ -18,7 +18,7 @@ import HireConfirmModal from './HireConfirmModal';
 import { useTalentRealtime } from '@/hooks/useTalentRealtime';
 import NotificationCenter from '../talent/NotificationCenter';
 import { DottedGlowBackground } from '../ui/dotted-glow-background';
-import { AmbientBackground } from '../ui/AmbientBackground';
+import { OsShell, OsEmptyState, OsButton } from '@/components/os';
 import { Bot, Plus } from 'lucide-react';
 import type { NotificationItem, PipelineEntry } from './founderTypes';
 
@@ -362,11 +362,10 @@ export default function FounderOSDashboard() {
   // Loading Screen
   if (searchesLoading && searches.length === 0) {
     return (
-      <div className="min-h-screen text-white flex items-center justify-center flex-col gap-4 relative">
-        <AmbientBackground overlayOpacity={0.72} />
-        <DottedGlowBackground className="fixed inset-0 z-0 w-full h-full" color="rgba(255,255,255,0.05)" glowColor="rgba(250, 125, 34, 0.25)" />
+      <OsShell className="items-center justify-center">
+        <DottedGlowBackground className="fixed inset-0 z-0 w-full h-full pointer-events-none" color="rgba(255,255,255,0.05)" glowColor="rgba(250, 125, 34, 0.25)" />
         <LoadingBlock label="Loading Founder Workspace…" />
-      </div>
+      </OsShell>
     );
   }
 
@@ -374,10 +373,7 @@ export default function FounderOSDashboard() {
   const activeSearches = searches.filter((s) => s.status !== 'closed');
 
   return (
-    <div className="relative min-h-screen w-full text-white font-manrope flex flex-col overflow-x-hidden">
-      <AmbientBackground overlayOpacity={0.65} />
-
-      {/* Subtle dotted shimmer on top of ambient glows */}
+    <OsShell className="overflow-x-hidden">
       <DottedGlowBackground
         className="fixed inset-0 z-0 w-full h-full pointer-events-none"
         color="rgba(255,255,255,0.05)"
@@ -389,9 +385,7 @@ export default function FounderOSDashboard() {
         speedMax={1}
         speedScale={0.8}
       />
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(8_8%_3.5%/0.65)_100%)]" />
 
-      {/* Main dashboard content container */}
       <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 lg:px-12 py-10 flex-1 flex flex-col">
         
         {loadError && (
@@ -402,33 +396,24 @@ export default function FounderOSDashboard() {
 
         {/* 2. Zero-state Home Screen */}
         {activeSearches.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto text-center py-20 animate-fade-in">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#fa7d22]/20 to-[#fa7d22]/5 border border-[#fa7d22]/30 flex items-center justify-center text-[#ffb580] shadow-lg shadow-[#fa7d22]/5 mb-6">
-              <Bot className="w-8 h-8" />
-            </div>
-            
-            <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent leading-tight">
-              Find builders who can actually ship.
-            </h1>
-            <p className="text-white/50 text-sm mt-4 leading-relaxed">
-              Describe the developer role you need. The DevLabs agent analyzes your brief, matches candidates from our student ecosystem based on real proof, and runs introductions.
-            </p>
-
-            <button
-              onClick={() => setShowIntakeChat(true)}
-              className="mt-8 px-6 py-3 rounded-full bg-gradient-to-r from-[#fa7d22] to-[#ff9b4e] text-black font-bold hover:opacity-95 shadow-lg shadow-[#fa7d22]/20 transition flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5 stroke-[2.5px]" />
-              Search for builder
-            </button>
-
-            <button
-              onClick={logout}
-              className="mt-6 text-xs text-white/30 hover:text-white/60 transition-colors"
-            >
-              Sign out of account
-            </button>
-          </div>
+          <OsEmptyState
+            icon={<Bot className="w-8 h-8 text-[#ffb580]" />}
+            title="Find builders who can actually ship."
+            description="Describe the developer role you need. The DevLabs agent analyzes your brief, matches candidates from our student ecosystem based on real proof, and runs introductions."
+            animateTitle={false}
+            className="flex-1 max-w-xl mx-auto border-solid bg-transparent"
+            action={
+              <>
+                <OsButton variant="shimmer" onClick={() => setShowIntakeChat(true)} className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Search for builder
+                </OsButton>
+                <button type="button" onClick={logout} className="mt-6 text-xs text-white/30 hover:text-white/60">
+                  Sign out of account
+                </button>
+              </>
+            }
+          />
         ) : (
           /* 3. Unified Workspace Dashboard Cockpit */
           <FounderUnifiedWorkspace
@@ -632,6 +617,6 @@ export default function FounderOSDashboard() {
           onSent={loadSearches}
         />
       ) : null}
-    </div>
+    </OsShell>
   );
 }

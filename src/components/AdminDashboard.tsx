@@ -1,5 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import PDFViewer from './PDFViewer';
+import EventAdminPanel from './events/EventAdminPanel';
+import AdminShell from './admin/AdminShell';
+import type { AdminSection } from './admin/AdminSidebar';
+import {
+  adminGhostButtonClass,
+  adminInputClass,
+  adminLabelClass,
+  adminListItemClass,
+  adminMutedClass,
+  adminPanelClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
+  adminSelectClass,
+  adminSubPanelClass,
+} from './admin/adminUi';
+import { OsEmptyState, OsPageHeader } from './os';
+import { LoaderFour } from './ui/loader';
+import { Badge } from './ui/badge';
+import { BlurFade } from './ui/blur-fade';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { useAuth } from './auth_manager';
+import { Search, Users, X } from 'lucide-react';
 
 // Toast helper - safely handles toast notifications
 const showToast = {
@@ -106,6 +128,9 @@ interface SearchWarningModal {
 }
 
 const AdminDashboard: React.FC = () => {
+  const { logout } = useAuth();
+  const [adminSection, setAdminSection] = useState<AdminSection>('applications');
+
   // Applications state
   const [applications, setApplications] = useState<ApplicationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -350,6 +375,18 @@ const AdminDashboard: React.FC = () => {
 
   // Clear selected application when switching views
   useEffect(() => {
+    if (adminSection === 'search') {
+      setShowSearch(true);
+      setSelectedApplication(null);
+    } else if (adminSection === 'applications') {
+      setShowSearch(false);
+      setSelectedSearchResult(null);
+      setSelectedUserData(null);
+      setSelectedApplicationData(null);
+    }
+  }, [adminSection]);
+
+  useEffect(() => {
     if (showSearch) {
       setSelectedApplication(null);
     } else {
@@ -384,237 +421,257 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Toggle between applications and search view
-  const toggleView = () => {
-    if (showSearch) {
-      // Switching back to applications
-      setShowSearch(false);
-      setSelectedApplication(null);
+  const handleSectionChange = (section: AdminSection) => {
+    setAdminSection(section);
+    if (section !== 'applications') setSelectedApplication(null);
+    if (section !== 'search') {
       setSelectedSearchResult(null);
       setSelectedUserData(null);
       setSelectedApplicationData(null);
-    } else {
-      // Only switch to search if there are results
-      if (searchResults.length > 0) {
-        setShowSearch(true);
-        setSelectedApplication(null);
-      }
     }
   };
 
   if (loading) {
     return (
-      <div className="relative z-10 max-w-6xl min-h-screen mx-auto py-24 sm:px-6 lg:px-8 bg-[#090909] text-gray-400 border border-dashed border-gray-700">
-        <div className="max-w-6xl mx-auto mt-20 p-6 bg-[#090909] border border-dashed border-gray-700 text-gray-400">
-          <p className="text-center">Loading applications...</p>
+      <AdminShell
+        activeSection={adminSection}
+        onSectionChange={handleSectionChange}
+        applicationCount={0}
+        onLogout={logout}
+      >
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <LoaderFour text="Loading admin workspace" />
         </div>
-      </div>
+      </AdminShell>
     );
   }
 
   if (error) {
     return (
-      <div className="relative z-10 max-w-6xl min-h-screen mx-auto py-24 sm:px-6 lg:px-8 bg-[#090909] text-gray-400 border border-dashed border-gray-700">
-        <div className="max-w-6xl mx-auto mt-20 p-6 bg-[#090909] border border-dashed border-gray-700 text-gray-400">
-          <div className="bg-red-900/20 border border-dashed border-red-400 text-red-400 px-4 py-3 mb-4">
-            {error}
-          </div>
-          <button
-            onClick={() => setError('')}
-            className="bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600 px-3 py-1 text-sm"
-          >
-            Dismiss
-          </button>
-        </div>
-      </div>
+      <AdminShell
+        activeSection={adminSection}
+        onSectionChange={handleSectionChange}
+        applicationCount={applications.length}
+        onLogout={logout}
+      >
+        <OsEmptyState
+          title="Could not load applications"
+          description={error}
+          action={
+            <button type="button" onClick={() => setError('')} className={adminSecondaryButtonClass()}>
+              Dismiss
+            </button>
+          }
+        />
+      </AdminShell>
     );
   }
 
+  const sectionTitles: Record<AdminSection, { title: string; subtitle: string }> = {
+    applications: {
+      title: 'Applications',
+      subtitle: 'Review candidate submissions, flag profiles, and inspect resumes.',
+    },
+    search: {
+      title: 'Talent Search',
+      subtitle: 'Run vector or RAG search across the talent graph with optional filters.',
+    },
+    events: {
+      title: 'Event Registration',
+      subtitle: 'Create events, build registration forms, and review submissions.',
+    },
+  };
+
   return (
-    <div className="relative z-10 max-w-6xl min-h-screen mx-auto py-24 sm:px-6 lg:px-8 bg-[#090909] text-gray-400 border border-dashed border-gray-700">
- 
-      <div className="mb-6 p-4 bg-[#111111] border border-dashed border-gray-700 mt-12">
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
-          <h3 className="text-lg font-semibold text-white whitespace-nowrap">Search Users</h3>
-          <form onSubmit={handleSearch} className="flex-1 flex flex-col sm:flex-row gap-2 w-full">
-            <div className="flex-1 flex gap-2">
-              <input className="flex-1 px-3 py-2 bg-[#222] border border-dashed border-gray-600 text-white placeholder-gray-400 focus:outline-none focus:border-[#ef9248]" placeholder="Enter natural language search query..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} disabled={searchLoading} />
-              <select value={searchMode} onChange={(e) => setSearchMode(e.target.value as SearchMode)} className="px-3 py-2 bg-[#222] border border-dashed border-gray-600 text-white focus:outline-none focus:border-[#ef9248]" disabled={searchLoading}>
-                <option value="auto">Auto</option>
-                <option value="vector">Vector</option>
-                <option value="rag">RAG</option>
-              </select>
-            </div>
-            <button type="submit" disabled={searchLoading} className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white border border-dashed border-[#ef9248] disabled:border-gray-600">{searchLoading ? 'Searching...' : 'Search'}</button>
-          </form>
-        </div>
+    <AdminShell
+      activeSection={adminSection}
+      onSectionChange={handleSectionChange}
+      applicationCount={applications.length}
+      onLogout={logout}
+    >
+      <BlurFade delay={0.02}>
+        {adminSection === 'events' ? (
+          <EventAdminPanel />
+        ) : (
+          <div className="space-y-6">
+            <OsPageHeader
+              eyebrow="Admin"
+              title={sectionTitles[adminSection].title}
+              subtitle={sectionTitles[adminSection].subtitle}
+            />
 
-        <div className="mb-4 p-3 bg-[#0d0d0d] border border-dashed border-gray-700">
-          <h4 className="text-sm font-semibold text-white mb-2">Filters</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Major</label>
-              <input
-                type="text"
-                value={filters.major}
-                onChange={(e) => setFilters({...filters, major: e.target.value})}
-                placeholder="e.g., Computer Science"
-                className="w-full px-2 py-1 text-sm bg-[#222] border border-dashed border-gray-600 text-white placeholder-gray-500 focus:outline-none focus:border-[#ef9248]"
-                disabled={searchLoading}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Track</label>
-              <input
-                type="text"
-                value={filters.track}
-                onChange={(e) => setFilters({...filters, track: e.target.value})}
-                placeholder="e.g., Web Development"
-                className="w-full px-2 py-1 text-sm bg-[#222] border border-dashed border-gray-600 text-white placeholder-gray-500 focus:outline-none focus:border-[#ef9248]"
-                disabled={searchLoading}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
-                className="w-full px-2 py-1 text-sm bg-[#222] border border-dashed border-gray-600 text-white focus:outline-none focus:border-[#ef9248]"
-                disabled={searchLoading}
-              >
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
-          </div>
-          {!showSearch && (
-            <div className="mt-2">
-              <label className="text-xs text-gray-400 block mb-1">Filter by Flag Color</label>
-              <select
-                value={filters.flagColor}
-                onChange={(e) => setFilters({...filters, flagColor: e.target.value})}
-                className="w-full px-2 py-1 text-sm bg-[#222] border border-dashed border-gray-600 text-white focus:outline-none focus:border-[#ef9248]"
-              >
-                <option value="">All Applications</option>
-                {FLAG_COLORS.map(color => (
-                  <option key={color.value} value={color.value}>
-                    {color.label} Flag
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="mt-2 flex justify-end">
-            <button
-              onClick={() => setFilters({ major: '', track: '', status: '', flagColor: '' })}
-              className="px-3 py-1 text-xs bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600"
-              disabled={searchLoading}
-            >
-              Clear Filters
-            </button>
-          </div>
-        </div>
+            {adminSection === 'search' ? (
+              <div className={`${adminPanelClass} p-5 space-y-5`}>
+                <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
+                    <input
+                      className={`${adminInputClass} pl-10`}
+                      placeholder="Natural language search query..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      disabled={searchLoading}
+                    />
+                  </div>
+                  <select
+                    value={searchMode}
+                    onChange={(e) => setSearchMode(e.target.value as SearchMode)}
+                    className={`${adminSelectClass} lg:w-40`}
+                    disabled={searchLoading}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="vector">Vector</option>
+                    <option value="rag">RAG</option>
+                  </select>
+                  <button type="submit" disabled={searchLoading} className={adminPrimaryButtonClass(searchLoading)}>
+                    {searchLoading ? 'Searching...' : 'Search'}
+                  </button>
+                </form>
 
-        {/* Toggle View Button */}
-        <div className="flex justify-center">
-          <button
-            onClick={toggleView}
-            className={`px-4 py-2 border border-dashed ${
-              showSearch
-                ? "border-blue-500 text-blue-500"
-                : "border-gray-600 text-gray-400"
-            } hover:border-[#ef9248] hover:text-[#ef9248]`}
-          >
-            {showSearch ? "View Applications" : "View Search Results"}
-            {showSearch && searchResults.length > 0 && ` (${searchResults.length})`}
-          </button>
-        </div>
-      </div>
-
-      {searchWarningModal.show && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111111] border border-dashed border-gray-700 p-6 max-w-md w-full">
-            <h3 className="text-xl font-semibold text-white mb-4">Search Optimization Warning</h3>
-            <div className="mb-4">
-              <p className="text-gray-300 mb-2">Query length: <span className="text-orange-400">{searchWarningModal.tokenCount} tokens</span></p>
-              {searchWarningModal.type === 'vector-too-long' && (
-                <p className="text-yellow-400">Your query is quite long (over 50 tokens). We recommend using RAG search.</p>
-              )}
-              {searchWarningModal.type === 'rag-too-short' && (
-                <p className="text-yellow-400">Your query is short (under 20 tokens). Vector search might be faster.</p>
-              )}
-              {searchWarningModal.type === 'rag-expensive' && (
-                <p className="text-red-400">Your query is very long. This may be expensive with RAG.</p>
-              )}
-            </div>
-            {searchWarningModal.type === 'rag-expensive' ? (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <button onClick={closeSearchWarningModal} className="flex-1 px-4 py-2 bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600">Cancel</button>
-                <button onClick={handleProceedWithCurrentSearch} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white border border-dashed border-red-500">Proceed with RAG</button>
+                <div className={`${adminSubPanelClass} p-4 space-y-3`}>
+                  <p className={adminLabelClass}>Filters</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className="space-y-2">
+                      <span className={adminMutedClass}>Major</span>
+                      <input
+                        type="text"
+                        value={filters.major}
+                        onChange={(e) => setFilters({ ...filters, major: e.target.value })}
+                        placeholder="Computer Science"
+                        className={adminInputClass}
+                        disabled={searchLoading}
+                      />
+                    </label>
+                    <label className="space-y-2">
+                      <span className={adminMutedClass}>Track</span>
+                      <input
+                        type="text"
+                        value={filters.track}
+                        onChange={(e) => setFilters({ ...filters, track: e.target.value })}
+                        placeholder="Web Development"
+                        className={adminInputClass}
+                        disabled={searchLoading}
+                      />
+                    </label>
+                    <label className="space-y-2">
+                      <span className={adminMutedClass}>Status</span>
+                      <select
+                        value={filters.status}
+                        onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                        className={adminSelectClass}
+                        disabled={searchLoading}
+                      >
+                        <option value="">All statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setFilters({ major: '', track: '', status: '', flagColor: '' })}
+                      className={adminGhostButtonClass()}
+                      disabled={searchLoading}
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
-              <>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <button onClick={handleRecommendedSearch} className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white border border-dashed border-green-500">
-                    {searchWarningModal.recommendedMode ? `Run ${searchWarningModal.recommendedMode.toUpperCase()} Search` : 'Run Search'}
-                  </button>
-                  <button onClick={handleProceedWithCurrentSearch} className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white border border-dashed border-[#ef9248]">Proceed</button>
+              <div className={`${adminPanelClass} p-5`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-[#fa7d22]" />
+                    <p className="text-white font-medium">
+                      {getFilteredApplications().length} applications
+                      {filters.flagColor ? ` · ${applications.length} total` : ''}
+                    </p>
+                  </div>
+                  <select
+                    value={filters.flagColor}
+                    onChange={(e) => setFilters({ ...filters, flagColor: e.target.value })}
+                    className={`${adminSelectClass} max-w-xs`}
+                  >
+                    <option value="">All applications</option>
+                    {FLAG_COLORS.map((color) => (
+                      <option key={color.value} value={color.value}>
+                        {color.label} flag
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <button onClick={closeSearchWarningModal} className="w-full mt-2 px-4 py-2 bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600">Cancel</button>
-              </>
+              </div>
             )}
-          </div>
-        </div>
-      )}
 
-        <div className="mb-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <h3 className="text-lg font-semibold text-white">
-            {showSearch 
-              ? `Search Results (${searchResults.length})`
-              : `Applications (${getFilteredApplications().length}${filters.flagColor ? ` / ${applications.length} total` : ''})`
-            }
-          </h3>
-        </div>
-      </div>
+            <Dialog open={searchWarningModal.show} onOpenChange={(open) => !open && closeSearchWarningModal()}>
+              <DialogContent className="border-white/10 bg-[#111] text-white max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Search optimization</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className={adminMutedClass}>
+                    Query length: <span className="text-[#fa7d22]">{searchWarningModal.tokenCount} tokens</span>
+                  </p>
+                  {searchWarningModal.type === 'vector-too-long' ? (
+                    <p className="text-amber-200 text-sm">Your query is long. RAG search may work better.</p>
+                  ) : null}
+                  {searchWarningModal.type === 'rag-too-short' ? (
+                    <p className="text-amber-200 text-sm">Your query is short. Vector search may be faster.</p>
+                  ) : null}
+                  {searchWarningModal.type === 'rag-expensive' ? (
+                    <p className="text-rose-300 text-sm">This query is very long and may be expensive with RAG.</p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    {searchWarningModal.type !== 'rag-expensive' ? (
+                      <>
+                        <button type="button" onClick={handleRecommendedSearch} className={adminPrimaryButtonClass()}>
+                          {searchWarningModal.recommendedMode
+                            ? `Run ${searchWarningModal.recommendedMode.toUpperCase()}`
+                            : 'Run search'}
+                        </button>
+                        <button type="button" onClick={handleProceedWithCurrentSearch} className={adminSecondaryButtonClass()}>
+                          Proceed anyway
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button type="button" onClick={closeSearchWarningModal} className={adminSecondaryButtonClass()}>
+                          Cancel
+                        </button>
+                        <button type="button" onClick={handleProceedWithCurrentSearch} className={adminPrimaryButtonClass()}>
+                          Proceed with RAG
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
 
-      {/* Mobile Toggle Button */}
-      <div className="md:hidden mb-4">
-        <button
-          onClick={() => setShowSidebar(!showSidebar)}
-          className="w-full py-2 bg-[#151515] border border-dashed border-gray-700 text-white"
-        >
-          {showSidebar 
-            ? `Hide ${showSearch ? "Search Results" : "Application List"}` 
-            : `Show ${showSearch ? "Search Results" : "Application List"}`
-          }
-        </button>
-      </div>
+            <div className="md:hidden">
+              <button type="button" onClick={() => setShowSidebar(!showSidebar)} className={`${adminSecondaryButtonClass()} w-full`}>
+                {showSidebar ? 'Hide list' : 'Show list'}
+              </button>
+            </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* List - Applications or Search Results */}
-        <div
-          className={`${
-            showSidebar ? "block" : "hidden"
-          } md:block md:col-span-1 overflow-y-auto max-h-[70vh] border border-dashed border-gray-700 bg-[#111111]`}
-        >
+            <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+              <div className={`${showSidebar ? 'block' : 'hidden'} lg:block ${adminPanelClass} overflow-hidden max-h-[72vh] overflow-y-auto`}>
           {/* Applications List */}
           {!showSearch && (
             <>
               {getFilteredApplications().length === 0 ? (
-                <p className="text-center text-gray-500 p-4">
-                  No applications found
-                </p>
+                <div className="p-6">
+                  <OsEmptyState animateTitle={false} title="No applications" description="No applications match the current filters." />
+                </div>
               ) : (
-                <ul className="divide-y divide-dashed divide-gray-700">
+                <ul>
                   {getFilteredApplications().map((app) => (
                     <li
                       key={app._id}
-                      className={`p-3 hover:bg-[#0d0d0d] cursor-pointer ${
-                        selectedApplication?._id === app._id ? "bg-[#151515]" : ""
-                      }`}
+                      className={adminListItemClass(selectedApplication?._id === app._id)}
                       onClick={() => handleApplicationClick(app)}
                     >
                       <div className="flex justify-between items-center">
@@ -636,7 +693,7 @@ const AdminDashboard: React.FC = () => {
                               />
                             )}
                           </div>
-                          <p className="text-sm text-gray-400">
+                          <p className={`${adminMutedClass} mt-1`}>
                             {app.user?.email || app.email || "No email"}
                           </p>
                         </div>
@@ -652,17 +709,19 @@ const AdminDashboard: React.FC = () => {
           {showSearch && (
             <>
               {searchResults.length === 0 ? (
-                <p className="text-center text-gray-500 p-4">
-                  {searchQuery ? "No search results found" : "Enter a search query to find users"}
-                </p>
+                <div className="p-6">
+                  <OsEmptyState
+                    animateTitle={false}
+                    title="No results yet"
+                    description={searchQuery ? 'No search results found for this query.' : 'Run a search to discover matching builders.'}
+                  />
+                </div>
               ) : (
-                <ul className="divide-y divide-dashed divide-gray-700">
+                <ul>
                   {searchResults.map((result) => (
                     <li
                       key={result.user_id}
-                      className={`p-3 hover:bg-[#0d0d0d] cursor-pointer ${
-                        selectedSearchResult?.user_id === result.user_id ? "bg-[#151515]" : ""
-                      }`}
+                      className={adminListItemClass(selectedSearchResult?.user_id === result.user_id)}
                       onClick={() => handleSearchResultClick(result)}
                     >
                       <div className="flex justify-between items-start">
@@ -697,9 +756,9 @@ const AdminDashboard: React.FC = () => {
                           )}
                         </div>
                         <div className="ml-2">
-                          <span className="bg-[#222] text-orange-400 border border-dashed border-orange-400 px-2 py-1 text-xs">
+                          <Badge className="bg-orange-500/15 text-orange-200 border-orange-400/30 hover:bg-orange-500/15">
                             {Math.round(result.match_score * 100)}%
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                     </li>
@@ -709,10 +768,9 @@ const AdminDashboard: React.FC = () => {
             </>
           )}
         </div>
-        <div className="md:col-span-2">
-          {/* Application Details */}
+        <div className="min-w-0">
           {selectedApplication && !showSearch ? (
-            <div className="bg-[#111111] p-4 md:p-6 border border-dashed border-gray-700">
+            <div className={`${adminPanelClass} p-4 md:p-6`}>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <div className="flex items-center gap-3">
                   <h3 className="text-xl font-semibold text-white">
@@ -731,14 +789,16 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setSelectedApplication(null)}
-                  className="bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600 px-3 py-1 text-sm"
+                  className={adminGhostButtonClass()}
+                  aria-label="Close details"
                 >
+                  <X className="w-4 h-4" />
                   Close
                 </button>
               </div>
 
               {/* Flag Controls */}
-              <div className="mb-4 p-3 bg-[#0d0d0d] border border-dashed border-gray-700">
+              <div className={`${adminSubPanelClass} mb-4 p-4`}>
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
                     <p className="text-sm text-gray-500 mb-2">Flag Status</p>
@@ -980,7 +1040,7 @@ const AdminDashboard: React.FC = () => {
 
               {/* Flag Controls for Search Result */}
               {selectedApplicationData && (
-                <div className="mb-4 p-3 bg-[#0d0d0d] border border-dashed border-gray-700">
+                <div className={`${adminSubPanelClass} mb-4 p-4`}>
                   <div className="flex flex-col gap-3">
                     <div className="flex-1">
                       <p className="text-sm text-gray-500 mb-2">Flag Status</p>
@@ -1335,21 +1395,25 @@ const AdminDashboard: React.FC = () => {
               ) : null}
             </div>
           ) : (
-            <div className="bg-[#111111] p-6 border border-dashed border-gray-700 flex items-center justify-center h-full">
-              <p className="text-gray-500">
-                {showSearch 
-                  ? "Select a search result to view details" 
-                  : "Select an application to view details"
+            <div className={`${adminPanelClass} p-10 flex items-center justify-center min-h-[320px]`}>
+              <OsEmptyState
+                animateTitle={false}
+                title={showSearch ? 'Select a search result' : 'Select an application'}
+                description={
+                  showSearch
+                    ? 'Choose a candidate from the search results to inspect their profile.'
+                    : 'Choose an application from the list to review details and flags.'
                 }
-              </p>
+              />
             </div>
           )}
         </div>
-      </div>
-    </div>
+            </div>
+          </div>
+        )}
+      </BlurFade>
+    </AdminShell>
   );
 };
-
-
 
 export default AdminDashboard;

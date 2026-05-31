@@ -6,6 +6,26 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+export async function uploadEventHeaderToCloudinary(buffer: Buffer, filename: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        public_id: `events/headers/${filename.replace(/\.[^/.]+$/, '')}`,
+        folder: 'events/headers',
+        overwrite: true,
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result!.secure_url);
+        }
+      }
+    ).end(buffer);
+  });
+}
+
 export async function uploadResumeToCloudinary(buffer: Buffer, filename: string): Promise<string> {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(

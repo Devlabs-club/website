@@ -1,10 +1,10 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { LoaderOne } from '@/components/ui/loader';
 
 export function LoadingBlock({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-3 glass-panel px-5 py-4 text-white/60 text-sm">
-      <Loader2 className="w-4 h-4 animate-spin text-[#fa7d22] shrink-0" />
+      <LoaderOne />
       <span>{label || 'Loading…'}</span>
     </div>
   );

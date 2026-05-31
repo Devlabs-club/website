@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { OsButton } from '@/components/os';
 import type { FullCandidate } from './founderTypes';
 
 export default function FounderIntroModal({
@@ -81,24 +89,14 @@ export default function FounderIntroModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-      <button type="button" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} aria-label="Close" />
-      <div className="relative w-full max-w-lg rounded-2xl border border-white/15 bg-[#0c0d0f] shadow-2xl p-6">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Request intro</h2>
-            <p className="text-sm text-white/55 mt-1">
-              To {candidate.name} · {candidate.matchLabel}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white/70">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <p className="text-xs text-white/45 mb-2">
-          Edit the message below before sending. The builder will receive this intro request.
-        </p>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="glass-panel-strong border-white/15 bg-[#0c0d0f]/95 text-white sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Request intro</DialogTitle>
+          <DialogDescription className="text-white/55">
+            To {candidate.name} · {candidate.matchLabel}
+          </DialogDescription>
+        </DialogHeader>
 
         {loading ? (
           <p className="text-sm text-white/50 py-8 text-center animate-pulse">Generating suggested message…</p>
@@ -112,26 +110,17 @@ export default function FounderIntroModal({
           />
         )}
 
-        {error ? <p className="text-sm text-amber-300 mt-2">{error}</p> : null}
+        {error ? <p className="text-sm text-amber-300">{error}</p> : null}
 
-        <div className="flex gap-3 mt-5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-white/20 text-white text-sm hover:bg-white/5"
-          >
+        <DialogFooter className="gap-2 sm:gap-2">
+          <OsButton variant="glass" onClick={onClose} className="flex-1">
             Cancel
-          </button>
-          <button
-            type="button"
-            disabled={loading || sending || message.trim().length < 20}
-            onClick={handleSend}
-            className="flex-1 py-2.5 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold hover:bg-[#ff9b4e] disabled:opacity-50"
-          >
+          </OsButton>
+          <OsButton variant="shimmer" onClick={handleSend} disabled={loading || sending || message.trim().length < 20} className="flex-1">
             {sending ? 'Sending…' : 'Send intro request'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </OsButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

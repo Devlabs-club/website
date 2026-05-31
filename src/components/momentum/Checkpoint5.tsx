@@ -27,10 +27,10 @@ export default function Checkpoint5() {
           <section className="space-y-6 border-b border-white/10 pb-16">
             <div className="space-y-4 text-lg font-light leading-relaxed text-white/80">
               <p>
-                whether you get selected for demo day or not, you&apos;ve stepped
-                out of your comfort zone and seen the real startup world for
-                yourself. we are super glad to have been a part of your startup
-                journey.
+                whether you get selected for demo day or not, you&apos;ve
+                stepped out of your comfort zone and seen the real startup world
+                for yourself. we are super glad to have been a part of your
+                startup journey.
               </p>
               <p>
                 this doesn&apos;t end here — once you become a part of{" "}
@@ -41,10 +41,9 @@ export default function Checkpoint5() {
                 >
                   Devlabs
                 </a>
-                , you will always be close to us. reach out with any help along your
-                way and we will do our best to connect you with the right people
-                and give you all the resources and mentorship we can.
-           
+                , you will always be close to us. reach out with any help along
+                your way and we will do our best to connect you with the right
+                people and give you all the resources and mentorship we can.
               </p>
               <p className="pt-2 text-white/90">
                 you have a long way to go and remember —
@@ -76,8 +75,7 @@ export default function Checkpoint5() {
                   loading="lazy"
                   className="mt-4 h-10 w-auto invert opacity-90 sm:h-12"
                 />
-                <p className="text-sm text-white/90">
-                </p>
+                <p className="text-sm text-white/90"></p>
               </div>
             </div>
           </section>
@@ -103,14 +101,12 @@ export default function Checkpoint5() {
                 in the recording, explicitly{" "}
                 <strong className="font-semibold text-white">
                   mention DevLabs and Momentum
-                </strong>
-                {" "}
+                </strong>{" "}
                 (how you participated, cohort, shout-out — brief is fine). then{" "}
                 <strong className="font-semibold text-white">
                   post the pitch publicly
                 </strong>
-                ,
-                ideally with native video where your platform supports it.
+                , ideally with native video where your platform supports it.
               </p>
             </div>
           </section>
@@ -123,40 +119,38 @@ export default function Checkpoint5() {
               <ul className="list-disc space-y-2 pl-5">
                 <li>
                   ~3 minutes: problem, demo, traction or learning, close — no
-                  reading slides as a crutch unless you weave them into the demo.
+                  reading slides as a crutch unless you weave them into the
+                  demo.
                 </li>
                 <li>
-                  <strong className="text-white">Say DevLabs/Momentum aloud</strong>{" "}
+                  <strong className="text-white">
+                    Say DevLabs/Momentum aloud
+                  </strong>{" "}
                   on camera so graders can scrub and hear it quickly.
                 </li>
                 <li>
-                  <strong className="text-white">Post publicly</strong> — paste the
-                  public post/video URL into the Checkpoint 5 field on your
+                  <strong className="text-white">Post publicly</strong> — paste
+                  the public post/video URL into the Checkpoint 5 field on your
                   dashboard.
                 </li>
                 <li>
-                  Submit your <strong className="text-white">pitch deck link</strong>{" "}
-                  too (Slides, Gamma, Dropbox, Docs — readable by link).
+                  Submit your{" "}
+                  <strong className="text-white">pitch deck link</strong> too
+                  (Slides, Gamma, Dropbox, Docs — readable by link).
                 </li>
               </ul>
             </div>
           </section>
 
           <section className="space-y-4 border-t border-white/10 pt-8">
-            <h2 className="text-xl font-bold lowercase tracking-tight text-orange-500">
-              deadline · end of week 5
-            </h2>
-            <p className="text-lg font-medium text-white/90">
-              friday, may 29th @ 11:59pm mst
-            </p>
             <p className="font-light text-white/60">
               submit your video post URL and deck link via the momentum
-              dashboard.
+              dashboard when you&apos;re ready.
             </p>
 
             <div className="pt-4">
               <a
-                href="/momentum"
+                href="/momentum/apply"
                 className="inline-flex items-center justify-center rounded-md bg-white px-6 py-3 text-sm font-semibold text-black transition-colors hover:bg-gray-200"
               >
                 submit update

@@ -4,7 +4,8 @@ import BuilderSnapshotCard from './BuilderSnapshotCard';
 import FounderKanbanBoard from './FounderKanbanBoard';
 import NotificationCenter from '../talent/NotificationCenter';
 import MessagesPanel from '../talent/MessagesPanel';
-import { Bot, Plus, ChevronDown, Activity, Award, Briefcase, DollarSign, Calendar, MapPin, User, LogOut, Check, CreditCard, MessageSquare, RefreshCw, Pencil, Trash2 } from 'lucide-react';
+import { OsButton } from '@/components/os';
+import { Bot, Plus, ChevronDown, Briefcase, CreditCard, MessageSquare, LogOut, RefreshCw, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '../auth_manager';
 
 interface FounderUnifiedWorkspaceProps {
@@ -252,13 +253,10 @@ export default function FounderUnifiedWorkspace({
           </button>
 
           {/* New Search CTA */}
-          <button
-            onClick={onNewSearchClick}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#fa7d22] to-[#ff9b4e] text-black text-sm font-bold hover:opacity-95 shadow-md shadow-[#fa7d22]/10 transition flex items-center gap-1.5"
-          >
+          <OsButton variant="shimmer" onClick={onNewSearchClick} className="text-sm py-2.5 px-4 flex items-center gap-1.5">
             <Plus className="w-4 h-4 stroke-[3px]" />
             New Search
-          </button>
+          </OsButton>
 
           {/* Billing button */}
           <NotificationCenter

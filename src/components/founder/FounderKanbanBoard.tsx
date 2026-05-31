@@ -13,6 +13,9 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { BorderBeam } from '@/components/ui/border-beam';
+import { LoaderOne } from '@/components/ui/loader';
 import type { FullCandidate, PipelineEntry } from './founderTypes';
 import KanbanBuilderCard from './KanbanBuilderCard';
 import IntroRequiredModal from './IntroRequiredModal';
@@ -105,19 +108,22 @@ function KanbanColumn({
             : 'border-white/10 bg-white/[0.02]'
       }`}
     >
+      {isOver && !loading ? (
+        <BorderBeam size={100} duration={6} colorFrom="#fa7d22" colorTo="#ffb580" />
+      ) : null}
       {loading ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl bg-[#0a0b0d]/85 backdrop-blur-[2px]">
-          <Loader2 className="w-8 h-8 animate-spin text-[#fa7d22] mb-3" />
-          <p className="text-sm font-semibold text-white/85">{loadingLabel || 'Refreshing matches…'}</p>
+          <LoaderOne />
+          <p className="text-sm font-semibold text-white/85 mt-3">{loadingLabel || 'Refreshing matches…'}</p>
           <p className="text-[11px] text-white/45 mt-1">Scanning builder profiles</p>
         </div>
       ) : null}
       <div className={`p-4 border-b border-white/5 ${loading ? 'opacity-40' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-bold text-white">{title}</h3>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/5 text-white/50">
+          <Badge variant="outline" className="rounded-full border-white/15 bg-white/5 text-white/60">
             {loading ? '…' : cards.length}
-          </span>
+          </Badge>
         </div>
         <p className="text-[11px] text-white/40 mt-1">{subtitle}</p>
       </div>

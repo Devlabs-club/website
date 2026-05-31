@@ -1,6 +1,8 @@
 import React from 'react';
 import type { FullCandidate, AnonymousCandidate } from './founderTypes';
-import { Zap, ShieldCheck, Check, ArrowUpRight } from 'lucide-react';
+import { Zap } from 'lucide-react';
+import { MagicCard } from '@/components/ui/magic-card';
+import { OsButton, OsBadge } from '@/components/os';
 import { canScheduleMeet, getIntroButtonLabel, getScheduleMeetButtonState } from '@/lib/talent/founderIntroUi';
 
 function getMetricColor(value: string) {
@@ -76,7 +78,14 @@ export default function BuilderSnapshotCard({
   const scheduleMeet = !isAnon ? getScheduleMeetButtonState(candidate, pipelineEntry || null) : null;
 
   return (
-    <div className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-6 flex flex-col justify-between transition-all duration-300 hover:border-[#fa7d22]/30 shadow-lg hover:shadow-[#fa7d22]/5">
+    <MagicCard
+      className="rounded-3xl h-full"
+      gradientFrom="#fa7d22"
+      gradientTo="#ffb580"
+      gradientColor="rgba(250,125,34,0.12)"
+      gradientOpacity={0.55}
+    >
+      <div className="group rounded-3xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-6 flex flex-col justify-between transition-all duration-300 h-full min-h-[320px]">
       <div className="space-y-4">
         
         {/* Name/Label & Match Grade */}
@@ -88,9 +97,7 @@ export default function BuilderSnapshotCard({
               <p className="text-xs text-white/40 mt-0.5">{candidate.location}</p>
             )}
           </div>
-          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border shrink-0 ${matchLabelTone(matchLabel)}`}>
-            {matchLabel}
-          </span>
+          <OsBadge variant={matchLabel === 'Strong Match' ? 'success' : 'accent'}>{matchLabel}</OsBadge>
         </div>
 
         {/* Axis Badges */}
@@ -149,13 +156,9 @@ export default function BuilderSnapshotCard({
             >
               Preview
             </button>
-            <button
-              onClick={onUnlock}
-              disabled={actionBusy}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-[#fa7d22] text-black font-bold hover:bg-[#ff9b4e] transition flex items-center justify-center gap-1 shadow-md shadow-[#fa7d22]/10"
-            >
+            <OsButton variant="shimmer" className="flex-1 text-xs py-2" onClick={onUnlock} disabled={actionBusy}>
               Unlock Profile
-            </button>
+            </OsButton>
           </>
         ) : trialSent && onHireNow ? (
           <>
@@ -217,6 +220,7 @@ export default function BuilderSnapshotCard({
           </>
         )}
       </div>
-    </div>
+      </div>
+    </MagicCard>
   );
 }

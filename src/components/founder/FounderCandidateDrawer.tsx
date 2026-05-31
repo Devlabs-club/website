@@ -1,5 +1,5 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { FullCandidate } from './founderTypes';
 import FounderTrialProjectCard from './FounderTrialProjectCard';
 import {
@@ -59,18 +59,12 @@ export default function FounderCandidateDrawer({
   const showReviewTrial = candidate.trialProject?.status === 'submitted';
 
   return (
-    <div className="fixed inset-0 z-[100] flex justify-end">
-      <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-label="Close" />
-      <div className="relative w-full max-w-lg h-full bg-[#0c0d0f] border-l border-white/10 shadow-2xl overflow-y-auto">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-4 border-b border-white/10 bg-[#0c0d0f]/95 backdrop-blur">
-          <div>
-            <h2 className="text-xl font-semibold text-white">{candidate.name}</h2>
-            <p className="text-sm text-[#fa7d22]">{candidate.headline || candidate.anonymousLabel}</p>
-          </div>
-          <button type="button" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white/70">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <Sheet open onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-lg glass-panel-strong border-white/10 bg-[#0c0d0f]/95 p-0 overflow-y-auto">
+        <SheetHeader className="sticky top-0 z-10 px-6 py-4 border-b border-white/10 bg-[#0c0d0f]/95 text-left">
+          <SheetTitle className="text-xl text-white">{candidate.name}</SheetTitle>
+          <p className="text-sm text-[#fa7d22]">{candidate.headline || candidate.anonymousLabel}</p>
+        </SheetHeader>
 
         <div className="p-6 space-y-8">
           <section>
@@ -267,7 +261,7 @@ export default function FounderCandidateDrawer({
             </button>
           ) : null}
         </div>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }

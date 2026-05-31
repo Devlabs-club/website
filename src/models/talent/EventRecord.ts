@@ -1,13 +1,33 @@
 import mongoose from 'mongoose';
+import {
+  EVENT_TYPES,
+  FORM_FIELD_TYPES,
+  REGISTRATION_STATUSES,
+} from '../../lib/talent/eventTypes';
+
+const EventFormFieldSchema = new mongoose.Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true },
+    type: { type: String, enum: FORM_FIELD_TYPES, required: true },
+    required: { type: Boolean, default: false },
+    placeholder: { type: String, default: null },
+    helpText: { type: String, default: null },
+    options: { type: [String], default: [] },
+    order: { type: Number, required: true },
+  },
+  { _id: false }
+);
 
 const EventRecordSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, index: true },
-    slug: { type: String, index: true },
+    slug: { type: String, index: true, unique: true, sparse: true },
     date: { type: Date, required: true, index: true },
+    endDate: { type: Date, default: null },
     type: {
       type: String,
-      enum: ['hackathon', 'workshop', 'hacker_house', 'demo_day', 'founder_sprint', 'momentum', 'other'],
+      enum: EVENT_TYPES,
       required: true,
     },
     location: { type: String, default: null },
@@ -18,6 +38,20 @@ const EventRecordSchema = new mongoose.Schema(
       enum: ['imported_unverified', 'admin_verified', 'rejected'],
       default: 'imported_unverified',
     },
+    headerImageUrl: { type: String, default: null },
+    websiteUrl: { type: String, default: null },
+    registrationStatus: {
+      type: String,
+      enum: REGISTRATION_STATUSES,
+      default: 'draft',
+      index: true,
+    },
+    registrationOpensAt: { type: Date, default: null },
+    registrationClosesAt: { type: Date, default: null },
+    formSchema: {
+      fields: { type: [EventFormFieldSchema], default: [] },
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );
