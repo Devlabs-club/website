@@ -3,6 +3,7 @@ import { WorkOS } from '@workos-inc/node';
 import { connectAdminDB } from '../../../../lib/mongodb.ts';
 import User from '../../../../models/user.tsx';
 import { generateToken } from '../../../../lib/auth.ts';
+import { sanitizePostAuthRedirect } from '../../../../lib/oauthRedirect';
 
 // Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
 const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
@@ -45,15 +46,15 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
         // Try parsing as JSON first
         const stateObj = JSON.parse(stateParam);
         if (stateObj.redirect) {
-          redirectUrl = stateObj.redirect;
-          redirectParamStr = `&redirect=${encodeURIComponent(stateObj.redirect)}`;
+          redirectUrl = sanitizePostAuthRedirect(stateObj.redirect, request);
+          redirectParamStr = `&redirect=${encodeURIComponent(redirectUrl)}`;
         }
       } catch (e) {
         console.log('State param is not JSON, trying as plain string');
         // If it's not JSON, maybe it's just the plain redirect string
         if (stateParam.startsWith('/')) {
-          redirectUrl = stateParam;
-          redirectParamStr = `&redirect=${encodeURIComponent(stateParam)}`;
+          redirectUrl = sanitizePostAuthRedirect(stateParam, request);
+          redirectParamStr = `&redirect=${encodeURIComponent(redirectUrl)}`;
         }
       }
     }

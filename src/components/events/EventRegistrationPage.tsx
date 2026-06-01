@@ -23,7 +23,7 @@ export default function EventRegistrationPage({ slug }: { slug: string }) {
     if (authLoading) return;
     if (!user) {
       const redirect = encodeURIComponent(`/events/${slug}/register`);
-      window.location.href = `/login?redirect=${redirect}`;
+      window.location.href = `/register?redirect=${redirect}`;
       return;
     }
 

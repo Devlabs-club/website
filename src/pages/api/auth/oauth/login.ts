@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { WorkOS } from '@workos-inc/node';
+import { getOAuthRedirectUri } from '../../../../lib/oauthRedirect';
 
 // Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
 const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
@@ -14,7 +15,7 @@ export const GET: APIRoute = async ({ request, redirect }) => {
     // Get the authorization URL from WorkOS for Google OAuth
     const authorizationUrl = workos.userManagement.getAuthorizationUrl({
       provider: 'GoogleOAuth', // Use GoogleOAuth directly to skip AuthKit page
-      redirectUri: import.meta.env.WORKOS_REDIRECT_URI,
+      redirectUri: getOAuthRedirectUri(request),
       clientId: import.meta.env.WORKOS_CLIENT_ID,
       state: redirectParam ? JSON.stringify({ redirect: redirectParam }) : undefined,
       prompt: 'select_account',

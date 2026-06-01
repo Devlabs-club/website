@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
+import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -99,7 +100,7 @@ export const POST: APIRoute = async ({ request }) => {
         status: 201,
         headers: { 
           'Content-Type': 'application/json',
-          'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
+          'Set-Cookie': buildAuthTokenCookie(token)
         }
       }
     );

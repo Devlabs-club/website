@@ -68,10 +68,10 @@ export function extractTokenFromCookies(cookies: string): string | null {
   return null;
 }
 
-// Validate email format
+// Validate email format (aligned with User schema — supports modern TLDs)
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  return emailRegex.test(email);
+  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+  return emailRegex.test(email.trim());
 }
 
 // Validate password strength

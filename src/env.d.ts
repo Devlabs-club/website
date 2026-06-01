@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly WORKOS_CLIENT_SECRET: string;
   readonly WORKOS_COOKIE_PASSWORD: string;
   readonly WORKOS_REDIRECT_URI: string;
+  readonly VERCEL_BRANCH_URL?: string;
   readonly SENDGRID_API_KEY: string;
 }
 
