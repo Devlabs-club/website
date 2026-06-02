@@ -24,6 +24,23 @@ export default {
         glass: "0 8px 32px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.04)",
         "glass-lg": "0 24px 80px rgb(0 0 0 / 0.4)",
       },
+      keyframes: {
+        "shimmer-slide": {
+          to: { transform: "translate(calc(100cqw - 100%), 0)" },
+        },
+        "spin-around": {
+          "0%": { transform: "translateZ(0) rotate(0)" },
+          "15%, 35%": { transform: "translateZ(0) rotate(90deg)" },
+          "65%, 85%": { transform: "translateZ(0) rotate(270deg)" },
+          "100%": { transform: "translateZ(0) rotate(360deg)" },
+        },
+      },
+      animation: {
+        "shimmer-slide":
+          "shimmer-slide var(--speed, 3s) ease-in-out infinite alternate",
+        "spin-around":
+          "spin-around calc(var(--speed, 3s) * 2) infinite linear",
+      },
     },
   },
   plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate"), require("@tailwindcss/typography")],

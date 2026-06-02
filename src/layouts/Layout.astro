@@ -72,13 +72,21 @@ const metaKeywords = keywords ?? defaultKeywords;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link
-      href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully"
+      href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
   <body class:list={['text-gray-400 bg-[hsl(8,8%,3.5%)]', !skipPageLoader && 'loader-visible']}>
     {!skipPageLoader ? <PageLoader /> : null}

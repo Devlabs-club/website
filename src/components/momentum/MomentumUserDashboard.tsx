@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toPng } from "html-to-image";
 import {
@@ -32,8 +32,13 @@ import {
   MomentumPointsTasksProvider,
   MomentumTaskSubmissionsCard,
 } from "./MomentumPointsAndTasks";
-import { CanvasRevealBadgeCard } from "../CanvasRevealBadgeCard";
 import { isMomentumKickoffRevealed } from "../../lib/momentumKickoff";
+
+const CanvasRevealBadgeCard = lazy(() =>
+  import("../CanvasRevealBadgeCard").then((m) => ({
+    default: m.CanvasRevealBadgeCard,
+  })),
+);
 
 function DetailCard({
   title,
@@ -467,17 +472,23 @@ export default function MomentumUserDashboard({
           {isRevealed ? (
             <>
               <div ref={badgeCaptureRef} className="w-full">
-                <CanvasRevealBadgeCard
-                  group={application.group || undefined}
-                  imagePath={
-                    application.group
-                      ? `/badges/${application.group.toLowerCase()}.png`
-                      : undefined
+                <Suspense
+                  fallback={
+                    <div className="aspect-[4/5] w-full max-w-sm mx-auto rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
                   }
-                  firstName={application.firstName}
-                  lastName={application.lastName}
-                  startupName={application.startupName}
-                />
+                >
+                  <CanvasRevealBadgeCard
+                    group={application.group || undefined}
+                    imagePath={
+                      application.group
+                        ? `/badges/${application.group.toLowerCase()}.png`
+                        : undefined
+                    }
+                    firstName={application.firstName}
+                    lastName={application.lastName}
+                    startupName={application.startupName}
+                  />
+                </Suspense>
               </div>
               {application.status === "approved" && application.group && (
                 <button

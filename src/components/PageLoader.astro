@@ -32,14 +32,21 @@
 
     const LOAD_DONE_CLASS = "page-loader--done";
     const HIDDEN_CLASS = "page-loader--hidden";
-    const ZOOM_DURATION_MS = 700;
-    const HIDE_DELAY_MS = 200; // slightly longer to let 100% fill settle
+    const ZOOM_DURATION_MS = 450;
+    const HIDE_DELAY_MS = 80;
+    const SKIP_KEY = "devlabs:page-loader-seen";
+
+    // Skip the full intro on repeat visits in the same session
+    if (sessionStorage.getItem(SKIP_KEY) === "1") {
+      document.body.classList.remove("loader-visible");
+      loader.remove();
+      return;
+    }
 
     // Simulation variables
     let progress = 0;
-    let increment = 1;
+    let increment = 2;
     let interval: ReturnType<typeof setInterval>;
-    let isPageLoaded = false;
 
     function updateMask(percent: number) {
       if (mask) {
@@ -48,47 +55,52 @@
       }
     }
 
-    // Start simulating progress
     interval = setInterval(() => {
-      // Slow down as we get closer to 90% if page isn't loaded yet
-      if (progress < 90) {
-        if (progress > 70) increment = 0.5;
-        if (progress > 85) increment = 0.2;
+      if (progress < 92) {
+        if (progress > 65) increment = 1.2;
+        if (progress > 82) increment = 0.6;
         progress += increment;
         updateMask(progress);
       }
-    }, 20);
+    }, 16);
+
+    let finished = false;
 
     function finishLoader() {
-      // Mark page as loaded
-      isPageLoaded = true;
-
-      // Clear simulation interval
+      if (finished) return;
+      finished = true;
       clearInterval(interval);
-
-      // Quickly animate to 100%
       progress = 100;
       updateMask(100);
+      sessionStorage.setItem(SKIP_KEY, "1");
 
-      // Wait a moment for the fill to complete visually, then do the zoom out
       setTimeout(() => {
         if (!loader) return;
         loader.classList.add(LOAD_DONE_CLASS);
         document.body.classList.remove("loader-visible");
 
-        // After zoom + fade, remove from DOM
         setTimeout(() => {
           if (!loader) return;
           loader.classList.add(HIDDEN_CLASS);
-          setTimeout(() => loader.remove(), 400);
+          setTimeout(() => loader.remove(), 250);
         }, ZOOM_DURATION_MS + HIDE_DELAY_MS);
-      }, 400); // 400ms delay at 100% before zooming
+      }, 120);
     }
 
+    const runFinish = () => {
+      if (document.readyState === "complete") {
+        finishLoader();
+        return;
+      }
+      window.addEventListener("load", finishLoader, { once: true });
+      // Cap wait so slow assets do not block the UI indefinitely
+      setTimeout(finishLoader, 1800);
+    };
+
     if (document.readyState === "interactive" || document.readyState === "complete") {
-      finishLoader();
+      runFinish();
     } else {
-      window.addEventListener("DOMContentLoaded", finishLoader, { once: true });
+      document.addEventListener("DOMContentLoaded", runFinish, { once: true });
     }
   })();
 </script>
