@@ -6,16 +6,18 @@ export type OpportunityLike = {
   startupSummary?: string | null;
   skillsNeeded?: string[] | null;
   niceToHaveSkills?: string[] | null;
+  hireType?: 'full_time' | 'internship' | 'either' | null;
   workType?: string | null;
   timeline?: string | null;
   budget?: string | null;
   locationPreference?: string | null;
   availabilityNeeded?: string | null;
-  successIn30Days?: string | null;
   seniority?: string | null;
   hoursPerWeek?: string | null;
   deliverables?: string[] | null;
   fundingStage?: string | null;
+  industry?: string | null;
+  status?: string | null;
   skippedFields?: string[] | null;
 };
 
@@ -41,9 +43,8 @@ export const REQUIRED_FIELD_CHECKS: FieldCheck[] = [
     label: 'Skills',
     check: (o) => Array.isArray(o.skillsNeeded) && o.skillsNeeded.length > 0,
   },
-  { key: 'workType', label: 'Work type', check: (o) => Boolean(String(o.workType || '').trim()) },
+  { key: 'workType', label: 'Work type', check: (o) => Boolean(String(o.workType || o.hireType || '').trim()) },
   { key: 'timeline', label: 'Timeline', check: (o) => Boolean(String(o.timeline || '').trim()) },
-  { key: 'budget', label: 'Budget', check: (o) => Boolean(String(o.budget || '').trim()) },
   {
     key: 'locationPreference',
     label: 'Location',
@@ -54,9 +55,9 @@ export const REQUIRED_FIELD_CHECKS: FieldCheck[] = [
 
 export const OPTIONAL_FIELD_CHECKS: FieldCheck[] = [
   {
-    key: 'successIn30Days',
-    label: 'Success criteria',
-    check: (o) => Boolean(String(o.successIn30Days || '').trim()),
+    key: 'budget',
+    label: 'Budget',
+    check: (o) => Boolean(String(o.budget || '').trim()),
   },
   {
     key: 'startupSummary',
@@ -210,7 +211,7 @@ export function buildPreviewExplanation(
     lines.push('- Tighten skills or broaden work type/location to surface more strong matches.');
   } else {
     lines.push('- Matches exist but none cleared the strong-match threshold for this brief.');
-    lines.push('- Refine required skills or success criteria, or run preview anyway to review possibles.');
+    lines.push('- Refine required skills, or run preview anyway to review possibles.');
   }
   return lines.join('\n');
 }

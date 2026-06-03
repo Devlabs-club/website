@@ -165,7 +165,6 @@ export type Opportunity = {
   budget?: string;
   locationPreference?: string;
   availabilityNeeded?: string;
-  successIn30Days?: string;
   niceToHaveSkills?: string[];
   seniority?: string;
   hoursPerWeek?: string;

@@ -10,6 +10,11 @@ import {
   REQUIRED_FIELD_CHECKS,
   type OpportunityLike,
 } from '@/lib/talent/founderSearchQuality';
+import {
+  extractRoleHintsFromUserText,
+  isPlaceholderCompany,
+  isPlaceholderRoleTitle,
+} from '@/lib/talent/founderRoleBrief';
 
 export type FounderAgentIntent =
   | 'explain_startup'
@@ -20,12 +25,15 @@ export type FounderAgentIntent =
   | 'recommend_next_question'
   | 'ask_about_candidate';
 
+export type HireType = 'full_time' | 'internship' | 'either';
+
 export type FounderExtractedData = {
   company?: string | null;
   startupSummary?: string | null;
   industry?: string | null;
   roleTitle?: string | null;
   roleType?: string[] | null;
+  hireType?: HireType | null;
   workType?: string | null;
   skillsNeeded?: string[] | null;
   niceToHaveSkills?: string[] | null;
@@ -33,7 +41,6 @@ export type FounderExtractedData = {
   budget?: string | null;
   locationPreference?: string | null;
   builderWillDo?: string | null;
-  successIn30Days?: string | null;
   seniority?: string | null;
   hoursPerWeek?: string | null;
   deliverables?: string[] | null;
@@ -82,8 +89,7 @@ export function pickNextQuestion(opportunity: OpportunityLike): string | null {
     builderWillDo: 'What should this builder ship in the first few weeks?',
     skillsNeeded: 'What skills or stack should they have (e.g. React, Node, Python)?',
     timeline: 'What timeline are you working toward?',
-    workType: 'What work type fits best — contract sprint, part-time, or full-time?',
-    budget: 'What budget or compensation range do you have in mind?',
+    workType: 'What kind of hire are you looking for — full-time, internship, or either works?',
     locationPreference: 'Any location preference — remote, hybrid, or in-person?',
   };
 
@@ -98,16 +104,28 @@ function normalizeExtractedData(raw: Record<string, unknown>): FounderExtractedD
   const out: FounderExtractedData = {};
   const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
-  if (raw.company !== undefined) out.company = str(raw.company);
+  if (raw.company !== undefined) {
+    const c = str(raw.company);
+    out.company = c && !isPlaceholderCompany(c) ? c : null;
+  }
   if (raw.startupSummary !== undefined) out.startupSummary = str(raw.startupSummary);
   if (raw.industry !== undefined) out.industry = str(raw.industry);
-  if (raw.roleTitle !== undefined) out.roleTitle = str(raw.roleTitle);
+  if (raw.roleTitle !== undefined) {
+    const t = str(raw.roleTitle);
+    out.roleTitle = t && !isPlaceholderRoleTitle(t) ? t : null;
+  }
   if (raw.workType !== undefined) out.workType = str(raw.workType);
+  if (raw.hireType !== undefined) {
+    const ht = str(raw.hireType);
+    out.hireType = ht === 'full_time' || ht === 'internship' || ht === 'either' ? ht : null;
+  }
   if (raw.timeline !== undefined) out.timeline = str(raw.timeline);
-  if (raw.budget !== undefined) out.budget = str(raw.budget);
+  if (raw.budget !== undefined) {
+    const b = str(raw.budget);
+    out.budget = b;
+  }
   if (raw.locationPreference !== undefined) out.locationPreference = str(raw.locationPreference);
   if (raw.builderWillDo !== undefined) out.builderWillDo = str(raw.builderWillDo);
-  if (raw.successIn30Days !== undefined) out.successIn30Days = str(raw.successIn30Days);
   if (raw.seniority !== undefined) out.seniority = str(raw.seniority);
   if (raw.hoursPerWeek !== undefined) out.hoursPerWeek = str(raw.hoursPerWeek);
   if (raw.fundingStage !== undefined) out.fundingStage = str(raw.fundingStage);
@@ -144,11 +162,11 @@ export function mergeExtractedIntoOpportunity(
   if (extracted.startupSummary) opportunity.startupSummary = extracted.startupSummary;
   if (extracted.industry) opportunity.industry = extracted.industry;
   if (extracted.roleTitle) opportunity.roleTitle = extracted.roleTitle;
+  if (extracted.hireType) opportunity.hireType = extracted.hireType;
   if (extracted.workType) opportunity.workType = extracted.workType;
   if (extracted.timeline) opportunity.timeline = extracted.timeline;
   if (extracted.budget) opportunity.budget = extracted.budget;
   if (extracted.builderWillDo) opportunity.builderWillDo = extracted.builderWillDo;
-  if (extracted.successIn30Days) opportunity.successIn30Days = extracted.successIn30Days;
   if (extracted.seniority) opportunity.seniority = extracted.seniority;
   if (extracted.hoursPerWeek) opportunity.hoursPerWeek = extracted.hoursPerWeek;
   if (extracted.fundingStage) opportunity.fundingStage = extracted.fundingStage;
@@ -194,11 +212,11 @@ export function buildFounderUiBlocks(opportunity: OpportunityLike): FounderUiBlo
       requiredSkills: opportunity.skillsNeeded || [],
       niceToHaveSkills: opportunity.niceToHaveSkills || [],
       roleType: opportunity.roleType || [],
+      hireType: (opportunity as any).hireType || null,
       workType: opportunity.workType,
       timeline: opportunity.timeline,
       budget: opportunity.budget,
       locationPreference: opportunity.locationPreference || opportunity.availabilityNeeded,
-      successCriteria: opportunity.successIn30Days,
       seniority: opportunity.seniority,
       hoursPerWeek: opportunity.hoursPerWeek,
       deliverables: opportunity.deliverables || [],
@@ -271,84 +289,23 @@ function detectIntentFromText(text: string, hasOpportunity: boolean): FounderAge
 }
 
 function deterministicExtract(userText: string): FounderExtractedData {
-  const lower = userText.toLowerCase();
+  const hints = extractRoleHintsFromUserText(userText);
   const extracted: FounderExtractedData = {};
 
-  const buildingMatch = userText.match(
-    /(?:we'?re building|i'?m building|building)\s+(.+?)(?:\.\s+|\.\s*|,\s*|\s+i need|\s+and i need)/i
-  );
-  if (buildingMatch) {
-    extracted.startupSummary = buildingMatch[1].trim();
-    extracted.company = extracted.company || 'Your startup';
-  }
+  if (hints.roleTitle) extracted.roleTitle = hints.roleTitle;
+  if (hints.company) extracted.company = hints.company;
+  if (hints.startupSummary) extracted.startupSummary = hints.startupSummary;
+  if (hints.timeline) extracted.timeline = hints.timeline;
+  if (hints.budget) extracted.budget = hints.budget;
+  if (hints.locationPreference) extracted.locationPreference = hints.locationPreference;
+  if (hints.hireType) extracted.hireType = hints.hireType;
+  if (hints.skillsNeeded?.length) extracted.skillsNeeded = hints.skillsNeeded;
 
-  const needMatch = userText.match(
-    /(?:i need|looking for|hire)\s+(?:a\s+)?(.+?)(?:\.\s+|\.\s*|,\s*|\s+in the|\s+within|\s+for\s+the|\s+over)/i
-  );
-  if (needMatch) {
-    const role = needMatch[1].trim();
-    if (!extracted.roleTitle) {
-      extracted.roleTitle = role.charAt(0).toUpperCase() + role.slice(1);
-    }
-  }
-
-  const timelineMatch = userText.match(/(\d+)\s*(weeks?|months?|days?)/i);
-  if (timelineMatch) extracted.timeline = timelineMatch[0];
-
-  if (/full[- ]?stack|fullstack/i.test(lower)) {
-    extracted.roleTitle = extracted.roleTitle || 'Full Stack Developer';
-    extracted.roleType = ['full_stack'];
-    extracted.skillsNeeded = extracted.skillsNeeded || ['React', 'TypeScript', 'Node.js'];
-    extracted.builderWillDo =
-      extracted.builderWillDo || 'Full-stack development across frontend and backend for the product.';
-  } else if (/flutter/i.test(lower)) {
-    extracted.roleTitle = extracted.roleTitle || 'Flutter developer';
-    extracted.roleType = ['mobile'];
-    extracted.skillsNeeded = ['Flutter', 'Dart'];
-  } else if (/\bai\b|machine learning|ml engineer/i.test(lower)) {
-    extracted.roleTitle = extracted.roleTitle || 'AI engineer';
-    extracted.roleType = ['ai_ml'];
-    extracted.skillsNeeded = extracted.skillsNeeded || ['AI', 'LLMs', 'Python'];
-  } else if (/designer[- ]?engineer|design engineer/i.test(lower)) {
-    extracted.roleTitle = extracted.roleTitle || 'Designer-engineer';
-    extracted.roleType = ['design', 'full_stack'];
-    extracted.skillsNeeded = ['UI/UX', 'Frontend'];
-  } else if (/mvp/i.test(lower)) {
-    extracted.roleTitle = extracted.roleTitle || 'MVP builder';
-    extracted.skillsNeeded = extracted.skillsNeeded || ['MVP', 'Full-stack'];
-  }
-
-  const skillMatches = userText.match(
-    /\b(React|TypeScript|Tailwind|Node\.?js|Python|Flutter|Next\.?js|PostgreSQL|MongoDB)\b/gi
-  );
-  if (skillMatches) {
-    const skills = [...new Set(skillMatches.map((s) => s.charAt(0).toUpperCase() + s.slice(1)))];
-    extracted.skillsNeeded = [...(extracted.skillsNeeded || []), ...skills].filter(
-      (v, i, a) => a.indexOf(v) === i
-    );
-  }
-
+  const lower = userText.toLowerCase();
   if (/restaurant/i.test(lower)) extracted.industry = 'Restaurants / hospitality';
-  if (/\$[\d,]+|\d+k\b|\d+\s*\/\s*hr/i.test(userText)) {
-    const budgetMatch = userText.match(/\$[\d,]+(?:\s*[-–]\s*\$[\d,]+)?|\d+k(?:\s*[-–]\s*\d+k)?/i);
-    if (budgetMatch) extracted.budget = budgetMatch[0];
-  }
 
-  if (/remote/i.test(lower)) extracted.locationPreference = 'Remote';
-  if (/contract|sprint/i.test(lower)) extracted.workType = 'paid_sprint';
-  if (/full[- ]?time/i.test(lower)) extracted.workType = 'full_time';
-  if (/part[- ]?time/i.test(lower)) extracted.workType = 'part_time_contract';
-
-  if (!extracted.builderWillDo && userText.length > 30) {
-    extracted.builderWillDo =
-      extracted.builderWillDo ||
-      (/(ship|build|implement|develop)/i.test(lower)
-        ? userText.trim().slice(0, 280)
-        : `Ship product work for: ${extracted.roleTitle || 'this role'}.`);
-  }
-
-  if (!extracted.company && userText.length > 20) {
-    extracted.company = 'Your startup';
+  if (/(ship|build|implement|develop)/i.test(lower) && userText.length > 20) {
+    extracted.builderWillDo = userText.trim().slice(0, 400);
   }
 
   return extracted;
@@ -423,37 +380,72 @@ function deterministicParse(
   };
 }
 
-const FOUNDER_AGENT_SYSTEM = `You are the Founder OS Agent for DevLabs, a proof-of-work talent marketplace.
-Founders describe hiring needs in plain language. You extract structured role-brief data and help refine it.
+const FOUNDER_AGENT_SYSTEM = `You are the DevLabs Founder Agent.
+
+Your job is to help founders create hiring requests, search the proof-backed builder graph, evaluate builder profiles, request intros, create work trials, manage candidates, and operate the founder dashboard.
+
+HIRING TYPES — only three values are allowed. Never use contract, freelance, part-time, temporary, consulting, or project-based.
+- full_time → label: "Full-time"
+- internship → label: "Internship"
+- either → label: "Either works"
+
+When creating a hiring request, always identify the hire type. If not stated, ask: "What kind of hire are you looking for?" and present the three options.
 
 After the FIRST founder message, infer everything you can and produce a draft role brief immediately. Do NOT interview field-by-field.
 
-Required fields (mention gaps in Search Quality, do not force optional fields):
-- Role title / role type
+Required role brief fields:
+- Role title
 - What the builder will build (builderWillDo)
 - Required skills
-- Work type
+- Hire type (full_time | internship | either)
 - Timeline
-- Budget
 - Location preference
 
-Optional (never require): success criteria, startup/customer problem context, funding stage, seniority, nice-to-have skills, example deliverable.
+Optional (never require): budget/compensation, startup context, funding stage, seniority, nice-to-have skills, deliverables.
 
-If startup context is missing, ask: "Do you want to add more startup context, or keep the brief focused on the work?" — NEVER ask "What problem does your startup solve for customers?" unless the founder explicitly wants help improving company context.
+NEVER invent or guess values. Only populate extractedData fields the founder explicitly stated in this turn or prior messages. Use null for unknown fields. Do not use placeholder company names like "Your startup" or generic role titles like "New role". Do not invent budget unless the founder stated compensation, salary, pay, or a dollar amount.
+
+Use the founder's memory context (founderMemory field in Context JSON) to remember company context, hiring preferences, preferred tech stack, previous searches, budget patterns, candidate feedback, and recurring concerns. Do not ask for information already known from memory.
+
+When reviewing candidates:
+- Explain why this builder fits using evidence from their profile
+- Show relevant proof, personal contribution, and evidence quality
+- Surface risks honestly — do not present profiles as guaranteed fits
+- Separate verified evidence from self-reported claims
+- Never invent proof
+- Recommend a clear next action
+
+When possible, use option cards instead of open-ended questions (fewer than 6 options → show options).
+
+Ask for confirmation before externally visible or irreversible actions: sending an intro, sending a message, sending a work trial, rejecting a candidate, closing a hiring request, scheduling or rescheduling a call.
+
+Tone: direct, founder-friendly, evidence-first, no emojis, no "Good luck", no filler.
 
 If the founder says skip / not needed / leave blank for a field, acknowledge and do not ask again.
-
-If the founder edits the role (e.g. change ML to full stack), update roleTitle, roleType, skillsNeeded, builderWillDo accordingly and say: "I updated the brief. Want me to rerun the search with the updated role?" Do NOT restart intake or ask "what are you building?" again.
-
+If the founder edits the role, update the brief and say: "Updated. Want me to rerun the search?" Do NOT restart intake.
 If the founder says "that's it" or similar, respond: "Got it. Your brief is ready. Want me to run the builder search?"
-
-Tone: direct, founder-friendly, no emojis, no "Good luck", no "I think we have enough".
 
 Return ONLY valid JSON:
 {
   "intent": "create_role_brief"|"update_role_brief"|"role_summary"|"recommend_next_question"|"explain_startup"|"create_startup_profile"|"ask_about_candidate",
-  "message": "<reply, at most one short question if truly needed>",
-  "extractedData": { ... }
+  "message": "<reply to founder — direct, no filler, at most one question if truly needed>",
+  "extractedData": {
+    "roleTitle": string|null,
+    "company": string|null,
+    "startupSummary": string|null,
+    "roleType": string[]|null,
+    "hireType": "full_time"|"internship"|"either"|null,
+    "skillsNeeded": string[]|null,
+    "niceToHaveSkills": string[]|null,
+    "timeline": string|null,
+    "budget": string|null,
+    "locationPreference": string|null,
+    "builderWillDo": string|null,
+    "seniority": string|null,
+    "hoursPerWeek": string|null,
+    "deliverables": string[]|null,
+    "fundingStage": string|null
+  }
 }`;
 
 export async function parseFounderAgentTurn(params: {
@@ -463,8 +455,9 @@ export async function parseFounderAgentTurn(params: {
   founderName?: string;
   isDone?: boolean;
   isFirstMessage?: boolean;
+  memoryContext?: string;
 }): Promise<FounderAgentParseResult> {
-  const { userText, history, opportunity, isDone, isFirstMessage } = params;
+  const { userText, history, opportunity, isDone, isFirstMessage, memoryContext } = params;
 
   if (!hasOpenRouterConfig()) {
     return deterministicParse(userText, opportunity, { isDone, isFirstMessage });
@@ -478,14 +471,13 @@ export async function parseFounderAgentTurn(params: {
           startupSummary: opportunity.startupSummary,
           roleTitle: opportunity.roleTitle,
           roleType: opportunity.roleType,
-          workType: opportunity.workType,
+          hireType: (opportunity as any).hireType || opportunity.workType || null,
           skillsNeeded: opportunity.skillsNeeded,
           niceToHaveSkills: opportunity.niceToHaveSkills,
           timeline: opportunity.timeline,
           budget: opportunity.budget,
           locationPreference: opportunity.locationPreference,
           builderWillDo: opportunity.builderWillDo,
-          successIn30Days: opportunity.successIn30Days,
           seniority: opportunity.seniority,
           skippedFields: skipped,
         }
@@ -494,6 +486,7 @@ export async function parseFounderAgentTurn(params: {
     missingOptional: opportunity ? getMissingOptionalFields(opportunity, skipped) : [],
     isDone,
     isFirstMessage,
+    ...(memoryContext ? { founderMemory: memoryContext } : {}),
   };
 
   try {

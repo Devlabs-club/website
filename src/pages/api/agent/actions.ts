@@ -9,13 +9,18 @@ import MomentumUpdate from '@/models/talent/MomentumUpdate';
 import { computeProfileCompletion, computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality, evaluateDeterministicQuality } from '@/lib/talent/profileQuality';
 import mongoose from 'mongoose';
-import { generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig } from '@/lib/openrouter';
+import { generateOpenRouterReply, generateOpenRouterAgentTurn, getOpenRouterChatModel, hasOpenRouterConfig, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
+import { buildFounderUiBlocks } from '@/lib/talent/founderAgent';
 import {
-  buildFounderUiBlocks,
-  mergeExtractedIntoOpportunity,
-  parseFounderAgentTurn,
-} from '@/lib/talent/founderAgent';
+  applySanitizedToOpportunity,
+  extractRoleHintsFromUserText,
+  isPlaceholderCompany,
+  mergeHintsIntoSanitized,
+  sanitizeRoleBriefArgs,
+  type FounderStartupContext,
+} from '@/lib/talent/founderRoleBrief';
+import { enhanceRoleBriefField, isEnhanceableRoleBriefField } from '@/lib/talent/roleBriefFieldEnhance';
 import {
   applyEditFromText,
   buildCandidateAnswer,
@@ -94,6 +99,13 @@ import {
   sendThreadMessage,
 } from '@/lib/talent/messageFlow';
 import { sendTalentEmail, dashboardDeepLink } from '@/lib/talent/talentEmail';
+import {
+  addBuilderMemory,
+  addFounderMemory,
+  formatMemoryForPrompt,
+  getBuilderMemoryProfile,
+  getFounderMemoryProfile,
+} from '@/lib/talent/supermemory';
 
 type ImportedProjectData = {
   projectName: string;
@@ -307,18 +319,54 @@ async function getAgentMessage(params: {
   intent: string;
   context: Record<string, unknown>;
   history?: Array<{ role: string; content: string }>;
+  memoryContext?: string;
 }) {
   if (!hasOpenRouterConfig()) return params.fallback;
+  const memoryBlock = params.memoryContext
+    ? `\n\n[Builder memory from previous sessions]\n${params.memoryContext}`
+    : '';
   try {
     return await generateOpenRouterReply({
       systemPrompt:
-        'You are the Builder Profile Agent for DevLabs. Your tone is pragmatic, direct, and builder-centric. Speak like a senior engineer or technical founder. No fluff, no corporate speak, and absolutely NO emojis. Your role is a collaborative writing partner. If a builder asks for help phrasing their bio, headline, or project contributions, actively help them draft it. Ask probing questions to extract the impact of their work (e.g., "What was the scale?", "Did you own the backend?"). Translate vague statements ("worked on frontend") into specific proof ("Built the React frontend and integrated Stripe for payments"). Focus on outcomes, technical depth, and ownership. Use the provided JSON context to reference their current headline, bio, projects, and skills. Keep responses punchy, use markdown for legibility, and always end with a clear next step or a single follow-up question. If evaluating profile quality with chat history, communicate strengths and issues directly in text.',
+        `You are the DevLabs Builder Agent — a proactive profile intelligence agent.
+
+Your job is NOT to wait for questions. You read the builder's profile, find the biggest problem, and tell them what to fix — right now. Think of yourself as a senior engineer doing a brutally honest code review on someone's profile before a founder evaluates it.
+
+ALWAYS lead with the most critical profile issue you can see in the Context JSON. If the profile is missing contribution clarity, say so. If there are no projects, say so. If GitHub is missing, say so. Don't wait to be asked.
+
+When someone says "what can you do" or "hey" or anything vague — do not list your features. Instead look at their profile and lead with what's broken:
+"Your profile has 3 projects but none of them explain what you personally built. That's the biggest blocker right now. Want me to fix the first one?"
+
+You take actions through tools. When a tool ran (toolResult or toolOutcome in context), acknowledge what you did, show the specific result, then immediately identify the next issue.
+
+Forbidden language — never say:
+- "This will help you get matched" / "improve your chances" / "get noticed" / "rank higher" / "unlock opportunities"
+- "Done." as a complete response
+- Generic capability lists when you have profile data to work with
+
+Approved language:
+- "This makes your profile easier to evaluate."
+- "This clarifies your proof-of-work."
+- "This helps founders understand what you personally built."
+- "Missing contribution on [project] — founders can't evaluate what they can't see."
+
+Rules:
+- Never invent facts or upgrade self-reported claims to verified proof
+- Ask for confirmation before sending intros, messages, or deleting anything
+- When importing GitHub: skip forks, tutorials, boilerplates — prioritize shipped projects with READMEs and live links
+- When importing Devpost: ask what they personally owned, don't overstate awards
+- Project description format: what it does → stack → personal contribution → proof links → what's missing
+- If answer is one of fewer than 6 options, list them as choices — don't ask open-ended questions
+- No emojis. No corporate speak. One clear next action at the end of every response.
+
+Use Context JSON for the builder's current profile state (projects, headline, bio, skills, availability, quality issues, intro inbox, trials). Use builder memory (if present) for session history.${memoryBlock}`,
       userPrompt: `Intent: ${params.intent}\nContext JSON:\n${JSON.stringify(params.context)}`,
-      temperature: 0.15,
-      maxTokens: 250,
+      temperature: 0.3,
+      maxTokens: 500,
       history: params.history,
     });
-  } catch {
+  } catch (err) {
+    console.error('[getAgentMessage] LLM call failed:', err instanceof Error ? err.message : err);
     return params.fallback;
   }
 }
@@ -422,6 +470,22 @@ async function resolveAuthedFounder(request: Request) {
   }
 
   return { decoded, email, founderName };
+}
+
+async function loadFounderStartupContext(founderEmail: string): Promise<FounderStartupContext> {
+  const last = await Opportunity.findOne({ founderEmail })
+    .sort({ updatedAt: -1 })
+    .select('company startupSummary industry')
+    .lean();
+
+  const company =
+    last?.company && !isPlaceholderCompany(String(last.company)) ? String(last.company) : null;
+
+  return {
+    company,
+    startupSummary: last?.startupSummary ? String(last.startupSummary) : null,
+    industry: last?.industry ? String(last.industry) : null,
+  };
 }
 
 async function resolveAuthedBuilder(request: Request) {
@@ -1017,799 +1081,455 @@ export const POST: APIRoute = async ({ request }) => {
       const { builder } = resolved;
       const userText = String(payload?.message || '').trim();
       if (!userText) return bad('message is required');
+      const builderId = String(builder._id);
       console.log('[agent/actions] builder_chat:start', {
         builderId: String(builder._id),
         userText,
       });
 
-      const lower = userText.toLowerCase();
-      let tool:
-        | 'claim_profile'
-        | 'update_availability'
-        | 'update_links'
-        | 'update_role_skills'
-        | 'update_work_preferences'
-        | 'update_profile_basics'
-        | 'read_profile_basics'
-        | 'link_summary'
-        | 'profile_summary'
-        | 'recommend_next_steps'
-        | 'suggest_evidence_improvements'
-        | 'import_project'
-        | 'create_project'
-        | 'list_projects'
-        | 'read_project'
-        | 'update_project'
-        | 'delete_project'
-        | 'evaluate_profile_quality'
-        | 'resume_uploaded'
-        | 'none' = 'none';
-      let toolArgs: Record<string, unknown> = {};
-      const extractedLinks = extractProfileLinksFromText(userText);
-      const extractedRoleSkills = extractRolesAndSkillsFromText(userText);
-      const extractedWorkTypes = extractWorkTypesFromText(userText);
-      const resumeUrl = typeof payload?.attachments?.resumeUrl === 'string' ? payload.attachments.resumeUrl : null;
-      const projectCrudRoute = await routeProjectCrudWithLLM(userText);
+      // ── Builder Agent: agentic tool-calling loop ──────────────────────────
+      const builderMemoryPromise = getBuilderMemoryProfile(builderId, userText);
 
-      if (projectCrudRoute) {
-        tool = projectCrudRoute.tool;
-        toolArgs = projectCrudRoute.args;
-      } else if (/(claim|verify)/i.test(userText)) {
-        tool = 'claim_profile';
-      } else if (/(availability|available|hours|open to work|remote|hybrid|onsite|in person)/i.test(userText)) {
-        tool = 'update_availability';
-        toolArgs = extractAvailabilityFromText(userText);
-      } else if (userText.match(/https?:\/\/(www\.)?devpost\.com\/software\/[^\s)]+/i) || userText.match(/https?:\/\/(www\.)?github\.com\/[^\s)]+\/[^\s)]+/i)) {
-        // Find if user provided a project URL to import
-        const devpostMatch = userText.match(/https?:\/\/(www\.)?devpost\.com\/software\/[^\s)]+/i);
-        const githubMatch = userText.match(/https?:\/\/(www\.)?github\.com\/[^\s)]+\/[^\s)]+/i);
-        const url = devpostMatch ? devpostMatch[0] : (githubMatch ? githubMatch[0] : null);
-        if (url) {
-          tool = 'import_project';
-          toolArgs = { url };
-        } else if (extractedLinks.github || extractedLinks.linkedin) {
-          tool = 'update_links';
-          toolArgs = extractedLinks;
-        }
-      } else if (extractedLinks.github || extractedLinks.linkedin) {
-        tool = 'update_links';
-        toolArgs = extractedLinks;
-      } else if (resumeUrl && userText.includes('The parser extracted')) {
-        tool = 'resume_uploaded';
-        toolArgs = { resume: resumeUrl };
-      } else if (resumeUrl) {
-        tool = 'update_links';
-        toolArgs = { resume: resumeUrl };
-      } else if (extractedWorkTypes.preferredWorkTypes.length > 0) {
-        tool = 'update_work_preferences';
-        toolArgs = extractedWorkTypes;
-      } else if (extractedRoleSkills.roles.length > 0 || extractedRoleSkills.skills.length > 0) {
-        tool = 'update_role_skills';
-        toolArgs = extractedRoleSkills;
-      } else if (wantsLinkSummary(userText)) {
-        tool = 'link_summary';
-      } else if (/(what does my current.*summary|read my.*summary|show my.*summary|current.*summary|what is my.*summary|read.*bio|show.*bio|current.*bio|what is my.*bio|read.*headline|show.*headline|current.*headline|what is my.*headline)/i.test(userText)) {
-        tool = 'read_profile_basics';
-      } else if (/(update.*summary|edit.*summary|change.*summary|improve.*summary|write.*summary|update.*bio|edit.*bio|change.*bio|improve.*bio|write.*bio|update.*headline|edit.*headline|change.*headline|improve.*headline|write.*headline)/i.test(userText)) {
-        tool = 'update_profile_basics';
-        // Let the LLM extract the actual headline/bio if possible, but set the intent
-      } else if (/(everything you know|about me|my profile|what do you know)/i.test(userText)) {
-        tool = 'profile_summary';
-      } else if (/(improve match|next steps|better matches|match quality|improve profile|make my profile better)/i.test(userText)) {
-        tool = 'evaluate_profile_quality';
-      } else if (/(projects|proof-of-work|skills|evidence|founder|portfolio)/i.test(userText)) {
-        tool = 'suggest_evidence_improvements';
-      }
-      console.log('[agent/actions] builder_chat:routed_regex', {
-        builderId: String(builder._id),
-        tool,
-        toolArgs,
-        extractedLinks,
-        extractedRoleSkills,
-        extractedWorkTypes,
-        resumeUrl,
-      });
+      const BUILDER_AGENT_SYSTEM = `You are the DevLabs Builder Agent — a proactive profile intelligence agent.
 
-      const deterministicLocked = tool !== 'none';
+Read the builder's profile first using get_builder_profile before making ANY claim about what they have or don't have. Never assume a field is missing without checking.
 
-      if (hasOpenRouterConfig() && !deterministicLocked) {
-        try {
-          const routingRaw = await generateOpenRouterReply({
-            systemPrompt:
-              'You route builder chat into tools. Return strict JSON with keys: tool, args. Tools: claim_profile, update_availability, update_links, update_role_skills, update_work_preferences, update_profile_basics, read_profile_basics, link_summary, profile_summary, recommend_next_steps, suggest_evidence_improvements, evaluate_profile_quality, import_project, create_project, list_projects, read_project, update_project, delete_project, resume_uploaded, none. IMPORTANT: If the user is asking for advice, feedback, or help drafting/rephrasing content (e.g., "help me rewrite my bio", "how does this sound?"), use the `none` tool so you can converse with them and provide suggestions. Only use `update_*` tools when the user explicitly provides the finalized content they want to save. Never request any ID. args for import_project: url(string). Project CRUD args may include projectName, newProjectName, description, problemSolved, builderContribution, techStack(string[]), contributionTags(string[]), githubUrl, demoUrl, devpostUrl, status, confirmDelete(boolean). args for update_availability: availableNow(boolean optional), hoursPerWeek(number optional), desiredCompensation(string optional), remotePreference(remote|hybrid|in_person|unspecified optional). args for update_links: github(string optional), linkedin(string optional), resume(string optional). args for update_work_preferences: preferredWorkTypes(string[]), availableNow(boolean optional). args for update_profile_basics: headline(string optional), bio(string optional). No markdown.',
-            userPrompt: `Builder says: "${userText}"`,
-            temperature: 0,
-            maxTokens: 180,
-          });
-          const normalized = routingRaw.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
-          const routed = JSON.parse(normalized);
-          if (
-            routed?.tool === 'claim_profile' ||
-            routed?.tool === 'update_availability' ||
-            routed?.tool === 'update_links' ||
-            routed?.tool === 'update_role_skills' ||
-            routed?.tool === 'update_work_preferences' ||
-            routed?.tool === 'update_profile_basics' ||
-            routed?.tool === 'read_profile_basics' ||
-            routed?.tool === 'link_summary' ||
-            routed?.tool === 'profile_summary' ||
-            routed?.tool === 'recommend_next_steps' ||
-            routed?.tool === 'suggest_evidence_improvements' ||
-            routed?.tool === 'import_project' ||
-            routed?.tool === 'create_project' ||
-            routed?.tool === 'list_projects' ||
-            routed?.tool === 'read_project' ||
-            routed?.tool === 'update_project' ||
-            routed?.tool === 'delete_project' ||
-            routed?.tool === 'evaluate_profile_quality' ||
-            routed?.tool === 'resume_uploaded' ||
-            routed?.tool === 'none'
-          ) {
-            tool = routed.tool;
-            toolArgs = typeof routed.args === 'object' && routed.args ? routed.args : {};
-            console.log('[agent/actions] builder_chat:routed_llm', {
-              builderId: String(builder._id),
-              tool,
-              toolArgs,
-            });
+Your job: find the most critical profile gap, tell the builder exactly what's wrong, and fix it. Sound like a senior engineer reviewing someone's profile the night before a founder evaluates it.
+
+Lead with the real issue. When someone says "what can you do" or "hey" — call get_builder_profile, then tell them what's broken, not what you can do.
+
+After any write action, call get_builder_profile again to confirm the change saved correctly, then tell the builder what you updated and what to fix next.
+
+Rules:
+- ALWAYS call get_builder_profile before making claims about the profile (links, bio, availability, etc.)
+- Chain tools: read → act → confirm → next issue
+- Never say "Done." as a full response
+- Never say "This will help you get matched", "improve your chances", "rank higher", or "get noticed"
+- Say "This makes your profile easier to evaluate" / "This clarifies your proof-of-work"
+- No emojis. No fluff. One concrete next step at the end of every response.
+- When fewer than 6 options exist, list them — don't ask open-ended questions
+- For imports: skip forks/tutorials/boilerplates, prioritize shipped projects with READMEs`;
+
+      const builderAgentTools: ToolDefinition[] = [
+        {
+          type: 'function',
+          function: {
+            name: 'get_builder_profile',
+            description: 'Read the full builder profile: name, headline, bio, GitHub/LinkedIn/portfolio links, availability, preferred hire type, project count, and profile quality issues. Call this before making any claim about the profile.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_projects',
+            description: 'List all builder projects with title, description, tech stack, and personal contribution.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'update_availability',
+            description: 'Update the builder availability status.',
+            parameters: {
+              type: 'object',
+              properties: {
+                availableNow: { type: 'boolean', description: 'Whether the builder is currently open to work' },
+                hoursPerWeek: { type: 'number', description: 'Hours per week available' },
+                remotePreference: { type: 'string', enum: ['remote', 'hybrid', 'in_person', 'unspecified'] },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'update_links',
+            description: 'Update profile links (GitHub, LinkedIn, portfolio URL).',
+            parameters: {
+              type: 'object',
+              properties: {
+                github: { type: 'string', description: 'GitHub profile URL' },
+                linkedin: { type: 'string', description: 'LinkedIn URL' },
+                portfolio: { type: 'string', description: 'Portfolio/website URL' },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'update_profile_basics',
+            description: 'Update the builder headline and/or bio.',
+            parameters: {
+              type: 'object',
+              properties: {
+                headline: { type: 'string', description: 'One-line role description, e.g. "Full-stack builder — React, Node, Supabase"' },
+                bio: { type: 'string', description: 'Short paragraph describing what the builder builds and what they have shipped' },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'import_project',
+            description: 'Import a project from a GitHub repo URL or Devpost project URL. Scrapes the page, creates a project card, and returns the imported project details.',
+            parameters: {
+              type: 'object',
+              properties: {
+                url: { type: 'string', description: 'Full GitHub repo URL or Devpost project URL' },
+              },
+              required: ['url'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'evaluate_profile',
+            description: 'Run a full quality evaluation of the builder profile. Returns quality score, top issues, and specific fixes to make.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'fetch_intros',
+            description: 'Fetch all pending intro requests from founders. Returns founder name, company, role title, hire type, intro message, and current status for each request.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'fetch_work_trials',
+            description: 'Fetch all active and submitted work trials. Returns trial title, deliverables, deadline, compensation, submission status, and the company/role for each trial.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'fetch_calls',
+            description: 'Fetch all upcoming and pending calls with founders. Returns call status, proposed/confirmed time slot, meeting link, and the role/company context for each call.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'fetch_messages',
+            description: 'Fetch all message threads with founders. Returns thread summary, last message preview, unread count, and the associated role/company for each thread.',
+            parameters: {
+              type: 'object',
+              properties: {
+                threadId: { type: 'string', description: 'Optional: pass a specific thread ID to fetch the full message history for that conversation.' },
+              },
+            },
+          },
+        },
+      ];
+
+      // Tool executor — called by the agentic loop
+      async function runBuilderTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+        const freshB = await reloadBuilderForAgent(builder._id);
+        const freshProjects = await ProjectRecord.find({ builderId: builder._id }).select('projectName description techStack builderContribution verificationStatus source links').lean();
+
+        switch (name) {
+          case 'get_builder_profile': {
+            const completion = computeBuilderScores(freshB || builder, freshProjects);
+            return {
+              name: (freshB || builder).name,
+              headline: (freshB || builder).headline || null,
+              bio: (freshB || builder).bio || null,
+              links: {
+                github: (freshB || builder).links?.github || null,
+                linkedin: (freshB || builder).links?.linkedin || null,
+                portfolio: (freshB || builder).links?.portfolio || null,
+                devpost: (freshB || builder).links?.devpost || null,
+                resume: (freshB || builder).links?.resume || null,
+              },
+              availability: {
+                availableNow: (freshB || builder).availability?.availableNow ?? false,
+                hoursPerWeek: (freshB || builder).availability?.hoursPerWeek ?? null,
+                remotePreference: (freshB || builder).availability?.remotePreference ?? 'unspecified',
+              },
+              preferredHireType: (freshB || builder).preferredWorkType || [],
+              projectCount: freshProjects.length,
+              profileScore: completion.profileScore,
+              proofScore: completion.proofScore,
+              missingFields: completion.missingItems || [],
+              qualityIssues: ((freshB || builder).profileQuality?.issues || []).slice(0, 3).map((i: any) => i.title),
+              qualitySummary: (freshB || builder).profileQuality?.oneLineSummary || null,
+            };
           }
-        } catch (error) {
-          console.log('[agent/actions] builder_chat:routing_llm_failed', {
-            builderId: String(builder._id),
-            error: error instanceof Error ? error.message : 'unknown',
-          });
+          case 'get_projects': {
+            return {
+              projects: freshProjects.map((p: any) => ({
+                id: String(p._id),
+                title: p.projectName,
+                description: p.description || null,
+                techStack: p.techStack || [],
+                personalContribution: p.builderContribution || null,
+                verificationStatus: p.verificationStatus || 'self_reported',
+                source: p.source || 'manual',
+                githubUrl: p.links?.github || null,
+                demoUrl: p.links?.demo || null,
+                devpostUrl: p.links?.devpost || null,
+              })),
+            };
+          }
+          case 'update_availability': {
+            const b = freshB || builder;
+            await applyAvailabilityUpdate(b, {
+              availableNow: typeof args.availableNow === 'boolean' ? args.availableNow : undefined,
+              hoursPerWeek: typeof args.hoursPerWeek === 'number' ? args.hoursPerWeek : null,
+              remotePreference: typeof args.remotePreference === 'string' ? args.remotePreference : null,
+            });
+            void addBuilderMemory(builderId, `Builder ${b.name} updated availability: availableNow=${b.availability?.availableNow}, hoursPerWeek=${b.availability?.hoursPerWeek}, remotePreference=${b.availability?.remotePreference}`);
+            return { success: true, updated: { availableNow: b.availability?.availableNow, hoursPerWeek: b.availability?.hoursPerWeek, remotePreference: b.availability?.remotePreference } };
+          }
+          case 'update_links': {
+            const b = freshB || builder;
+            // Pass undefined (not null) for missing fields so applyLinksUpdate
+            // skips them instead of overwriting existing values with null.
+            await applyLinksUpdate(b, {
+              github: typeof args.github === 'string' ? args.github : undefined,
+              linkedin: typeof args.linkedin === 'string' ? args.linkedin : undefined,
+              portfolio: typeof args.portfolio === 'string' ? args.portfolio : undefined,
+            });
+            void addBuilderMemory(builderId, `Builder ${b.name} updated links: github=${args.github ?? 'unchanged'}, linkedin=${args.linkedin ?? 'unchanged'}`);
+            return { success: true, updated: { github: args.github ?? null, linkedin: args.linkedin ?? null, portfolio: args.portfolio ?? null } };
+          }
+          case 'update_profile_basics': {
+            const b = freshB || builder;
+            await applyProfileBasicsUpdate(b, {
+              headline: typeof args.headline === 'string' ? args.headline : undefined,
+              bio: typeof args.bio === 'string' ? args.bio : undefined,
+            });
+            void addBuilderMemory(builderId, `Builder ${b.name} updated headline: "${args.headline}" and bio.`);
+            return { success: true, updated: { headline: args.headline ?? null, bio: typeof args.bio === 'string' ? args.bio.slice(0, 80) + '...' : null } };
+          }
+          case 'import_project': {
+            const url = typeof args.url === 'string' ? args.url : null;
+            if (!url) return { success: false, error: 'No URL provided' };
+            try {
+              const project = await scrapeAndImportProject(url, builder._id);
+              void addBuilderMemory(builderId, `Builder imported project "${project.projectName}" from ${url}. Tech: ${(project.techStack || []).join(', ')}`);
+              return { success: true, project: { title: project.projectName, description: project.description, techStack: project.techStack, source: project.source } };
+            } catch (e) {
+              return { success: false, error: e instanceof Error ? e.message : 'Import failed' };
+            }
+          }
+          case 'evaluate_profile': {
+            const b = freshB || builder;
+            const events = await EventRecord.find({ builderId: builder._id }).lean();
+            const momentum = await MomentumUpdate.find({ builderId: builder._id }).lean();
+            const quality = await evaluateBuilderProfileQuality(b, freshProjects, events, momentum);
+            b.profileQuality = quality;
+            b.profileQuality.evaluatedAt = new Date();
+            await b.save();
+            return {
+              overallScore: quality.overallScore,
+              label: quality.label,
+              summary: quality.oneLineSummary,
+              issues: (quality.issues || []).slice(0, 4).map((i: any) => ({ title: i.title, detail: i.detail })),
+              suggestedFixes: (quality.suggestedFixes || []).slice(0, 3).map((f: any) => f.action),
+            };
+          }
+          case 'fetch_intros': {
+            const intros = await getBuilderIntroInbox(builderId);
+            return {
+              count: intros.length,
+              intros: intros.map((i: any) => ({
+                introId: i._id,
+                status: i.status,
+                founderName: i.founderName,
+                company: i.company,
+                roleTitle: i.roleTitle,
+                hireType: i.hireType || null,
+                introMessage: i.introMessage,
+                budget: i.budget || null,
+                timeline: i.timeline || null,
+                receivedAt: i.createdAt,
+                viewedAt: i.viewedAt || null,
+                threadId: i.threadId || null,
+              })),
+            };
+          }
+
+          case 'fetch_work_trials': {
+            const trials = await getBuilderActiveTrials(builderId);
+            return {
+              count: trials.length,
+              trials: trials.map((t: any) => ({
+                matchId: t.matchId,
+                company: t.company,
+                roleTitle: t.roleTitle,
+                founderName: t.founderName,
+                matchStatus: t.matchStatus,
+                trial: t.trialProject ? {
+                  title: t.trialProject.title,
+                  goal: t.trialProject.goal,
+                  deliverables: t.trialProject.deliverables || [],
+                  timeline: t.trialProject.timeline,
+                  deadline: t.trialProject.deadlineAt || null,
+                  status: t.trialProject.status,
+                  sentAt: t.trialProject.sentAt || null,
+                  submittedAt: t.trialProject.submittedAt || null,
+                  compensation: t.trialProject.compensation || null,
+                  submission: t.trialProject.submission || null,
+                } : null,
+              })),
+            };
+          }
+
+          case 'fetch_calls': {
+            const calls = await getBuilderUpcomingCalls(builderId);
+            return {
+              count: calls.length,
+              calls: calls.map((c: any) => ({
+                callId: c._id,
+                company: c.company,
+                roleTitle: c.roleTitle,
+                founderName: c.founderName,
+                status: c.status,
+                proposedBy: c.proposedBy,
+                proposedSlot: c.proposedSlot || null,
+                confirmedSlot: c.confirmedSlot || null,
+                meetingUrl: c.meetingUrl || null,
+                notes: c.notes || null,
+              })),
+            };
+          }
+
+          case 'fetch_messages': {
+            const threadId = typeof args.threadId === 'string' ? args.threadId : null;
+
+            if (threadId) {
+              // Fetch full message history for a specific thread
+              const result = await getThreadMessages(threadId, { type: 'builder', builderId });
+              if ('error' in result) return { error: result.error };
+              return {
+                threadId,
+                messages: (result as any).messages?.map((m: any) => ({
+                  sender: m.senderType,
+                  text: m.body,
+                  sentAt: m.createdAt,
+                })) || [],
+                introStatus: (result as any).intro?.status || null,
+              };
+            }
+
+            // Fetch all thread summaries
+            const threads = await getBuilderThreads(builderId);
+            return {
+              count: threads.length,
+              threads: threads.map((t: any) => ({
+                threadId: t._id,
+                company: t.company || null,
+                roleTitle: t.roleTitle || null,
+                founderName: t.founderName || null,
+                lastMessageAt: t.lastMessageAt || null,
+                lastMessagePreview: t.lastMessagePreview || null,
+                unreadCount: t.builderUnreadCount || 0,
+                introStatus: t.introStatus || null,
+              })),
+            };
+          }
+
+          default:
+            return { error: `Unknown tool: ${name}` };
         }
-      } else if (deterministicLocked) {
-        console.log('[agent/actions] builder_chat:routing_locked', {
-          builderId: String(builder._id),
-          tool,
-          reason: 'deterministic_regex_match',
-        });
       }
+
+      // Build the memory prefix for the system prompt
+      const memoryProfile = await builderMemoryPromise;
+      const memoryBlock = memoryProfile
+        ? `\n\n[Builder memory]\n${[...((memoryProfile.static || []).slice(0, 5)), ...((memoryProfile.dynamic || []).slice(0, 3))].map(s => `- ${s}`).join('\n')}`
+        : '';
 
       const chatHistory: ChatTurn[] = Array.isArray(payload?.history) ? payload.history : [];
 
-      if (
-        (tool === 'none' || tool === 'update_profile_basics') &&
-        (isAffirmativeConfirmation(userText) || wantsBioUpdate(userText))
-      ) {
-        const draftBio = extractBioDraftFromHistory(chatHistory);
-        if (draftBio) {
-          tool = 'update_profile_basics';
-          toolArgs = { ...toolArgs, bio: draftBio };
-        }
-      }
+      // Build message thread for the LLM
+      const messages: AgentMessage[] = [
+        { role: 'system', content: BUILDER_AGENT_SYSTEM + memoryBlock },
+        ...chatHistory.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+        { role: 'user', content: userText },
+      ];
 
-      if (tool === 'update_profile_basics' && !toolArgs.bio && !toolArgs.headline) {
-        const fromText = extractBioFromUserText(userText);
-        const fromHistory = extractBioDraftFromHistory(chatHistory);
-        const headline = extractHeadlineFromText(userText);
-        if (fromText) toolArgs.bio = fromText;
-        else if (fromHistory) toolArgs.bio = fromHistory;
-        if (headline) toolArgs.headline = headline;
-      }
+      // Agentic loop — LLM calls tools, we execute, feed results back, repeat
+      let agentResponse = await generateOpenRouterAgentTurn({ messages, tools: builderAgentTools, temperature: 0.3, maxTokens: 600 });
 
-      const projects = await ProjectRecord.find({ builderId: builder._id }).select('projectName techStack links description builderContribution').lean();
-      const projectCount = projects.length;
       let uiBlocks: any[] = [];
-      let importProjectMessage: string | null = null;
-      let importProjectFailed = false;
-      let projectCrudMessage: string | null = null;
-      if (tool === 'claim_profile') {
-        const completion = await applyClaimProfile(builder, true);
-        uiBlocks = [
-          {
-            type: 'profile_completion',
-            title: 'Profile claim updated',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
+      const MAX_ITERATIONS = 5;
+      let iterations = 0;
 
-      if (tool === 'update_availability') {
-        const completion = await applyAvailabilityUpdate(builder, {
-          availableNow: typeof toolArgs.availableNow === 'boolean' ? toolArgs.availableNow : undefined,
-          hoursPerWeek: typeof toolArgs.hoursPerWeek === 'number' ? toolArgs.hoursPerWeek : null,
-          desiredCompensation: typeof toolArgs.desiredCompensation === 'string' ? toolArgs.desiredCompensation : null,
-          remotePreference: typeof toolArgs.remotePreference === 'string' ? toolArgs.remotePreference : null,
-        });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Availability updated',
-            body: `${builder.availability.availableNow ? 'Available' : 'Unavailable'} · ${builder.availability.hoursPerWeek || 0} hrs/week`,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
+      while (agentResponse.tool_calls && agentResponse.tool_calls.length > 0 && iterations < MAX_ITERATIONS) {
+        iterations++;
 
-      if (tool === 'update_profile_basics') {
-        const hasHeadline = typeof toolArgs.headline === 'string';
-        const hasBio = typeof toolArgs.bio === 'string';
-        
-        if (hasHeadline || hasBio) {
-          const completion = await applyProfileBasicsUpdate(builder, {
-            headline: hasHeadline ? toolArgs.headline as string : undefined,
-            bio: hasBio ? toolArgs.bio as string : undefined,
-          });
-          uiBlocks = [
-            {
-              type: 'summary_card',
-              title: 'Profile basics updated',
-              body: `Headline: ${builder.headline || 'missing'} · Bio: ${builder.bio ? 'added' : 'missing'}`,
-            },
-            {
-              type: 'profile_completion',
-              title: 'Profile strength',
-              score: completion.score,
-              missingItems: completion.missingItems,
-              eligibility: completion.eligibility,
-            },
-          ];
-        } else {
-          // User asked to update, but didn't provide the content yet
-          uiBlocks = [
-            {
-              type: 'summary_card',
-              title: 'Update Profile Basics',
-              body: `Current Headline: ${builder.headline || 'Not set'}\nCurrent Bio: ${builder.bio || 'Not set'}\n\nWhat would you like to change them to?`,
-            },
-          ];
-        }
-      }
+        // Add the assistant's tool-call message to history
+        messages.push({ role: 'assistant', content: agentResponse.content ?? null, tool_calls: agentResponse.tool_calls });
 
-      if (tool === 'read_profile_basics') {
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Your profile basics',
-            body: `Headline: ${builder.headline || 'Not set'}\nBio: ${builder.bio || 'Not set'}`,
-          },
-        ];
-      }
+        // Execute each tool call in parallel
+        const toolResults = await Promise.all(
+          agentResponse.tool_calls.map(async (tc) => {
+            let args: Record<string, unknown> = {};
+            try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
+            console.log(`[agent/agentic] tool_call: ${tc.function.name}`, args);
+            const result = await runBuilderTool(tc.function.name, args);
 
-      if (tool === 'resume_uploaded') {
-        const completion = await applyLinksUpdate(builder, { resume: typeof toolArgs.resume === 'string' ? toolArgs.resume : null });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Resume Processed',
-            body: `I've analyzed your resume and extracted your skills and projects.`,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'update_links') {
-        console.log('[agent/actions] builder_chat:update_links:before', {
-          builderId: String(builder._id),
-          existing: builder.links,
-          incoming: toolArgs,
-        });
-        const completion = await applyLinksUpdate(builder, {
-          github: typeof toolArgs.github === 'string' ? toolArgs.github : null,
-          linkedin: typeof toolArgs.linkedin === 'string' ? toolArgs.linkedin : null,
-          resume: typeof toolArgs.resume === 'string' ? toolArgs.resume : null,
-        });
-        const refreshed = await BuilderProfile.findById(builder._id).select('links').lean() as any;
-        console.log('[agent/actions] builder_chat:update_links:after', {
-          builderId: String(builder._id),
-          saved: refreshed?.links || null,
-        });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Links updated',
-            body: `GitHub: ${refreshed?.links?.github || 'missing'} · LinkedIn: ${refreshed?.links?.linkedin || 'missing'} · Resume: ${refreshed?.links?.resume ? 'added' : 'missing'}`,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'update_role_skills') {
-        const completion = await applyRoleSkillUpdate(builder, {
-          roles: Array.isArray(toolArgs.roles) ? toolArgs.roles.filter(Boolean) : [],
-          skills: Array.isArray(toolArgs.skills) ? toolArgs.skills.filter(Boolean) : [],
-        });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Roles and skills updated',
-            body: `Roles: ${Array.isArray(toolArgs.roles) && toolArgs.roles.length ? toolArgs.roles.join(', ') : 'none'} · Skills: ${Array.isArray(toolArgs.skills) && toolArgs.skills.length ? toolArgs.skills.join(', ') : 'none'}`,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'update_work_preferences') {
-        const completion = await applyWorkPreferencesUpdate(builder, {
-          preferredWorkTypes: Array.isArray(toolArgs.preferredWorkTypes)
-            ? toolArgs.preferredWorkTypes.filter(Boolean)
-            : [],
-          availableNow: typeof toolArgs.availableNow === 'boolean' ? toolArgs.availableNow : undefined,
-        });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Work preferences updated',
-            body: `Preferred work types: ${Array.isArray(builder.preferredWorkType) && builder.preferredWorkType.length ? builder.preferredWorkType.join(', ') : 'none'}`,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'link_summary') {
-        console.log('[agent/actions] builder_chat:link_summary', {
-          builderId: String(builder._id),
-          links: builder.links || null,
-        });
-        uiBlocks = [
-          {
-            type: 'summary_card',
-            title: 'Your saved links',
-            body: `GitHub: ${builder?.links?.github || 'missing'} · LinkedIn: ${builder?.links?.linkedin || 'missing'}`,
-          },
-        ];
-      }
-
-      if (tool === 'import_project') {
-        const url = typeof toolArgs.url === 'string' ? toolArgs.url : null;
-        console.log('[agent/actions] builder_chat:import_project:requested', {
-          builderId: String(builder._id),
-          url,
-        });
-        if (!url) {
-          importProjectFailed = true;
-          importProjectMessage = 'I need a valid Devpost or GitHub project URL before I can import it.';
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Import Project',
-            body: 'Please provide a valid Devpost or GitHub URL to import your project.',
-          }];
-        } else {
-          try {
-            const project = await scrapeAndImportProject(url, builder._id);
-            const completion = await updateBuilderScores(builder);
-            importProjectMessage = `Imported "${project.projectName}" into your Proof of Work. Review the card and tell me what you personally built so I can strengthen the founder-facing contribution.`;
-            uiBlocks = [
-              {
-                type: 'summary_card',
-                title: `Project Imported: ${project.projectName}`,
-                body: project.description || 'No description found.',
-                items: [`Tech Stack: ${project.techStack?.join(', ') || 'None found'}`, `Source: ${project.source}`],
-              },
-              {
-                type: 'profile_completion',
-                title: 'Profile strength',
-                score: completion.score,
-                missingItems: completion.missingItems,
-                eligibility: completion.eligibility,
-              },
-            ];
-          } catch (e) {
-            const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-            importProjectFailed = true;
-            importProjectMessage = `I could not import that project yet: ${errorMessage}`;
-            console.log('[agent/actions] builder_chat:import_project:failed', {
-              builderId: String(builder._id),
-              url,
-              error: errorMessage,
-            });
-            uiBlocks = [{
-              type: 'summary_card',
-              title: 'Import Failed',
-              body: `Failed to import project from URL. ${errorMessage}.`,
-            }];
-          }
-        }
-      }
-
-      if (tool === 'list_projects') {
-        const ownedProjects = await ProjectRecord.find({ builderId: builder._id }).sort({ updatedAt: -1 }).lean();
-        projectCrudMessage = ownedProjects.length
-          ? `You have ${ownedProjects.length} project${ownedProjects.length === 1 ? '' : 's'} in your Proof of Work.`
-          : 'You do not have any projects yet. Send me a GitHub or Devpost link, or tell me the project name and description to add one manually.';
-        uiBlocks = [
-          {
-            type: 'project_list',
-            title: 'Your Proof of Work',
-            body: ownedProjects.length ? 'Here are the projects saved to your builder profile.' : 'No projects saved yet.',
-            items: ownedProjects.map((project: any) => `${project.projectName} · ${project.techStack?.slice(0, 4).join(', ') || 'tech stack missing'}`),
-          },
-        ];
-      }
-
-      if (tool === 'read_project') {
-        const { project, projects: ownedProjects, needsProjectName } = await findBuilderProject(builder._id, toolArgs.projectName);
-        if (needsProjectName) {
-          projectCrudMessage = ownedProjects.length
-            ? 'Which project should I show? Send the project name.'
-            : 'You do not have any projects yet.';
-          uiBlocks = [{
-            type: 'project_list',
-            title: 'Choose a project',
-            body: ownedProjects.length ? 'I need the project name to show details.' : 'No projects saved yet.',
-            items: ownedProjects.map((item: any) => item.projectName),
-          }];
-        } else if (!project) {
-          projectCrudMessage = `I could not find a project named "${toolArgs.projectName || 'that'}" on your profile.`;
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Project not found',
-            body: 'I can only read projects connected to your logged-in builder profile.',
-          }];
-        } else {
-          projectCrudMessage = `Here are the details I have for "${project.projectName}".`;
-          uiBlocks = [projectSummaryBlock(project)];
-        }
-      }
-
-      if (tool === 'create_project') {
-        const projectName = cleanNullableString(toolArgs.projectName ?? toolArgs.title ?? toolArgs.projectTitle);
-        if (!projectName) {
-          projectCrudMessage = 'I can create a project, but I need the project name first.';
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Project name needed',
-            body: 'Try: Add project "DealFlow AI" with description "...", tech stack React, TypeScript, MongoDB.',
-          }];
-        } else {
-          const updates = buildProjectUpdates({ ...toolArgs, newProjectName: projectName });
-          const project = await ProjectRecord.create({
-            builderId: builder._id,
-            projectName,
-            description: cleanNullableString(toolArgs.description) || null,
-            problemSolved: cleanNullableString(toolArgs.problemSolved) || null,
-            techStack: Array.isArray(updates.techStack) ? updates.techStack : [],
-            builderContribution: cleanNullableString(toolArgs.builderContribution ?? toolArgs.contribution) || null,
-            contributionTags: Array.isArray(updates.contributionTags) ? updates.contributionTags : [],
-            links: {
-              github: cleanNullableString(toolArgs.githubUrl ?? toolArgs.github) || null,
-              demo: cleanNullableString(toolArgs.demoUrl ?? toolArgs.demo) || null,
-              devpost: cleanNullableString(toolArgs.devpostUrl ?? toolArgs.devpost) || null,
-              screenshots: cleanNullableString(toolArgs.imageUrl ?? toolArgs.screenshotUrl ?? toolArgs.screenshots) || null,
-            },
-            source: 'manual_agent',
-            sourceId: `manual_agent:${builder._id}:${Date.now()}`,
-            verificationStatus: 'builder_confirmed',
-            status: typeof updates.status === 'string' ? updates.status : 'unknown',
-          });
-          const completion = await updateBuilderScores(builder);
-          projectCrudMessage = `Created "${project.projectName}" and added it to your Proof of Work.`;
-          uiBlocks = [
-            projectSummaryBlock(project, 'project_created'),
-            {
-              type: 'profile_completion',
-              title: 'Profile strength',
-              score: completion.score,
-              missingItems: completion.missingItems,
-              eligibility: completion.eligibility,
-            },
-          ];
-        }
-      }
-
-      if (tool === 'update_project') {
-        const { project, projects: ownedProjects, needsProjectName } = await findBuilderProject(builder._id, toolArgs.projectName);
-        const updates = buildProjectUpdates(toolArgs);
-        if (needsProjectName) {
-          projectCrudMessage = ownedProjects.length
-            ? 'Which project should I update? Send the project name plus the field you want changed.'
-            : 'You do not have any projects yet.';
-          uiBlocks = [{
-            type: 'project_list',
-            title: 'Choose a project to update',
-            body: 'Project updates are scoped to your saved Proof of Work.',
-            items: ownedProjects.map((item: any) => item.projectName),
-          }];
-        } else if (!project) {
-          projectCrudMessage = `I could not find a project named "${toolArgs.projectName || 'that'}" on your profile.`;
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Project not found',
-            body: 'I can update title, description, tech stack, links, status, and your contribution once you give me a saved project name.',
-          }];
-        } else if (Object.keys(updates).length === 0) {
-          projectCrudMessage = `I found "${project.projectName}", but I need a field to update.`;
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Update details needed',
-            body: 'I can update description, tech stack, GitHub/demo/Devpost links, status, project title, problem solved, and your contribution.',
-          }];
-        } else {
-          const updatedProject = await ProjectRecord.findOneAndUpdate(
-            { _id: project._id, builderId: builder._id },
-            { $set: updates },
-            { new: true }
-          );
-          await updateBuilderScores(builder);
-          projectCrudMessage = `Updated "${updatedProject.projectName}" successfully.`;
-          uiBlocks = [projectSummaryBlock(updatedProject, 'project_updated')];
-        }
-      }
-
-      if (tool === 'delete_project') {
-        const { project, projects: ownedProjects, needsProjectName } = await findBuilderProject(builder._id, toolArgs.projectName);
-        const confirmDelete = toolArgs.confirmDelete === true;
-        if (needsProjectName) {
-          projectCrudMessage = ownedProjects.length
-            ? 'Which project should I delete? Send the exact project name.'
-            : 'You do not have any projects to delete.';
-          uiBlocks = [{
-            type: 'project_list',
-            title: 'Choose a project to delete',
-            body: 'I need an exact project name before starting delete confirmation.',
-            items: ownedProjects.map((item: any) => item.projectName),
-          }];
-        } else if (!project) {
-          projectCrudMessage = `I could not find a project named "${toolArgs.projectName || 'that'}" on your profile.`;
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Project not found',
-            body: 'No project was deleted.',
-          }];
-        } else if (!confirmDelete) {
-          projectCrudMessage = `I found "${project.projectName}". To delete it, reply: confirm delete ${project.projectName}`;
-          uiBlocks = [{
-            type: 'delete_confirmation',
-            title: `Confirm delete: ${project.projectName}`,
-            body: 'This will remove the project from your Proof of Work. Reply with the exact confirmation phrase to continue.',
-            items: [`confirm delete ${project.projectName}`],
-          }];
-        } else {
-          await ProjectRecord.deleteOne({ _id: project._id, builderId: builder._id });
-          await updateBuilderScores(builder);
-          projectCrudMessage = `Deleted "${project.projectName}" from your Proof of Work.`;
-          uiBlocks = [{
-            type: 'summary_card',
-            title: 'Project deleted',
-            body: `${project.projectName} was removed from your builder profile.`,
-          }];
-        }
-      }
-
-      if (tool === 'profile_summary') {
-        const completion = computeBuilderScores(builder, projects);
-        const strongestEvidence = getStrongestEvidence(builder, projects);
-        const nextSteps = buildNextSteps(builder, completion, projectCount);
-        uiBlocks = [
-          {
-            type: 'profile_snapshot',
-            title: `${builder.name || 'Builder'} profile snapshot`,
-            sections: {
-              identity: {
-                name: builder.name || 'missing',
-                email: builder.email || 'missing',
-                location: builder.location || 'missing',
-                verificationStatus: builder.verificationStatus || 'imported_unverified',
-              },
-              availability: {
-                availableNow: Boolean(builder.availability?.availableNow),
-                hoursPerWeek: builder.availability?.hoursPerWeek || 0,
-                remotePreference: builder.availability?.remotePreference || 'unspecified',
-                readiness: builder.availability?.availableNow ? 'ready_now' : 'not_ready',
-              },
-              topSkills: (builder.rolePreference || []).slice(0, 8),
-              strongestEvidence,
-              projects: {
-                count: projectCount,
-                strongestProof: strongestEvidence.label,
-              },
-              profileStrength: {
-                completionScore: completion.score,
-                eligibility: completion.eligibility,
-              },
-              missingItems: completion.missingItems || [],
-              immediateNextActions: nextSteps,
-            },
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'recommend_next_steps') {
-        const completion = computeBuilderScores(builder, projects);
-        const steps = buildNextSteps(builder, completion, projectCount);
-        uiBlocks = [
-          {
-            type: 'next_steps',
-            title: 'Highest-impact next steps',
-            items: steps,
-          },
-          {
-            type: 'profile_completion',
-            title: 'Profile strength',
-            score: completion.score,
-            missingItems: completion.missingItems,
-            eligibility: completion.eligibility,
-          },
-        ];
-      }
-
-      if (tool === 'suggest_evidence_improvements') {
-        const strongestEvidence = getStrongestEvidence(builder, projects);
-        const suggestions = [
-          projectCount < 2
-            ? 'Add at least one more shipped project with demo + repo + your exact contribution.'
-            : 'For each top project, add one clear founder-facing outcome (users, conversion, launch, speed).',
-          !builder?.links?.github
-            ? 'Link your GitHub profile and pin 2 repos relevant to the roles you want.'
-            : 'Tag 2 strongest repositories and make README outcomes explicit.',
-          'For each major skill, attach one proof link (project/demo/repo) so founders can validate quickly.',
-        ];
-
-        uiBlocks = [
-          {
-            type: 'evidence_improvements',
-            title: 'Proof-of-work improvements for founder trust',
-            strongestEvidence,
-            items: suggestions,
-          },
-        ];
-      }
-
-      if (tool === 'evaluate_profile_quality') {
-        const events = await EventRecord.find({ builderId: builder._id }).lean();
-        const momentum = await MomentumUpdate.find({ builderId: builder._id }).lean();
-        const quality = await evaluateBuilderProfileQuality(builder, projects, events, momentum);
-        
-        builder.profileQuality = quality;
-        builder.profileQuality.evaluatedAt = new Date();
-        await builder.save();
-
-        const hasHistory = Array.isArray(payload?.history) && payload.history.length > 0;
-
-        if (!hasHistory) {
-          uiBlocks = [
-            {
-              type: 'summary_card',
-              title: 'Profile Quality Evaluated',
-              body: quality.oneLineSummary,
+            // Attach UI blocks for write operations
+            if (tc.function.name === 'evaluate_profile' && result.issues) {
+              uiBlocks = [{ type: 'profile_quality', title: `Profile: ${result.label}`, body: result.summary, items: (result.issues as any[]).map((i: any) => i.title) }];
             }
-          ];
-          
-          if (quality.issues?.length > 0) {
-            uiBlocks.push({
-              type: 'issues_list',
-              title: 'Needs Improvement',
-              items: quality.issues.map(i => `${i.title}: ${i.detail}`)
-            });
-          }
-          
-          if (quality.suggestedFixes?.length > 0) {
-            uiBlocks.push({
-              type: 'suggested_fixes',
-              title: 'Suggested Fixes',
-              items: quality.suggestedFixes.map(f => f.action)
-            });
-          }
-        }
+            if (tc.function.name === 'import_project' && result.success) {
+              uiBlocks.push({ type: 'summary_card', title: `Imported: ${(result.project as any)?.title}`, body: (result.project as any)?.description });
+            }
+
+            return { role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify(result) };
+          })
+        );
+
+        messages.push(...toolResults);
+
+        // Ask the LLM again with tool results
+        agentResponse = await generateOpenRouterAgentTurn({ messages, tools: builderAgentTools, temperature: 0.3, maxTokens: 600 });
       }
 
-      const completion = computeBuilderScores(builder, projects);
-      const nextQuestion = getNextQuestion(builder, projectCount);
-      const deterministicReply =
-        tool === 'claim_profile'
-          ? `Done — your profile is now claimed and set to builder_confirmed. Profile strength is ${completion.score}%. ${nextQuestion}`
-          : tool === 'update_availability'
-            ? `Updated your availability. You are ${builder.availability?.availableNow ? 'available' : 'not available'} with ${builder.availability?.hoursPerWeek || 0} hrs/week. ${nextQuestion}`
-            : tool === 'update_links'
-              ? `Saved. I updated your profile links. ${nextQuestion}`
-              : tool === 'update_work_preferences'
-                ? `Got it — I updated your work preferences. ${nextQuestion}`
-              : tool === 'update_role_skills'
-                ? `Perfect — I added those roles and skills to your profile. ${nextQuestion}`
-              : tool === 'update_profile_basics'
-                ? (typeof toolArgs.headline === 'string' || typeof toolArgs.bio === 'string' ? `I've updated your profile basics. ${nextQuestion}` : `What would you like to change your headline or bio to?`)
-              : tool === 'read_profile_basics'
-                ? `Here is what I have for your profile basics.`
-              : tool === 'link_summary'
-                ? `Here are your saved links from your profile.`
-            : tool === 'profile_summary'
-              ? `Here’s everything I currently know about your profile, including missing fields and top next actions.`
-              : tool === 'recommend_next_steps'
-                ? `I mapped the highest-impact steps to improve your founder match quality. Start with step 1 today.`
-                : tool === 'suggest_evidence_improvements'
-                  ? `I listed evidence upgrades that directly improve founder trust and shortlist outcomes.`
-                  : tool === 'evaluate_profile_quality'
-                    ? `I've evaluated your profile quality. Check the suggestions to improve your founder clarity.`
-                  : tool === 'resume_uploaded'
-                    ? `I've processed your resume and updated your profile with the extracted skills and projects. Let me know if you want to review or edit anything.`
-                  : tool === 'import_project'
-                    ? (importProjectMessage || `I could not import that project yet. Please try a valid Devpost or GitHub project URL.`)
-                    : tool === 'create_project' || tool === 'list_projects' || tool === 'read_project' || tool === 'update_project' || tool === 'delete_project'
-                      ? (projectCrudMessage || 'I handled that project request.')
-                    : `I can do this from your login: claim profile, update availability, summarize your profile, suggest next steps, or improve proof-of-work evidence.`;
+      const finalMessage = agentResponse.content
+        || 'I ran into an issue generating a response. Try asking again.';
 
-      const deterministicOnlyTools = new Set(['import_project', 'create_project', 'list_projects', 'read_project', 'update_project', 'delete_project', 'read_profile_basics', 'resume_uploaded']);
-      const freshBuilder = await reloadBuilderForAgent(builder._id);
-      const agentContext = freshBuilder ? await buildBuilderAgentContext(freshBuilder) : {};
-      const message = deterministicOnlyTools.has(tool)
-        ? deterministicReply
-        : await getAgentMessage({
-            fallback: deterministicReply,
-            intent: 'builder_chat_response',
-            context: {
-              userText,
-              tool,
-              toolArgs,
-              extractedLinks,
-              extractedRoleSkills,
-              ...agentContext,
-            },
-            history: chatHistory,
-          });
-      console.log('[agent/actions] builder_chat:final', {
-        builderId: String(builder._id),
-        tool,
-        importProjectFailed,
-        uiBlocks: uiBlocks.map((block) => block.type),
-      });
+      const finalBuilder = await reloadBuilderForAgent(builder._id);
+      const finalProjects = await ProjectRecord.find({ builderId: builder._id }).lean();
+      const profileForClient = finalBuilder ? {
+        _id: String(finalBuilder._id),
+        name: finalBuilder.name,
+        email: finalBuilder.email,
+        headline: finalBuilder.headline,
+        bio: finalBuilder.bio,
+        links: finalBuilder.links,
+        availability: finalBuilder.availability,
+        rolePreference: finalBuilder.rolePreference,
+        preferredWorkType: finalBuilder.preferredWorkType,
+        profileCompletion: computeBuilderScores(finalBuilder, finalProjects),
+        profileQuality: finalBuilder.profileQuality,
+      } : null;
 
-      const profileForClient = freshBuilder
-        ? {
-            _id: String(freshBuilder._id),
-            name: freshBuilder.name,
-            email: freshBuilder.email,
-            headline: freshBuilder.headline,
-            bio: freshBuilder.bio,
-            links: freshBuilder.links,
-            availability: freshBuilder.availability,
-            rolePreference: freshBuilder.rolePreference,
-            preferredWorkType: freshBuilder.preferredWorkType,
-            profileCompletion: computeBuilderScores(freshBuilder, projects),
-            profileQuality: freshBuilder.profileQuality,
-          }
-        : null;
+      console.log('[agent/actions] builder_chat:done', { builderId, iterations, toolsCalled: messages.filter(m => m.role === 'tool').length });
 
       return ok({
-        message,
+        message: finalMessage,
         uiBlocks,
         builder: profileForClient,
-        meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
+        meta: { model: getOpenRouterChatModel(), iterations },
       });
     }
 
     if (action === 'create_role_brief') {
-      const { founderName, founderEmail, company, startupSummary, roleTitle, roleType, skillsNeeded, budget, timeline, workType, successIn30Days } = payload;
+      const { founderName, founderEmail, company, startupSummary, roleTitle, roleType, skillsNeeded, budget, timeline, workType } = payload;
       if (!company || !roleTitle) return bad('company and roleTitle are required');
 
       const opportunity = await Opportunity.create({
@@ -1823,7 +1543,6 @@ export const POST: APIRoute = async ({ request }) => {
         budget,
         timeline,
         workType,
-        successIn30Days,
         status: 'matching',
       });
       const message = await getAgentMessage({
@@ -2010,16 +1729,13 @@ export const POST: APIRoute = async ({ request }) => {
         shortlistDocs.map(async (sl: any) => {
           const pub = toPublicShortlist(sl);
           if (!pub) return null;
-          if (sl.unlocked) {
-            const opportunity = oppById.get(String(sl.opportunityId));
-            const fullCandidates = await buildFullCandidatesForShortlist(sl, opportunity, {
-              BuilderProfile,
-              ProjectRecord,
-              MatchRecord,
-            });
-            return { ...pub, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) };
-          }
-          return { ...pub, fullCandidates: null };
+          const opportunity = oppById.get(String(sl.opportunityId));
+          const fullCandidates = await buildFullCandidatesForShortlist(sl, opportunity, {
+            BuilderProfile,
+            ProjectRecord,
+            MatchRecord,
+          });
+          return { ...pub, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) };
         })
       );
 
@@ -2429,7 +2145,6 @@ export const POST: APIRoute = async ({ request }) => {
 
       const isRerun = action === 'rerun_search';
       const existingShortlist = await Shortlist.findOne({ opportunityId, founderEmail: email }).lean();
-      const wasUnlocked = isRerun && Boolean(existingShortlist?.unlocked);
 
       const builders = await BuilderProfile.find({
         verificationStatus: {
@@ -2455,8 +2170,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       const ranked = rankBuildersForOpportunity(builders, projectsByBuilder, oppPlain, 12);
-      const previewCount = wasUnlocked ? ranked.length : 6;
-      const previewCandidates = toAnonymousCandidates(ranked, previewCount);
+      const previewCandidates = toAnonymousCandidates(ranked, ranked.length);
       const strongMatchCount = ranked.filter((r) => r.matchLabel === 'Strong Match').length;
 
       const candidatesWithMatchIds: any[] = [];
@@ -2530,14 +2244,8 @@ export const POST: APIRoute = async ({ request }) => {
         previewGeneratedAt: new Date(),
       };
 
-      if (wasUnlocked) {
-        shortlistFields.unlocked = true;
-        shortlistFields.unlockedAt = existingShortlist?.unlockedAt || new Date();
-      } else if (!isRerun) {
-        shortlistFields.unlocked = false;
-      } else {
-        shortlistFields.unlocked = false;
-      }
+      shortlistFields.unlocked = true;
+      shortlistFields.unlockedAt = existingShortlist?.unlockedAt || new Date();
 
       const shortlist = await Shortlist.findOneAndUpdate(
         { opportunityId },
@@ -2545,18 +2253,15 @@ export const POST: APIRoute = async ({ request }) => {
         { upsert: true, new: true }
       );
 
-      opportunity.status = wasUnlocked ? 'shortlisted' : 'preview';
+      opportunity.status = 'shortlisted';
       await opportunity.save();
 
       const publicShortlist = toPublicShortlist(shortlist);
-      let fullCandidates: Awaited<ReturnType<typeof buildFullCandidatesForShortlist>> | null = null;
-      if (wasUnlocked) {
-        fullCandidates = await buildFullCandidatesForShortlist(shortlist, oppPlain, {
-          BuilderProfile,
-          ProjectRecord,
-          MatchRecord,
-        });
-      }
+      const fullCandidates = await buildFullCandidatesForShortlist(shortlist, oppPlain, {
+        BuilderProfile,
+        ProjectRecord,
+        MatchRecord,
+      });
       const previewExplanation = buildPreviewExplanation(oppPlain, ranked.length, strongMatchCount);
       const uiBlocks: any[] = [
         buildTalentPreviewUiBlock(shortlist, oppPlain),
@@ -2585,27 +2290,61 @@ export const POST: APIRoute = async ({ request }) => {
         })),
       ];
 
-      const previewMsg = wasUnlocked
+      const previewMsg = isRerun
         ? `Search refreshed for ${oppPlain.roleTitle}. ${candidatesWithMatchIds.length} builder${candidatesWithMatchIds.length === 1 ? '' : 's'} on your board (${strongMatchCount} strong).`
         : strongMatchCount === 0 && ranked.length > 0
-          ? `Preview ready for ${oppPlain.roleTitle}: ${ranked.length} potential match${ranked.length === 1 ? '' : 'es'}, 0 strong matches. See why on the right — you can still unlock to review.`
-          : `Preview generated for ${oppPlain.roleTitle}. ${ranked.length} potential matches (${strongMatchCount} strong). Unlock the shortlist to see full profiles.`;
+          ? `Search ready for ${oppPlain.roleTitle}: ${ranked.length} potential match${ranked.length === 1 ? '' : 'es'}, 0 strong matches yet — review them on your board.`
+          : `Search complete for ${oppPlain.roleTitle}. ${ranked.length} potential matches (${strongMatchCount} strong) are on your board.`;
 
       return ok({
         message: previewMsg,
         opportunity: oppPlain,
-        shortlist: fullCandidates
-          ? { ...publicShortlist, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) }
-          : publicShortlist,
+        shortlist: {
+          ...publicShortlist,
+          fullCandidates: fullCandidates.filter((c: any) => !c.hidden),
+        },
         searchStats: {
           totalMatches: ranked.length,
           strongMatchCount,
           previewGenerated: true,
-          locked: !wasUnlocked,
+          locked: false,
         },
         uiBlocks,
         meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
       });
+    }
+
+    if (action === 'enhance_role_brief_field') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const field = String(payload?.field || '').trim();
+      const currentValue = String(payload?.currentValue || '');
+      const briefContext =
+        payload?.briefContext && typeof payload.briefContext === 'object' ? payload.briefContext : {};
+
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+      if (!isEnhanceableRoleBriefField(field)) {
+        return bad('Invalid field');
+      }
+
+      const opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      if (!opportunity) return bad('Search not found', 404);
+
+      try {
+        const enhancedValue = await enhanceRoleBriefField({
+          field,
+          currentValue,
+          briefContext: briefContext as Record<string, unknown>,
+        });
+        return ok({ enhancedValue });
+      } catch (error) {
+        return bad(error instanceof Error ? error.message : 'AI enhancement failed');
+      }
     }
 
     if (action === 'update_role_brief') {
@@ -2636,7 +2375,6 @@ export const POST: APIRoute = async ({ request }) => {
         'locationPreference',
         'availabilityNeeded',
         'builderWillDo',
-        'successIn30Days',
         'seniority',
         'hoursPerWeek',
         'deliverables',
@@ -2693,228 +2431,554 @@ export const POST: APIRoute = async ({ request }) => {
     if (action === 'founder_chat') {
       const resolved = await resolveAuthedFounder(request);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
-      const { email, founderName } = resolved;
+      const { email, founderName, decoded } = resolved;
 
       const userText = String(payload?.message || '').trim();
       if (!userText) return bad('message is required');
 
-      const opportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
-      let opportunity: any = null;
+      const founderId = decoded?.userId ? String(decoded.userId) : email;
+      const founderMemoryPromise = getFounderMemoryProfile(founderId, userText);
+      const founderStartupContext = await loadFounderStartupContext(email);
 
-      if (opportunityId && mongoose.Types.ObjectId.isValid(opportunityId)) {
-        opportunity = await Opportunity.findOne({ _id: opportunityId, founderEmail: email });
+      // Load current opportunity and shortlist upfront for tool context
+      const payloadOpportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
+      let currentOpportunity: any = null;
+      if (payloadOpportunityId && mongoose.Types.ObjectId.isValid(payloadOpportunityId)) {
+        currentOpportunity = await Opportunity.findOne({ _id: payloadOpportunityId, founderEmail: email });
       }
-      if (!opportunity) {
-        opportunity = await Opportunity.findOne({ founderEmail: email, status: 'draft' }).sort({ updatedAt: -1 });
-      }
-
-      const isFirstMessage =
-        !opportunity ||
-        (Array.isArray(payload?.history) && payload.history.filter((h: any) => h.role === 'user').length <= 1);
-      const isDone = isDoneMessage(userText);
-      const oppObj = opportunity ? opportunity.toObject?.() || opportunity : null;
-
-      let shortlistDoc: any = null;
-      let unlockedCandidates: any[] = [];
-      if (opportunity) {
-        shortlistDoc = await Shortlist.findOne({ opportunityId: opportunity._id, founderEmail: email });
-        if (shortlistDoc?.unlocked) {
-          const oppForCards = oppObj;
-          unlockedCandidates = await buildFullCandidatesForShortlist(shortlistDoc, oppForCards, {
-            BuilderProfile,
-            ProjectRecord,
-            MatchRecord,
-          });
-          unlockedCandidates = unlockedCandidates.filter((c: any) => !c.hidden);
-        }
+      if (!currentOpportunity) {
+        currentOpportunity = await Opportunity.findOne({ founderEmail: email, status: 'draft' }).sort({ updatedAt: -1 });
       }
 
-      if (/(tell me more about|more about|who is|what about).*(for this role|for the role|for this)/i.test(userText) ||
-        /tell me more about\s+[A-Za-z]/i.test(userText)) {
+      const FOUNDER_AGENT_SYSTEM_PROMPT = `You are the DevLabs Founder Agent — a direct, no-nonsense hiring agent who helps founders find proof-backed builders fast.
 
-        // Extract Candidate letter/name from text (e.g. "Candidate A", "A", or "Dkalaise")
-        const nameMatch = userText.match(/(?:about|on)\s+([A-Za-z][A-Za-z0-9_-]+)/i) || userText.match(/candidate\s+([a-zA-Z])/i);
-        const queryName = nameMatch?.[1] || userText;
+Tone: speak like a sharp technical co-founder, not a recruiter. Blunt, fast, builder-native. No filler, no pleasantries, no emojis.
 
-        if (!shortlistDoc?.unlocked) {
-          // Locked state - we can ONLY discuss anonymous candidates!
-          const candidatesList = shortlistDoc?.candidates || [];
-          // Try to match Candidate A, Candidate B, etc.
-          const matchedAnon = candidatesList.find((c: any) => {
-            const label = String(c.anonymousLabel || '').toLowerCase();
-            const q = queryName.toLowerCase();
-            return label.includes(q) || q.includes(label) || label.endsWith(` ${q}`);
-          });
+On EVERY first message: call get_all_roles first, then respond based on what you find:
+- If get_all_roles returns existing roles: ask if they want to continue one or start fresh.
+- If "just signed up" or get_all_roles is empty: skip the pleasantries. Ask ONE sharp question: "What are you building and who do you need to build it?" — that's it. Don't describe yourself. Don't say welcome. Don't explain the platform.
+- Never use "Great!", "Awesome!", "Sure!", or any filler affirmation. Just ask the question.
 
-          if (matchedAnon) {
-            const answer = `**${matchedAnon.anonymousLabel}** (${matchedAnon.matchLabel}):
-- **Role Type**: ${matchedAnon.roleType}
-- **Top Skills**: ${Array.isArray(matchedAnon.topSkills) ? matchedAnon.topSkills.join(', ') : 'React, TypeScript'}
-- **Proof Summary**: ${matchedAnon.proofSummary}
-- **Availability**: ${matchedAnon.availabilitySummary}
-- **Why they match**: ${matchedAnon.whyTheyMatch}
+PROACTIVE BEHAVIOUR — when descriptions are vague, poke hard:
+- "I need a developer" → ask: what are they building? what stack? full-time or internship?
+- "Someone good with AI" → ask: what specifically — RAG pipelines? fine-tuning? inference? and what's the output — a product, an API, a model?
+- "React developer" → ask: is this frontend-only or full-stack? what's the product context? what will they ship first?
+Never accept vague answers. Always drill into: what specifically they will build, what stack, what hire type.
 
-*Unlock this shortlist for $499 to reveal their identity, see full portfolios, and request a direct intro.*`;
-            return ok({
-              message: answer,
-              intent: 'ask_about_candidate',
-              opportunity: oppObj,
-              uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
-            });
-          }
+OPTION CARDS — whenever the answer is one of a short list, format your response like this:
+First write your message normally, then on a new line write the question, then list numbered options:
 
-          return ok({
-            message: 'You can ask me about anonymous candidates (e.g. "Candidate A") or unlock the shortlist for $499 to search and ask about specific candidates by name.',
-            intent: 'ask_about_candidate',
-            opportunity: oppObj,
-            uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
-          });
-        }
+What kind of hire are you looking for?
+1. Full-time
+2. Internship
+3. Either works
 
-        // Unlocked state - we can discuss specific candidate details by name or by anon label!
-        const matched = matchCandidateByName(
-          queryName,
-          unlockedCandidates.map((c: any) => ({ name: c.name, builderId: c.builderId }))
-        ) || unlockedCandidates.find((c: any) => {
-          const anonLabel = String(c.anonymousLabel || '').toLowerCase();
-          const q = queryName.toLowerCase();
-          return anonLabel.includes(q) || q.includes(anonLabel) || anonLabel.endsWith(` ${q}`);
-        });
+Use this format for: hire type, location preference, timeline, seniority. This triggers the option card UI on the frontend.
 
-        if (!matched) {
-          return ok({
-            message: "I don't see that candidate in this shortlist. Double check the name or spelling.",
-            intent: 'ask_about_candidate',
-            opportunity: oppObj,
-            uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
-          });
-        }
+TOOL CHAINING:
+- Always call get_all_roles first on init to check context
+- Call get_role_brief before referencing any role field
+- Call update_role_brief only with fields the founder explicitly stated — NEVER invent values
+- After create/update: call get_role_brief to confirm what was saved
+- When brief has roleTitle + builderWillDo + skillsNeeded: say "Brief looks solid. Want me to run the search?"
+- After search: call get_shortlist and summarise who came back
 
-        const candidate = unlockedCandidates.find((c: any) => c.builderId === matched.builderId);
-        const answer = buildCandidateAnswer(candidate);
+HIRE TYPE — only three values:
+- full_time → "Full-time"
+- internship → "Internship"
+- either → "Either works"
+Never use: contract, freelance, part-time, consulting.
 
-        return ok({
-          message: answer,
-          intent: 'ask_about_candidate',
-          opportunity: oppObj,
-          uiBlocks: oppObj ? buildFounderUiBlocks(oppObj) : [],
-          session: {
-            currentSearchId: String(opportunity._id),
-            unlockedCandidates: unlockedCandidates.map((c: any) => c.name),
-            shortlistState: 'unlocked',
+CANDIDATE REVIEW — always use this structure:
+- Why they fit (specific, not generic)
+- Relevant projects and personal contribution
+- Evidence quality: verified vs self-reported
+- Gap or risk
+- Next action
+
+DATA DISCIPLINE — for create_role_brief / update_role_brief:
+- Only pass fields the founder explicitly stated
+- Never invent budgets, timelines, or company names
+- Omit unknown fields entirely — do not send empty strings or placeholders
+
+Confirmation required before: sending an intro, rejecting a candidate, closing a role.
+End every response with one concrete next step.`;
+
+      const founderAgentTools: ToolDefinition[] = [
+        {
+          type: 'function',
+          function: {
+            name: 'get_role_brief',
+            description: 'Read the current role brief: company, role title, hire type, required skills, budget, timeline, location, and what the builder will build. Call this before referencing anything about the role.',
+            parameters: { type: 'object', properties: {} },
           },
-        });
-      }
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_all_roles',
+            description: 'List all hiring requests created by this founder with their status and role titles.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'create_role_brief',
+            description: 'Create a new hiring request. Use when the founder is describing a new role.',
+            parameters: {
+              type: 'object',
+              properties: {
+                roleTitle: { type: 'string' },
+                company: { type: 'string' },
+                startupSummary: { type: 'string' },
+                builderWillDo: { type: 'string', description: 'What the builder will ship in the first few weeks' },
+                skillsNeeded: { type: 'array', items: { type: 'string' } },
+                niceToHaveSkills: { type: 'array', items: { type: 'string' } },
+                hireType: { type: 'string', enum: ['full_time', 'internship', 'either'], description: 'The type of hire' },
+                timeline: { type: 'string' },
+                budget: { type: 'string' },
+                locationPreference: { type: 'string' },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'update_role_brief',
+            description: 'Update fields on the current role brief. Only pass the fields that need to change.',
+            parameters: {
+              type: 'object',
+              properties: {
+                roleTitle: { type: 'string' },
+                company: { type: 'string' },
+                startupSummary: { type: 'string' },
+                builderWillDo: { type: 'string' },
+                skillsNeeded: { type: 'array', items: { type: 'string' } },
+                niceToHaveSkills: { type: 'array', items: { type: 'string' } },
+                hireType: { type: 'string', enum: ['full_time', 'internship', 'either'] },
+                timeline: { type: 'string' },
+                budget: { type: 'string' },
+                locationPreference: { type: 'string' },
+              },
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'run_search',
+            description: 'Run the builder search for the current role. Returns how many candidates were found. Call get_shortlist after to see the results.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_shortlist',
+            description: 'Get the current candidate shortlist. If unlocked, shows candidate names and proof details. If locked, shows anonymous profiles.',
+            parameters: { type: 'object', properties: {} },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'get_candidate_details',
+            description: 'Get full details on a specific candidate: their projects, contributions, tech stack, proof strength, and pipeline status.',
+            parameters: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', description: 'Candidate name or anonymous label (e.g. "Candidate A")' },
+              },
+              required: ['name'],
+            },
+          },
+        },
+        {
+          type: 'function',
+          function: {
+            name: 'request_intro',
+            description: 'Send an intro request to a specific builder. Always confirm with the founder before calling this — it sends an actual notification to the builder.',
+            parameters: {
+              type: 'object',
+              properties: {
+                builderName: { type: 'string', description: 'Name of the builder to send an intro to' },
+                message: { type: 'string', description: 'Personalized intro message to send' },
+              },
+              required: ['builderName', 'message'],
+            },
+          },
+        },
+      ];
 
-      const parsed = await parseFounderAgentTurn({
-        userText,
-        history: Array.isArray(payload?.history) ? payload.history : undefined,
-        opportunity: oppObj,
-        founderName,
-        isDone,
-        isFirstMessage,
-      });
+      // Tool executor
+      async function runFounderTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+        const opp = currentOpportunity;
+        const oppId = opp ? String(opp._id) : null;
 
-      if (opportunity && isSkipMessage(userText)) {
-        const skipKey = inferSkipFieldKey(userText, oppObj || {});
-        if (skipKey) {
-          const skipped = Array.isArray(opportunity.skippedFields) ? [...opportunity.skippedFields] : [];
-          if (!skipped.includes(skipKey)) skipped.push(skipKey);
-          opportunity.skippedFields = skipped;
-          await opportunity.save();
-        }
-      }
-
-      if (opportunity && /(change|update|edit|switch)/i.test(userText)) {
-        const edits = applyEditFromText(userText, oppObj || {});
-        Object.assign(opportunity, edits);
-      }
-
-      const hasExtractedFields = Object.keys(parsed.extractedData).some((k) => {
-        const v = parsed.extractedData[k as keyof typeof parsed.extractedData];
-        return v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : String(v).trim() !== '');
-      });
-
-      const shouldPersist =
-        parsed.intent !== 'role_summary' &&
-        parsed.intent !== 'recommend_next_question' &&
-        parsed.intent !== 'ask_about_candidate' &&
-        (hasExtractedFields || !opportunity || isDone);
-
-      if (shouldPersist) {
-        if (!opportunity) {
-          const initial = { ...parsed.extractedData };
-          if (!initial.builderWillDo && userText.length > 20) {
-            initial.builderWillDo = userText.trim().slice(0, 400);
+        switch (name) {
+          case 'get_role_brief': {
+            if (!opp) return { message: 'No active role brief yet. Use create_role_brief to start one.' };
+            const o = opp.toObject ? opp.toObject() : opp;
+            return {
+              opportunityId: oppId,
+              roleTitle: o.roleTitle,
+              company: o.company,
+              startupSummary: o.startupSummary,
+              hireType: o.hireType || o.workType || null,
+              builderWillDo: o.builderWillDo,
+              skillsNeeded: o.skillsNeeded || [],
+              niceToHaveSkills: o.niceToHaveSkills || [],
+              timeline: o.timeline,
+              budget: o.budget,
+              locationPreference: o.locationPreference,
+              status: o.status || 'draft',
+              missingFields: getMissingRequiredFields(o, o.skippedFields || []),
+            };
           }
-          if (!initial.roleTitle || initial.roleTitle === 'New role') {
-            if (/engineer|developer|designer|builder/i.test(userText)) {
-              initial.roleTitle = initial.roleTitle || 'Builder';
+
+          case 'get_all_roles': {
+            const roles = await Opportunity.find({ founderEmail: email })
+              .sort({ updatedAt: -1 })
+              .limit(10)
+              .select('roleTitle company status hireType workType createdAt')
+              .lean();
+            return {
+              roles: roles.map((r: any) => ({
+                id: String(r._id),
+                roleTitle: r.roleTitle,
+                company: r.company,
+                hireType: r.hireType || r.workType || null,
+                status: r.status,
+              })),
+            };
+          }
+
+          case 'create_role_brief': {
+            const hints = extractRoleHintsFromUserText(userText);
+            let fields = mergeHintsIntoSanitized(
+              sanitizeRoleBriefArgs(args, founderStartupContext, userText),
+              hints
+            );
+
+            if (!fields.roleTitle) {
+              return {
+                error:
+                  'Need a concrete role title from the founder (e.g. Full-stack engineer) before creating the brief.',
+              };
             }
+
+            if (!fields.company || isPlaceholderCompany(fields.company)) {
+              return {
+                error:
+                  'Need the real startup/company name. Ask the founder or use their saved company from onboarding.',
+              };
+            }
+
+            const newOpp = await Opportunity.create({
+              founderName,
+              founderEmail: email,
+              company: fields.company,
+              startupSummary: fields.startupSummary || null,
+              industry: fields.industry || null,
+              roleTitle: fields.roleTitle,
+              builderWillDo: fields.builderWillDo || null,
+              skillsNeeded: fields.skillsNeeded,
+              niceToHaveSkills: fields.niceToHaveSkills,
+              hireType: fields.hireType || null,
+              workType: fields.workType || null,
+              timeline: fields.timeline || null,
+              budget: fields.budget || null,
+              locationPreference: fields.locationPreference || null,
+              skippedFields: [],
+              status: 'draft',
+            });
+            currentOpportunity = newOpp;
+            void addFounderMemory(founderId,
+              `Founder ${founderName} created role "${newOpp.roleTitle}" at "${newOpp.company}". Hire type: ${newOpp.hireType || newOpp.workType || 'unspecified'}. Skills: ${(newOpp.skillsNeeded || []).join(', ')}.`
+            );
+            return { success: true, opportunityId: String(newOpp._id), roleTitle: newOpp.roleTitle, company: newOpp.company };
           }
-          opportunity = await Opportunity.create({
-            founderName,
-            founderEmail: email,
-            company: initial.company || 'Your startup',
-            startupSummary: initial.startupSummary || null,
-            industry: initial.industry || null,
-            roleTitle: initial.roleTitle || 'New role',
-            roleType: initial.roleType || [],
-            skillsNeeded: initial.skillsNeeded || [],
-            niceToHaveSkills: initial.niceToHaveSkills || [],
-            workType: initial.workType || null,
-            timeline: initial.timeline || null,
-            budget: initial.budget || null,
-            locationPreference: initial.locationPreference || null,
-            builderWillDo: initial.builderWillDo || null,
-            successIn30Days: initial.successIn30Days || null,
-            seniority: initial.seniority || null,
-            hoursPerWeek: initial.hoursPerWeek || null,
-            deliverables: initial.deliverables || [],
-            fundingStage: initial.fundingStage || null,
-            skippedFields: [],
-            status: 'draft',
-          });
-        } else {
-          mergeExtractedIntoOpportunity(opportunity, parsed.extractedData);
-          if (!opportunity.company) opportunity.company = 'Your startup';
-          if (!opportunity.roleTitle) opportunity.roleTitle = 'New role';
-          await opportunity.save();
+
+          case 'update_role_brief': {
+            if (!opp) return { error: 'No active role brief. Create one first with create_role_brief.' };
+            const hints = extractRoleHintsFromUserText(userText);
+            const fields = mergeHintsIntoSanitized(
+              sanitizeRoleBriefArgs(args, founderStartupContext, userText),
+              hints
+            );
+            applySanitizedToOpportunity(opp, fields);
+            const changed = (
+              [
+                fields.roleTitle ? 'roleTitle' : null,
+                fields.company ? 'company' : null,
+                fields.startupSummary ? 'startupSummary' : null,
+                fields.builderWillDo ? 'builderWillDo' : null,
+                fields.skillsNeeded.length ? 'skillsNeeded' : null,
+                fields.niceToHaveSkills.length ? 'niceToHaveSkills' : null,
+                fields.hireType ? 'hireType' : null,
+                fields.timeline ? 'timeline' : null,
+                fields.budget ? 'budget' : null,
+                fields.locationPreference ? 'locationPreference' : null,
+              ] as Array<string | null>
+            ).filter(Boolean) as string[];
+            await opp.save();
+            void addFounderMemory(founderId,
+              `Founder ${founderName} updated role "${opp.roleTitle}": ${changed.join(', ') || 'brief fields'} changed.`
+            );
+            return { success: true, updated: changed, opportunityId: oppId };
+          }
+
+          case 'run_search': {
+            if (!opp) return { error: 'No active role brief. Create one first.' };
+            const oppPlain = opp.toObject ? opp.toObject() : opp;
+            if (!canRunPreviewAnyway(oppPlain)) {
+              return { error: 'Role brief needs at least a role title, what they will build, and required skills before running search.' };
+            }
+            const builders = await BuilderProfile.find({
+              verificationStatus: { $in: ['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'] },
+              visibilityStatus: { $ne: 'hidden' },
+            }).limit(200).lean();
+            const builderIds = builders.map((b: any) => b._id);
+            const allProjects = await ProjectRecord.find({ builderId: { $in: builderIds } })
+              .select('builderId projectName description techStack builderContribution verificationStatus')
+              .lean();
+            const projectsByBuilder = new Map<string, any[]>();
+            for (const p of allProjects) {
+              const key = String(p.builderId);
+              if (!projectsByBuilder.has(key)) projectsByBuilder.set(key, []);
+              projectsByBuilder.get(key)!.push(p);
+            }
+            const ranked = rankBuildersForOpportunity(builders, projectsByBuilder, oppPlain, 12);
+            const candidates = toAnonymousCandidates(ranked, 8);
+            const strongCount = ranked.filter((r) => r.matchLabel === 'Strong Match').length;
+
+            const candidatesWithIds: any[] = [];
+            for (const anon of candidates) {
+              const entry = ranked.find((r) => r.builderId === anon.builderId);
+              if (!entry) continue;
+              const match = await MatchRecord.findOneAndUpdate(
+                { builderId: entry.builderId, opportunityId: oppId },
+                { $set: { builderId: entry.builderId, opportunityId: oppId, matchScore: entry.matchScore, matchLabel: entry.matchLabel, anonymousLabel: anon.anonymousLabel, signalScores: entry.signals, reasoning: entry.whyTheyMatch, status: 'generated' } },
+                { upsert: true, new: true }
+              );
+              candidatesWithIds.push({ ...anon, matchRecordId: match._id, builderId: entry.builderId });
+            }
+            await Shortlist.findOneAndUpdate(
+              { opportunityId: oppId },
+              { $set: { opportunityId: oppId, founderEmail: email, totalMatches: ranked.length, strongMatchCount: strongCount, candidates: candidatesWithIds, previewGeneratedAt: new Date(), unlocked: true, unlockedAt: new Date() } },
+              { upsert: true, new: true }
+            );
+            return { success: true, totalFound: ranked.length, strongMatches: strongCount, previewCount: candidates.length, message: `Found ${ranked.length} builders, ${strongCount} strong matches. Call get_shortlist to see them.` };
+          }
+
+          case 'get_shortlist': {
+            if (!oppId) return { message: 'No active role. Create a role brief first.' };
+            const shortlistDoc = await Shortlist.findOne({ opportunityId: oppId, founderEmail: email });
+            if (!shortlistDoc) return { message: 'No search run yet. Use run_search to find candidates.' };
+            if (shortlistDoc.unlocked) {
+              const full = await buildFullCandidatesForShortlist(shortlistDoc, opp?.toObject ? opp.toObject() : opp, { BuilderProfile, ProjectRecord, MatchRecord });
+              return {
+                shortlistState: 'unlocked',
+                totalMatches: shortlistDoc.totalMatches,
+                candidates: full.filter((c: any) => !c.hidden).map((c: any) => ({
+                  name: c.name,
+                  builderId: c.builderId,
+                  matchLabel: c.matchLabel,
+                  topSkills: c.topSkills || [],
+                  proofSummary: c.proofSummary,
+                  availabilitySummary: c.availabilitySummary,
+                  whyTheyMatch: c.whyTheyMatch,
+                  status: c.matchStatus,
+                })),
+              };
+            }
+            return {
+              shortlistState: 'locked',
+              totalMatches: shortlistDoc.totalMatches,
+              strongMatches: shortlistDoc.strongMatchCount,
+              candidates: (shortlistDoc.candidates as any[] || []).map((c: any) => ({
+                anonymousLabel: c.anonymousLabel,
+                matchLabel: c.matchLabel,
+                topSkills: c.topSkills || [],
+                proofSummary: c.proofSummary,
+                whyTheyMatch: c.whyTheyMatch,
+              })),
+              note: 'Shortlist is locked. Candidates are shown anonymously.',
+            };
+          }
+
+          case 'get_candidate_details': {
+            const queryName = String(args.name || '');
+            if (!oppId) return { error: 'No active role.' };
+            const shortlistDoc = await Shortlist.findOne({ opportunityId: oppId, founderEmail: email });
+            if (!shortlistDoc) return { error: 'Run search first to get candidates.' };
+            if (!shortlistDoc.unlocked) return { error: 'Shortlist is locked. Unlock to see individual candidate details.' };
+            const full = await buildFullCandidatesForShortlist(shortlistDoc, opp?.toObject ? opp.toObject() : opp, { BuilderProfile, ProjectRecord, MatchRecord });
+            const candidate = full.find((c: any) =>
+              c.name?.toLowerCase().includes(queryName.toLowerCase()) ||
+              String(c.anonymousLabel || '').toLowerCase().includes(queryName.toLowerCase())
+            );
+            if (!candidate) return { error: `Could not find candidate "${queryName}" in this shortlist.` };
+            return {
+              name: candidate.name,
+              headline: candidate.headline,
+              matchLabel: candidate.matchLabel,
+              matchScore: candidate.matchScore,
+              whyTheyMatch: candidate.whyTheyMatch,
+              proofSummary: candidate.proofSummary,
+              topSkills: candidate.topSkills || [],
+              projects: (candidate.projects || []).slice(0, 4).map((p: any) => ({
+                title: p.projectName,
+                contribution: p.builderContribution,
+                tech: p.techStack?.slice(0, 4),
+                verified: p.verificationStatus === 'builder_confirmed',
+              })),
+              availability: candidate.availabilitySummary,
+              status: candidate.matchStatus,
+              builderId: candidate.builderId,
+            };
+          }
+
+          case 'request_intro': {
+            const builderName = String(args.builderName || '');
+            const message = String(args.message || '');
+            if (!oppId || !opp) return { error: 'No active role brief.' };
+            if (!message || message.length < 20) return { error: 'Intro message must be at least 20 characters.' };
+            const shortlistDoc = await Shortlist.findOne({ opportunityId: oppId, founderEmail: email });
+            if (!shortlistDoc?.unlocked) return { error: 'Unlock the shortlist before requesting intros.' };
+            const full = await buildFullCandidatesForShortlist(shortlistDoc, opp?.toObject ? opp.toObject() : opp, { BuilderProfile, ProjectRecord, MatchRecord });
+            const candidate = full.find((c: any) => c.name?.toLowerCase().includes(builderName.toLowerCase()));
+            if (!candidate) return { error: `Could not find "${builderName}" in this shortlist.` };
+            const matchRecord = await MatchRecord.findOne({ builderId: candidate.builderId, opportunityId: oppId });
+            if (!matchRecord) return { error: 'Match record not found for this candidate.' };
+            // Create intro request
+            const intro = await IntroRequest.findOneAndUpdate(
+              { opportunityId: oppId, builderId: candidate.builderId },
+              { $set: { opportunityId: oppId, builderId: candidate.builderId, matchRecordId: matchRecord._id, founderEmail: email, founderName, introMessage: message, status: 'requested' } },
+              { upsert: true, new: true }
+            );
+            matchRecord.status = 'intro_requested';
+            matchRecord.pipelineNextStep = 'Awaiting builder response';
+            await matchRecord.save();
+            // Notify builder
+            const oppPlainForIntro = opp.toObject ? opp.toObject() : opp;
+            const builderDoc = await BuilderProfile.findById(candidate.builderId).select('email').lean() as any;
+            if (builderDoc?.email) {
+              await notifyBuilderIntroReceived({
+                builderId: String(candidate.builderId),
+                builderEmail: String(builderDoc.email),
+                founderName,
+                roleTitle: oppPlainForIntro.roleTitle || 'Role',
+                company: oppPlainForIntro.company || 'Startup',
+                introRequestId: String(intro._id),
+              });
+            }
+            void addFounderMemory(founderId, `Founder ${founderName} sent intro to "${builderName}" for role "${oppPlainForIntro.roleTitle}".`);
+            return { success: true, builderName, introId: String(intro._id), message: `Intro request sent to ${builderName}.` };
+          }
+
+          default:
+            return { error: `Unknown tool: ${name}` };
         }
       }
 
-      const oppPlain = opportunity
-        ? typeof opportunity.toObject === 'function'
-          ? opportunity.toObject()
-          : opportunity
+      // Build memory prefix
+      const memoryProfile = await founderMemoryPromise;
+      const memoryBlock = [
+        founderStartupContext.company
+          ? `\n\n[Founder startup context]\n- Company: ${founderStartupContext.company}${founderStartupContext.startupSummary ? `\n- Summary: ${founderStartupContext.startupSummary}` : ''}`
+          : '',
+        memoryProfile
+          ? `\n\n[Founder memory]\n${[...((memoryProfile.static || []).slice(0, 5)), ...((memoryProfile.dynamic || []).slice(0, 3))].map((s) => `- ${s}`).join('\n')}`
+          : '',
+      ].join('');
+
+      const chatHistory: Array<{ role: string; content: string }> = Array.isArray(payload?.history) ? payload.history : [];
+
+      const messages: AgentMessage[] = [
+        { role: 'system', content: FOUNDER_AGENT_SYSTEM_PROMPT + memoryBlock },
+        ...chatHistory.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
+        { role: 'user', content: userText },
+      ];
+
+      // Agentic loop
+      let agentResponse = await generateOpenRouterAgentTurn({ messages, tools: founderAgentTools, temperature: 0.3, maxTokens: 700 });
+
+      let uiBlocks: any[] = [];
+      const MAX_ITERATIONS = 5;
+      let iterations = 0;
+      let lastOpportunityId: string | null = payloadOpportunityId;
+
+      while (agentResponse.tool_calls && agentResponse.tool_calls.length > 0 && iterations < MAX_ITERATIONS) {
+        iterations++;
+        messages.push({ role: 'assistant', content: agentResponse.content ?? null, tool_calls: agentResponse.tool_calls });
+
+        const toolResults = await Promise.all(
+          agentResponse.tool_calls.map(async (tc) => {
+            let args: Record<string, unknown> = {};
+            try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
+            console.log(`[agent/founder-agentic] tool_call: ${tc.function.name}`, args);
+            const result = await runFounderTool(tc.function.name, args);
+
+            // Update opportunityId if a role was created/updated
+            if ((tc.function.name === 'create_role_brief' || tc.function.name === 'update_role_brief') && result.opportunityId) {
+              lastOpportunityId = String(result.opportunityId);
+            }
+            // Generate UI blocks from role brief reads
+            if (tc.function.name === 'get_role_brief' && !('error' in result) && !('message' in result) && currentOpportunity) {
+              uiBlocks = buildFounderUiBlocks(currentOpportunity.toObject ? currentOpportunity.toObject() : currentOpportunity);
+            }
+            if (tc.function.name === 'create_role_brief' && result.success && currentOpportunity) {
+              uiBlocks = buildFounderUiBlocks(currentOpportunity.toObject ? currentOpportunity.toObject() : currentOpportunity);
+            }
+            if (tc.function.name === 'update_role_brief' && result.success && currentOpportunity) {
+              uiBlocks = buildFounderUiBlocks(currentOpportunity.toObject ? currentOpportunity.toObject() : currentOpportunity);
+            }
+
+            return { role: 'tool' as const, tool_call_id: tc.id, content: JSON.stringify(result) };
+          })
+        );
+
+        messages.push(...toolResults);
+        agentResponse = await generateOpenRouterAgentTurn({ messages, tools: founderAgentTools, temperature: 0.3, maxTokens: 700 });
+      }
+
+      const finalMessage = agentResponse.content || 'I ran into an issue. Try again.';
+
+      // Build final opportunity object for client
+      const finalOpp = currentOpportunity
+        ? (currentOpportunity.toObject ? currentOpportunity.toObject() : currentOpportunity)
         : null;
 
-      const uiBlocks = oppPlain ? buildFounderUiBlocks(oppPlain) : [];
+      const shortlistDoc = finalOpp
+        ? await Shortlist.findOne({ opportunityId: String(finalOpp._id), founderEmail: email })
+        : null;
 
-      let replyMessage = parsed.message;
-      if (isDone && !replyMessage.includes('run')) {
-        replyMessage = 'Got it. Your brief is ready. Want me to run the builder search?';
+      if (finalOpp && uiBlocks.length === 0) {
+        uiBlocks = buildFounderUiBlocks(finalOpp);
       }
 
-      const skipped = oppPlain?.skippedFields || [];
-      const missingRequired = oppPlain ? getMissingRequiredFields(oppPlain, skipped) : [];
+      const skipped = finalOpp?.skippedFields || [];
+      const missingRequired = finalOpp ? getMissingRequiredFields(finalOpp, skipped) : [];
+
+      console.log('[agent/actions] founder_chat:done', { founderId, iterations, toolsCalled: messages.filter(m => m.role === 'tool').length });
 
       return ok({
-        message: replyMessage,
-        intent: parsed.intent,
-        opportunity: oppPlain,
+        message: finalMessage,
+        opportunity: finalOpp,
         uiBlocks,
-        session: oppPlain
+        session: finalOpp
           ? {
-              currentSearchId: String(oppPlain._id),
-              currentRoleBrief: oppPlain,
+              currentSearchId: String(finalOpp._id),
+              currentRoleBrief: finalOpp,
               skippedFields: skipped,
               missingRequiredFields: missingRequired,
               shortlistState: shortlistDoc?.unlocked ? 'unlocked' : shortlistDoc ? 'locked' : 'none',
-              unlockedCandidates: unlockedCandidates.map((c: any) => c.name),
             }
           : null,
-        meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
+        meta: { model: getOpenRouterChatModel(), iterations },
       });
     }
 

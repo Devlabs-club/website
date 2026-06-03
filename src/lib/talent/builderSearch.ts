@@ -12,7 +12,6 @@ export type OpportunityLike = {
   locationPreference?: string | null;
   availabilityNeeded?: string | null;
   builderWillDo?: string | null;
-  successIn30Days?: string | null;
 };
 
 export type MatchLabel = 'Strong Match' | 'Good Match' | 'Possible Match';

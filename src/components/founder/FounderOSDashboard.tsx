@@ -8,8 +8,8 @@ import type {
   PublicShortlist,
   FounderPipeline,
 } from './founderTypes';
-import FounderOnboardingChat from './FounderOnboardingChat';
 import FounderRoleIntakeChat from './FounderRoleIntakeChat';
+import FounderRoleBriefEditor from './FounderRoleBriefEditor';
 import FounderUnifiedWorkspace from './FounderUnifiedWorkspace';
 import CallScheduleModal from './CallScheduleModal';
 import TrialReviewPanel from './TrialReviewPanel';
@@ -36,7 +36,6 @@ export type Opportunity = {
   budget?: string;
   locationPreference?: string;
   availabilityNeeded?: string;
-  successIn30Days?: string;
   niceToHaveSkills?: string[];
   seniority?: string;
   hoursPerWeek?: string;
@@ -77,13 +76,16 @@ export default function FounderOSDashboard() {
     trialProject: FullCandidate['trialProject'];
   } | null>(null);
   const [activeOpportunityId, setActiveOpportunityId] = useState<string | null>(null);
+  const founderOnboardedKey = user?.id ? `devlabs_founder_onboarded_${user.id}` : null;
+
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && user?.id) {
-      return localStorage.getItem(`devlabs_founder_onboarded_${user.id}`) === 'true';
+    if (typeof window !== 'undefined' && founderOnboardedKey) {
+      return localStorage.getItem(founderOnboardedKey) === 'true';
     }
     return false;
   });
   const [showIntakeChat, setShowIntakeChat] = useState(false);
+  const [showBriefEditor, setShowBriefEditor] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
 
   // Busy/Loading States
@@ -131,25 +133,37 @@ export default function FounderOSDashboard() {
       );
       setLoadError(null);
 
-      // If onboarding is completed and there are searches, set the active search
-      if (loadedSearches.length > 0 && !activeOpportunityId) {
-        const active = loadedSearches.find((s) => s.status !== 'closed');
-        if (active) {
-          setActiveOpportunityId(active._id);
-        } else {
-          setActiveOpportunityId(loadedSearches[0]._id);
-        }
+      if (loadedSearches.length > 0) {
+        setActiveOpportunityId((prev) => {
+          if (prev) return prev;
+          const active = loadedSearches.find((s) => s.status !== 'closed');
+          return active ? active._id : loadedSearches[0]._id;
+        });
       }
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : 'Could not load founder data');
     } finally {
       setSearchesLoading(false);
     }
-  }, [activeOpportunityId]);
+  }, []);
 
   useEffect(() => {
     loadSearches();
   }, [loadSearches]);
+
+  const activeSearches = searches.filter((s) => s.status !== 'closed');
+  const shouldShowOnboarding = !searchesLoading && activeSearches.length === 0;
+  const editingOpportunity = useMemo(
+    () => (activeOpportunityId ? searches.find((s) => s._id === activeOpportunityId) || null : null),
+    [searches, activeOpportunityId]
+  );
+
+  // Fresh founder state: no active searches → show onboarding again (e.g. after data reset)
+  useEffect(() => {
+    if (searchesLoading || activeSearches.length > 0 || !founderOnboardedKey) return;
+    localStorage.removeItem(founderOnboardedKey);
+    setOnboardingCompleted(false);
+  }, [searchesLoading, activeSearches.length, founderOnboardedKey]);
 
   useTalentRealtime({
     enabled: Boolean(activeOpportunityId) && onboardingCompleted,
@@ -295,11 +309,12 @@ export default function FounderOSDashboard() {
     });
   };
 
-  const handleOnboardingCompleted = (startupData: { company: string; startupSummary: string; logoUrl?: string }) => {
-    if (user?.id) {
-      localStorage.setItem(`devlabs_founder_onboarded_${user.id}`, 'true');
+  const handleOnboardingCompleted = (opportunityId?: string) => {
+    if (founderOnboardedKey) {
+      localStorage.setItem(founderOnboardedKey, 'true');
     }
     setOnboardingCompleted(true);
+    if (opportunityId) setActiveOpportunityId(opportunityId);
     loadSearches();
   };
 
@@ -351,16 +366,22 @@ export default function FounderOSDashboard() {
 
   const editSearch = (opportunityId: string) => {
     setActiveOpportunityId(opportunityId);
-    setShowIntakeChat(true);
+    setShowBriefEditor(true);
   };
 
-  // 1. Onboarding Screen
-  if (!onboardingCompleted && !searchesLoading && searches.length === 0) {
-    return <FounderOnboardingChat onCompleted={handleOnboardingCompleted} />;
+  // 1. Onboarding — no active (non-closed) searches; use the agentic intake chat directly
+  if (shouldShowOnboarding) {
+    return (
+      <FounderRoleIntakeChat
+        opportunityId={null}
+        onClose={() => loadSearches()}
+        onSearchCompleted={(oppId) => handleOnboardingCompleted(oppId)}
+      />
+    );
   }
 
   // Loading Screen
-  if (searchesLoading && searches.length === 0) {
+  if (searchesLoading && activeSearches.length === 0) {
     return (
       <OsShell className="items-center justify-center">
         <DottedGlowBackground className="fixed inset-0 z-0 w-full h-full pointer-events-none" color="rgba(255,255,255,0.05)" glowColor="rgba(250, 125, 34, 0.25)" />
@@ -368,9 +389,6 @@ export default function FounderOSDashboard() {
       </OsShell>
     );
   }
-
-  // Filter out closed searches for active workspace
-  const activeSearches = searches.filter((s) => s.status !== 'closed');
 
   return (
     <OsShell className="overflow-x-hidden">
@@ -486,10 +504,10 @@ export default function FounderOSDashboard() {
         )}
       </div>
 
-      {/* Full-Screen Intake Chat Overlay */}
+      {/* Full-Screen Intake Chat Overlay (new search only) */}
       {showIntakeChat && (
         <FounderRoleIntakeChat
-          opportunityId={activeOpportunityId}
+          opportunityId={null}
           onClose={() => setShowIntakeChat(false)}
           onSearchCompleted={(oppId) => {
             setShowIntakeChat(false);
@@ -498,6 +516,14 @@ export default function FounderOSDashboard() {
           }}
         />
       )}
+
+      {showBriefEditor && editingOpportunity ? (
+        <FounderRoleBriefEditor
+          opportunity={editingOpportunity}
+          onClose={() => setShowBriefEditor(false)}
+          onSaved={loadSearches}
+        />
+      ) : null}
 
       {/* Intro Request Modal Popup */}
       {introModal && (

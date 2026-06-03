@@ -112,7 +112,6 @@ export function buildDeterministicTrialProject(params: {
     startupSummary?: string | null;
     builderWillDo?: string | null;
     timeline?: string | null;
-    successIn30Days?: string | null;
     skillsNeeded?: string[];
   };
   builderName: string;
@@ -143,9 +142,6 @@ export function buildDeterministicTrialProject(params: {
   deliverables.push('Walkthrough video (Drive link) + handoff notes');
 
   const successCriteria: string[] = [];
-  if (params.opportunity.successIn30Days) {
-    successCriteria.push(`Demonstrates progress toward: ${params.opportunity.successIn30Days}`);
-  }
   successCriteria.push('Founder can test the core flow end-to-end without engineer assistance');
   successCriteria.push('Scope matches the agreed timeline — no surprise scope creep');
   successCriteria.push(`${params.builderName.split(' ')[0] || 'Builder'} documents setup and next steps`);
@@ -222,7 +218,6 @@ Company: ${opp.company || 'Startup'}
 Role: ${opp.roleTitle || 'Builder'}
 What they'll do: ${opp.builderWillDo || 'Not specified'}
 Timeline: ${opp.timeline || '1 week'}
-30-day success: ${opp.successIn30Days || 'Not specified'}
 Skills needed: ${(opp.skillsNeeded as string[] | undefined)?.join(', ') || 'Not specified'}
 
 Candidate: ${params.builderName}

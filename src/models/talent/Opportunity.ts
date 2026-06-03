@@ -16,7 +16,6 @@ const OpportunitySchema = new mongoose.Schema(
     workType: { type: String, default: null },
     availabilityNeeded: { type: String, default: null },
     locationPreference: { type: String, default: null },
-    successIn30Days: { type: String, default: null },
     niceToHaveSkills: [{ type: String }],
     seniority: { type: String, default: null },
     hoursPerWeek: { type: String, default: null },

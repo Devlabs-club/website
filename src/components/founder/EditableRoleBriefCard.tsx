@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
+export type HireType = 'full_time' | 'internship' | 'either' | '';
+
 export type RoleBriefForm = {
   roleTitle: string;
   company: string;
@@ -7,14 +9,13 @@ export type RoleBriefForm = {
   builderWillDo: string;
   skillsNeeded: string;
   niceToHaveSkills: string;
-  workType: string;
+  hireType: HireType;
   timeline: string;
   budget: string;
   locationPreference: string;
   seniority: string;
   hoursPerWeek: string;
   deliverables: string;
-  successIn30Days: string;
 };
 
 function metaToForm(m: Record<string, unknown>): RoleBriefForm {
@@ -25,14 +26,15 @@ function metaToForm(m: Record<string, unknown>): RoleBriefForm {
     builderWillDo: String(m.builderWillDo || ''),
     skillsNeeded: Array.isArray(m.requiredSkills) ? (m.requiredSkills as string[]).join(', ') : '',
     niceToHaveSkills: Array.isArray(m.niceToHaveSkills) ? (m.niceToHaveSkills as string[]).join(', ') : '',
-    workType: String(m.workType || ''),
+    hireType: (['full_time', 'internship', 'either'].includes(String(m.hireType || m.workType || ''))
+      ? String(m.hireType || m.workType || '')
+      : '') as HireType,
     timeline: String(m.timeline || ''),
     budget: String(m.budget || ''),
     locationPreference: String(m.locationPreference || ''),
     seniority: String(m.seniority || ''),
     hoursPerWeek: String(m.hoursPerWeek || ''),
     deliverables: Array.isArray(m.deliverables) ? (m.deliverables as string[]).join(', ') : '',
-    successIn30Days: String(m.successCriteria || m.successIn30Days || ''),
   };
 }
 
@@ -85,7 +87,7 @@ export default function EditableRoleBriefCard({
           ? (m.niceToHaveSkills as string[]).join(', ')
           : null,
     },
-    { label: 'Work type', value: m.workType },
+    { label: 'Hire type', value: m.hireType === 'full_time' ? 'Full-time' : m.hireType === 'internship' ? 'Internship' : m.hireType === 'either' ? 'Either works' : (m.workType as string) || null },
     { label: 'Budget', value: m.budget },
     { label: 'Timeline', value: m.timeline },
     { label: 'Location', value: m.locationPreference },
@@ -98,7 +100,6 @@ export default function EditableRoleBriefCard({
           ? (m.deliverables as string[]).join(', ')
           : null,
     },
-    { label: 'Success criteria', value: m.successCriteria },
   ];
 
   const save = async () => {
@@ -120,14 +121,13 @@ export default function EditableRoleBriefCard({
               builderWillDo: form.builderWillDo,
               skillsNeeded: splitList(form.skillsNeeded),
               niceToHaveSkills: splitList(form.niceToHaveSkills),
-              workType: form.workType,
+              hireType: form.hireType,
               timeline: form.timeline,
               budget: form.budget,
               locationPreference: form.locationPreference,
               seniority: form.seniority,
               hoursPerWeek: form.hoursPerWeek,
               deliverables: splitList(form.deliverables),
-              successIn30Days: form.successIn30Days,
             },
           },
         }),
@@ -180,14 +180,31 @@ export default function EditableRoleBriefCard({
           {field('What the builder will do', 'builderWillDo', true)}
           {field('Required skills (comma-separated)', 'skillsNeeded')}
           {field('Nice-to-have skills', 'niceToHaveSkills')}
-          {field('Work type', 'workType')}
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-wider text-white/45 mb-0.5 block">Hire type</span>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {([['full_time', 'Full-time'], ['internship', 'Internship'], ['either', 'Either works']] as const).map(([val, lbl]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, hireType: val }))}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
+                    form.hireType === val
+                      ? 'bg-[#fa7d22]/20 border-[#fa7d22]/40 text-[#fa7d22]'
+                      : 'bg-white/5 border-white/15 text-white/70 hover:bg-white/10'
+                  }`}
+                >
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </label>
           {field('Budget', 'budget')}
           {field('Timeline', 'timeline')}
           {field('Location', 'locationPreference')}
           {field('Hours/week', 'hoursPerWeek')}
           {field('Seniority / experience', 'seniority')}
           {field('Deliverables', 'deliverables')}
-          {field('Success criteria', 'successIn30Days', true)}
           <div className="flex flex-wrap gap-2 pt-2">
             <button
               type="button"

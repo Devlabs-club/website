@@ -110,7 +110,6 @@ export function buildSuggestedIntroMessage(params: {
     roleTitle?: string | null;
     startupSummary?: string | null;
     builderWillDo?: string | null;
-    successIn30Days?: string | null;
     skillsNeeded?: string[];
     timeline?: string | null;
   };
@@ -126,7 +125,6 @@ export function buildSuggestedIntroMessage(params: {
 
   const jobFocus =
     params.opportunity.builderWillDo ||
-    params.opportunity.successIn30Days ||
     params.opportunity.startupSummary?.split('.')[0]?.trim() ||
     null;
 
@@ -282,14 +280,20 @@ export function buildPipelineEntry(params: {
       hasIntroRequest: Boolean(introRequest),
       callScheduleStatus: callSchedule?.status || null,
       trialProjectStatus: match.trialProject?.status || null,
-      callCompletedAt: match.callCompletedAt || callSchedule?.callCompletedAt || null,
+      callCompletedAt: (() => {
+        const at = match.callCompletedAt || callSchedule?.callCompletedAt;
+        return at ? new Date(at).toISOString() : null;
+      })(),
     }),
     introRequestId: introRequest?._id ? String(introRequest._id) : null,
     introRequestStatus: introRequest?.status || null,
     introMessage: introRequest?.introMessage || null,
     introRequestedAt: introRequest?.createdAt || null,
     trialProjectStatus: match.trialProject?.status || null,
-    callCompletedAt: match.callCompletedAt || null,
+    callCompletedAt: (() => {
+      const at = match.callCompletedAt || callSchedule?.callCompletedAt;
+      return at ? new Date(at).toISOString() : null;
+    })(),
     callScheduleStatus: callSchedule?.status || null,
     callScheduleId: callSchedule?._id ? String(callSchedule._id) : null,
     confirmedCallStartAt: callSchedule?.confirmedSlot?.startAt

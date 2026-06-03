@@ -72,16 +72,10 @@ export function buildSuggestedInterviewQuestions(
   if (topProject?.builderContribution) {
     questions.push('You noted a specific contribution on a project — what was yours vs. the team’s?');
   }
-  if (opportunity?.successIn30Days) {
-    questions.push(`Our 30-day success bar is: “${opportunity.successIn30Days}” — how would you approach that?`);
-  }
   return questions.slice(0, 5);
 }
 
 export function buildSuggestedTrialProject(opportunity: any): string {
-  if (opportunity?.successIn30Days) {
-    return `Paid sprint aligned to: ${opportunity.successIn30Days}`;
-  }
   if (opportunity?.builderWillDo) {
     return `Scope a 1–2 week trial around: ${opportunity.builderWillDo}`;
   }

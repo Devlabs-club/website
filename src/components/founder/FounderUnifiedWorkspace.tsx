@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Opportunity, PublicShortlist, FullCandidate, AnonymousCandidate, FounderPipeline, PipelineEntry, NotificationItem } from './founderTypes';
-import BuilderSnapshotCard from './BuilderSnapshotCard';
+import type { Opportunity, PublicShortlist, FullCandidate, FounderPipeline, PipelineEntry, NotificationItem } from './founderTypes';
 import FounderKanbanBoard from './FounderKanbanBoard';
 import NotificationCenter from '../talent/NotificationCenter';
 import MessagesPanel from '../talent/MessagesPanel';
@@ -89,7 +88,6 @@ export default function FounderUnifiedWorkspace({
   onKanbanRefresh,
 }: FounderUnifiedWorkspaceProps) {
   const { user } = useAuth();
-  const [filterTab, setFilterTab] = useState<'all' | 'saved'>('all');
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<'cockpit' | 'messages'>('cockpit');
 
@@ -118,23 +116,10 @@ export default function FounderUnifiedWorkspace({
     return shortlists.find((s) => s.opportunityId === currentOppId) || null;
   }, [shortlists, currentOppId]);
 
-  // Filter candidates list (Saved vs All)
-  const candidateFeed = useMemo(() => {
-    if (!activeShortlist) return [];
-    
-    if (activeShortlist.unlocked && activeShortlist.fullCandidates) {
-      const candidates = activeShortlist.fullCandidates as FullCandidate[];
-      // Filter out hidden ones
-      const visible = candidates.filter((c) => !c.hidden);
-      if (filterTab === 'saved') {
-        return visible.filter((c) => c.saved);
-      }
-      return visible;
-    } else {
-      // Locked preview (anonymous candidates)
-      return activeShortlist.candidates || [];
-    }
-  }, [activeShortlist, filterTab]);
+  const kanbanCandidates = useMemo(() => {
+    if (!activeShortlist?.fullCandidates?.length) return [];
+    return (activeShortlist.fullCandidates as FullCandidate[]).filter((c) => !c.hidden);
+  }, [activeShortlist]);
 
   // Filter pipeline entries specifically for this active role
   const rolePipelineEntries = useMemo(() => {
@@ -400,28 +385,11 @@ export default function FounderUnifiedWorkspace({
             ) : null}
           </div>
 
-          {activeShortlist && !activeShortlist.unlocked && (
-            <div className="rounded-3xl border border-[#fa7d22]/30 bg-gradient-to-r from-[#fa7d22]/10 to-[#0e1012] p-5 flex flex-wrap items-center justify-between gap-4">
-              <div className="max-w-md">
-                <h4 className="text-[#ffb580] font-semibold text-sm">Unlock to start hiring</h4>
-                <p className="text-xs text-white/70 mt-1 leading-relaxed">
-                  Reveal builder names, portfolios, and run your kanban pipeline from intro to hire.
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={unlockBusy === currentOppId}
-                onClick={() => currentOppId && unlockShortlist(currentOppId)}
-                className="px-5 py-2.5 rounded-xl bg-[#fa7d22] text-black text-xs font-bold hover:bg-[#ff9b4e] disabled:opacity-60 transition"
-              >
-                {unlockBusy === currentOppId ? 'Unlocking...' : 'Unlock Shortlist ($499)'}
-              </button>
-            </div>
-          )}
+          {/* Unlock banner removed — shortlist is always accessible */}
 
-          {activeShortlist?.unlocked && currentOppId && (activeShortlist.fullCandidates?.length || 0) > 0 ? (
+          {currentOppId && activeShortlist && kanbanCandidates.length > 0 ? (
             <FounderKanbanBoard
-              candidates={(activeShortlist.fullCandidates || []).filter((c) => !c.hidden) as FullCandidate[]}
+              candidates={kanbanCandidates}
               pipelineEntries={rolePipelineEntries}
               opportunityId={currentOppId}
               busy={pipelineBusy || candidateActionBusy}
@@ -437,23 +405,10 @@ export default function FounderUnifiedWorkspace({
               }}
               onMovedToInterviewing={onKanbanRefresh}
             />
-          ) : candidateFeed.length === 0 ? (
+          ) : (
             <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.01] p-12 text-center">
               <Bot className="w-10 h-10 text-white/20 mx-auto mb-3" />
               <p className="text-white/50 text-sm">Run a search to populate your matches column.</p>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {candidateFeed.map((cand, idx) => (
-                <BuilderSnapshotCard
-                  key={cand.builderId || cand.anonymousLabel || idx}
-                  candidate={cand}
-                  unlocked={false}
-                  onViewDetails={() => onExploreCandidate(cand, currentOppId!)}
-                  onUnlock={() => currentOppId && unlockShortlist(currentOppId)}
-                  actionBusy={candidateActionBusy}
-                />
-              ))}
             </div>
           )}
         </div>
