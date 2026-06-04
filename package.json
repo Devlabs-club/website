@@ -87,6 +87,7 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-tweet": "^3.3.0",
+    "supermemory": "^4.24.12",
     "tailwind-animate": "^0.2.10",
     "tailwind-merge": "^3.4.0",
     "three": "^0.184.0",

@@ -1,7 +1,11 @@
 import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
 import cloudflare from "@astrojs/cloudflare";
+import vercel from "@astrojs/vercel";
 import react from "@astrojs/react";
+
+const useVercelAdapter =
+  process.env.ASTRO_ADAPTER === "vercel" || process.env.VERCEL === "1";
 
 /** Native / heavy server deps — keep out of Rollup SSR bundles. */
 const SSR_EXTERNAL = [
@@ -44,11 +48,17 @@ export default defineConfig({
       entrypoint: "astro/assets/services/noop",
     },
   },
-  adapter: cloudflare({
-    platformProxy: {
-      enabled: true,
-    },
-  }),
+  adapter: useVercelAdapter
+    ? vercel({
+        edgeMiddleware: false,
+        analytics: false,
+        maxDuration: 60,
+      })
+    : cloudflare({
+        platformProxy: {
+          enabled: true,
+        },
+      }),
   vite: {
     server: {
       // Prevent the browser from caching stale Vite module URLs between dev refreshes.
