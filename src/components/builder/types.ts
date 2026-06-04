@@ -1,6 +1,6 @@
 import type { NotificationItem } from '@/components/founder/founderTypes';
 
-export type TabKey = 'home' | 'projects' | 'matches' | 'messages' | 'calls' | 'trials' | 'agent' | 'profile' | 'events';
+export type TabKey = 'home' | 'intros' | 'messages' | 'calls' | 'trials' | 'agent' | 'profile';
 
 export type BuilderData = {
   _id: string;

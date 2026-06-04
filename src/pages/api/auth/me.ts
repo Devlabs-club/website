@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    const decoded = verifyToken(token);
+    const decoded = verifyToken(token, runtime);
     if (!decoded) {
       return new Response(
         JSON.stringify({

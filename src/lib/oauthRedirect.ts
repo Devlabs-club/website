@@ -11,39 +11,61 @@ function envStr(key: string, runtime?: RuntimeEnv): string | undefined {
   return typeof fromMeta === 'string' ? fromMeta.trim() : undefined;
 }
 
-/**
- * OAuth redirect URI must match what WorkOS has registered.
- * In production, always use WORKOS_REDIRECT_URI (or WEBSITE_ROOT) from env — never infer from the request host.
- */
-export function getOAuthRedirectUri(request: Request, runtime?: RuntimeEnv): string {
-  const configured = envStr('WORKOS_REDIRECT_URI', runtime);
-  const websiteRoot = envStr('WEBSITE_ROOT', runtime)?.replace(/\/$/, '');
-
-  if (import.meta.env.PROD) {
-    if (configured && !configured.includes('localhost')) {
-      return configured;
-    }
-    if (websiteRoot) {
-      return `${websiteRoot}/api/auth/oauth/callback`;
-    }
-  }
-
-  const origin = new URL(request.url).origin;
-  const isLocal =
-    origin.includes('localhost') || origin.includes('127.0.0.1') || origin.includes('[::1]');
-
-  if (isLocal) {
-    if (configured?.trim()) {
-      return configured.trim();
-    }
-    return `${origin}/api/auth/oauth/callback`;
-  }
-
-  // Preview / staging: use request origin so branch deploys work without changing WorkOS.
-  return `${origin}/api/auth/oauth/callback`;
+function requestOrigin(request: Request): string {
+  return new URL(request.url).origin;
 }
 
-/** Only allow same-site relative redirects after OAuth (blocks localhost in state). */
+function isLocalOrigin(origin: string): boolean {
+  return (
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.includes('[::1]')
+  );
+}
+
+/** Site root from env (WEBSITE_ROOT) or the current request origin. */
+export function getWebsiteRoot(request: Request, runtime?: RuntimeEnv): string {
+  const fromEnv = envStr('WEBSITE_ROOT', runtime)?.replace(/\/$/, '');
+  const origin = requestOrigin(request);
+
+  if (!fromEnv) return origin;
+
+  // Local dev: wrangler.toml may inject production WEBSITE_ROOT via platformProxy — prefer localhost.
+  if (isLocalOrigin(origin) && !isLocalOrigin(fromEnv)) {
+    return origin;
+  }
+
+  return fromEnv;
+}
+
+/**
+ * OAuth callback URL registered in WorkOS.
+ * Uses WORKOS_REDIRECT_URI when set; otherwise WEBSITE_ROOT + /api/auth/oauth/callback.
+ */
+export function getOAuthRedirectUri(request: Request, runtime?: RuntimeEnv): string {
+  const configured = envStr('WORKOS_REDIRECT_URI', runtime)?.trim();
+  const root = getWebsiteRoot(request, runtime);
+  const origin = requestOrigin(request);
+
+  if (configured) {
+    if (isLocalOrigin(origin)) {
+      try {
+        if (isLocalOrigin(new URL(configured).origin)) {
+          return configured;
+        }
+      } catch {
+        // fall through to WEBSITE_ROOT / request origin
+      }
+      // Ignore production redirect URI while developing on localhost.
+    } else {
+      return configured;
+    }
+  }
+
+  return `${root}/api/auth/oauth/callback`;
+}
+
+/** Only allow same-site relative redirects after OAuth (default /dashboard). */
 export function sanitizePostAuthRedirect(
   redirectUrl: string,
   request: Request,
@@ -54,9 +76,8 @@ export function sanitizePostAuthRedirect(
   if (!redirectUrl?.trim()) return fallback;
 
   const trimmed = redirectUrl.trim();
-  const allowedOrigins = new Set<string>([new URL(request.url).origin]);
-  const websiteRoot = envStr('WEBSITE_ROOT', runtime)?.replace(/\/$/, '');
-  if (websiteRoot) allowedOrigins.add(websiteRoot);
+  const allowedOrigins = new Set<string>([requestOrigin(request)]);
+  allowedOrigins.add(getWebsiteRoot(request, runtime));
 
   if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
     return trimmed;

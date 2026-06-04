@@ -12,10 +12,22 @@ interface Props {
   ogImageAlt?: string;
   keywords?: string;
   hideNavbar?: boolean;
+  hideFooter?: boolean;
   skipPageLoader?: boolean;
+  skipParallax?: boolean;
 }
 
-const { title, description, ogImage, ogImageAlt, keywords, hideNavbar = false, skipPageLoader = false } = Astro.props;
+const {
+  title,
+  description,
+  ogImage,
+  ogImageAlt,
+  keywords,
+  hideNavbar = false,
+  hideFooter = false,
+  skipPageLoader = false,
+  skipParallax = false,
+} = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
@@ -102,7 +114,7 @@ const metaKeywords = keywords ?? defaultKeywords;
       <slot />
     </main>
     <!-- <Footer /> -->
-    <NewFooter />
+    {!hideFooter ? <NewFooter /> : null}
   </body>
 </html>
 <style>
@@ -133,7 +145,9 @@ const metaKeywords = keywords ?? defaultKeywords;
     transform: translateY(var(--parallax-offset-y));
   }
 </style>
-<script>
-  import { initSectionParallax } from "../lib/scroll.js";
-  initSectionParallax();
-</script>
+{!skipParallax ? (
+  <script>
+    import { initSectionParallax } from "../lib/scroll.js";
+    initSectionParallax();
+  </script>
+) : null}

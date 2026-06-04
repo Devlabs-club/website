@@ -8,14 +8,12 @@ import { LoaderFour } from '@/components/ui/loader';
 import { BlurFade } from '@/components/ui/blur-fade';
 import BuilderSidebar from './BuilderSidebar';
 import BuilderHomeTab from './BuilderHomeTab';
-import BuilderProjectsTab from './BuilderProjectsTab';
-import BuilderMatchesTab from './BuilderMatchesTab';
+import BuilderIntrosTab from './BuilderIntrosTab';
 import BuilderMessagesTab from './BuilderMessagesTab';
 import BuilderCallsTab from './BuilderCallsTab';
 import BuilderTrialsTab from './BuilderTrialsTab';
 import BuilderAgentTab from './BuilderAgentTab';
 import BuilderProfileTab from './BuilderProfileTab';
-import BuilderEventsTab from './BuilderEventsTab';
 import type {
   AgentMessage,
   BuilderData,
@@ -113,7 +111,8 @@ export default function BuilderOSDashboard() {
   const callsBadgeCount = upcomingCalls.filter((c) => c.status === 'pending_builder').length;
 
   const tabBadge = (key?: string) => {
-    if (key === 'messages') return introInbox.filter((i) => i.status === 'requested').length;
+    if (key === 'intros') return introInbox.filter((i) => i.status === 'requested' || !i.viewedAt).length;
+    if (key === 'messages') return 0;
     if (key === 'calls') return callsBadgeCount;
     if (key === 'trials')
       return activeTrials.filter((t) => ['sent', 'rejected'].includes(t.trialProject?.status)).length;
@@ -234,8 +233,9 @@ export default function BuilderOSDashboard() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      const validTabs: TabKey[] = ['home', 'projects', 'matches', 'messages', 'calls', 'trials', 'agent', 'profile', 'events'];
-      if (tab === 'intros' || tab === 'messages') setActiveTab('messages');
+      const validTabs: TabKey[] = ['home', 'intros', 'messages', 'calls', 'trials', 'agent', 'profile'];
+      if (tab === 'matches' || tab === 'projects' || tab === 'events') setActiveTab('home');
+      else if (tab === 'intros') setActiveTab('intros');
       else if (tab && validTabs.includes(tab as TabKey)) setActiveTab(tab as TabKey);
       setMessagesThreadId(params.get('threadId'));
       setMessagesIntroId(params.get('introId'));
@@ -454,12 +454,10 @@ export default function BuilderOSDashboard() {
 
   const tabContent = {
     home: <BuilderHomeTab ctx={ctx} />,
-    projects: <BuilderProjectsTab ctx={ctx} />,
-    matches: <BuilderMatchesTab ctx={ctx} />,
+    intros: <BuilderIntrosTab ctx={ctx} />,
     messages: <BuilderMessagesTab ctx={ctx} />,
     calls: <BuilderCallsTab ctx={ctx} />,
     trials: <BuilderTrialsTab ctx={ctx} />,
-    events: <BuilderEventsTab ctx={ctx} />,
     agent: <BuilderAgentTab ctx={ctx} />,
     profile: <BuilderProfileTab ctx={ctx} />,
   }[activeTab];
@@ -487,7 +485,6 @@ export default function BuilderOSDashboard() {
             userEmail={user?.email}
             profileScore={profileScore}
             proofScore={proofScore}
-            matchScore={matchScore}
             projectsCount={projects.length}
             notifications={notifications}
             unreadNotificationCount={unreadNotificationCount}

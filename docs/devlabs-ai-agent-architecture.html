@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DevLabs AI Agent Architecture</title>
+  <style>
+    @page { margin: 2cm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.5;
+      color: #1a1a1a;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 { font-size: 22pt; border-bottom: 2px solid #fa7d22; padding-bottom: 8px; margin-top: 0; }
+    h2 { font-size: 14pt; color: #333; margin-top: 28px; page-break-after: avoid; }
+    h3 { font-size: 12pt; margin-top: 18px; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10pt; }
+    th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9pt; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; }
+    pre {
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 9pt;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .meta { color: #666; font-size: 10pt; margin-bottom: 24px; }
+    ul { margin: 8px 0; padding-left: 22px; }
+    li { margin: 4px 0; }
+    .diagram {
+      background: #fafafa;
+      border: 1px solid #ddd;
+      padding: 16px;
+      font-family: ui-monospace, monospace;
+      font-size: 9pt;
+      line-height: 1.4;
+      margin: 12px 0;
+    }
+    hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
+  </style>
+</head>
+<body>
+
+<h1>DevLabs AI Agent Architecture</h1>
+<p class="meta">Builder &amp; Founder portals — implementation reference<br>Generated: June 4, 2026</p>
+
+<h2>Short answer: one agent or two?</h2>
+<p><strong>Two separate agents</strong>, not one shared agent. They share infrastructure (OpenRouter, actions API, Supermemory, MongoDB) but have different system prompts, tools, and behavior.</p>
+
+<table>
+  <tr><th>Agent</th><th>API action</th><th>Persona</th></tr>
+  <tr><td><strong>Builder Agent</strong></td><td><code>builder_chat</code></td><td>Profile intelligence — fix proof, imports, availability</td></tr>
+  <tr><td><strong>Founder Agent</strong></td><td><code>founder_chat</code></td><td>Hiring — role briefs, search, shortlist, intros</td></tr>
+</table>
+
+<p>There is also a <strong>legacy</strong> founder parser in <code>founderAgent.ts</code> (<code>parseFounderAgentTurn</code>) that is <strong>not wired to the UI</strong> anymore; the live founder flow uses <code>founder_chat</code> only.</p>
+
+<h2>Architecture (high level)</h2>
+<div class="diagram">
+UI Layer
+  BuilderAgentTab / BuilderOSDashboard  →  builder_chat
+  FounderRoleIntakeChat / Onboarding    →  founder_chat
+  Other dashboards (intros, trials…)    →  40+ discrete actions
+        ↓
+POST /api/agent/actions  (src/pages/api/agent/actions.ts)
+        ↓
+actionsHandler.postAgentAction  (src/lib/agent/actionsHandler.ts)
+        ↓
+  builder_chat / founder_chat  →  generateOpenRouterAgentTurn (tool loop)
+  other actions                →  generateOpenRouterReply or deterministic code
+        ↓
+OpenRouter API  (src/lib/openrouter.ts)
+        ↓
+MongoDB + optional Supermemory (src/lib/talent/supermemory.ts)
+</div>
+
+<p><strong>Entry point:</strong> All agent traffic is <code>POST /api/agent/actions</code> with body <code>{ action, payload }</code>, authenticated via JWT cookie/header. May proxy to a Node backend when <code>shouldUseApiProxy</code> is set.</p>
+
+<h2>LLM layer (src/lib/openrouter.ts)</h2>
+<table>
+  <tr><th>Environment variable</th><th>Role</th></tr>
+  <tr><td><code>OPENROUTER_API_KEY</code></td><td>Required for AI; without it, chat degrades / fallbacks</td></tr>
+  <tr><td><code>OPENROUTER_MODEL_CHAT</code></td><td>Default: <code>google/gemini-2.5-flash</code></td></tr>
+  <tr><td><code>OPENROUTER_HTTP_REFERER</code></td><td>Optional OpenRouter header</td></tr>
+  <tr><td><code>OPENROUTER_APP_NAME</code></td><td>Optional X-Title header</td></tr>
+  <tr><td><code>SUPERMEMORY_API_KEY</code></td><td>Optional cross-session memory</td></tr>
+</table>
+
+<h3>Two call styles</h3>
+<ol>
+  <li><strong>generateOpenRouterReply</strong> — single turn, no tools (legacy parse, Devpost scrape, getAgentMessage).</li>
+  <li><strong>generateOpenRouterAgentTurn</strong> — OpenAI-style tool calling (<code>tools</code>, <code>tool_choice: auto</code>).</li>
+</ol>
+
+<table>
+  <tr><th>Function</th><th>Default temperature</th><th>Default max_tokens</th></tr>
+  <tr><td>generateOpenRouterReply</td><td>0.2</td><td>400</td></tr>
+  <tr><td>generateOpenRouterAgentTurn</td><td>0.3</td><td>600 (overridden per call)</td></tr>
+</table>
+
+<hr>
+
+<h2>Builder agent (builder_chat)</h2>
+
+<h3>Where it is used</h3>
+<ul>
+  <li><code>BuilderOSDashboard.tsx</code> — handleAgentSend → builder_chat (+ resume upload → chat again)</li>
+  <li><code>BuilderAgentTab.tsx</code> — Profile Agent tab via BuilderDashboardContext</li>
+  <li><code>BuilderHomeTab.tsx</code> — nudges user toward agent tab</li>
+</ul>
+
+<h3>Request payload</h3>
+<pre>{
+  "action": "builder_chat",
+  "payload": {
+    "message": "user text",
+    "history": [{ "role": "user" | "assistant", "content": "..." }]
+  }
+}</pre>
+
+<h3>Agentic loop</h3>
+<ul>
+  <li>Calls <code>generateOpenRouterAgentTurn</code> with tools</li>
+  <li><strong>MAX_ITERATIONS = 5</strong></li>
+  <li><strong>temperature: 0.3</strong>, <strong>maxTokens: 600</strong></li>
+  <li>Tools executed in parallel per turn; results appended as <code>role: tool</code> messages</li>
+</ul>
+
+<h3>Builder tools (11)</h3>
+<table>
+  <tr><th>Tool</th><th>Purpose</th></tr>
+  <tr><td>get_builder_profile</td><td>Read profile, scores, quality issues</td></tr>
+  <tr><td>get_projects</td><td>List projects</td></tr>
+  <tr><td>update_availability</td><td>availableNow, hoursPerWeek, remotePreference</td></tr>
+  <tr><td>update_links</td><td>GitHub, LinkedIn, portfolio</td></tr>
+  <tr><td>update_profile_basics</td><td>headline, bio</td></tr>
+  <tr><td>import_project</td><td>Devpost/GitHub scrape → ProjectRecord</td></tr>
+  <tr><td>evaluate_profile</td><td>Run quality eval, save to profile</td></tr>
+  <tr><td>fetch_intros</td><td>Intro inbox</td></tr>
+  <tr><td>fetch_work_trials</td><td>Active trials</td></tr>
+  <tr><td>fetch_calls</td><td>Upcoming calls</td></tr>
+  <tr><td>fetch_messages</td><td>Threads or single thread history</td></tr>
+</table>
+
+<p>Memory: <code>getBuilderMemoryProfile(builderId, userText)</code> injected into system prompt; writes via <code>addBuilderMemory</code> on updates/imports.</p>
+
+<h3>Response shape</h3>
+<pre>{
+  "success": true,
+  "message": "final assistant text",
+  "uiBlocks": [{ "type": "profile_quality" | "summary_card", ... }],
+  "builder": { /* refreshed profile */ },
+  "meta": { "model": "...", "iterations": N }
+}</pre>
+
+<hr>
+
+<h2>Founder agent (founder_chat)</h2>
+
+<h3>Where it is used</h3>
+<ul>
+  <li><code>FounderRoleIntakeChat.tsx</code> — main chat; sends synthetic <code>__init__</code> on first load</li>
+  <li><code>FounderOnboardingChat.tsx</code> — wrapper around FounderRoleIntakeChat</li>
+  <li><code>FounderOSDashboard.tsx</code> — embeds intake when no roles / editing</li>
+</ul>
+<p>Non-chat founder UI still calls <code>/api/agent/actions</code> with actions like <code>run_builder_search</code>, <code>request_intro</code>, <code>generate_trial_project</code>, etc.</p>
+
+<h3>Request payload</h3>
+<pre>{
+  "action": "founder_chat",
+  "payload": {
+    "message": "user text or __init__ synthetic",
+    "opportunityId": "optional Mongo id",
+    "history": [ /* last ~16 turns */ ]
+  }
+}</pre>
+
+<p>Server loads current opportunity (by opportunityId or latest draft), founder startup context, and Supermemory founder profile.</p>
+
+<h3>Founder tools (8)</h3>
+<table>
+  <tr><th>Tool</th><th>Purpose</th></tr>
+  <tr><td>get_all_roles</td><td>List founder opportunities</td></tr>
+  <tr><td>get_role_brief</td><td>Current brief + missing fields</td></tr>
+  <tr><td>create_role_brief</td><td>New Opportunity (sanitized)</td></tr>
+  <tr><td>update_role_brief</td><td>Patch brief + merge hints from user text</td></tr>
+  <tr><td>run_search</td><td>Rank builders, upsert MatchRecord + Shortlist</td></tr>
+  <tr><td>get_shortlist</td><td>Anonymous or unlocked candidates</td></tr>
+  <tr><td>get_candidate_details</td><td>Full candidate + projects</td></tr>
+  <tr><td>request_intro</td><td>Creates IntroRequest, notifies builder</td></tr>
+</table>
+
+<ul>
+  <li>Loop: max 5 iterations, temperature 0.3, maxTokens 700</li>
+  <li>UI blocks from <code>buildFounderUiBlocks</code> in founderAgent.ts</li>
+  <li>Frontend parses numbered options for option cards</li>
+</ul>
+
+<h3>Response shape</h3>
+<pre>{
+  "success": true,
+  "message": "...",
+  "opportunity": { /* Opportunity doc */ },
+  "uiBlocks": [...],
+  "session": {
+    "currentSearchId": "...",
+    "currentRoleBrief": {...},
+    "skippedFields": [],
+    "missingRequiredFields": [],
+    "shortlistState": "none" | "locked" | "unlocked"
+  },
+  "meta": { "model": "...", "iterations": N }
+}</pre>
+
+<hr>
+
+<h2>Legacy founder parser (not live chat)</h2>
+<p><code>src/lib/talent/founderAgent.ts</code> defines <code>parseFounderAgentTurn</code>: one-shot JSON extraction (intent, message, extractedData). <strong>Not imported by UI.</strong> Only <code>buildFounderUiBlocks</code> is used from that module in actionsHandler.</p>
+
+<h2>Agent vs actions API</h2>
+<p><code>postAgentAction</code> is a large RPC router (~30+ actions). Only two are full agentic tool loops: <code>builder_chat</code> and <code>founder_chat</code>.</p>
+
+<table>
+  <tr><th>Category</th><th>Example actions</th></tr>
+  <tr><td>Builder profile</td><td>claim_profile, update_availability, update_links, evaluate_profile_quality, get_builder_dashboard</td></tr>
+  <tr><td>Founder hiring</td><td>create_role_brief, update_role_brief, run_builder_search, unlock_shortlist, founder_candidate_action</td></tr>
+  <tr><td>Intros / calls / trials / messages</td><td>request_intro, schedule_call, send_trial_project, get_thread_messages, …</td></tr>
+  <tr><td>Notifications</td><td>get_notifications, mark_notification_read</td></tr>
+</table>
+
+<p><code>ConversationalShell.tsx</code> is an older demo UI calling discrete actions, not *_chat.</p>
+
+<h2>Other LLM touchpoints (not full agents)</h2>
+<ul>
+  <li>Devpost import inside scrapeAndImportProject — extract JSON from markdown</li>
+  <li>getAgentMessage — polished copy after successful mutations</li>
+  <li>founderTrialProject.ts — generate trial project copy</li>
+  <li>roleBriefFieldEnhance.ts — enhance a single brief field</li>
+  <li>routeProjectCrudWithLLM — defined but not called (dead path)</li>
+</ul>
+
+<h2>Auth and data flow</h2>
+<ol>
+  <li>JWT from cookie/Authorization → resolveAuthedBuilder or resolveAuthedFounder</li>
+  <li>Tools read/write Mongo models (BuilderProfile, Opportunity, Shortlist, MatchRecord, …)</li>
+  <li>Client refreshes local state from response (builder, opportunity, uiBlocks)</li>
+</ol>
+
+<h2>File map</h2>
+<table>
+  <tr><th>File</th><th>Role</th></tr>
+  <tr><td>src/lib/openrouter.ts</td><td>OpenRouter client, tool types</td></tr>
+  <tr><td>src/lib/agent/actionsHandler.ts</td><td>All actions + both agent loops</td></tr>
+  <tr><td>src/pages/api/agent/actions.ts</td><td>HTTP entry</td></tr>
+  <tr><td>src/lib/talent/supermemory.ts</td><td>Optional memory</td></tr>
+  <tr><td>src/lib/talent/founderAgent.ts</td><td>UI blocks + legacy parseFounderAgentTurn</td></tr>
+  <tr><td>src/components/builder/BuilderOSDashboard.tsx</td><td>Builder chat client</td></tr>
+  <tr><td>src/components/founder/FounderRoleIntakeChat.tsx</td><td>Founder chat client</td></tr>
+</table>
+
+<h2>Mental model</h2>
+<ul>
+  <li><strong>Two conversational agents</strong> (builder vs founder), each with its own prompt and tools.</li>
+  <li><strong>One gateway</strong> (<code>/api/agent/actions</code>) for chat and non-chat operations.</li>
+  <li><strong>OpenRouter</strong> is the only LLM provider for agents; model is env-driven.</li>
+  <li><strong>Supermemory</strong> is optional long-term memory.</li>
+  <li><strong>Not</strong> a single shared agent class — different tools and semantics by role.</li>
+</ul>
+
+</body>
+</html>

@@ -145,6 +145,7 @@ export function buildFullCandidateCard(params: {
       : null,
     anonymousLabel: shortlistCandidate?.anonymousLabel || null,
     matchScore: match?.matchScore ?? shortlistCandidate?.matchScore ?? 0,
+    profileStrength: match?.profileStrength ?? shortlistCandidate?.profileStrength ?? builder?.profileQuality?.overallScore ?? 0,
     matchLabel: match?.matchLabel ?? shortlistCandidate?.matchLabel ?? 'Possible Match',
     name: builder.name,
     headline: builder.headline || null,

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { clearAgentStorageForUser } from '@/lib/talent/builderChatHelpers';
+import { clearCachedAuthUser, readCachedAuthUser, writeCachedAuthUser } from '@/lib/dashboardCache';
 
 interface User {
   id: string;
@@ -30,7 +31,9 @@ interface AuthProviderProps {
 const AUTH_CHECK_TIMEOUT_MS = 12_000;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const cachedUser = typeof window !== 'undefined' ? readCachedAuthUser() : null;
+  const [user, setUser] = useState<User | null>(cachedUser);
+  // Always revalidate before rendering route content — cached user is a hint only.
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -50,16 +53,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const data = await response.json();
         if (data.success) {
           setUser(data.user);
+          writeCachedAuthUser(data.user);
           return;
         }
       }
       setUser(null);
+      clearCachedAuthUser();
     } catch (error) {
       console.error('Auth check failed:', error);
-      setUser(null);
+      if (!cachedUser) {
+        setUser(null);
+      }
       if (error instanceof Error && error.name === 'AbortError') {
         setAuthError('Session check timed out. Please try again.');
-      } else {
+      } else if (!cachedUser) {
         setAuthError('Could not verify your session. Please try again.');
       }
     } finally {
@@ -87,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.success) {
         setUser(data.user);
+        writeCachedAuthUser(data.user);
         return { success: true, message: 'Login successful' };
       } else {
         return { success: false, message: data.message || 'Login failed' };
@@ -112,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.success) {
         setUser(data.user);
+        writeCachedAuthUser(data.user);
         return { success: true, message: 'Registration successful' };
       } else {
         return { success: false, message: data.message || 'Registration failed' };
@@ -132,6 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const data = await response.json();
 
       if (previousUserId) clearAgentStorageForUser(previousUserId);
+      clearCachedAuthUser();
       
       if (data.logoutUrl && data.logoutUrl !== '/login') {
         window.location.href = data.logoutUrl;
@@ -140,10 +150,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       setUser(null);
+      clearCachedAuthUser();
     } catch (error) {
       console.error('Logout failed:', error);
       // Even if the API call fails, clear local state
       setUser(null);
+      clearCachedAuthUser();
     }
   };
 

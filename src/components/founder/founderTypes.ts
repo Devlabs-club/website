@@ -48,6 +48,7 @@ export type NotificationItem = {
 export type AnonymousCandidate = {
   anonymousLabel: string;
   matchScore: number;
+  profileStrength?: number;
   matchLabel: string;
   roleType?: string;
   topSkills?: string[];
@@ -61,6 +62,7 @@ export type FullCandidate = {
   matchRecordId: string | null;
   anonymousLabel: string | null;
   matchScore: number;
+  profileStrength?: number;
   matchLabel: string;
   name: string;
   headline: string | null;
@@ -174,4 +176,3 @@ export type Opportunity = {
   status?: string;
   updatedAt?: string;
 };
-

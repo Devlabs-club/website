@@ -3,7 +3,7 @@ import { WorkOS } from '@workos-inc/node';
 /** Cloudflare Worker secrets / Vercel env — not always available via import.meta.env at runtime. */
 export type RuntimeEnv = Record<string, string | undefined>;
 
-function readEnv(key: string, runtime?: RuntimeEnv): string | undefined {
+export function readEnv(key: string, runtime?: RuntimeEnv): string | undefined {
   const fromRuntime = runtime?.[key]?.trim();
   if (fromRuntime) return fromRuntime;
 

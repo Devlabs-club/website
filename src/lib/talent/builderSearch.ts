@@ -7,11 +7,13 @@ export type OpportunityLike = {
   roleType?: string[] | null;
   workType?: string | null;
   skillsNeeded?: string[] | null;
+  niceToHaveSkills?: string[] | null;
   timeline?: string | null;
   budget?: string | null;
   locationPreference?: string | null;
   availabilityNeeded?: string | null;
   builderWillDo?: string | null;
+  deliverables?: string[] | null;
 };
 
 export type MatchLabel = 'Strong Match' | 'Good Match' | 'Possible Match';
@@ -29,6 +31,8 @@ export type RankedBuilderMatch = {
   builderId: string;
   matchScore: number;
   matchLabel: MatchLabel;
+  profileStrength: number;
+  rankingStrength: number;
   componentScores: ComponentScores;
   roleType: string;
   topSkills: string[];
@@ -57,6 +61,24 @@ function norm(s: string) {
   return s.toLowerCase().trim();
 }
 
+const SKILL_ALIASES: Record<string, string[]> = {
+  gcp: ['gcp', 'google cloud', 'google cloud platform'],
+  'google cloud': ['gcp', 'google cloud', 'google cloud platform'],
+  golang: ['golang', 'go'],
+  go: ['golang', 'go'],
+  'ci/cd': ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
+  cicd: ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
+  devops: ['devops', 'docker', 'kubernetes', 'terraform', 'jenkins', 'github actions'],
+  serverless: ['serverless', 'lambda', 'cloud functions', 'edge functions'],
+  'edge infrastructure': ['edge infrastructure', 'edge deployment', 'edge computing', 'low latency'],
+  'distributed systems': ['distributed systems', 'distributed', 'microservices', 'systems design'],
+};
+
+function canonicalSkillTerms(input: string) {
+  const normalized = norm(input).replace(/\s+/g, ' ');
+  return SKILL_ALIASES[normalized] || [normalized];
+}
+
 function tokenize(text: string): string[] {
   return norm(text)
     .replace(/[^a-z0-9+#.\s-]/g, ' ')
@@ -65,12 +87,31 @@ function tokenize(text: string): string[] {
 }
 
 function fuzzySkillMatch(required: string, haystack: Set<string>): boolean {
-  const r = norm(required);
-  if (haystack.has(r)) return true;
-  for (const h of haystack) {
-    if (h.includes(r) || r.includes(h)) return true;
+  const requiredTerms = canonicalSkillTerms(required);
+  for (const r of requiredTerms) {
+    if (haystack.has(r)) return true;
+    for (const h of haystack) {
+      if (h === r) return true;
+      if (r.length < 4 || h.length < 4) continue;
+      if (h.includes(r)) return true;
+      const rTokens = new Set(tokenize(r));
+      const hTokens = new Set(tokenize(h));
+      const requiredTokens = [...rTokens].filter((token) => token.length >= 4);
+      if (requiredTokens.length > 1 && requiredTokens.every((token) => hTokens.has(token))) {
+        return true;
+      }
+    }
   }
   return false;
+}
+
+function addSearchText(haystack: Set<string>, value: unknown) {
+  if (!value) return;
+  const raw = Array.isArray(value) ? value.join(' ') : String(value);
+  const normalized = norm(raw);
+  if (!normalized) return;
+  haystack.add(normalized);
+  tokenize(raw).forEach((token) => haystack.add(token));
 }
 
 function scoreSkillFit(
@@ -80,6 +121,7 @@ function scoreSkillFit(
 ): number {
   const required = [
     ...(opportunity.skillsNeeded || []),
+    ...(opportunity.niceToHaveSkills || []),
     ...(opportunity.roleTitle ? tokenize(opportunity.roleTitle) : []),
     ...(opportunity.roleType || []),
   ].filter(Boolean);
@@ -87,10 +129,21 @@ function scoreSkillFit(
   if (required.length === 0) return 0.55;
 
   const haystack = new Set<string>();
-  (builder.rolePreference || []).forEach((s: string) => haystack.add(norm(s)));
+  (builder.rolePreference || []).forEach((s: string) => addSearchText(haystack, s));
+  addSearchText(haystack, builder.headline);
+  addSearchText(haystack, builder.bio);
+  addSearchText(haystack, builder.profileQuality?.oneLineSummary);
+  (builder.profileQuality?.strengths || []).forEach((strength: any) => {
+    addSearchText(haystack, strength?.title);
+    addSearchText(haystack, strength?.detail);
+  });
   projects.forEach((p) => {
-    (p.techStack || []).forEach((s: string) => haystack.add(norm(s)));
-    (p.contributionTags || []).forEach((s: string) => haystack.add(norm(s)));
+    addSearchText(haystack, p.projectName);
+    addSearchText(haystack, p.description);
+    addSearchText(haystack, p.problemSolved);
+    addSearchText(haystack, p.builderContribution);
+    (p.techStack || []).forEach((s: string) => addSearchText(haystack, s));
+    (p.contributionTags || []).forEach((s: string) => addSearchText(haystack, s));
   });
 
   const matches = required.filter((skill) => fuzzySkillMatch(String(skill), haystack));
@@ -196,6 +249,24 @@ function scoreProfileQuality(builder: any): number {
   const clarity = builder.profileQuality?.founderClarity?.score ?? 0;
   const blended = overall * 0.6 + clarity * 0.4;
   return Math.min(1, blended / 100);
+}
+
+export function profileStrengthScore(builder: any, projects: any[] = []) {
+  const quality = builder.profileQuality?.overallScore ?? builder.profileCompletion?.profileScore ?? 0;
+  const proof = builder.profileCompletion?.proofScore ?? Math.min(100, projects.length * 25);
+  const clarity = builder.profileQuality?.founderClarity?.score ?? quality;
+  const linkScore = [
+    builder.links?.github,
+    builder.links?.linkedin,
+    builder.links?.portfolio || builder.links?.personalWebsite,
+    builder.links?.resume,
+    builder.links?.devpost,
+  ].filter(Boolean).length * 6;
+  const projectScore = Math.min(20, projects.length * 6);
+  return Math.max(
+    0,
+    Math.min(100, Math.round(quality * 0.35 + proof * 0.25 + clarity * 0.2 + linkScore + projectScore))
+  );
 }
 
 export function scoreToMatchLabel(score: number): MatchLabel {
@@ -309,6 +380,8 @@ export function rankBuildersForOpportunity(
         componentScores.profileQuality * 0.1) *
         100
     );
+    const profileStrength = profileStrengthScore(builder, projects);
+    const rankingStrength = Math.round(matchScore * 0.7 + profileStrength * 0.3);
 
     const skillSet = new Set<string>();
     (builder.rolePreference || []).forEach((s: string) => skillSet.add(s));
@@ -325,6 +398,8 @@ export function rankBuildersForOpportunity(
       builderId,
       matchScore,
       matchLabel: scoreToMatchLabel(matchScore),
+      profileStrength,
+      rankingStrength,
       componentScores,
       roleType: String(roleType),
       topSkills,
@@ -344,7 +419,14 @@ export function rankBuildersForOpportunity(
     });
   }
 
-  ranked.sort((a, b) => b.matchScore - a.matchScore);
+  ranked.sort(
+    (a, b) =>
+      b.rankingStrength - a.rankingStrength ||
+      b.profileStrength - a.profileStrength ||
+      b.matchScore - a.matchScore ||
+      b.componentScores.skillFit - a.componentScores.skillFit ||
+      b.componentScores.proofRelevance - a.componentScores.proofRelevance
+  );
   return ranked.slice(0, limit);
 }
 
@@ -353,6 +435,7 @@ export function toAnonymousCandidates(matches: RankedBuilderMatch[], previewCoun
     anonymousLabel: `${entry.roleType || 'Builder'} · ${entry.matchLabel}`,
     builderId: entry.builderId,
     matchScore: entry.matchScore,
+    profileStrength: entry.profileStrength,
     matchLabel: entry.matchLabel,
     roleType: entry.roleType,
     topSkills: entry.topSkills,
@@ -376,6 +459,7 @@ export function toPublicShortlist(shortlist: any) {
     candidates: (plain.candidates || []).map((c: any) => ({
       anonymousLabel: c.anonymousLabel,
       matchScore: c.matchScore,
+      profileStrength: c.profileStrength ?? 0,
       matchLabel: c.matchLabel,
       roleType: c.roleType,
       topSkills: c.topSkills || [],

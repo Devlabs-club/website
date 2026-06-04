@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { X, ThumbsDown, Bookmark } from 'lucide-react';
 import type { FullCandidate } from './founderTypes';
 import FounderTrialProjectCard from './FounderTrialProjectCard';
 import {
@@ -8,6 +9,105 @@ import {
   getIntroButtonLabel,
   getScheduleMeetButtonState,
 } from '@/lib/talent/founderIntroUi';
+import { pipelineNeedsCallClockTick } from '@/lib/talent/callTiming';
+
+const REJECTION_REASONS = [
+  { id: 'wrong_skills', label: 'Wrong skill set' },
+  { id: 'weak_proof', label: 'Weak proof' },
+  { id: 'unclear_contribution', label: 'Unclear contribution' },
+  { id: 'weak_backend', label: 'Not enough backend depth' },
+  { id: 'weak_frontend', label: 'Not enough frontend/design quality' },
+  { id: 'availability_mismatch', label: 'Availability mismatch' },
+  { id: 'too_junior', label: 'Too junior' },
+];
+
+const SAVE_REASONS = [
+  { id: 'strong_project', label: 'Strong relevant project' },
+  { id: 'strong_stack', label: 'Strong technical stack' },
+  { id: 'clear_contribution', label: 'Clear personal contribution' },
+  { id: 'startup_experience', label: 'Strong startup experience' },
+  { id: 'good_availability', label: 'Good availability' },
+];
+
+function FeedbackModal({
+  mode,
+  candidateName,
+  onSubmit,
+  onCancel,
+  busy,
+}: {
+  mode: 'save' | 'reject';
+  candidateName: string;
+  onSubmit: (reasonCategory: string, reasonText: string) => void;
+  onCancel: () => void;
+  busy?: boolean;
+}) {
+  const [selected, setSelected] = useState('');
+  const [customText, setCustomText] = useState('');
+  const reasons = mode === 'reject' ? REJECTION_REASONS : SAVE_REASONS;
+  const title = mode === 'reject' ? `Why are you passing on ${candidateName}?` : `What stood out about ${candidateName}?`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111114] p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <p className="text-sm font-semibold text-white">{title}</p>
+          <button type="button" onClick={onCancel} className="text-white/40 hover:text-white transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {reasons.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => setSelected(r.id)}
+              className={`w-full text-left text-sm px-3 py-2 rounded-lg border transition-all ${
+                selected === r.id
+                  ? 'border-[#fa7d22]/50 bg-[#fa7d22]/10 text-white'
+                  : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white hover:border-white/20'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setSelected('other')}
+            className={`w-full text-left text-sm px-3 py-2 rounded-lg border transition-all ${
+              selected === 'other'
+                ? 'border-[#fa7d22]/50 bg-[#fa7d22]/10 text-white'
+                : 'border-white/10 bg-white/[0.03] text-white/70 hover:text-white hover:border-white/20'
+            }`}
+          >
+            Something else
+          </button>
+          {selected === 'other' ? (
+            <textarea
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] text-white text-sm px-3 py-2 resize-none focus:outline-none focus:border-white/20 placeholder-white/30"
+              placeholder="Briefly describe the issue…"
+              rows={2}
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+            />
+          ) : null}
+        </div>
+        <button
+          type="button"
+          disabled={!selected || busy}
+          onClick={() => onSubmit(selected, selected === 'other' ? customText : reasons.find(r => r.id === selected)?.label || selected)}
+          className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 ${
+            mode === 'reject'
+              ? 'bg-red-500/20 border border-red-500/30 text-red-300 hover:bg-red-500/30'
+              : 'bg-[#fa7d22] text-black hover:bg-[#ffb580]'
+          }`}
+        >
+          {busy ? 'Saving…' : mode === 'reject' ? 'Confirm pass' : 'Save candidate'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function verificationTone(label: string) {
   if (label === 'DevLabs Verified') return 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10';
@@ -29,6 +129,8 @@ export default function FounderCandidateDrawer({
   onConfirmCall,
   onHire,
   onReviewTrial,
+  onSave,
+  onReject,
   actionBusy,
 }: {
   candidate: FullCandidate;
@@ -49,16 +151,51 @@ export default function FounderCandidateDrawer({
   onConfirmCall: () => void;
   onHire: (skipTrial?: boolean) => void;
   onReviewTrial: () => void;
+  onSave?: (reasonCategory: string, reasonText: string) => Promise<void>;
+  onReject?: (reasonCategory: string, reasonText: string) => Promise<void>;
   actionBusy?: boolean;
 }) {
+  const [callClockTick, setCallClockTick] = useState(0);
+  const [feedbackMode, setFeedbackMode] = useState<'save' | 'reject' | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+
+  useEffect(() => {
+    if (!pipelineEntry || !pipelineNeedsCallClockTick([pipelineEntry])) return;
+    const id = window.setInterval(() => setCallClockTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, [pipelineEntry]);
+
   const matchStatus = candidate.matchStatus;
   const introButton = getIntroButtonLabel(candidate, pipelineEntry as any);
   const scheduleMeet = getScheduleMeetButtonState(candidate, pipelineEntry as any);
   const showConfirmTime = canConfirmCallTime(pipelineEntry as any);
   const postMeeting = canShowPostMeetingActions(pipelineEntry as any, candidate);
   const showReviewTrial = candidate.trialProject?.status === 'submitted';
+  void callClockTick;
+
+  const handleFeedbackSubmit = async (reasonCategory: string, reasonText: string) => {
+    if (!feedbackMode) return;
+    setFeedbackBusy(true);
+    try {
+      if (feedbackMode === 'save' && onSave) await onSave(reasonCategory, reasonText);
+      if (feedbackMode === 'reject' && onReject) await onReject(reasonCategory, reasonText);
+      setFeedbackMode(null);
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
 
   return (
+    <>
+    {feedbackMode ? (
+      <FeedbackModal
+        mode={feedbackMode}
+        candidateName={candidate.name}
+        onSubmit={handleFeedbackSubmit}
+        onCancel={() => setFeedbackMode(null)}
+        busy={feedbackBusy}
+      />
+    ) : null}
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-lg glass-panel-strong border-white/10 bg-[#0c0d0f]/95 p-0 overflow-y-auto">
         <SheetHeader className="sticky top-0 z-10 px-6 py-4 border-b border-white/10 bg-[#0c0d0f]/95 text-left">
@@ -260,8 +397,36 @@ export default function FounderCandidateDrawer({
               {introButton.label}
             </button>
           ) : null}
+          {/* Save / Reject feedback buttons */}
+          {(onSave || onReject) && candidate.matchStatus !== 'hired' ? (
+            <div className="w-full flex gap-2 pt-1 border-t border-white/[0.06]">
+              {onSave ? (
+                <button
+                  type="button"
+                  disabled={actionBusy || feedbackBusy}
+                  onClick={() => setFeedbackMode('save')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] text-white/60 text-xs hover:text-white hover:border-white/20 transition-all disabled:opacity-40"
+                >
+                  <Bookmark className="w-3.5 h-3.5" />
+                  Save
+                </button>
+              ) : null}
+              {onReject ? (
+                <button
+                  type="button"
+                  disabled={actionBusy || feedbackBusy}
+                  onClick={() => setFeedbackMode('reject')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.03] text-white/60 text-xs hover:text-red-400 hover:border-red-500/20 transition-all disabled:opacity-40"
+                >
+                  <ThumbsDown className="w-3.5 h-3.5" />
+                  Pass
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>
+    </>
   );
 }

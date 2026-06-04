@@ -1,13 +1,32 @@
 import React from 'react';
-import { Check, Sparkles } from 'lucide-react';
-import { BentoGrid, BentoGridItem } from '@/components/ui/bento-grid';
+import { Check, Sparkles, ArrowRight } from 'lucide-react';
 import { DottedGlowBackground } from '@/components/ui/dotted-glow-background';
-import { TextGenerateEffect } from '@/components/ui/text-generate-effect';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { BlurFade } from '@/components/ui/blur-fade';
-import { OsButton, OsBadge, scoreTone } from '@/components/os';
+import { OsButton } from '@/components/os';
 import type { BuilderDashboardContext } from './types';
+import { cn } from '@/lib/utils';
+
+function ScoreBadge({ score, label }: { score: number; label: string }) {
+  const tone =
+    score >= 80 ? 'bg-emerald-400/10 border-emerald-400/25 text-emerald-300'
+    : score >= 60 ? 'bg-amber-400/10 border-amber-400/25 text-amber-300'
+    : 'bg-red-400/10 border-red-400/25 text-red-300';
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold', tone)}>
+      {label} · <NumberTicker value={score} className="text-inherit text-xs" />%
+    </span>
+  );
+}
+
+function remoteLabel(pref?: string | null) {
+  if (!pref || pref === 'unspecified') return 'Remote or in-person';
+  if (pref === 'remote') return 'Remote';
+  if (pref === 'hybrid') return 'Hybrid';
+  if (pref === 'in_person') return 'In-person';
+  return pref.replace('_', ' ');
+}
 
 export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }) {
   const {
@@ -17,7 +36,7 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
     projectStats,
     qualityScore,
     qualityLabel,
-    matchScore,
+    proofScore,
     topRoles,
     topSkills,
     setActiveTab,
@@ -27,17 +46,18 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
   } = ctx;
 
   return (
-    <BlurFade delay={0.05} className="space-y-6">
+    <BlurFade delay={0.05} className="space-y-5">
+      {/* Intro banner */}
       {introInbox.length > 0 ? (
-        <div className="relative overflow-hidden rounded-2xl border border-[#fa7d22]/30 bg-[#fa7d22]/10 p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="relative overflow-hidden rounded-2xl border border-[#fa7d22]/30 bg-[#fa7d22]/8 p-4 flex flex-wrap items-center justify-between gap-4">
           <BorderBeam size={80} colorFrom="#fa7d22" colorTo="#ffb580" />
           <div>
             <p className="text-sm font-semibold text-white">
-              {introInbox.length === 1
-                ? 'You have a new intro request'
-                : `You have ${introInbox.length} intro requests`}
+              {introInbox.length === 1 ? 'You have a new intro request' : `${introInbox.length} intro requests waiting`}
             </p>
-            <p className="text-sm text-white/70 mt-1">Open Messages to read the founder&apos;s note and accept or decline.</p>
+            <p className="text-sm text-white/55 mt-0.5">
+              Open the Intros tab to accept or decline.
+            </p>
           </div>
           <OsButton
             variant="shimmer"
@@ -45,197 +65,181 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
               const intro = introInbox[0];
               if (intro?.threadId) setMessagesThreadId(intro.threadId);
               if (intro?._id) setMessagesIntroId(intro._id);
-              setActiveTab('messages');
+              setActiveTab('intros');
             }}
           >
-            Review intro
+            Review intro <ArrowRight className="w-3.5 h-3.5 ml-1" />
           </OsButton>
         </div>
       ) : null}
 
-      <div className="relative overflow-hidden glass-panel-strong p-8 md:p-12 text-center flex flex-col items-center rounded-3xl">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/8 bg-white/[0.02] p-10 md:p-14 text-center flex flex-col items-center">
         <div
-          className="absolute inset-0 pointer-events-none opacity-70"
+          className="absolute inset-0 pointer-events-none opacity-60"
           style={{
-            maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)',
-            WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 20%, rgba(0,0,0,0) 70%)',
+            maskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
           }}
         >
           <DottedGlowBackground
             className="w-full h-full"
-            color="rgba(255,255,255,0.5)"
-            glowColor="rgba(250, 125, 34, 0.75)"
+            color="rgba(255,255,255,0.4)"
+            glowColor="rgba(250, 125, 34, 0.6)"
             gap={14}
             radius={2}
-            opacity={0.7}
+            opacity={0.6}
             speedMin={0.3}
             speedMax={1}
             speedScale={0.8}
           />
         </div>
         <div className="relative z-10">
-          <h2 className="text-3xl md:text-5xl font-manrope tracking-tight text-white mb-4">
-            Build your{' '}
-            <span className="font-serif italic hero-underline text-4xl md:text-6xl text-white">proof-of-work</span>
+          <h2 className="text-3xl md:text-5xl font-manrope font-semibold tracking-tight text-white mb-3">
+            Build a{' '}
+            <em className="font-serif not-italic italic hero-underline text-4xl md:text-6xl">proof-backed profile</em>
           </h2>
-          <div className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            <TextGenerateEffect
-              words="Complete your DevLabs profile so founders can discover your skills, projects, and availability."
-              className="text-lg font-normal text-white/70"
-              duration={0.3}
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          <p className="text-white/55 text-base md:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+            Keep your projects, proof links, contribution details, and availability clear and current.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <OsButton variant="white" onClick={() => setActiveTab('profile')}>
-              Improve my profile
+              Update profile
             </OsButton>
-            <OsButton variant="glass" onClick={() => setActiveTab('projects')}>
+            <OsButton variant="glass" onClick={() => setActiveTab('profile')}>
               Add a project
             </OsButton>
           </div>
         </div>
       </div>
 
-      <BentoGrid className="md:auto-rows-[20rem]">
-        <BentoGridItem
-          className="md:col-span-2 glass-panel !bg-white/[0.03] !border-white/10 !shadow-none hover:!border-[#fa7d22]/30"
-          title={
-            <div className="flex justify-between items-start gap-3">
-              <span className="text-xl font-semibold text-white">Profile Quality</span>
-              <OsBadge variant="score" score={qualityScore}>
-                {qualityLabel} · <NumberTicker value={qualityScore} className="text-inherit text-sm" />%
-              </OsBadge>
-            </div>
-          }
-          description={
-            <div className="space-y-3 mt-2">
-              <p className="text-sm text-white/80 leading-relaxed">
-                {builder.profileQuality?.oneLineSummary || 'Complete your profile to get matched.'}
-              </p>
-              {builder.profileQuality?.strengths?.length ? (
-                <ul className="text-sm text-white/60 space-y-1">
-                  {builder.profileQuality.strengths.slice(0, 3).map((s, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{s.title}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </div>
-          }
-          header={
-            <button
-              type="button"
-              onClick={() => {
-                setAgentInput('make my profile better');
-                setActiveTab('agent');
-              }}
-              className="mt-auto w-full py-2.5 rounded-xl bg-[#fa7d22]/10 border border-[#fa7d22]/30 text-[#fa7d22] font-medium hover:bg-[#fa7d22]/20 transition-colors text-sm"
-            >
-              Improve profile quality
-            </button>
-          }
-        />
+      {/* Cards grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Profile Quality — spans 2 */}
+        <div className="md:col-span-2 rounded-2xl border border-white/8 bg-white/[0.02] p-6 flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-base font-semibold text-white">Profile Quality</p>
+            <ScoreBadge score={qualityScore} label={qualityLabel} />
+          </div>
+          {builder.profileQuality?.oneLineSummary ? (
+            <p className="text-sm text-white/60 leading-relaxed">
+              {builder.profileQuality.oneLineSummary}
+            </p>
+          ) : null}
+          {builder.profileQuality?.strengths?.length ? (
+            <ul className="space-y-1.5">
+              {builder.profileQuality.strengths.slice(0, 3).map((s, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-white/70">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  {s.title}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setAgentInput('make my profile better');
+              setActiveTab('agent');
+            }}
+            className="mt-auto w-full py-2.5 rounded-xl bg-[#fa7d22]/8 border border-[#fa7d22]/20 text-[#fa7d22] text-sm font-medium hover:bg-[#fa7d22]/15 transition-colors"
+          >
+            Improve profile quality
+          </button>
+        </div>
 
-        <BentoGridItem
-          className="glass-panel !bg-white/[0.03] !border-white/10 !shadow-none"
-          title={<span className="text-xl font-semibold text-white">Founder Preview</span>}
-          description={
-            <div className="space-y-3 mt-2 text-sm text-white/70">
-              <div>
-                <h4 className="text-lg font-semibold text-white">{builder.name}</h4>
-                <p className="text-[#fa7d22]">{builder.rolePreference?.[0] || 'Builder'}</p>
-              </div>
-              <p>
-                {builder.availability?.availableNow ? 'Open to opportunities' : 'Not currently looking'} ·{' '}
-                {builder.availability?.remotePreference?.replace('_', ' ') || 'Remote or in-person'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {topSkills.slice(0, 4).map((skill) => (
-                  <span key={skill} className="px-2 py-1 text-xs rounded-md bg-white/5 border border-white/10">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </div>
-          }
-        />
-
-        <BentoGridItem
-          className="glass-panel !bg-white/[0.03] !border-white/10 !shadow-none"
-          title={<span className="text-xl font-semibold text-white">Proof of Work</span>}
-          description={
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {[
-                ['Projects', projectStats.total],
-                ['Verified', projectStats.verifiedContributions],
-                ['Devpost', projectStats.devpostImports],
-                ['GitHub', projectStats.githubProjects],
-              ].map(([label, val]) => (
-                <div key={label as string} className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-center">
-                  <p className="text-2xl font-semibold text-white">
-                    <NumberTicker value={val as number} className="text-white text-2xl" />
-                  </p>
-                  <p className="text-xs text-white/60 mt-1">{label as string}</p>
-                </div>
+        {/* Founder Preview */}
+        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-6 flex flex-col gap-3">
+          <p className="text-base font-semibold text-white">Founder Preview</p>
+          <div>
+            <p className="text-[15px] font-semibold text-white">{builder.name}</p>
+            <p className="text-[#fa7d22] text-sm font-medium mt-0.5">
+              {builder.headline || builder.rolePreference?.[0] || 'Builder'}
+            </p>
+          </div>
+          <p className="text-xs text-white/45">
+            {builder.availability?.availableNow ? 'Open to opportunities' : 'Not currently looking'} · {remoteLabel(builder.availability?.remotePreference)}
+          </p>
+          {topSkills.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {topSkills.slice(0, 4).map((skill) => (
+                <span key={skill} className="px-2 py-0.5 text-xs rounded-md bg-white/5 border border-white/8 text-white/70">
+                  {skill}
+                </span>
               ))}
             </div>
-          }
-        />
+          ) : null}
+        </div>
 
-        <BentoGridItem
-          className="md:col-span-2 relative overflow-hidden !border-[#fa7d22]/30 !bg-gradient-to-br from-[#fa7d22]/10 to-transparent"
-          title={
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-6 h-6 text-[#fa7d22]" />
-              <span className="text-xl font-semibold text-white">Next Best Action</span>
-            </div>
-          }
-          description={
-            <div className="mt-3 space-y-2">
-              {projects.length === 0 ? (
-                <>
-                  <p className="text-lg text-white/90 font-medium">
-                    Add a project that proves your {topRoles.slice(0, 3).join(', ') || 'development'} experience.
-                  </p>
-                  <p className="text-sm text-white/70">
-                    Founders are 3x more likely to request an intro when your skills are backed by a real project.
-                  </p>
-                </>
-              ) : matchScore < 80 ? (
-                <>
-                  <p className="text-lg text-white/90 font-medium">Improve your profile quality to reach Match Ready status.</p>
-                  <p className="text-sm text-white/70">Only high-quality profiles are shown to founders in opportunity matching.</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-lg text-white/90 font-medium">You are Match Ready!</p>
-                  <p className="text-sm text-white/70">Keep your availability up to date and respond to opportunities when they arrive.</p>
-                </>
-              )}
-            </div>
-          }
-          header={
-            projects.length === 0 ? (
-              <OsButton variant="white" className="mt-4 w-full" onClick={() => setActiveTab('projects')}>
-                Add proof-of-work
+        {/* Project Evidence */}
+        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-6">
+          <p className="text-base font-semibold text-white mb-4">Project Evidence</p>
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              ['Projects', projectStats.total],
+              ['Verified', projectStats.verifiedContributions],
+              ['Devpost', projectStats.devpostImports],
+              ['GitHub', projectStats.githubProjects],
+            ].map(([label, val]) => (
+              <div key={label as string} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center">
+                <p className="text-2xl font-bold text-white tabular-nums">
+                  <NumberTicker value={val as number} className="text-white text-2xl" />
+                </p>
+                <p className="text-[11px] text-white/45 mt-1 uppercase tracking-wider">{label as string}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Next Best Action — spans 2 */}
+        <div className="md:col-span-2 rounded-2xl border border-[#fa7d22]/20 bg-gradient-to-br from-[#fa7d22]/8 to-transparent p-6 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#fa7d22]" />
+            <p className="text-base font-semibold text-white">Next Best Action</p>
+          </div>
+          {projects.length === 0 ? (
+            <>
+              <p className="text-[15px] text-white/90 font-medium leading-snug">
+                Add a project that shows your {topRoles.slice(0, 2).join(' or ') || 'development'} experience.
+              </p>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Projects are your proof-of-work. Show what you built, what you owned, and where the evidence lives.
+              </p>
+              <OsButton variant="white" className="mt-2 self-start" onClick={() => setActiveTab('profile')}>
+                Add your first project
               </OsButton>
-            ) : matchScore < 80 ? (
+            </>
+          ) : proofScore < 70 ? (
+            <>
+              <p className="text-[15px] text-white/90 font-medium leading-snug">
+                Clarify your personal contribution on each project.
+              </p>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Founders evaluate contribution clarity before reaching out. Make it easy to see what you personally built.
+              </p>
               <OsButton
                 variant="shimmer"
-                className="mt-4 w-full"
+                className="mt-2 self-start"
                 onClick={() => {
-                  setAgentInput('make my profile better');
+                  setAgentInput('Review my projects and tell me what contribution details are missing');
                   setActiveTab('agent');
                 }}
               >
-                Improve profile quality
+                Improve proof clarity
               </OsButton>
-            ) : null
-          }
-        />
-      </BentoGrid>
+            </>
+          ) : (
+            <>
+              <p className="text-[15px] text-white/90 font-medium leading-snug">
+                Your proof-of-work is in good shape.
+              </p>
+              <p className="text-sm text-white/50 leading-relaxed">
+                Keep your availability current and respond to intro requests when they arrive.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
     </BlurFade>
   );
 }

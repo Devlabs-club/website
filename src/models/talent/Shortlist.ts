@@ -6,6 +6,7 @@ const AnonymousCandidateSchema = new mongoose.Schema(
     builderId: { type: mongoose.Schema.Types.ObjectId, ref: 'BuilderProfile', required: true },
     anonymousLabel: { type: String, required: true },
     matchScore: { type: Number, min: 0, max: 100, required: true },
+    profileStrength: { type: Number, min: 0, max: 100, default: 0 },
     matchLabel: {
       type: String,
       enum: ['Strong Match', 'Good Match', 'Possible Match'],

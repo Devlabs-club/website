@@ -1,16 +1,103 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Sparkles, Send, ArrowLeft, Loader2, ArrowRight, Award, Zap, HelpCircle } from 'lucide-react';
-import { DottedGlowBackground } from '../ui/dotted-glow-background';
-import { AmbientBackground } from '../ui/AmbientBackground';
-import { useAuth } from '../auth_manager';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ArrowLeft, Send, Loader2, ChevronRight, Pencil } from 'lucide-react';
+import { canRunPreviewAnyway } from '@/lib/talent/founderSearchQuality';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type ChatMessage = {
   id: string;
-  sender: 'agent' | 'user';
+  role: 'agent' | 'user' | 'tool';
   text: string;
-  isCandidatesFeed?: boolean;
-  candidates?: any[];
+  toolName?: string;
+  options?: AgentOption[];
+  searchQuality?: SearchQualityBlock | null;
+  timestamp: Date;
 };
+
+type SearchQualityBlock = {
+  totalScanned: number;
+  totalRetrieved: number;
+  strongCount: number;
+  mediumCount: number;
+  poolStrength: 'weak' | 'medium' | 'strong';
+  confidence: 'low' | 'medium' | 'high';
+  bottlenecks: string[];
+  suggestedRelaxations: string[];
+  summary: string;
+};
+
+type AgentOption = {
+  label: string;
+  value: string;
+};
+
+// ── Option parser ─────────────────────────────────────────────────────────────
+// Detects a question + numbered list in the agent response and splits it out.
+
+function parseAgentOptions(text: string): { message: string; question: string; options: AgentOption[] } | null {
+  // Match pattern: some text, then a question line, then 1. ... 2. ... etc.
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const optionLines: { idx: number; label: string }[] = [];
+
+  lines.forEach((line, i) => {
+    const m = line.match(/^(\d+)\.\s+(.+)$/);
+    if (m) optionLines.push({ idx: i, label: m[2] });
+  });
+
+  if (optionLines.length < 2) return null;
+
+  // Find the contiguous block of options
+  const firstOptionIdx = optionLines[0].idx;
+  const lastOptionIdx = optionLines[optionLines.length - 1].idx;
+
+  // Question is the line immediately before the first option
+  const questionIdx = firstOptionIdx - 1;
+  const question = questionIdx >= 0 ? lines[questionIdx] : '';
+
+  // Message is everything before the question (and anything after the options)
+  const messageParts = [
+    ...lines.slice(0, Math.max(0, questionIdx)),
+    ...lines.slice(lastOptionIdx + 1),
+  ].join('\n').trim();
+
+  return {
+    message: messageParts,
+    question,
+    options: optionLines.map(o => ({ label: o.label, value: o.label })),
+  };
+}
+
+// ── Search Quality Card ────────────────────────────────────────────────────────
+
+function SearchQualityCard({ sq }: { sq: SearchQualityBlock }) {
+  const strengthColor = sq.poolStrength === 'strong'
+    ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+    : sq.poolStrength === 'medium'
+      ? 'text-amber-400 border-amber-500/20 bg-amber-500/5'
+      : 'text-red-400 border-red-500/20 bg-red-500/5';
+
+  return (
+    <div className={`rounded-xl border p-3 text-xs w-full max-w-[88%] ${strengthColor}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-semibold uppercase tracking-wider text-[10px] opacity-70">Search Quality</span>
+        <span className="font-bold capitalize">{sq.poolStrength} pool · {sq.confidence} confidence</span>
+      </div>
+      <div className="flex gap-4 mb-2 opacity-80">
+        <span>{sq.strongCount} strong</span>
+        <span>{sq.mediumCount} good</span>
+        <span>{sq.totalRetrieved} total</span>
+      </div>
+      {sq.bottlenecks?.length > 0 ? (
+        <p className="opacity-70 mb-1">Bottleneck: {sq.bottlenecks[0]}</p>
+      ) : null}
+      {sq.suggestedRelaxations?.length > 0 ? (
+        <p className="opacity-70">Suggestion: {sq.suggestedRelaxations[0]}</p>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface FounderRoleIntakeChatProps {
   opportunityId: string | null;
@@ -23,154 +110,167 @@ export default function FounderRoleIntakeChat({
   onClose,
   onSearchCompleted,
 }: FounderRoleIntakeChatProps) {
-  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
+  const [isBusy, setIsBusy] = useState(false);
   const [opportunityId, setOpportunityId] = useState<string | null>(initialOpportunityId);
   const [currentBrief, setCurrentBrief] = useState<any>(null);
-  const [missingFields, setMissingFields] = useState<string[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [toolCallLabel, setToolCallLabel] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  // Use a ref so the init effect only fires once and doesn't need sendToAgent in deps
+  const initiatedRef = useRef(false);
 
-  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isThinking]);
+  }, [messages, isBusy]);
 
-  // Initial prompt
-  useEffect(() => {
-    const greetingText = `Let's find the perfect builder for your next hire. First, tell me a little bit about the role and what qualities you look for in the person.`;
-    
-    setMessages([
-      {
-        id: 'agent-greet',
-        sender: 'agent',
-        text: greetingText,
-      },
-    ]);
-  }, []);
-
-  const addMessage = (sender: 'agent' | 'user', text: string, isCandidatesFeed = false, candidates?: any[]) => {
-    const newMessage: ChatMessage = {
-      id: Math.random().toString(36).substr(2, 9),
-      sender,
-      text,
-      isCandidatesFeed,
-      candidates,
-    };
-    setMessages((prev) => [...prev, newMessage]);
+  const addMessage = (msg: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+    const full: ChatMessage = { ...msg, id: Math.random().toString(36).slice(2), timestamp: new Date() };
+    setMessages(prev => [...prev, full]);
+    return full;
   };
 
-  const handleSend = async () => {
-    const text = inputText.trim();
-    if (!text || isThinking) return;
+  const sendToAgent = useCallback(async (text: string, history: ChatMessage[]) => {
+    const isInit = text === '__init__';
+    // For init: tell the agent whether this is a first-time founder (no opportunityId)
+    // so it can calibrate its opening — fresh vs returning.
+    const userText = isInit
+      ? initialOpportunityId
+        ? 'I want to work on my existing role or start a new search.'
+        : 'I just signed up. I want to hire a builder for my startup.'
+      : text;
 
-    addMessage('user', text);
-    setInputText('');
-    setIsThinking(true);
+    if (!isInit) {
+      addMessage({ role: 'user', text });
+    }
+
+    setIsBusy(true);
+    setToolCallLabel('Thinking...');
+
+    const chatHistory = history
+      .filter(m => m.role === 'user' || m.role === 'agent')
+      .map(m => ({ role: m.role === 'agent' ? 'assistant' : 'user', content: m.text }));
+
+    // Add the synthetic user message for init
+    if (isInit) {
+      chatHistory.push({ role: 'user', content: userText });
+    }
 
     try {
-      // Send chat message to backend
-      const response = await fetch('/api/agent/actions', {
+      const res = await fetch('/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           action: 'founder_chat',
           payload: {
-            message: text,
-            opportunityId: opportunityId,
-            history: messages
-              .filter((m) => !m.isCandidatesFeed)
-              .map((m) => ({
-                role: m.sender === 'agent' ? 'assistant' : 'user',
-                content: m.text,
-              })),
+            message: userText,
+            opportunityId,
+            history: chatHistory.slice(-16),
           },
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Agent request failed');
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Agent failed');
 
-      setIsThinking(false);
-      
-      // Update opportunity tracking
       if (data.opportunity?._id) {
         setOpportunityId(String(data.opportunity._id));
         setCurrentBrief(data.opportunity);
       }
 
-      // Check what is missing
-      const skipped = data.opportunity?.skippedFields || [];
-      const missing = data.session?.missingRequiredFields || [];
-      setMissingFields(missing);
+      const rawMessage = data.message || '';
 
-      addMessage('agent', data.message || 'Brief updated.');
+      // Extract search quality block from uiBlocks if present
+      const sqBlock = (Array.isArray(data.uiBlocks) ? data.uiBlocks : [])
+        .find((b: any) => b.type === 'search_quality_report') as SearchQualityBlock | undefined;
 
-      // If the brief is ready, run the builder search
-      const hasTitle = data.opportunity?.roleTitle && data.opportunity?.roleTitle !== 'New role';
-      const hasCompany = data.opportunity?.company && data.opportunity?.company !== 'Your startup';
-      
-      if (missing.length === 0 || data.intent === 'role_summary' || data.message.toLowerCase().includes('run the builder search') || data.message.toLowerCase().includes('rerun the search')) {
-        // Trigger builder search automatically
-        triggerBuilderSearch(String(data.opportunity._id));
+      const parsed = parseAgentOptions(rawMessage);
+
+      if (parsed && parsed.options.length >= 2) {
+        if (parsed.message) {
+          addMessage({ role: 'agent', text: parsed.message });
+        }
+        addMessage({
+          role: 'agent',
+          text: parsed.question,
+          options: parsed.options,
+          searchQuality: sqBlock ?? null,
+        });
+      } else {
+        addMessage({ role: 'agent', text: rawMessage, searchQuality: sqBlock ?? null });
+      }
+
+      // Auto-trigger search if brief is ready and agent signals it
+      const lower = rawMessage.toLowerCase();
+      const wantsSearch = lower.includes('run the builder search') || lower.includes('run search') || lower.includes('want me to run');
+      if (data.opportunity && canRunPreviewAnyway(data.opportunity) && wantsSearch) {
+        await triggerSearch(String(data.opportunity._id));
       }
     } catch (err: any) {
-      setIsThinking(false);
-      addMessage('agent', `I encountered an issue processing that: ${err.message || 'unknown error'}`);
+      addMessage({ role: 'agent', text: `Something went wrong: ${err.message || 'unknown error'}. Try again.` });
+    } finally {
+      setIsBusy(false);
+      setToolCallLabel(null);
+    }
+  }, [opportunityId]);
+
+  // Init effect — fires once after sendToAgent is available
+  useEffect(() => {
+    if (initiatedRef.current) return;
+    initiatedRef.current = true;
+    sendToAgent('__init__', []);
+  }, [sendToAgent]);
+
+  const triggerSearch = async (oppId: string) => {
+    setIsBusy(true);
+    setToolCallLabel('Searching the builder graph...');
+    addMessage({ role: 'tool', text: 'Scanning proof-of-work talent graph...', toolName: 'run_search' });
+
+    try {
+      const res = await fetch('/api/agent/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'run_builder_search', payload: { opportunityId: oppId } }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Search failed');
+
+      const total = data.shortlist?.totalMatches ?? data.totalMatches ?? 0;
+      const strong = data.shortlist?.strongMatchCount ?? data.strongMatchCount ?? 0;
+
+      addMessage({
+        role: 'agent',
+        text: total > 0
+          ? `Found ${total} builder${total === 1 ? '' : 's'}${strong > 0 ? `, ${strong} strong match${strong === 1 ? '' : 'es'}` : ''}. Opening your pipeline...`
+          : 'Search complete. No strong matches yet — try widening the skills or adjusting the stack.',
+      });
+
+      // Go directly to kanban board — no intermediate card display
+      if (total > 0) {
+        setTimeout(() => onSearchCompleted(oppId), 800);
+      }
+    } catch (err: any) {
+      addMessage({ role: 'agent', text: `Search failed: ${err.message}` });
+    } finally {
+      setIsBusy(false);
+      setToolCallLabel(null);
     }
   };
 
-  const triggerBuilderSearch = async (oppId: string) => {
-    setIsSearching(true);
-    setIsThinking(true);
-    addMessage('agent', "Brief compiled. Analyzing the DevLabs proof-of-work talent graph to match builders...");
+  const handleSend = () => {
+    const text = inputText.trim();
+    if (!text || isBusy) return;
+    setInputText('');
+    sendToAgent(text, messages);
+  };
 
-    try {
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'run_builder_search',
-          payload: { opportunityId: oppId },
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Search failed');
-
-      // Fetch candidates list (anonymous or full depending on unlock state)
-      const listRes = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'get_founder_dashboard',
-          payload: {},
-        }),
-      });
-      const listData = await listRes.json();
-      const shortlist = (listData.shortlists || []).find((s: any) => s.opportunityId === oppId);
-
-      setIsThinking(false);
-      setIsSearching(false);
-
-      if (shortlist && shortlist.candidates.length > 0) {
-        addMessage(
-          'agent',
-          `Matched ${shortlist.totalMatches} builders with proof! Here are the top matches for your role:`,
-          true,
-          shortlist.candidates
-        );
-      } else {
-        addMessage('agent', "I couldn't find any direct matches in our talent pool yet. Try adjusting the skills or stack in your brief.");
-      }
-    } catch (err: any) {
-      setIsThinking(false);
-      setIsSearching(false);
-      addMessage('agent', `Could not complete matching: ${err.message || 'unknown error'}`);
-    }
+  const handleOptionClick = (option: AgentOption) => {
+    setInputText('');
+    sendToAgent(option.value, messages);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -180,194 +280,177 @@ export default function FounderRoleIntakeChat({
     }
   };
 
-  const getInterestingFact = (cand: any) => {
-    if (cand.proofSummary) {
-      // Clean up potential markdown formatting
-      return cand.proofSummary.replace(/\*\*|`/g, '');
-    }
-    return cand.whyTheyMatch || "Built a standout project in a recent hackathon.";
-  };
+  // Only show the option card if the user hasn't already replied after seeing those options.
+  // Compare timestamps: if the last user message is newer than the last options message, the
+  // options were already answered and the card should be hidden.
+  const lastOptionsMessage = [...messages].reverse().find(m => m.options && m.options.length > 0);
+  const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
+  const showOptionCard =
+    lastOptionsMessage &&
+    !isBusy &&
+    (!lastUserMessage || lastOptionsMessage.timestamp >= lastUserMessage.timestamp);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center text-white overflow-hidden animate-fade-in">
-      <AmbientBackground overlayOpacity={0.75} />
-      <DottedGlowBackground
-        className="fixed inset-0 z-0 w-full h-full"
-        color="rgba(255,255,255,0.05)"
-        glowColor="rgba(250, 125, 34, 0.28)"
-        gap={14}
-        radius={2}
-        opacity={0.55}
-        speedMin={0.3}
-        speedMax={1}
-        speedScale={0.8}
-      />
-      <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,transparent_0%,hsl(8_8%_3.5%/0.8)_100%)]" />
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#0c0c0e] text-white">
 
-      {/* Cockpit layout */}
-      <div className="relative z-10 w-full max-w-4xl mx-auto px-4 flex flex-col h-screen justify-between py-6">
-        
-        {/* Header navigation */}
-        <div className="flex items-center justify-between border-b border-white/5 pb-4">
-          <button
-            onClick={onClose}
-            className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-semibold group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Exit Search
-          </button>
-          
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[#fa7d22] animate-pulse" />
-            <span className="text-xs uppercase tracking-widest text-[#fa7d22] font-semibold">Role intake</span>
-          </div>
+      {/* ── Top bar ── */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+        <button
+          onClick={onClose}
+          className="flex items-center gap-2 text-white/40 hover:text-white transition-colors text-sm font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </button>
 
-          <div className="text-xs text-white/30">
+        <div className="flex items-center gap-2.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#fa7d22] animate-pulse" />
+          <span className="text-xs uppercase tracking-widest text-white/40 font-semibold">
             {currentBrief?.roleTitle && currentBrief.roleTitle !== 'New role'
               ? `${currentBrief.roleTitle} @ ${currentBrief.company || 'Draft'}`
-              : 'New brief creation'}
-          </div>
+              : 'New role brief'}
+          </span>
         </div>
 
-        {/* Messaging Area */}
-        <div className="flex-1 overflow-y-auto py-8 space-y-6 px-2 custom-scrollbar">
-          {messages.map((msg, i) => {
-            const isAgent = msg.sender === 'agent';
-            
-            if (msg.isCandidatesFeed && msg.candidates) {
+        {currentBrief?._id && (
+          <button
+            onClick={() => onSearchCompleted(String(currentBrief._id))}
+            className="flex items-center gap-1.5 text-xs text-[#fa7d22] hover:text-[#ffb580] font-medium transition-colors"
+          >
+            View candidates
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
+        {!currentBrief?._id && <div className="w-24" />}
+      </div>
+
+      {/* ── Messages ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+
+          {messages.map((msg) => {
+            if (msg.role === 'tool') {
               return (
-                <div key={msg.id} className="space-y-6">
-                  {/* Title message */}
-                  <div className="flex gap-3 max-w-[85%] mr-auto">
-                    <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#fa7d22] shrink-0">
-                      <Bot className="w-4 h-4" />
-                    </div>
-                    <div className="rounded-2xl p-4 text-sm bg-white/[0.03] border border-white/5 text-white/95">
-                      {msg.text}
-                    </div>
-                  </div>
+                <div key={msg.id} className="flex items-center gap-2 text-white/30 text-xs py-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>{msg.text}</span>
+                </div>
+              );
+            }
 
-                  {/* Candidate Feed Animation */}
-                  <div className="grid gap-6 md:grid-cols-2 max-w-3xl ml-11">
-                    {msg.candidates.map((cand, idx) => (
-                      <div
-                        key={cand.anonymousLabel || idx}
-                        className="rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-5 flex flex-col justify-between transition-all duration-300 transform translate-y-0 opacity-100 animate-slide-up shadow-lg hover:shadow-[#fa7d22]/5"
-                        style={{ animationDelay: `${idx * 200}ms` }}
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-base text-white">{cand.anonymousLabel}</span>
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/20 text-emerald-300">
-                              {cand.matchLabel || 'Strong Match'}
-                            </span>
-                          </div>
+            const isAgent = msg.role === 'agent';
 
-                          <div className="flex flex-wrap gap-1.5">
-                            {(cand.topSkills || []).slice(0, 4).map((skill: string) => (
-                              <span key={skill} className="px-2 py-0.5 rounded bg-white/5 text-white/60 text-xs border border-white/5">
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-
-                          {/* Convincing Fact */}
-                          <div className="rounded-xl bg-gradient-to-r from-[#fa7d22]/10 to-transparent p-3.5 border-l-2 border-[#fa7d22]">
-                            <p className="text-[10px] uppercase tracking-wider text-[#ffb580] font-bold flex items-center gap-1.5 mb-1">
-                              <Zap className="w-3.5 h-3.5" />
-                              Interesting Fact
-                            </p>
-                            <p className="text-xs text-white/80 leading-relaxed font-medium">
-                              {getInterestingFact(cand)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-6 flex gap-2">
-                          <button
-                            onClick={() => {
-                              if (opportunityId) onSearchCompleted(opportunityId);
-                            }}
-                            className="flex-1 py-2 text-center rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition"
-                          >
-                            Explore Profile
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+            // Message with options — only show the question text, option card is rendered separately
+            if (msg.options && msg.options.length > 0) {
+              return (
+                <div key={msg.id} className="text-sm text-white/70 leading-relaxed">
+                  {msg.text}
                 </div>
               );
             }
 
             return (
-              <div
-                key={msg.id}
-                className={`flex gap-3 max-w-[85%] animate-fade-in ${
-                  isAgent ? 'mr-auto' : 'ml-auto flex-row-reverse'
-                }`}
-              >
-                {isAgent && (
-                  <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#fa7d22] shrink-0">
-                    <Bot className="w-4 h-4" />
+              <div key={msg.id} className={`flex flex-col gap-2 ${isAgent ? 'items-start' : 'items-end'}`}>
+                {isAgent ? (
+                  <p className="text-sm text-white/85 leading-relaxed max-w-[88%] whitespace-pre-wrap">
+                    {msg.text}
+                  </p>
+                ) : (
+                  <div className="max-w-[75%] px-4 py-2.5 rounded-2xl bg-[#fa7d22] text-black text-sm font-medium leading-relaxed">
+                    {msg.text}
                   </div>
                 )}
-                <div
-                  className={`rounded-2xl p-4 text-sm leading-relaxed ${
-                    isAgent
-                      ? 'bg-white/[0.03] border border-white/5 text-white/95 backdrop-blur-md font-sans whitespace-pre-wrap'
-                      : 'bg-gradient-to-r from-[#fa7d22] to-[#ff9b4e] text-black font-medium shadow-md shadow-[#fa7d22]/10'
-                  }`}
-                >
-                  {msg.text}
-                </div>
+                {isAgent && msg.searchQuality ? (
+                  <SearchQualityCard sq={msg.searchQuality} />
+                ) : null}
               </div>
             );
           })}
 
-          {/* Thinking dot animation */}
-          {isThinking && (
-            <div className="flex gap-3 mr-auto animate-pulse">
-              <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#fa7d22]">
-                <Bot className="w-4 h-4" />
-              </div>
-              <div className="rounded-2xl px-4 py-3 bg-white/[0.03] border border-white/5 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#fa7d22] animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#fa7d22] animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[#fa7d22] animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
+          {/* Thinking indicator */}
+          {isBusy && (
+            <div className="flex items-center gap-2 text-white/30 text-xs">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#fa7d22]" />
+              <span>{toolCallLabel || 'Thinking...'}</span>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
+      </div>
 
-        {/* Footer Chat Inputs */}
-        <div className="border-t border-white/5 pt-4 bg-[hsl(8_8%_3.5%/0.8)] backdrop-blur-md">
-          {isSearching ? (
-            <div className="flex items-center justify-center gap-3 py-4 text-white/50 text-sm italic animate-pulse">
-              <Loader2 className="w-5 h-5 animate-spin text-[#fa7d22]" />
-              Rerunning matches and structuring feed...
+      {/* ── Option card ── */}
+      {showOptionCard && lastOptionsMessage && (
+        <div className="max-w-2xl mx-auto w-full px-4 pb-3">
+          <div className="rounded-2xl border border-white/[0.1] bg-[#111114] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06]">
+              <span className="text-sm font-semibold text-white">
+                {lastOptionsMessage.text || 'Choose one'}
+              </span>
             </div>
-          ) : (
-            <div className="relative flex items-end gap-2 bg-white/[0.03] border border-white/10 rounded-2xl p-2.5 focus-within:border-[#fa7d22]/30 transition-all duration-300">
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="I need a mobile engineer with Flutter experience to build a fintech app..."
-                rows={2}
-                className="flex-1 bg-transparent border-0 text-sm text-white placeholder:text-white/20 focus:ring-0 focus:outline-none resize-none px-2 py-1.5 custom-scrollbar"
-              />
+            <div className="divide-y divide-white/[0.05]">
+              {lastOptionsMessage.options!.map((opt, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleOptionClick(opt)}
+                  disabled={isBusy}
+                  className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-white/[0.04] transition-colors group disabled:opacity-40"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-white/30 font-mono w-4 shrink-0">{i + 1}</span>
+                    <span className="text-sm text-white/80 group-hover:text-white transition-colors">{opt.label}</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
+                </button>
+              ))}
+              {/* Something else row */}
               <button
-                onClick={handleSend}
-                disabled={!inputText.trim() || isThinking}
-                className="p-3.5 rounded-xl bg-gradient-to-r from-[#fa7d22] to-[#ff9b4e] text-black font-semibold hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+                type="button"
+                onClick={() => inputRef.current?.focus()}
+                disabled={isBusy}
+                className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-white/[0.04] transition-colors group disabled:opacity-40"
               >
-                <Send className="w-4 h-4" />
+                <Pencil className="w-3.5 h-3.5 text-white/25 shrink-0" />
+                <span className="text-sm text-white/40 group-hover:text-white/60 transition-colors italic">Something else</span>
               </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Input ── */}
+      <div className="border-t border-white/[0.06] px-4 py-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-end gap-3 bg-white/[0.04] border border-white/[0.1] rounded-2xl px-4 py-3 focus-within:border-white/20 transition-colors">
+            <textarea
+              ref={inputRef}
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe the role, ask a question, or type your answer..."
+              rows={1}
+              disabled={isBusy}
+              className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 resize-none outline-none leading-relaxed disabled:opacity-40"
+              style={{ minHeight: '24px', maxHeight: '120px' }}
+              onInput={e => {
+                const t = e.currentTarget;
+                t.style.height = 'auto';
+                t.style.height = Math.min(t.scrollHeight, 120) + 'px';
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!inputText.trim() || isBusy}
+              className="w-8 h-8 rounded-xl bg-[#fa7d22] text-black flex items-center justify-center hover:bg-[#ff9b4e] disabled:opacity-30 disabled:cursor-not-allowed transition-all shrink-0"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p className="text-center text-[11px] text-white/20 mt-2">
+            Enter to send · Shift+Enter for new line
+          </p>
         </div>
       </div>
     </div>

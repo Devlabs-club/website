@@ -1,19 +1,109 @@
-import React, { Suspense, lazy, useEffect } from 'react';
+import React, { useEffect, useState, type ComponentType } from 'react';
 import { AuthProvider, useAuth } from './auth_manager';
 import { AmbientBackground } from './ui/AmbientBackground';
-import { LoaderFour } from './ui/loader';
 
-const AdminDashboard = lazy(() => import('./AdminDashboard'));
-const FounderOSDashboard = lazy(() => import('./founder/FounderOSDashboard'));
-const BuilderOSDashboard = lazy(() => import('./builder/BuilderOSDashboard'));
+const CHUNK_RELOAD_KEY = 'devlabs:chunk-reload';
 
-function RoleDashboardFallback() {
+type DashboardModule = { default: ComponentType<unknown> };
+
+const dashboardLoaders: Record<string, () => Promise<DashboardModule>> = {
+  admin: () => import('./AdminDashboard'),
+  founder: () => import('./founder/FounderOSDashboard'),
+  builder: () => import('./builder/BuilderOSDashboard'),
+};
+
+function clearStaticLoader() {
+  document.getElementById('dashboard-static-loader')?.remove();
+}
+
+function WorkspaceLoader({ text }: { text: string }) {
+  useEffect(() => {
+    clearStaticLoader();
+  }, []);
+
   return (
-    <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10">
+    <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-3 p-10">
       <AmbientBackground />
-      <LoaderFour text="Loading workspace" />
+      <div
+        className="relative z-10 h-8 w-8 rounded-full border-2 border-white/20 border-t-[#fa7d22] animate-spin"
+        aria-hidden="true"
+      />
+      <p className="relative z-10 text-sm text-white/60">{text}</p>
     </div>
   );
+}
+
+function loadDashboardModule(role: string): Promise<DashboardModule> {
+  const key = role === 'admin' ? 'admin' : role === 'founder' ? 'founder' : 'builder';
+  return dashboardLoaders[key]();
+}
+
+function RoleDashboard({ role }: { role: string }) {
+  const [Module, setModule] = useState<ComponentType<unknown> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    let loaded = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!active || loaded) return;
+      if (import.meta.env.DEV && !sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+        window.location.reload();
+        return;
+      }
+      setError('Workspace took too long to load. Try a hard refresh.');
+    }, 25_000);
+
+    loadDashboardModule(role)
+      .then((mod) => {
+        if (!active) return;
+        loaded = true;
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+        setModule(() => mod.default);
+      })
+      .catch((err) => {
+        if (!active) return;
+        if (import.meta.env.DEV && !sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+          sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+          window.location.reload();
+          return;
+        }
+        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+        setError(err instanceof Error ? err.message : 'Failed to load workspace');
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
+      });
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [role]);
+
+  if (error) {
+    return (
+      <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10 text-center">
+        <AmbientBackground />
+        <p className="relative z-10 text-amber-200 max-w-md">{error}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="relative z-10 px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold"
+        >
+          Reload
+        </button>
+      </div>
+    );
+  }
+
+  if (!Module) {
+    return <WorkspaceLoader text="Loading workspace" />;
+  }
+
+  const Dashboard = Module;
+  return <Dashboard />;
 }
 
 function DashboardContent() {
@@ -28,12 +118,7 @@ function DashboardContent() {
   }, [loading, user]);
 
   if (loading) {
-    return (
-      <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10">
-        <AmbientBackground />
-        <LoaderFour text="Loading your workspace" />
-      </div>
-    );
+    return <WorkspaceLoader text="Checking session…" />;
   }
 
   if (authError) {
@@ -62,27 +147,7 @@ function DashboardContent() {
     );
   }
 
-  if (user.role === 'admin') {
-    return (
-      <Suspense fallback={<RoleDashboardFallback />}>
-        <AdminDashboard />
-      </Suspense>
-    );
-  }
-
-  if (user.role === 'founder') {
-    return (
-      <Suspense fallback={<RoleDashboardFallback />}>
-        <FounderOSDashboard />
-      </Suspense>
-    );
-  }
-
-  return (
-    <Suspense fallback={<RoleDashboardFallback />}>
-      <BuilderOSDashboard />
-    </Suspense>
-  );
+  return <RoleDashboard role={user.role} />;
 }
 
 export default function DashboardPage() {

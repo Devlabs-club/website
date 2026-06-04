@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,7 @@ import {
   type KanbanCard,
   type KanbanColumnId,
 } from '@/lib/talent/kanbanColumns';
+import { pipelineNeedsCallClockTick } from '@/lib/talent/callTiming';
 
 function SortableKanbanCard({
   card,
@@ -168,10 +169,17 @@ export default function FounderKanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [introGate, setIntroGate] = useState<FullCandidate | null>(null);
   const [hireAnimatingId, setHireAnimatingId] = useState<string | null>(null);
+  const [callClockTick, setCallClockTick] = useState(0);
+
+  useEffect(() => {
+    if (!pipelineNeedsCallClockTick(pipelineEntries)) return;
+    const id = window.setInterval(() => setCallClockTick((t) => t + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, [pipelineEntries]);
 
   const cards = useMemo(
     () => buildKanbanCards(candidates, pipelineEntries),
-    [candidates, pipelineEntries]
+    [candidates, pipelineEntries, callClockTick]
   );
   const grouped = useMemo(() => groupKanbanCards(cards), [cards]);
   const cardById = useMemo(() => new Map(cards.map((c) => [c.builderId, c])), [cards]);

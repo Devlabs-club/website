@@ -593,6 +593,45 @@ export default function FounderOSDashboard() {
               trialProject: drawerCandidate.trialProject,
             })
           }
+          onSave={async (reasonCategory, reasonText) => {
+            await fetch('/api/agent/actions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                action: 'founder_save_candidate',
+                payload: {
+                  opportunityId: drawerOpportunityId,
+                  builderId: drawerCandidate.builderId,
+                  builderName: drawerCandidate.name,
+                  roleTitle: shortlists.find((s) => s.opportunityId === drawerOpportunityId)
+                    ? undefined
+                    : undefined,
+                  reasonCategory,
+                  reasonText,
+                },
+              }),
+            });
+          }}
+          onReject={async (reasonCategory, reasonText) => {
+            await fetch('/api/agent/actions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                action: 'founder_reject_candidate',
+                payload: {
+                  opportunityId: drawerOpportunityId,
+                  builderId: drawerCandidate.builderId,
+                  builderName: drawerCandidate.name,
+                  reasonCategory,
+                  reasonText,
+                },
+              }),
+            });
+            setDrawerCandidate(null);
+            setDrawerOpportunityId(null);
+          }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import type { FullCandidate, PipelineEntry } from '@/components/founder/founderTypes';
-import { isCallPast } from '@/lib/talent/kanbanColumns';
+import { canShowPostCallActions, hasCallSlotStarted } from '@/lib/talent/callTiming';
 
 export function isIntroAcceptedByBuilder(
   candidate: FullCandidate,
@@ -57,14 +57,14 @@ export function canScheduleMeet(
 ): boolean {
   if (!isIntroAcceptedByBuilder(candidate, entry)) return false;
   if (entry?.callScheduleStatus === 'pending_founder') return false;
-  if (isCallPast(entry) || entry?.callCompletedAt || candidate.callCompletedAt) return false;
+  if (hasCallSlotStarted(entry) || entry?.callCompletedAt || candidate.callCompletedAt) return false;
   return !isMeetScheduled(entry);
 }
 
 export function isMeetScheduled(entry?: PipelineEntry | null): boolean {
   const status = entry?.callScheduleStatus;
   if (!status || status === 'cancelled' || status === 'completed') return false;
-  if (isCallPast(entry) || entry?.callCompletedAt) return false;
+  if (hasCallSlotStarted(entry) || entry?.callCompletedAt) return false;
   return ['confirmed', 'pending_builder', 'proposed'].includes(status);
 }
 
@@ -92,5 +92,5 @@ export function canShowPostMeetingActions(
   entry: PipelineEntry | null,
   candidate: FullCandidate
 ): boolean {
-  return isCallPast(entry) || Boolean(entry?.callCompletedAt || candidate.callCompletedAt);
+  return canShowPostCallActions(entry, candidate);
 }

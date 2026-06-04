@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Generate token
-    const token = generateToken(user);
+    const token = generateToken(user, runtime);
 
     // Return success response with token
     return new Response(

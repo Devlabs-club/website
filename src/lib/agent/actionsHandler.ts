@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
+import { runBuilderAgentTurn } from '@/lib/agent/runners/builderAgentRunner';
+import { runFounderAgentTurn } from '@/lib/agent/runners/founderAgentRunner';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import Opportunity from '@/models/talent/Opportunity';
 import MatchRecord from '@/models/talent/MatchRecord';
@@ -53,6 +55,11 @@ import Shortlist from '@/models/talent/Shortlist';
 import IntroRequest from '@/models/talent/IntroRequest';
 import CallSchedule from '@/models/talent/CallSchedule';
 import User from '@/models/user.tsx';
+import CandidateFeedback from '@/models/talent/CandidateFeedback';
+import {
+  writeFounderCandidateRejectionMemory,
+  writeFounderCandidateSaveMemory,
+} from '@/lib/agent/memoryWriter';
 import {
   countUnreadForBuilder,
   countUnreadForFounder,
@@ -371,17 +378,6 @@ Use Context JSON for the builder's current profile state (projects, headline, bi
   }
 }
 
-function getSkillSignals(builder: any, requiredSkills: string[]) {
-  const skillSet = new Set((builder.rolePreference || []).map((s: string) => s.toLowerCase()));
-  const projectSkills = new Set<string>();
-  (builder._projectSkills || []).forEach((s: string) => projectSkills.add(s.toLowerCase()));
-
-  const required = requiredSkills.map((s) => s.toLowerCase());
-  const matches = required.filter((s) => skillSet.has(s) || projectSkills.has(s));
-  const ratio = required.length ? matches.length / required.length : 0.5;
-  return ratio;
-}
-
 async function updateBuilderScores(builder: any) {
   const [projects, events, momentum] = await Promise.all([
     ProjectRecord.find({ builderId: builder._id }).lean(),
@@ -473,7 +469,7 @@ async function resolveAuthedFounder(request: Request) {
 }
 
 async function loadFounderStartupContext(founderEmail: string): Promise<FounderStartupContext> {
-  const last = await Opportunity.findOne({ founderEmail })
+  const last = await Opportunity.findOne({ founderEmail, status: { $ne: 'closed' } })
     .sort({ updatedAt: -1 })
     .select('company startupSummary industry')
     .lean();
@@ -1082,10 +1078,9 @@ export const postAgentAction: APIRoute = async ({ request }) => {
       const userText = String(payload?.message || '').trim();
       if (!userText) return bad('message is required');
       const builderId = String(builder._id);
-      console.log('[agent/actions] builder_chat:start', {
-        builderId: String(builder._id),
-        userText,
-      });
+      console.log('[agent/actions] builder_chat:delegating', { builderId });
+      return runBuilderAgentTurn({ builder, builderId, userText, history: Array.isArray(payload?.history) ? payload.history : [] });
+      // ── LEGACY builder agent code below — kept for reference, unreachable ──
 
       // ── Builder Agent: agentic tool-calling loop ──────────────────────────
       const builderMemoryPromise = getBuilderMemoryProfile(builderId, userText);
@@ -1570,127 +1565,6 @@ Rules:
       });
     }
 
-    if (action === 'run_candidate_search') {
-      const { opportunityId } = payload;
-      if (!opportunityId) return bad('opportunityId is required');
-      if (!mongoose.Types.ObjectId.isValid(opportunityId)) {
-        const message = await getAgentMessage({
-          fallback: 'Please paste a valid opportunity ID from the role-brief response before running search.',
-          intent: 'run_candidate_search_invalid_id',
-          context: { opportunityId },
-        });
-        return ok({
-          message,
-          uiBlocks: [
-            {
-              type: 'summary_card',
-              title: 'Need Opportunity ID',
-              body: 'Create role brief first, then paste the returned opportunity ID.',
-            },
-          ],
-        });
-      }
-
-      const opportunity = await Opportunity.findById(opportunityId).lean() as any;
-      if (!opportunity) return bad('Opportunity not found', 404);
-
-      const builders = await BuilderProfile.find({
-        'availability.availableNow': true,
-        verificationStatus: { $in: ['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'] },
-      })
-        .limit(120)
-        .lean();
-
-      const requiredSkills = Array.isArray(opportunity.skillsNeeded) ? opportunity.skillsNeeded : [];
-
-      const ranked: any[] = [];
-      for (const builder of builders) {
-        const projects = await ProjectRecord.find({ builderId: builder._id }).select('projectName techStack links').lean();
-        const flattenedSkills = projects.flatMap((project) => project.techStack || []);
-        const ratio = getSkillSignals({ ...builder, _projectSkills: flattenedSkills }, requiredSkills);
-        const availabilityFactor = Math.min(((builder.availability?.hoursPerWeek || 0) / 20), 1);
-        const proofFactor = Math.min(projects.length / 3, 1);
-
-        const score = Math.round((ratio * 0.5 + availabilityFactor * 0.2 + proofFactor * 0.3) * 100);
-
-        const signalScore = (value: number) => (value >= 0.75 ? 'high' : value >= 0.45 ? 'medium' : 'low');
-
-        ranked.push({
-          builder,
-          projects,
-          score,
-          signals: {
-            skillMatch: signalScore(ratio),
-            proofOfWork: signalScore(proofFactor),
-            reliability: 'medium',
-            startupReadiness: projects.length > 1 ? 'high' : 'medium',
-            availability: signalScore(availabilityFactor),
-            collaboration: 'medium',
-          },
-        });
-      }
-
-      ranked.sort((a, b) => b.score - a.score);
-      const shortlist = ranked.slice(0, 5);
-
-      for (const entry of shortlist) {
-        await MatchRecord.findOneAndUpdate(
-          { builderId: entry.builder._id, opportunityId },
-          {
-            $set: {
-              builderId: entry.builder._id,
-              opportunityId,
-              matchScore: entry.score,
-              signalScores: entry.signals,
-              reasoning: `Strong fit based on proof-of-work and skills overlap for ${opportunity.roleTitle}.`,
-              evidence: entry.projects.slice(0, 3).map((project: any) => ({ label: project.projectName, url: project.links?.devpost || project.links?.github || '' })),
-              riskFlags: [
-                ...(entry.projects.length === 0 ? ['No confirmed shipped project yet'] : []),
-                ...((entry.builder.availability?.hoursPerWeek || 0) < 10 ? ['Limited weekly bandwidth'] : []),
-              ],
-              status: 'generated',
-            },
-          },
-          { upsert: true, new: true }
-        );
-      }
-
-      const message = await getAgentMessage({
-        fallback: 'Candidate search completed',
-        intent: 'run_candidate_search_success',
-        context: {
-          roleTitle: opportunity.roleTitle,
-          company: opportunity.company,
-          shortlistedCount: shortlist.length,
-          topCandidate: shortlist[0]?.builder?.name || null,
-        },
-      });
-
-      return ok({
-        message,
-        shortlist: shortlist.map((entry) => ({
-          builderId: entry.builder._id,
-          name: entry.builder.name,
-          location: entry.builder.location,
-          matchScore: entry.score,
-          availability: entry.builder.availability,
-          signals: entry.signals,
-          proof: entry.projects.slice(0, 3).map((project: any) => ({
-            name: project.projectName,
-            devpost: project.links?.devpost,
-            github: project.links?.github,
-          })),
-        })),
-        meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
-        uiBlocks: shortlist.map((entry) => ({
-          type: 'candidate_card',
-          title: `${entry.builder.name} — ${entry.score}% match`,
-          subtitle: `${entry.builder.location || 'Remote'} · ${entry.builder.availability?.hoursPerWeek || 0} hrs/week`,
-          riskFlags: entry.projects.length ? [] : ['No confirmed project history yet'],
-        })),
-      });
-    }
-
     if (action === 'evaluate_profile_quality') {
       const resolved = await resolveAuthedBuilder(request);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
@@ -1717,7 +1591,10 @@ Rules:
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
-      const opportunities = await Opportunity.find({ founderEmail: email })
+      const opportunities = await Opportunity.find({
+          founderEmail: email,
+          status: { $nin: ['closed', 'archived', 'deleted'] },
+        })
         .sort({ updatedAt: -1 })
         .lean();
 
@@ -2147,12 +2024,10 @@ Rules:
       const existingShortlist = await Shortlist.findOne({ opportunityId, founderEmail: email }).lean();
 
       const builders = await BuilderProfile.find({
-        verificationStatus: {
-          $in: ['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'],
-        },
+        verificationStatus: { $ne: 'rejected' },
         visibilityStatus: { $ne: 'hidden' },
       })
-        .limit(200)
+        .limit(2000)
         .lean();
 
       const builderIds = builders.map((b: any) => b._id);
@@ -2187,6 +2062,7 @@ Rules:
           builderId: entry.builderId,
           opportunityId,
           matchScore: entry.matchScore,
+          profileStrength: entry.profileStrength,
           matchLabel: entry.matchLabel,
           anonymousLabel: anon.anonymousLabel,
           signalScores: entry.signals,
@@ -2437,10 +2313,8 @@ Rules:
       if (!userText) return bad('message is required');
 
       const founderId = decoded?.userId ? String(decoded.userId) : email;
-      const founderMemoryPromise = getFounderMemoryProfile(founderId, userText);
       const founderStartupContext = await loadFounderStartupContext(email);
 
-      // Load current opportunity and shortlist upfront for tool context
       const payloadOpportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
       let currentOpportunity: any = null;
       if (payloadOpportunityId && mongoose.Types.ObjectId.isValid(payloadOpportunityId)) {
@@ -2450,6 +2324,18 @@ Rules:
         currentOpportunity = await Opportunity.findOne({ founderEmail: email, status: 'draft' }).sort({ updatedAt: -1 });
       }
 
+      console.log('[agent/actions] founder_chat:delegating', { founderId });
+      return runFounderAgentTurn({
+        email,
+        founderName,
+        founderId,
+        userText,
+        history: Array.isArray(payload?.history) ? payload.history : [],
+        currentOpportunity,
+        founderStartupContext,
+        payloadOpportunityId,
+      });
+      // ── LEGACY founder agent code below — kept for reference, unreachable ──
       const FOUNDER_AGENT_SYSTEM_PROMPT = `You are the DevLabs Founder Agent — a direct, no-nonsense hiring agent who helps founders find proof-backed builders fast.
 
 Tone: speak like a sharp technical co-founder, not a recruiter. Blunt, fast, builder-native. No filler, no pleasantries, no emojis.
@@ -2737,12 +2623,12 @@ End every response with one concrete next step.`;
               return { error: 'Role brief needs at least a role title, what they will build, and required skills before running search.' };
             }
             const builders = await BuilderProfile.find({
-              verificationStatus: { $in: ['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'] },
+              verificationStatus: { $ne: 'rejected' },
               visibilityStatus: { $ne: 'hidden' },
-            }).limit(200).lean();
+            }).limit(2000).lean();
             const builderIds = builders.map((b: any) => b._id);
             const allProjects = await ProjectRecord.find({ builderId: { $in: builderIds } })
-              .select('builderId projectName description techStack builderContribution verificationStatus')
+              .select('builderId projectName description problemSolved techStack builderContribution contributionTags verificationStatus links')
               .lean();
             const projectsByBuilder = new Map<string, any[]>();
             for (const p of allProjects) {
@@ -2760,7 +2646,7 @@ End every response with one concrete next step.`;
               if (!entry) continue;
               const match = await MatchRecord.findOneAndUpdate(
                 { builderId: entry.builderId, opportunityId: oppId },
-                { $set: { builderId: entry.builderId, opportunityId: oppId, matchScore: entry.matchScore, matchLabel: entry.matchLabel, anonymousLabel: anon.anonymousLabel, signalScores: entry.signals, reasoning: entry.whyTheyMatch, status: 'generated' } },
+                { $set: { builderId: entry.builderId, opportunityId: oppId, matchScore: entry.matchScore, profileStrength: entry.profileStrength, matchLabel: entry.matchLabel, anonymousLabel: anon.anonymousLabel, signalScores: entry.signals, reasoning: entry.whyTheyMatch, status: 'generated' } },
                 { upsert: true, new: true }
               );
               candidatesWithIds.push({ ...anon, matchRecordId: match._id, builderId: entry.builderId });
@@ -3423,6 +3309,86 @@ End every response with one concrete next step.`;
       });
       if ('error' in result && result.error) return bad(result.error, result.status || 400);
       return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
+    }
+
+    // ── Phase 8: Candidate Feedback ──────────────────────────────────────────
+
+    if (action === 'founder_save_candidate' || action === 'founder_reject_candidate') {
+      const resolved = await resolveAuthedFounder(request);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, founderName, decoded } = resolved;
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      const builderId = String(payload?.builderId || '').trim();
+      const builderName = String(payload?.builderName || '').trim();
+      const reasonCategory = String(payload?.reasonCategory || 'other').trim();
+      const reasonText = String(payload?.reasonText || payload?.reason || '').trim();
+      const roleTitle = String(payload?.roleTitle || '').trim();
+
+      if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
+
+      const founderId = decoded?.userId ? String(decoded.userId) : email;
+      const feedbackAction = action === 'founder_save_candidate' ? 'saved' : 'rejected';
+
+      await CandidateFeedback.findOneAndUpdate(
+        { founderId, opportunityId, builderId, action: feedbackAction },
+        {
+          $set: {
+            founderId,
+            founderEmail: email,
+            opportunityId,
+            builderId,
+            builderName,
+            action: feedbackAction,
+            reasonCategory,
+            reasonText,
+            shouldAffectRanking: true,
+          },
+        },
+        { upsert: true }
+      );
+
+      if (feedbackAction === 'rejected') {
+        void writeFounderCandidateRejectionMemory(addFounderMemory, {
+          founderId,
+          founderName,
+          builderId,
+          builderName,
+          opportunityId,
+          roleTitle,
+          reason: reasonText || reasonCategory,
+          reasonCategory,
+        });
+      } else {
+        void writeFounderCandidateSaveMemory(addFounderMemory, {
+          founderId,
+          founderName,
+          builderId,
+          builderName,
+          opportunityId,
+          roleTitle,
+          reason: reasonText || reasonCategory,
+          reasonCategory,
+        });
+      }
+
+      // Update match record status
+      const matchRecord = await MatchRecord.findOne({ builderId, opportunityId });
+      if (matchRecord) {
+        if (feedbackAction === 'rejected') {
+          matchRecord.status = 'rejected';
+        } else {
+          matchRecord.status = 'saved';
+        }
+        await matchRecord.save();
+      }
+
+      return ok({
+        message: feedbackAction === 'rejected' ? 'Candidate rejected.' : 'Candidate saved.',
+        feedbackAction,
+        builderId,
+        opportunityId,
+      });
     }
 
     return bad(`Unsupported action: ${action}`);

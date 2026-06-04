@@ -2,6 +2,7 @@
 /// <reference types="astro/client" />
 
 interface ImportMetaEnv {
+  readonly JWT_SECRET?: string;
   readonly WORKOS_API_KEY: string;
   readonly WORKOS_CLIENT_ID: string;
   readonly WORKOS_CLIENT_SECRET: string;
@@ -24,6 +25,7 @@ declare namespace App {
 
 declare namespace NodeJS {
   interface ProcessEnv {
+    JWT_SECRET?: string;
     /** Optional. Defaults to people@devlabs.club in momentumEmail.ts */
     SENDGRID_FROM_EMAIL?: string;
     WORKOS_API_KEY?: string;

@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import type { IUser } from '../models/user.tsx';
 import type { AuthUser } from './adminMongo';
+import { ensureLocalEnvLoaded } from './loadEnv';
+import { readEnv, type RuntimeEnv } from './workosEnv';
+
+ensureLocalEnvLoaded();
 
 export interface JWTPayload {
   userId: string;
@@ -8,12 +12,12 @@ export interface JWTPayload {
   role: string;
 }
 
-function getJwtSecret(): string {
-  const secret =
-    (typeof process !== 'undefined' && process.env.JWT_SECRET?.trim()) ||
-    (import.meta.env.JWT_SECRET as string | undefined)?.trim();
+function getJwtSecret(runtime?: RuntimeEnv): string {
+  const secret = readEnv('JWT_SECRET', runtime);
   if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
+    throw new Error(
+      'JWT_SECRET is not defined. Add it to .env, .env.local, or .dev.vars (see .dev.vars.example).'
+    );
   }
   return secret;
 }
@@ -21,22 +25,22 @@ function getJwtSecret(): string {
 type TokenUser = Pick<IUser, '_id' | 'email' | 'role'> | AuthUser;
 
 // Generate JWT token
-export function generateToken(user: TokenUser): string {
+export function generateToken(user: TokenUser, runtime?: RuntimeEnv): string {
   const payload: JWTPayload = {
     userId: String(user._id),
     email: user.email,
     role: user.role,
   };
 
-  return jwt.sign(payload, getJwtSecret(), {
+  return jwt.sign(payload, getJwtSecret(runtime), {
     expiresIn: '7d',
   });
 }
 
 // Verify JWT token
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string, runtime?: RuntimeEnv): JWTPayload | null {
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as JWTPayload;
+    const decoded = jwt.verify(token, getJwtSecret(runtime)) as JWTPayload;
     return decoded;
   } catch (error) {
     console.error('Token verification failed:', error);

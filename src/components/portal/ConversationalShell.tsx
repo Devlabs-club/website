@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import ChatMarkdown from '@/components/ChatMarkdown';
 
 type Message = { sender: 'agent' | 'user'; text: string };
 
@@ -40,7 +41,7 @@ function buildPayload(action: string, input: string) {
     };
   }
 
-  if (action === 'run_candidate_search') {
+  if (action === 'run_builder_search' || action === 'rerun_search') {
     return { opportunityId: value };
   }
 
@@ -122,7 +123,13 @@ export default function ConversationalShell({
         <div className="mt-6 rounded-2xl border border-white/15 bg-black/35 p-4 h-[420px] overflow-y-auto space-y-3 shadow-inner shadow-black/40">
           {messages.map((message, index) => (
             <div key={`${message.sender}-${index}`} className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${message.sender === 'agent' ? 'bg-white/[0.12] text-white/90 border border-white/10' : 'ml-auto bg-[#fa7d22] text-black font-semibold shadow-[0_8px_25px_rgba(250,125,34,0.35)]'}`}>
-              {message.text}
+              {message.sender === 'agent' ? (
+                <div className="prose prose-invert prose-sm max-w-none prose-p:my-1.5 prose-ul:my-1.5">
+                  <ChatMarkdown text={message.text} />
+                </div>
+              ) : (
+                message.text
+              )}
             </div>
           ))}
           {loading ? <div className="text-white/60 text-sm">Agent is working…</div> : null}

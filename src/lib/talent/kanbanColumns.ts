@@ -1,5 +1,7 @@
 import type { FullCandidate, PipelineEntry } from '@/components/founder/founderTypes';
 
+export { canShowPostCallActions, hasCallSlotStarted, hasCallSlotEnded, isCallPast } from '@/lib/talent/callTiming';
+
 export type KanbanColumnId = 'matches' | 'interviewing' | 'work_trial' | 'hired';
 
 export const KANBAN_COLUMNS: Array<{ id: KanbanColumnId; title: string; subtitle: string }> = [
@@ -45,17 +47,6 @@ export function resolveKanbanColumn(
   }
 
   return 'matches';
-}
-
-export function isCallPast(entry: PipelineEntry | null): boolean {
-  if (!entry?.confirmedCallEndAt) return Boolean(entry?.callCompletedAt);
-  return new Date(entry.confirmedCallEndAt).getTime() <= Date.now();
-}
-
-export function canShowPostCallActions(entry: PipelineEntry | null, candidate: FullCandidate): boolean {
-  if (entry?.callCompletedAt || candidate.callCompletedAt) return true;
-  if (entry?.callScheduleStatus !== 'confirmed' && !entry?.confirmedCallEndAt) return false;
-  return isCallPast(entry);
 }
 
 export function buildKanbanCards(

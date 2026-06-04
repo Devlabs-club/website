@@ -1,17 +1,13 @@
 import React from 'react';
 import {
   Home,
-  LayoutGrid,
-  Users,
   Bot,
   User,
   Mail,
   ClipboardList,
   Phone,
-  CalendarDays,
+  Inbox,
 } from 'lucide-react';
-import { Sidebar, SidebarBody } from '@/components/ui/sidebar';
-import { Badge } from '@/components/ui/badge';
 import { NumberTicker } from '@/components/ui/number-ticker';
 import NotificationCenter from '@/components/talent/NotificationCenter';
 import type { NotificationItem } from '@/components/founder/founderTypes';
@@ -19,15 +15,13 @@ import type { BuilderData, TabKey } from './types';
 import { cn } from '@/lib/utils';
 
 const navItems: Array<{ key: TabKey; label: string; icon: React.ReactNode; badgeKey?: string }> = [
-  { key: 'home', label: 'Home', icon: <Home className="w-5 h-5" /> },
-  { key: 'projects', label: 'Proof of Work', icon: <LayoutGrid className="w-5 h-5" /> },
-  { key: 'matches', label: 'Matches', icon: <Users className="w-5 h-5" /> },
-  { key: 'messages', label: 'Messages', icon: <Mail className="w-5 h-5" />, badgeKey: 'messages' },
-  { key: 'calls', label: 'Calls', icon: <Phone className="w-5 h-5" />, badgeKey: 'calls' },
-  { key: 'trials', label: 'Trials', icon: <ClipboardList className="w-5 h-5" />, badgeKey: 'trials' },
-  { key: 'events', label: 'Events', icon: <CalendarDays className="w-5 h-5" /> },
-  { key: 'agent', label: 'Agent', icon: <Bot className="w-5 h-5" /> },
-  { key: 'profile', label: 'Profile', icon: <User className="w-5 h-5" /> },
+  { key: 'home', label: 'Home', icon: <Home className="w-4 h-4" /> },
+  { key: 'intros', label: 'Intros', icon: <Inbox className="w-4 h-4" />, badgeKey: 'intros' },
+  { key: 'messages', label: 'Messages', icon: <Mail className="w-4 h-4" />, badgeKey: 'messages' },
+  { key: 'calls', label: 'Calls', icon: <Phone className="w-4 h-4" />, badgeKey: 'calls' },
+  { key: 'trials', label: 'Trials', icon: <ClipboardList className="w-4 h-4" />, badgeKey: 'trials' },
+  { key: 'agent', label: 'Agent', icon: <Bot className="w-4 h-4" /> },
+  { key: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
 ];
 
 export default function BuilderSidebar({
@@ -37,9 +31,7 @@ export default function BuilderSidebar({
   userEmail,
   profileScore,
   proofScore,
-  matchScore,
   projectsCount,
-  matchScoreLabel,
   notifications,
   unreadNotificationCount,
   unreadAgentCount,
@@ -52,9 +44,7 @@ export default function BuilderSidebar({
   userEmail?: string;
   profileScore: number;
   proofScore: number;
-  matchScore: number;
   projectsCount: number;
-  matchScoreLabel: string;
   notifications: NotificationItem[];
   unreadNotificationCount: number;
   unreadAgentCount: number;
@@ -62,106 +52,109 @@ export default function BuilderSidebar({
   logout: () => void;
 }) {
   return (
-    <Sidebar animate={false}>
-      <SidebarBody className="sticky top-8 glass-panel p-4 flex flex-col h-[calc(100vh-4rem)] overflow-y-auto !bg-transparent !border-white/10 rounded-3xl w-full max-w-none md:!w-full">
-        <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/10 px-2">
-          <img src="/logo.png" alt="DevLabs" className="w-10 h-10" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-[#fa7d22] font-bold">Builder OS</p>
-            <p className="text-2xl font-semibold tracking-tight leading-none mt-0.5">DevLabs</p>
-          </div>
-          <NotificationCenter
-            initialNotifications={notifications}
-            initialUnreadCount={unreadNotificationCount}
-            onNavigate={(link) => {
-              const url = new URL(link, window.location.origin);
-              const tab = url.searchParams.get('tab');
-              if (tab) onTabChange(tab as TabKey);
-            }}
-          />
+    <div className="sticky top-8 flex flex-col h-[calc(100vh-4rem)] rounded-3xl border border-white/8 bg-white/[0.03] backdrop-blur-xl p-4 overflow-hidden">
+      {/* Logo */}
+      <div className="flex items-center gap-3 mb-6 pb-5 border-b border-white/8 px-2">
+        <img src="/logo.png" alt="DevLabs" className="w-9 h-9" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[#fa7d22] font-bold">Builder OS</p>
+          <p className="text-xl font-semibold tracking-tight leading-none mt-0.5">DevLabs</p>
         </div>
+        <NotificationCenter
+          initialNotifications={notifications}
+          initialUnreadCount={unreadNotificationCount}
+          onNavigate={(link) => {
+            const url = new URL(link, window.location.origin);
+            const tab = url.searchParams.get('tab');
+            if (tab) onTabChange(tab as TabKey);
+          }}
+        />
+      </div>
 
-        <nav className="space-y-1.5 flex-1 px-1">
-          {navItems.map((item) => {
-            const active = activeTab === item.key;
-            const badge =
-              item.key === 'agent' && unreadAgentCount > 0
-                ? unreadAgentCount
-                : item.badgeKey
-                  ? tabBadge(item.badgeKey)
-                  : 0;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => onTabChange(item.key)}
-                className={cn(
-                  'group w-full text-left rounded-2xl px-4 py-3 border transition-all duration-300 flex items-center justify-between',
-                  active
-                    ? 'bg-gradient-to-r from-[#fa7d22]/20 to-[#fa7d22]/5 border-[#fa7d22]/40 text-[#ffb580] shadow-[0_0_20px_rgba(250,125,34,0.1)]'
-                    : 'border-transparent text-white/70 hover:bg-white/5 hover:border-white/10 hover:text-white'
-                )}
-              >
-                <span className="flex items-center gap-3 text-sm font-medium">
-                  <span className={cn('w-6 flex items-center justify-center', active ? 'text-[#fa7d22]' : 'opacity-80')}>
-                    {item.icon}
-                  </span>
-                  {item.label}
+      {/* Nav */}
+      <nav className="space-y-0.5 flex-1 px-1 overflow-y-auto">
+        {navItems.map((item) => {
+          const active = activeTab === item.key;
+          const badge =
+            item.key === 'agent' && unreadAgentCount > 0
+              ? unreadAgentCount
+              : item.badgeKey
+                ? tabBadge(item.badgeKey)
+                : 0;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onTabChange(item.key)}
+              className={cn(
+                'w-full text-left rounded-xl px-3.5 py-2.5 transition-all duration-200 flex items-center justify-between',
+                active
+                  ? 'bg-[#fa7d22]/15 text-white'
+                  : 'text-white/55 hover:bg-white/5 hover:text-white'
+              )}
+            >
+              <span className="flex items-center gap-3 text-sm font-medium">
+                <span className={cn('flex items-center justify-center', active ? 'text-[#fa7d22]' : '')}>
+                  {item.icon}
                 </span>
-                {badge > 0 ? (
-                  <Badge variant="outline" className="rounded-full border-[#fa7d22]/30 bg-[#fa7d22]/15 text-[#ffb580] text-xs">
-                    {badge}
-                  </Badge>
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
+                {item.label}
+              </span>
+              {badge > 0 ? (
+                <span className="text-[11px] font-semibold tabular-nums min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-[#fa7d22] text-black px-1">
+                  {badge}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </nav>
 
-        <div className="mt-6 rounded-2xl border border-[#fa7d22]/25 bg-[#1a130d] p-5 mx-1">
-          <p className="text-[#ffb580] text-sm font-medium">Get discovered. Build your future.</p>
-          <p className="text-white/70 text-sm mt-2">
-            {projectsCount === 0
-              ? 'Add your first project to get discovered.'
-              : matchScore >= 80
-                ? 'You’re visible to matched founders.'
-                : 'Improve your profile to get matched.'}
-          </p>
-          <div className="mt-4 rounded-xl border border-white/10 bg-black/30 p-4 space-y-3">
-            {[
-              { label: 'Completion', value: profileScore, color: 'bg-emerald-400' },
-              { label: 'Proof Strength', value: proofScore, color: 'bg-blue-400' },
-              { label: 'Match Score', value: matchScore, color: 'bg-gradient-to-r from-[#fa7d22] to-[#ffb580]' },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-white/75 uppercase tracking-wider font-semibold">{stat.label}</span>
-                  <span className="text-white font-medium tabular-nums">
-                    <NumberTicker value={stat.value} className="text-white text-xs" />%
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div className={cn('h-full transition-all duration-700', stat.color)} style={{ width: `${stat.value}%` }} />
-                </div>
+      {/* Profile strength card */}
+      <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 p-4 mx-1">
+        <p className="text-white/90 text-[13px] font-semibold leading-snug">
+          {proofScore >= 80 ? 'Profile looking strong.' : 'Build a proof-backed profile.'}
+        </p>
+        <p className="text-white/45 text-xs mt-1.5 leading-relaxed">
+          {projectsCount === 0
+            ? 'Add your first project so founders can evaluate your work.'
+            : proofScore >= 80
+              ? 'Keep it current and respond to intro requests.'
+              : 'Add projects and clarify your personal contribution.'}
+        </p>
+        <div className="mt-4 space-y-2.5">
+          {[
+            { label: 'Profile', value: profileScore, color: 'bg-emerald-400' },
+            { label: 'Proof', value: proofScore, color: 'bg-[#fa7d22]' },
+          ].map((stat) => (
+            <div key={stat.label}>
+              <div className="flex justify-between text-[11px] mb-1.5">
+                <span className="text-white/50 uppercase tracking-wider font-semibold">{stat.label}</span>
+                <span className="text-white/80 font-semibold tabular-nums">
+                  <NumberTicker value={stat.value} className="text-white/80 text-[11px]" />%
+                </span>
               </div>
-            ))}
-          </div>
+              <div className="w-full h-1 bg-white/8 rounded-full overflow-hidden">
+                <div className={cn('h-full rounded-full transition-all duration-700', stat.color)} style={{ width: `${stat.value}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="mt-6 pt-5 border-t border-white/10 flex items-center justify-between px-2">
-          <div className="overflow-hidden pr-3 min-w-0">
-            <p className="font-semibold text-sm truncate">{builder.name}</p>
-            <p className="text-white/50 text-xs truncate">{userEmail || builder.email}</p>
-          </div>
-          <button
-            type="button"
-            onClick={logout}
-            className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium transition-colors shrink-0"
-          >
-            Logout
-          </button>
+      {/* User */}
+      <div className="mt-4 pt-4 border-t border-white/8 flex items-center justify-between px-2">
+        <div className="overflow-hidden pr-3 min-w-0">
+          <p className="font-semibold text-sm truncate text-white">{builder.name}</p>
+          <p className="text-white/40 text-xs truncate">{userEmail || builder.email}</p>
         </div>
-      </SidebarBody>
-    </Sidebar>
+        <button
+          type="button"
+          onClick={logout}
+          className="px-3 py-1.5 rounded-lg border border-white/10 text-white/50 hover:text-white hover:border-white/20 text-xs font-medium transition-colors shrink-0"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
   );
 }

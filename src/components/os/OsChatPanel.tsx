@@ -48,7 +48,7 @@ export default function OsChatPanel({
 
       {busy ? (
         <div className="flex justify-start animate-fade-in">
-          <div className="rounded-2xl px-5 py-4 bg-gradient-to-r from-[#fa7d22]/10 via-purple-500/10 to-blue-500/10 border border-white/10 text-white/70 text-sm flex items-center gap-3">
+          <div className="rounded-2xl px-5 py-4 bg-white/[0.06] border border-white/8 text-white/60 text-sm flex items-center gap-3">
             <LoaderFive text="Thinking" />
           </div>
         </div>

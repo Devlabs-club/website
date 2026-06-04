@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DevLabs Builder &amp; Founder OS — Talent Profiles, Matching, Discovery</title>
+  <style>
+    @page { margin: 1.8cm; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 { font-size: 20pt; border-bottom: 2px solid #fa7d22; padding-bottom: 6px; }
+    h2 { font-size: 13pt; margin-top: 22px; page-break-after: avoid; }
+    h3 { font-size: 11pt; margin-top: 14px; }
+    .meta { color: #555; font-size: 9.5pt; margin-bottom: 20px; }
+    .callout {
+      background: #fff8f0;
+      border-left: 4px solid #fa7d22;
+      padding: 10px 14px;
+      margin: 12px 0;
+      font-size: 10pt;
+    }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9.5pt; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; vertical-align: top; }
+    th { background: #f0f0f0; }
+    code { font-family: ui-monospace, Menlo, monospace; font-size: 8.5pt; background: #f4f4f4; padding: 1px 3px; }
+    pre {
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      padding: 10px;
+      font-size: 8.5pt;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    ul, ol { margin: 6px 0; padding-left: 20px; }
+    li { margin: 3px 0; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 18px 0; }
+    .toc { font-size: 10pt; }
+    .toc li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+<h1>DevLabs Builder OS &amp; Founder OS</h1>
+<p class="meta">Talent profiles, storage, matching, and discovery — implementation reference for LLM handoff<br>Scope: Builder OS + Founder OS only (excludes admin dashboard / club member vector search)<br>Generated: June 4, 2026</p>
+
+<div class="callout">
+<strong>Executive summary:</strong> Builder profiles are <strong>structured MongoDB documents</strong> (not vector embeddings) joined with <code>ProjectRecord</code> proof-of-work. Founder talent discovery uses a <strong>deterministic weighted scoring engine</strong> in <code>builderSearch.ts</code>. The AI agents (<code>builder_chat</code>, <code>founder_chat</code>) <strong>orchestrate</strong> profile updates and search triggers; they do <strong>not</strong> embed profiles or perform semantic retrieval for matching. Optional <strong>Supermemory</strong> stores conversational memory per user; optional <strong>OpenRouter LLM</strong> evaluates profile quality and parses resumes — still written back to Mongo as fields, not embeddings.
+</div>
+
+<h2>Table of contents</h2>
+<ol class="toc">
+  <li>Data model: what is a “builder profile”</li>
+  <li>How profiles are created and updated (Builder OS)</li>
+  <li>Embeddings: what exists vs what talent OS uses</li>
+  <li>Profile scoring and quality (deterministic + LLM)</li>
+  <li>Founder role briefs and search prerequisites</li>
+  <li>Matching algorithm (rankBuildersForOpportunity)</li>
+  <li>Search execution and persistence (Shortlist, MatchRecord)</li>
+  <li>Founder discovery UX and AI agent integration</li>
+  <li>End-to-end flows</li>
+  <li>Key files index</li>
+</ol>
+
+<hr>
+
+<h2>1. Data model: builder profile</h2>
+
+<h3>Primary collection: BuilderProfile</h3>
+<p>File: <code>src/models/talent/BuilderProfile.ts</code></p>
+<p>One document per builder, keyed by <code>userId</code> (WorkOS/User) and/or <code>email</code>. Core fields:</p>
+<ul>
+  <li><strong>Identity:</strong> name, email, headline, bio, location, universityOrCompany</li>
+  <li><strong>Hiring signals:</strong> rolePreference[] (skills/roles), preferredWorkType[], availability (availableNow, hoursPerWeek, remotePreference)</li>
+  <li><strong>Links:</strong> github, linkedin, portfolio, resume, devpost</li>
+  <li><strong>Computed caches:</strong> profileCompletion (profileScore, proofScore, matchScore, missingItems, eligibility), profileQuality (LLM or deterministic evaluation blob)</li>
+  <li><strong>Visibility:</strong> verificationStatus, visibilityStatus (public | matched_only | hidden)</li>
+  <li><strong>legacyRefs:</strong> pointers to legacy User/Application docs from bootstrap</li>
+</ul>
+
+<h3>Proof-of-work: ProjectRecord</h3>
+<p>File: <code>src/models/talent/ProjectRecord.ts</code></p>
+<p>Many projects per builder (<code>builderId</code>). Matching and founder review read project text heavily:</p>
+<ul>
+  <li>projectName, description, problemSolved, builderContribution, techStack[], contributionTags[]</li>
+  <li>links (github, devpost, demo, screenshots), source, sourceId</li>
+  <li>verificationStatus: imported_unverified → builder_confirmed → peer_confirmed / admin_verified / founder_verified</li>
+</ul>
+
+<h3>Founder hiring context: Opportunity</h3>
+<p>File: <code>src/models/talent/Opportunity.ts</code></p>
+<p>Role brief / search definition: company, roleTitle, builderWillDo, skillsNeeded[], hireType/workType, timeline, budget, locationPreference, status (draft → shortlisted → …).</p>
+
+<h3>Search artifacts</h3>
+<table>
+  <tr><th>Model</th><th>Purpose</th></tr>
+  <tr><td>Shortlist</td><td>Per-opportunity ranked preview: candidates[] with anonymous labels, match scores, unlocked flag</td></tr>
+  <tr><td>MatchRecord</td><td>Per (builderId, opportunityId) pipeline row: scores, reasoning, status (generated → intro_requested → trial → hired)</td></tr>
+</table>
+
+<hr>
+
+<h2>2. Builder profile lifecycle (Builder OS)</h2>
+
+<h3>Creation</h3>
+<ul>
+  <li><strong>On first authenticated API call:</strong> <code>resolveAuthedBuilder</code> in actionsHandler creates a minimal BuilderProfile if none exists (email from JWT, default availability).</li>
+  <li><strong>Bootstrap script (ops):</strong> <code>POST /api/talent/bootstrap-builders</code> copies User + Application into BuilderProfile with legacyRefs; uses <code>computeProfileCompletion</code> only.</li>
+</ul>
+
+<h3>Update paths (no embedding step)</h3>
+<table>
+  <tr><th>Path</th><th>What gets written</th></tr>
+  <tr><td>Builder Agent <code>builder_chat</code> tools</td><td>update_profile_basics, update_links, update_availability, import_project, evaluate_profile</td></tr>
+  <tr><td>Direct actions</td><td>update_profile_basics, update_links, update_availability, update_work_preferences, claim_profile</td></tr>
+  <tr><td>Resume upload</td><td>PDF → Cloudinary URL on links.resume; LLM parse → headline, bio, rolePreference, ProjectRecords</td></tr>
+  <tr><td>Project import</td><td>GitHub API or Devpost markdown + LLM extract → ProjectRecord upsert by sourceId URL</td></tr>
+  <tr><td>Dashboard load</td><td>get_builder_dashboard recomputes profileCompletion; may run deterministic profileQuality</td></tr>
+</table>
+
+<h3>Builder OS UI consumption</h3>
+<ul>
+  <li><code>BuilderOSDashboard.tsx</code> loads via <code>get_builder_dashboard</code></li>
+  <li>Agent tab: <code>builder_chat</code> with chat history; refreshes builder object from response</li>
+  <li>Home/Profile tabs show profileCompletion, profileQuality.suggestedFixes, projects, intros, trials, calls</li>
+</ul>
+
+<p>After most writes, <code>updateBuilderScores</code> / <code>computeBuilderScores</code> recomputes profileCompletion and optionally LLM profileQuality.</p>
+
+<hr>
+
+<h2>3. Embeddings — critical distinction</h2>
+
+<h3>Talent OS (Builder + Founder): NO vector embeddings for profiles</h3>
+<p>There is <strong>no</strong> call to <code>getVectorStore()</code>, MongoDB Atlas Vector Search, or Cloudflare embeddings anywhere under <code>src/lib/talent/</code>. Founder search does not embed the opportunity or builder corpus.</p>
+<p>Matching is <strong>keyword/fuzzy token overlap + weighted heuristics</strong> over in-memory builder + project documents loaded from Mongo.</p>
+
+<h3>What “embedding” means elsewhere in the repo (out of scope)</h3>
+<p>Separate admin/club pipeline uses <code>src/lib/vectorStore.ts</code> (Cloudflare BGE + MongoDB Atlas) for Application/resume chunks via <code>/api/search/vector-only</code> and RAG. That path is <strong>not</strong> used by Builder OS or Founder OS talent discovery.</p>
+
+<h3>Supermemory (optional, not profile embedding)</h3>
+<p>File: <code>src/lib/talent/supermemory.ts</code></p>
+<ul>
+  <li>Container tags: <code>builder-{builderId}</code>, <code>founder-{founderId}</code></li>
+  <li><code>getBuilderMemoryProfile</code> / <code>getFounderMemoryProfile</code>: profile API returns static + dynamic memory strings</li>
+  <li>Injected into agent <strong>system prompts</strong> (up to 5 static + 3 dynamic bullets)</li>
+  <li><code>addBuilderMemory</code> / <code>addFounderMemory</code>: fire-and-forget text memories after tool actions (e.g. “updated availability”)</li>
+  <li>Requires <code>SUPERMEMORY_API_KEY</code>; if missing, agents work without cross-session memory</li>
+</ul>
+<p>Supermemory is <strong>conversational memory</strong>, not a searchable embedding index of builder profiles for matching.</p>
+
+<hr>
+
+<h2>4. Profile scoring and quality</h2>
+
+<h3>profileCompletion — deterministic (matching.ts)</h3>
+<p><code>computeBuilderScores(builder, projects)</code>:</p>
+<ul>
+  <li><strong>profileScore (0–100):</strong> checklist — name, email, availability fields, rolePreference, preferredWorkType</li>
+  <li><strong>proofScore (0–100):</strong> project count, links, builderContribution length, builder resume/github/portfolio links</li>
+  <li><strong>matchScore / eligibility:</strong> combined readiness; priority if matchScore ≥ 80</li>
+  <li><strong>missingItems:</strong> human-readable gaps for Builder Agent suggestions</li>
+</ul>
+
+<h3>profileQuality — deterministic fallback + optional LLM</h3>
+<p>File: <code>src/lib/talent/profileQuality.ts</code></p>
+<ul>
+  <li><code>evaluateDeterministicQuality</code>: rule-based score from headline/bio length, projects, contributions, links</li>
+  <li><code>evaluateBuilderProfileQuality</code>: if OpenRouter configured, sends trimmed profile+projects JSON to LLM; returns structured issues, suggestedFixes, founderClarity score; else deterministic</li>
+  <li>Stored on <code>builder.profileQuality</code> with source <code>llm</code> or <code>deterministic</code></li>
+  <li>Used in matching as <code>scoreProfileQuality</code> (overallScore + founderClarity blended)</li>
+</ul>
+
+<h3>Resume processing (structured extract, not vectors)</h3>
+<p><code>src/lib/talent/resumeParser.ts</code>: pdf-parse → OpenRouter JSON extract → updates BuilderProfile fields + creates ProjectRecords. No vector store write.</p>
+
+<hr>
+
+<h2>5. Founder role brief &amp; search gates</h2>
+
+<h3>Role brief storage</h3>
+<p>Opportunity document, created/updated by:</p>
+<ul>
+  <li>Founder Agent tools: create_role_brief, update_role_brief (sanitized via founderRoleBrief.ts — no placeholder company, merge hints from user text)</li>
+  <li>Legacy actions: create_role_brief, update_role_brief, enhance_role_brief_field</li>
+</ul>
+
+<h3>When search is allowed</h3>
+<p><code>canRunPreviewAnyway(opportunity)</code> in founderSearchQuality.ts requires:</p>
+<ol>
+  <li>roleTitle (non-placeholder)</li>
+  <li>builderWillDo OR startupSummary</li>
+  <li>skillsNeeded.length &gt; 0</li>
+</ol>
+<p>Full REQUIRED_FIELD_CHECKS also include workType, timeline, location — used for UI completeness, not the minimal search gate.</p>
+
+<hr>
+
+<h2>6. Matching algorithm</h2>
+
+<p>File: <code>src/lib/talent/builderSearch.ts</code> — function <code>rankBuildersForOpportunity(builders, projectsByBuilder, opportunity, limit=12)</code></p>
+
+<h3>Candidate pool</h3>
+<pre>BuilderProfile.find({
+  verificationStatus: { $ne: 'rejected' },
+  visibilityStatus: { $ne: 'hidden' }
+}).limit(2000)</pre>
+<p>All projects for those builders loaded in one query, grouped by builderId in a Map.</p>
+
+<h3>Per-builder component scores (0–1 each)</h3>
+<table>
+  <tr><th>Component</th><th>Weight in matchScore</th><th>Logic (summary)</th></tr>
+  <tr><td>skillFit</td><td>30%</td><td>Tokenize role skills + title; fuzzy match against headline, bio, rolePreference, project text/stacks; SKILL_ALIASES (e.g. golang/go)</td></tr>
+  <tr><td>proofRelevance</td><td>25%</td><td>Verified projects preferred; count, contribution clarity, tech stack presence; fallback to proofScore</td></tr>
+  <tr><td>availabilityFit</td><td>15%</td><td>availableNow, hoursPerWeek, remote vs opportunity location</td></tr>
+  <tr><td>workTypeFit</td><td>10%</td><td>preferredWorkType vs opportunity.workType/hireType aliases</td></tr>
+  <tr><td>domainRelevance</td><td>10%</td><td>Keyword overlap between opportunity summary/industry/builderWillDo and project text</td></tr>
+  <tr><td>profileQuality</td><td>10%</td><td>profileQuality.overallScore + founderClarity, normalized 0–1</td></tr>
+</table>
+
+<h3>Composite scores</h3>
+<ul>
+  <li><strong>matchScore</strong> = round(weighted sum × 100)</li>
+  <li><strong>profileStrength</strong> = separate heuristic (quality, proof, links, project count) via profileStrengthScore()</li>
+  <li><strong>rankingStrength</strong> = matchScore × 0.7 + profileStrength × 0.3</li>
+  <li><strong>matchLabel:</strong> ≥80 Strong Match, ≥65 Good Match, else Possible Match</li>
+</ul>
+
+<h3>Hard filter</h3>
+<p>If opportunity has specific requirements (skills, roleType, or roleTitle) AND skillFit &lt; 0.25 AND domainRelevance &lt; 0.2 → builder <strong>excluded</strong> from results.</p>
+
+<h3>Sort &amp; limit</h3>
+<p>Sort by rankingStrength, then profileStrength, matchScore, skillFit, proofRelevance. Return top 12.</p>
+
+<h3>Derived copy (not LLM)</h3>
+<ul>
+  <li>whyTheyMatch — template sentences from component thresholds</li>
+  <li>proofSummary — anonymous project/stack summary</li>
+  <li>availabilitySummary — from availability fields</li>
+  <li>signals — low/medium/high buckets per dimension</li>
+</ul>
+
+<hr>
+
+<h2>7. Search execution &amp; persistence</h2>
+
+<h3>Two entry points, same core logic</h3>
+<ol>
+  <li><code>action: run_builder_search</code> or <code>rerun_search</code> — explicit API from Founder OS UI</li>
+  <li>Founder Agent tool <code>run_search</code> — identical ranking inside founder_chat tool executor</li>
+</ol>
+
+<h3>After ranking</h3>
+<ol>
+  <li><code>toAnonymousCandidates(ranked, N)</code> — anonymousLabel like "Full-stack · Strong Match" (role type + label; names hidden in preview metadata)</li>
+  <li>For each result: <code>MatchRecord.findOneAndUpdate</code> upsert with matchScore, profileStrength, matchLabel, anonymousLabel, signalScores, reasoning (whyTheyMatch), status generated unless already in pipeline</li>
+  <li><code>Shortlist.findOneAndUpdate</code>: totalMatches, strongMatchCount, candidates[], previewGeneratedAt, unlocked=true (current code auto-unlocks)</li>
+  <li>Opportunity.status → shortlisted</li>
+  <li><code>buildFullCandidatesForShortlist</code> — hydrates real names, projects, verification labels for founder kanban/drawer (founderCandidate.ts)</li>
+</ol>
+
+<h3>Rerun behavior</h3>
+<p>On rerun_search, pipeline builders (status not generated/closed/rejected) may be merged back into shortlist even if they fell out of top ranks.</p>
+
+<hr>
+
+<h2>8. Founder OS discovery &amp; AI agent</h2>
+
+<h3>Founder Agent does NOT semantically search builders</h3>
+<p>The founder_chat LLM:</p>
+<ul>
+  <li>Collects/refines role brief via tools (get_role_brief, create/update_role_brief)</li>
+  <li>Triggers <code>run_search</code> tool → calls same rankBuildersForOpportunity as run_builder_search</li>
+  <li>Reads results via get_shortlist, get_candidate_details</li>
+  <li>Can request_intro (writes IntroRequest, notifies builder)</li>
+</ul>
+<p>The agent’s “Scanning proof-of-work talent graph” UI copy is branding; execution is deterministic Mongo load + heuristic rank.</p>
+
+<h3>UI flow (FounderRoleIntakeChat)</h3>
+<ol>
+  <li>Mount → sendToAgent('__init__') → founder_chat with synthetic “just signed up” or “existing role” message</li>
+  <li>Agent may call get_all_roles, create/update brief tools</li>
+  <li>If agent message suggests running search AND canRunPreviewAnyway → triggerSearch() calls run_builder_search (separate HTTP call, not only tool)</li>
+  <li>On success → onSearchCompleted(opportunityId) → Founder kanban / workspace</li>
+</ol>
+
+<h3>FounderOSDashboard</h3>
+<ul>
+  <li>get_founder_dashboard — searches, shortlists, pipeline</li>
+  <li>rerun_search — refresh matches for active opportunity</li>
+  <li>FounderCandidateDrawer — full candidate from buildFullCandidateCard</li>
+  <li>Non-agent actions: request_intro, unlock_shortlist (legacy; search now auto-unlocks), generate_trial_project (LLM for trial copy only)</li>
+</ul>
+
+<h3>Anonymous vs unlocked shortlist</h3>
+<p>Shortlist stores anonymous labels in candidates[]. When unlocked, get_shortlist / buildFullCandidatesForShortlist expose builder names, projects, proof labels. Founder Agent get_candidate_details requires unlocked shortlist.</p>
+
+<hr>
+
+<h2>9. Builder Agent vs matching</h2>
+<p>Builder Agent improves <strong>inputs</strong> to matching (profile fields, projects, quality scores) but does not run founder search. fetch_intros / fetch_work_trials / fetch_messages read pipeline state only.</p>
+<p>When evaluate_profile tool runs, profileQuality on BuilderProfile updates → affects future founder matchScore via profileQuality component.</p>
+
+<hr>
+
+<h2>10. End-to-end diagrams</h2>
+
+<h3>Builder profile → searchable corpus</h3>
+<pre>
+Builder signs in
+  → BuilderProfile (Mongo)
+  → Projects via agent import / resume / manual
+  → computeBuilderScores + optional LLM profileQuality
+  → Stored as plain text fields (NO embedding index)
+</pre>
+
+<h3>Founder search</h3>
+<pre>
+Founder defines Opportunity (chat or editor)
+  → canRunPreviewAnyway?
+  → Load ≤2000 builders + all their projects
+  → rankBuildersForOpportunity (heuristic)
+  → MatchRecord + Shortlist persist
+  → Founder UI kanban / candidate drawer
+</pre>
+
+<h3>Where AI is used vs not</h3>
+<table>
+  <tr><th>Step</th><th>AI?</th><th>Mechanism</th></tr>
+  <tr><td>Store builder profile</td><td>No</td><td>Mongo documents</td></tr>
+  <tr><td>Embed profile for search</td><td>No</td><td>Not implemented in talent OS</td></tr>
+  <tr><td>Rank builders for role</td><td>No</td><td>builderSearch.ts heuristics</td></tr>
+  <tr><td>Parse resume / import Devpost</td><td>Yes</td><td>OpenRouter JSON extract</td></tr>
+  <tr><td>Profile quality evaluation</td><td>Optional</td><td>OpenRouter or deterministic</td></tr>
+  <tr><td>Founder/Builder chat orchestration</td><td>Yes</td><td>OpenRouter tool-calling agent</td></tr>
+  <tr><td>Agent memory across sessions</td><td>Optional</td><td>Supermemory text memories</td></tr>
+  <tr><td>Trial project copy</td><td>Optional</td><td>founderTrialProject LLM</td></tr>
+</table>
+
+<hr>
+
+<h2>11. Key files index</h2>
+<table>
+  <tr><th>File</th><th>Role</th></tr>
+  <tr><td>src/models/talent/BuilderProfile.ts</td><td>Builder schema</td></tr>
+  <tr><td>src/models/talent/ProjectRecord.ts</td><td>Proof-of-work projects</td></tr>
+  <tr><td>src/models/talent/Opportunity.ts</td><td>Founder role brief</td></tr>
+  <tr><td>src/models/talent/Shortlist.ts</td><td>Search results snapshot</td></tr>
+  <tr><td>src/models/talent/MatchRecord.ts</td><td>Per-builder pipeline row</td></tr>
+  <tr><td>src/lib/talent/matching.ts</td><td>Profile completion / proof scores</td></tr>
+  <tr><td>src/lib/talent/builderSearch.ts</td><td>Matching/ranking engine</td></tr>
+  <tr><td>src/lib/talent/profileQuality.ts</td><td>LLM + deterministic quality</td></tr>
+  <tr><td>src/lib/talent/founderCandidate.ts</td><td>Full candidate cards for founders</td></tr>
+  <tr><td>src/lib/talent/founderSearchQuality.ts</td><td>Brief completeness, search gates</td></tr>
+  <tr><td>src/lib/talent/resumeParser.ts</td><td>Resume → structured profile</td></tr>
+  <tr><td>src/lib/talent/supermemory.ts</td><td>Agent memory (not match index)</td></tr>
+  <tr><td>src/lib/agent/actionsHandler.ts</td><td>run_builder_search, founder_chat run_search, builder tools</td></tr>
+  <tr><td>src/components/builder/BuilderOSDashboard.tsx</td><td>Builder OS shell</td></tr>
+  <tr><td>src/components/founder/FounderRoleIntakeChat.tsx</td><td>Founder agent + search trigger</td></tr>
+  <tr><td>src/components/founder/FounderOSDashboard.tsx</td><td>Founder pipeline UI</td></tr>
+</table>
+
+<p class="meta" style="margin-top: 24px;">For downstream LLMs: treat talent discovery as a <strong>batch heuristic ranker over Mongo documents</strong>. To add true semantic matching, you would need a new pipeline (embed Opportunity + builder corpus, vector index) — not present in Builder/Founder OS today.</p>
+
+</body>
+</html>

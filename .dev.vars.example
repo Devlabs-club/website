@@ -1,6 +1,12 @@
-# Optional local dev file for `wrangler dev` only.
-# For deploy secrets, run: bun run deploy:cloudflare:secrets
-# (reads .env and uploads JSON via wrangler secret bulk)
+# Copy to `.dev.vars` for local dev (overrides wrangler.toml [vars] via platformProxy).
+# Or use `.env` — see .env.example. Both load via src/lib/loadEnv.ts.
 #
-# If you maintain this file manually, use plain KEY=VALUE lines — no comments inline, no quotes required:
-# MONGODB_URI=your-value-here
+# Deploy secrets: bun run deploy:cloudflare:secrets
+#
+WEBSITE_ROOT=http://localhost:4321
+WORKOS_REDIRECT_URI=http://localhost:4321/api/auth/oauth/callback
+#
+# JWT_SECRET=...
+# MONGODB_URI=...
+# WORKOS_API_KEY=...
+# WORKOS_CLIENT_ID=...

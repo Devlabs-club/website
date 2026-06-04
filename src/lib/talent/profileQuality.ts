@@ -137,26 +137,37 @@ export async function evaluateBuilderProfileQuality(builder: any, projects: any[
     return deterministic;
   }
 
+  const trim = (s: string | null | undefined, max: number) =>
+    s ? String(s).slice(0, max) : null;
+
   const promptData = {
     name: builder.name,
-    headline: builder.headline,
-    bio: builder.bio,
-    roles: builder.rolePreference,
-    skills: projects.flatMap(p => p.techStack || []),
+    headline: trim(builder.headline, 120),
+    bio: trim(builder.bio, 400),
+    roles: (builder.rolePreference || []).slice(0, 6),
+    skills: Array.from(new Set(projects.flatMap((p: any) => p.techStack || []))).slice(0, 20),
     workPreferences: builder.preferredWorkType,
-    availability: builder.availability,
-    links: builder.links,
-    projects: projects.map(p => ({
+    availability: {
+      availableNow: builder.availability?.availableNow,
+      hoursPerWeek: builder.availability?.hoursPerWeek,
+      remotePreference: builder.availability?.remotePreference,
+    },
+    links: {
+      github: builder.links?.github || null,
+      linkedin: builder.links?.linkedin || null,
+      portfolio: builder.links?.portfolio || null,
+    },
+    projects: projects.slice(0, 6).map((p: any) => ({
       title: p.projectName,
-      description: p.description,
-      techStack: p.techStack,
-      contribution: p.builderContribution,
-      source: p.source,
+      description: trim(p.description, 200),
+      techStack: (p.techStack || []).slice(0, 8),
+      contribution: trim(p.builderContribution, 200),
       verificationStatus: p.verificationStatus,
-      links: p.links
+      hasGithubLink: Boolean(p.links?.github),
+      hasDemoLink: Boolean(p.links?.demo),
     })),
     eventsCount: events.length,
-    momentumCount: momentumUpdates.length
+    momentumCount: momentumUpdates.length,
   };
 
   const systemPrompt = `You are evaluating a builder profile for DevLabs, a proof-of-work hiring marketplace for early-stage startups. Your job is to judge profile quality, not field completion. A profile is high quality only if a startup founder can quickly understand what the builder is good at, what they have actually built, what they personally contributed, and why they are credible. Be strict but constructive. Do not reward vague or generic content just because fields are filled. Separate roles from skills. Prefer specific, evidence-backed profiles. Return only valid JSON matching the requested schema.
@@ -189,12 +200,22 @@ Schema:
   try {
     const responseText = await generateOpenRouterReply({
       systemPrompt,
-      userPrompt: `Evaluate this builder profile:\n\n${JSON.stringify(promptData, null, 2)}`,
+      userPrompt: `Evaluate this builder profile:\n\n${JSON.stringify(promptData)}`,
       temperature: 0.1,
-      maxTokens: 1000,
+      maxTokens: 2000,
     });
 
-    const jsonStr = responseText.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
+    const cleaned = responseText
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+
+    // Find the outermost JSON object even if the response has trailing text
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error('No JSON object found in response');
+    const jsonStr = cleaned.slice(jsonStart, jsonEnd + 1);
     const result = JSON.parse(jsonStr);
 
     return {

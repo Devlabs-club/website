@@ -85,7 +85,7 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
       runtime
     );
 
-    const token = generateToken(user);
+    const token = generateToken(user, runtime);
 
     const headers = new Headers();
     headers.set('Location', redirectUrl);

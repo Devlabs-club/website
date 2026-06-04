@@ -128,7 +128,7 @@ export default function BuilderMatchesTab({ ctx }: { ctx: BuilderDashboardContex
           action={
             <OsButton
               variant={projects.length === 0 ? 'white' : 'shimmer'}
-              onClick={() => setActiveTab(projects.length === 0 ? 'projects' : matchScore >= 80 ? 'agent' : 'profile')}
+              onClick={() => setActiveTab(projects.length === 0 ? 'profile' : matchScore >= 80 ? 'agent' : 'profile')}
             >
               {projects.length === 0 ? 'Add proof-of-work' : matchScore >= 80 ? 'Ask Agent to find matches' : 'Keep profile updated'}
             </OsButton>
