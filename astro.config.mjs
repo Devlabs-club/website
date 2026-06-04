@@ -1,6 +1,6 @@
 import { defineConfig } from "astro/config";
 import tailwind from "@astrojs/tailwind";
-import vercel from "@astrojs/vercel";
+import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 
 /** Native / heavy server deps — keep out of Rollup SSR bundles. */
@@ -23,6 +23,8 @@ const SSR_EXTERNAL = [
   "qrcode",
   "nunjucks",
   "@dqbd/tiktoken",
+  "sharp",
+  "onnxruntime-node",
 ];
 
 export default defineConfig({
@@ -37,12 +39,24 @@ export default defineConfig({
   },
   integrations: [tailwind(), react()],
   output: "server",
-  adapter: vercel({
-    edgeMiddleware: false,
-    analytics: false,
-    maxDuration: 60,
+  image: {
+    service: {
+      entrypoint: "astro/assets/services/noop",
+    },
+  },
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true,
+    },
   }),
   vite: {
+    server: {
+      // Prevent the browser from caching stale Vite module URLs between dev refreshes.
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        Pragma: "no-cache",
+      },
+    },
     // Lock dependency pre-bundling to a fixed list so cache invalidation (504 Outdated
     // Optimize Dep) does not happen on every config save. react-markdown is lazy-loaded
     // in ChatMarkdown.tsx — do not pre-bundle it (aria-query hangs esbuild for minutes).

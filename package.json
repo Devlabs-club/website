@@ -11,10 +11,13 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "vercel deploy --prod",
+    "deploy:cloudflare": "bun run build && wrangler deploy",
+    "deploy:cloudflare:secrets": "bun run scripts/push-cloudflare-secrets.ts",
     "send-momentum-acceptance": "bun run scripts/send-momentum-acceptance-email.ts",
     "momentum:assign-missing-groups": "bun run scripts/assign-missing-groups.ts"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "12.6.13",
     "@astrojs/node": "^9.5.2",
     "@astrojs/react": "^4.4.2",
     "@astrojs/tailwind": "^5.1.5",

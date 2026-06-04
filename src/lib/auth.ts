@@ -1,8 +1,6 @@
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 import type { IUser } from '../models/user.tsx';
-
-dotenv.config();
+import type { AuthUser } from './adminMongo';
 
 export interface JWTPayload {
   userId: string;
@@ -11,15 +9,19 @@ export interface JWTPayload {
 }
 
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const secret =
+    (typeof process !== 'undefined' && process.env.JWT_SECRET?.trim()) ||
+    (import.meta.env.JWT_SECRET as string | undefined)?.trim();
   if (!secret) {
     throw new Error('JWT_SECRET is not defined');
   }
   return secret;
 }
 
+type TokenUser = Pick<IUser, '_id' | 'email' | 'role'> | AuthUser;
+
 // Generate JWT token
-export function generateToken(user: IUser): string {
+export function generateToken(user: TokenUser): string {
   const payload: JWTPayload = {
     userId: String(user._id),
     email: user.email,

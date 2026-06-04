@@ -1,11 +1,9 @@
 import type { APIRoute } from 'astro';
-import { WorkOS } from '@workos-inc/node';
+import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
-const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
-  clientId: import.meta.env.WORKOS_CLIENT_ID,
-});
+export const POST: APIRoute = async ({ request, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
 
-export const POST: APIRoute = async ({ request }) => {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
     const match = cookieHeader.match(/wos-session=([^;]+)/);
@@ -14,15 +12,17 @@ export const POST: APIRoute = async ({ request }) => {
     let logoutUrl = '/login';
     if (wosSession) {
       try {
-        const url = new URL(request.url);
-        const returnTo = `${url.protocol}//${url.host}/login`;
-        
+        const workos = createWorkOS(runtime);
+        const { cookiePassword } = getWorkOSConfig(runtime);
+        if (!cookiePassword) throw new Error('WORKOS_COOKIE_PASSWORD missing');
+
         logoutUrl = await workos.userManagement.getLogoutUrlFromSessionCookie({
           sessionData: wosSession,
-          cookiePassword: import.meta.env.WORKOS_COOKIE_PASSWORD,
+          cookiePassword,
         });
-        
-        // Append returnTo if not already present
+
+        const url = new URL(request.url);
+        const returnTo = `${url.protocol}//${url.host}/login`;
         if (logoutUrl && !logoutUrl.includes('return_to=')) {
           const logoutUrlObj = new URL(logoutUrl);
           logoutUrlObj.searchParams.set('return_to', returnTo);
@@ -33,33 +33,31 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    // Clear the auth cookie and WorkOS session cookie
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Logout successful',
-        logoutUrl
+        logoutUrl,
       }),
       {
         status: 200,
         headers: new Headers([
           ['Content-Type', 'application/json'],
           ['Set-Cookie', `auth-token=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict`],
-          ['Set-Cookie', `wos-session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`]
-        ])
+          ['Set-Cookie', `wos-session=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`],
+        ]),
       }
     );
-
   } catch (error) {
     console.error('Logout error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: 'Internal server error' 
+      JSON.stringify({
+        success: false,
+        message: 'Internal server error',
       }),
-      { 
+      {
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       }
     );
   }

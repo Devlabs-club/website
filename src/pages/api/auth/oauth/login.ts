@@ -1,42 +1,37 @@
 import type { APIRoute } from 'astro';
-import { WorkOS } from '@workos-inc/node';
 import { getOAuthRedirectUri } from '../../../../lib/oauthRedirect';
+import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../../lib/workosEnv';
 
-// Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
-const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
-  clientId: import.meta.env.WORKOS_CLIENT_ID,
-});
+export const GET: APIRoute = async ({ request, redirect, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
 
-export const GET: APIRoute = async ({ request, redirect }) => {
   try {
     const url = new URL(request.url);
-    const redirectParam = url.searchParams.get('redirect') || '';
+    const redirectParam = url.searchParams.get('redirect')?.trim();
+    const postAuthPath = redirectParam || '/dashboard';
+    const workos = createWorkOS(runtime);
+    const { clientId } = getWorkOSConfig(runtime);
+    if (!clientId) throw new Error('WORKOS_CLIENT_ID missing');
 
-    // Get the authorization URL from WorkOS for Google OAuth
     const authorizationUrl = workos.userManagement.getAuthorizationUrl({
-      provider: 'GoogleOAuth', // Use GoogleOAuth directly to skip AuthKit page
-      redirectUri: getOAuthRedirectUri(request),
-      clientId: import.meta.env.WORKOS_CLIENT_ID,
-      state: redirectParam ? JSON.stringify({ redirect: redirectParam }) : undefined,
+      provider: 'GoogleOAuth',
+      redirectUri: getOAuthRedirectUri(request, runtime),
+      clientId,
+      state: JSON.stringify({ redirect: postAuthPath }),
       prompt: 'select_account',
     });
 
-    // Create redirect response
     return new Response(null, {
       status: 302,
-      headers: {
-        'Location': authorizationUrl
-      }
+      headers: { Location: authorizationUrl },
     });
-
   } catch (error) {
     console.error('OAuth login initiation failed:', error);
-    
+
     const url = new URL(request.url);
     const redirectParam = url.searchParams.get('redirect');
     const redirectQuery = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : '';
-    
-    // Redirect to login page with error
+
     return redirect(`/login?error=oauth_init_failed${redirectQuery}`);
   }
 };

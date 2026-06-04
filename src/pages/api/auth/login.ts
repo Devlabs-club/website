@@ -1,13 +1,13 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
+import { verifyUserPassword } from '../../../lib/adminMongo';
 import { generateToken, isValidEmail } from '../../../lib/auth.ts';
 import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
+import { runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
+
   try {
-    // Connect to admin database
-    await connectAdminDB();
 
     const body = await request.json();
     const { email, password } = body;
@@ -40,32 +40,16 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Find user and include password for comparison
-    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    const user = await verifyUserPassword(email, password, runtime);
     if (!user) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
+        JSON.stringify({
+          success: false,
+          message: 'Invalid email or password',
         }),
-        { 
+        {
           status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid email or password' 
-        }),
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         }
       );
     }
@@ -79,7 +63,7 @@ export const POST: APIRoute = async ({ request }) => {
         success: true,
         message: 'Login successful',
         user: {
-          id: user._id,
+          id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role

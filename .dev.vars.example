@@ -1,0 +1,6 @@
+# Optional local dev file for `wrangler dev` only.
+# For deploy secrets, run: bun run deploy:cloudflare:secrets
+# (reads .env and uploads JSON via wrangler secret bulk)
+#
+# If you maintain this file manually, use plain KEY=VALUE lines — no comments inline, no quotes required:
+# MONGODB_URI=your-value-here
