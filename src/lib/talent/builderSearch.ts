@@ -20,7 +20,9 @@ export type MatchLabel = 'Strong Match' | 'Good Match' | 'Possible Match';
 
 export type ComponentScores = {
   skillFit: number;
+  specializedFit: number;
   proofRelevance: number;
+  evidenceQuality: number;
   availabilityFit: number;
   workTypeFit: number;
   domainRelevance: number;
@@ -57,15 +59,38 @@ const VERIFIED_PROJECT_STATUSES = new Set([
   'founder_verified',
 ]);
 
+const SHORT_TECH_TOKENS = new Set(['ai', 'ml', 'go', 'js', 'ts', 'c#', 'c++', 'c']);
+
 function norm(s: string) {
   return s.toLowerCase().trim();
 }
 
 const SKILL_ALIASES: Record<string, string[]> = {
+  ai: ['ai', 'artificial intelligence', 'machine learning', 'ml', 'llm', 'openai'],
+  ml: ['ml', 'machine learning', 'ai', 'artificial intelligence'],
+  'c#': ['c#', 'csharp', 'c sharp', '.net'],
+  'c++': ['c++', 'cpp'],
+  javascript: ['javascript', 'js'],
+  js: ['javascript', 'js'],
+  typescript: ['typescript', 'ts'],
+  ts: ['typescript', 'ts'],
+  react: ['react', 'react.js', 'reactjs'],
+  'react.js': ['react', 'react.js', 'reactjs'],
+  reactjs: ['react', 'react.js', 'reactjs'],
+  next: ['next', 'next.js', 'nextjs'],
+  'next.js': ['next', 'next.js', 'nextjs'],
+  nextjs: ['next', 'next.js', 'nextjs'],
+  node: ['node', 'node.js', 'nodejs'],
+  'node.js': ['node', 'node.js', 'nodejs'],
+  nodejs: ['node', 'node.js', 'nodejs'],
   gcp: ['gcp', 'google cloud', 'google cloud platform'],
   'google cloud': ['gcp', 'google cloud', 'google cloud platform'],
   golang: ['golang', 'go'],
   go: ['golang', 'go'],
+  llm: ['llm', 'large language model', 'gpt', 'openai'],
+  rag: ['rag', 'retrieval augmented generation', 'retrieval-augmented generation', 'vector search', 'embeddings'],
+  embeddings: ['embedding', 'embeddings', 'vector search', 'semantic search'],
+  'vector search': ['vector search', 'semantic search', 'embeddings'],
   'ci/cd': ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
   cicd: ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
   devops: ['devops', 'docker', 'kubernetes', 'terraform', 'jenkins', 'github actions'],
@@ -83,7 +108,99 @@ function tokenize(text: string): string[] {
   return norm(text)
     .replace(/[^a-z0-9+#.\s-]/g, ' ')
     .split(/\s+/)
-    .filter((t) => t.length > 2);
+    .filter((t) => t.length > 2 || SHORT_TECH_TOKENS.has(t));
+}
+
+const ROLE_TOKEN_STOPWORDS = new Set([
+  'founding',
+  'founder',
+  'senior',
+  'junior',
+  'lead',
+  'principal',
+  'engineer',
+  'developer',
+  'builder',
+  'intern',
+  'role',
+  'full',
+  'stack',
+  'product',
+]);
+
+const DOMAIN_TOKEN_STOPWORDS = new Set([
+  ...ROLE_TOKEN_STOPWORDS,
+  'with',
+  'from',
+  'that',
+  'this',
+  'they',
+  'will',
+  'need',
+  'needs',
+  'build',
+  'ship',
+  'shipping',
+  'using',
+  'used',
+  'user',
+  'users',
+  'app',
+  'apps',
+  'platform',
+  'system',
+  'systems',
+  'tool',
+  'tools',
+  'team',
+  'teams',
+  'startup',
+  'startups',
+  'internal',
+  'data',
+  'source',
+  'sources',
+  'usage',
+  'production',
+]);
+
+const BROAD_TECH_TERMS = new Set([
+  'javascript',
+  'js',
+  'typescript',
+  'ts',
+  'python',
+  'java',
+  'react',
+  'react.js',
+  'reactjs',
+  'next',
+  'next.js',
+  'nextjs',
+  'node',
+  'node.js',
+  'nodejs',
+  'frontend',
+  'backend',
+  'full-stack',
+  'fullstack',
+  'web',
+  'mobile',
+]);
+
+function isSpecializedRequirement(term: string) {
+  const normalized = norm(term).replace(/\s+/g, ' ');
+  if (!normalized || BROAD_TECH_TERMS.has(normalized)) return false;
+  if (SHORT_TECH_TOKENS.has(normalized) && !['ai', 'ml'].includes(normalized)) return false;
+  return true;
+}
+
+function isUsefulRoleToken(token: string) {
+  return (token.length >= 4 || SHORT_TECH_TOKENS.has(token)) && !ROLE_TOKEN_STOPWORDS.has(token);
+}
+
+function isUsefulDomainToken(token: string) {
+  return token.length >= 5 && !DOMAIN_TOKEN_STOPWORDS.has(token);
 }
 
 function fuzzySkillMatch(required: string, haystack: Set<string>): boolean {
@@ -114,62 +231,142 @@ function addSearchText(haystack: Set<string>, value: unknown) {
   tokenize(raw).forEach((token) => haystack.add(token));
 }
 
+function buildTextSet(values: unknown[]) {
+  const haystack = new Set<string>();
+  values.forEach((value) => addSearchText(haystack, value));
+  return haystack;
+}
+
+type WeightedRequirement = {
+  term: string;
+  weight: number;
+};
+
+function buildWeightedRequirements(opportunity: OpportunityLike): WeightedRequirement[] {
+  const weighted: WeightedRequirement[] = [];
+  const add = (term: string, weight: number) => {
+    const specializationBoost = isSpecializedRequirement(term) ? 1.45 : 1;
+    weighted.push({ term, weight: weight * specializationBoost });
+  };
+
+  (opportunity.skillsNeeded || []).forEach((skill) => add(String(skill), 1));
+  (opportunity.niceToHaveSkills || []).forEach((skill) => add(String(skill), 0.45));
+  (opportunity.roleType || []).forEach((role) => add(String(role), 0.35));
+  if (opportunity.roleTitle) {
+    tokenize(opportunity.roleTitle)
+      .filter(isUsefulRoleToken)
+      .forEach((token) => add(token, 0.25));
+  }
+
+  const seen = new Set<string>();
+  return weighted.filter((item) => {
+    const key = norm(item.term);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function hasStrongProjectEvidence(project: any) {
+  return (
+    VERIFIED_PROJECT_STATUSES.has(project.verificationStatus) ||
+    Boolean(project.links?.github || project.links?.demo || project.links?.devpost) ||
+    Boolean(project.builderContribution && String(project.builderContribution).length > 30) ||
+    (Array.isArray(project.techStack) && project.techStack.length > 0)
+  );
+}
+
+function buildEvidenceSources(builder: any, projects: any[]) {
+  const projectTech = buildTextSet(projects.flatMap((p) => p.techStack || []));
+  const projectContribution = buildTextSet(
+    projects.flatMap((p) => [p.builderContribution, ...(p.contributionTags || [])])
+  );
+  const projectNarrative = buildTextSet(
+    projects.flatMap((p) => [p.projectName, p.description, p.problemSolved])
+  );
+  const profileDeclared = buildTextSet([
+    ...(builder.rolePreference || []),
+    builder.headline,
+    builder.bio,
+    builder.profileQuality?.oneLineSummary,
+    ...(builder.profileQuality?.strengths || []).flatMap((strength: any) => [
+      strength?.title,
+      strength?.detail,
+    ]),
+  ]);
+
+  return [
+    { haystack: projectTech, weight: 1 },
+    { haystack: projectContribution, weight: 0.9 },
+    { haystack: projectNarrative, weight: 0.72 },
+    { haystack: profileDeclared, weight: 0.62 },
+  ];
+}
+
+function scoreWeightedRequirements(
+  requirements: WeightedRequirement[],
+  builder: any,
+  projects: any[]
+) {
+  if (requirements.length === 0) return 0.55;
+
+  const sourceWeights = buildEvidenceSources(builder, projects);
+  let earned = 0;
+  let possible = 0;
+  for (const requirement of requirements) {
+    possible += requirement.weight;
+    const sourceHit = sourceWeights.find((source) => fuzzySkillMatch(requirement.term, source.haystack));
+    if (sourceHit) {
+      earned += requirement.weight * sourceHit.weight;
+    }
+  }
+
+  return Math.min(1, earned / Math.max(possible, 1));
+}
+
 function scoreSkillFit(
   builder: any,
   projects: any[],
   opportunity: OpportunityLike
 ): number {
-  const required = [
-    ...(opportunity.skillsNeeded || []),
-    ...(opportunity.niceToHaveSkills || []),
-    ...(opportunity.roleTitle ? tokenize(opportunity.roleTitle) : []),
-    ...(opportunity.roleType || []),
-  ].filter(Boolean);
+  const required = buildWeightedRequirements(opportunity);
+  return scoreWeightedRequirements(required, builder, projects);
+}
 
-  if (required.length === 0) return 0.55;
-
-  const haystack = new Set<string>();
-  (builder.rolePreference || []).forEach((s: string) => addSearchText(haystack, s));
-  addSearchText(haystack, builder.headline);
-  addSearchText(haystack, builder.bio);
-  addSearchText(haystack, builder.profileQuality?.oneLineSummary);
-  (builder.profileQuality?.strengths || []).forEach((strength: any) => {
-    addSearchText(haystack, strength?.title);
-    addSearchText(haystack, strength?.detail);
-  });
-  projects.forEach((p) => {
-    addSearchText(haystack, p.projectName);
-    addSearchText(haystack, p.description);
-    addSearchText(haystack, p.problemSolved);
-    addSearchText(haystack, p.builderContribution);
-    (p.techStack || []).forEach((s: string) => addSearchText(haystack, s));
-    (p.contributionTags || []).forEach((s: string) => addSearchText(haystack, s));
-  });
-
-  const matches = required.filter((skill) => fuzzySkillMatch(String(skill), haystack));
-  return Math.min(1, matches.length / Math.min(required.length, 6));
+function scoreSpecializedFit(
+  builder: any,
+  projects: any[],
+  opportunity: OpportunityLike
+): number {
+  const specialized = buildWeightedRequirements(opportunity).filter((requirement) =>
+    isSpecializedRequirement(requirement.term)
+  );
+  if (specialized.length === 0) return 0.55;
+  return scoreWeightedRequirements(specialized, builder, projects);
 }
 
 function scoreProofRelevance(builder: any, projects: any[]): number {
-  let score = 0;
-  const verified = projects.filter((p) => VERIFIED_PROJECT_STATUSES.has(p.verificationStatus));
-  const pool = verified.length ? verified : projects;
-
-  if (pool.length === 0) {
+  if (projects.length === 0) {
     const proofScore = builder.profileCompletion?.proofScore ?? 0;
-    return Math.min(1, proofScore / 100);
+    return Math.min(0.35, proofScore / 100);
   }
 
-  score += Math.min(0.45, pool.length * 0.15);
-  const withContribution = pool.filter(
-    (p) => p.builderContribution && String(p.builderContribution).length > 20
-  );
-  score += Math.min(0.35, withContribution.length * 0.12);
+  const projectScores = projects.map((project) => {
+    let score = 0;
+    if (VERIFIED_PROJECT_STATUSES.has(project.verificationStatus)) score += 0.28;
+    if (project.links?.github || project.links?.demo || project.links?.devpost) score += 0.2;
+    if (project.builderContribution && String(project.builderContribution).length > 30) score += 0.28;
+    if (Array.isArray(project.techStack) && project.techStack.length > 0) score += 0.18;
+    if (project.description && String(project.description).length > 60) score += 0.06;
+    return Math.min(1, score);
+  });
 
-  const withStack = pool.filter((p) => Array.isArray(p.techStack) && p.techStack.length > 0);
-  score += Math.min(0.2, withStack.length * 0.08);
+  const sorted = [...projectScores].sort((a, b) => b - a);
+  const best = sorted[0] || 0;
+  const topThreeAvg = sorted.slice(0, 3).reduce((sum, score) => sum + score, 0) / Math.max(1, sorted.slice(0, 3).length);
+  const countBonus = Math.min(0.15, projects.filter(hasStrongProjectEvidence).length * 0.04);
 
-  return Math.min(1, score);
+  return Math.min(1, best * 0.55 + topThreeAvg * 0.3 + countBonus);
 }
 
 function scoreAvailabilityFit(builder: any, opportunity: OpportunityLike): number {
@@ -228,32 +425,58 @@ function scoreDomainRelevance(projects: any[], opportunity: OpportunityLike): nu
     .filter(Boolean)
     .join(' ');
 
-  const keywords = new Set(tokenize(corpus));
+  const keywords = new Set(tokenize(corpus).filter(isUsefulDomainToken));
   if (keywords.size === 0) return 0.5;
 
-  const projectText = projects
+  const projectTokens = new Set(tokenize(
+    projects
     .map((p) => [p.description, p.problemSolved, p.builderContribution, ...(p.techStack || [])].join(' '))
-    .join(' ')
-    .toLowerCase();
+      .join(' ')
+  ));
 
   let hits = 0;
   keywords.forEach((kw) => {
-    if (projectText.includes(kw)) hits += 1;
+    if (projectTokens.has(kw)) hits += 1;
   });
 
-  return Math.min(1, hits / Math.min(keywords.size, 8));
+  return Math.min(1, hits / Math.min(keywords.size, 10));
 }
 
 function scoreProfileQuality(builder: any): number {
   const overall = builder.profileQuality?.overallScore ?? builder.profileCompletion?.profileScore ?? 0;
-  const clarity = builder.profileQuality?.founderClarity?.score ?? 0;
+  const clarity = builder.profileQuality?.founderClarity?.score ?? overall;
   const blended = overall * 0.6 + clarity * 0.4;
   return Math.min(1, blended / 100);
 }
 
+function hasMalformedName(name: unknown) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return parts.length > 5 && new Set(parts.map((part) => part.toLowerCase())).size <= 3;
+}
+
+function scoreEvidenceQuality(builder: any, projects: any[]): number {
+  let score = 0;
+  if (!hasMalformedName(builder.name)) score += 0.12;
+  if ((builder.rolePreference || []).length > 0) score += 0.12;
+  if (builder.headline || builder.bio) score += 0.08;
+  if (builder.links?.github || builder.links?.portfolio || builder.links?.personalWebsite || builder.links?.resume) {
+    score += 0.12;
+  }
+
+  if (projects.length > 0) score += 0.12;
+  if (projects.some((p) => VERIFIED_PROJECT_STATUSES.has(p.verificationStatus))) score += 0.14;
+  if (projects.some((p) => p.links?.github || p.links?.demo || p.links?.devpost)) score += 0.12;
+  if (projects.some((p) => p.builderContribution && String(p.builderContribution).length > 30)) score += 0.14;
+  if (projects.some((p) => Array.isArray(p.techStack) && p.techStack.length > 0)) score += 0.14;
+
+  if (hasMalformedName(builder.name)) score -= 0.18;
+
+  return Math.max(0, Math.min(1, score));
+}
+
 export function profileStrengthScore(builder: any, projects: any[] = []) {
   const quality = builder.profileQuality?.overallScore ?? builder.profileCompletion?.profileScore ?? 0;
-  const proof = builder.profileCompletion?.proofScore ?? Math.min(100, projects.length * 25);
+  const proof = Math.round(scoreProofRelevance(builder, projects) * 100);
   const clarity = builder.profileQuality?.founderClarity?.score ?? quality;
   const linkScore = [
     builder.links?.github,
@@ -262,10 +485,12 @@ export function profileStrengthScore(builder: any, projects: any[] = []) {
     builder.links?.resume,
     builder.links?.devpost,
   ].filter(Boolean).length * 6;
-  const projectScore = Math.min(20, projects.length * 6);
+  const projectScore = Math.min(18, projects.filter(hasStrongProjectEvidence).length * 6);
+  const evidenceQuality = scoreEvidenceQuality(builder, projects) * 100;
+  const malformedPenalty = hasMalformedName(builder.name) ? 28 : 0;
   return Math.max(
     0,
-    Math.min(100, Math.round(quality * 0.35 + proof * 0.25 + clarity * 0.2 + linkScore + projectScore))
+    Math.min(100, Math.round(quality * 0.28 + proof * 0.28 + clarity * 0.16 + evidenceQuality * 0.18 + linkScore + projectScore - malformedPenalty))
   );
 }
 
@@ -282,23 +507,26 @@ function signalLevel(value: number): 'low' | 'medium' | 'high' {
 }
 
 export function buildAnonymousProofSummary(projects: any[]): string {
-  const verified = projects.filter((p) => VERIFIED_PROJECT_STATUSES.has(p.verificationStatus));
-  const pool = verified.length ? verified : projects;
-
-  if (pool.length === 0) {
+  if (projects.length === 0) {
     return 'Limited verified proof-of-work on profile.';
   }
 
+  const verified = projects.filter((p) => VERIFIED_PROJECT_STATUSES.has(p.verificationStatus));
+  const pool = verified.length ? verified : projects.filter(hasStrongProjectEvidence);
+  const summaryPool = pool.length ? pool : projects;
+
   const stacks = Array.from(
-    new Set(pool.flatMap((p) => (p.techStack || []).map((s: string) => String(s))))
+    new Set(summaryPool.flatMap((p) => (p.techStack || []).map((s: string) => String(s))))
   ).slice(0, 4);
 
-  const withContribution = pool.filter(
+  const withContribution = summaryPool.filter(
     (p) => p.builderContribution && String(p.builderContribution).length > 15
   ).length;
 
   const parts = [
-    `${pool.length} verified project${pool.length === 1 ? '' : 's'} with documented build history.`,
+    verified.length
+      ? `${verified.length} verified project${verified.length === 1 ? '' : 's'} with documented build history.`
+      : `${summaryPool.length} project${summaryPool.length === 1 ? '' : 's'} with linked or imported proof; verify ownership before moving forward.`,
   ];
   if (withContribution > 0) {
     parts.push(`${withContribution} include clear contribution notes.`);
@@ -337,6 +565,8 @@ export function buildWhyTheyMatch(
   }
   if (components.proofRelevance >= 0.55) {
     parts.push('Proof-of-work history supports startup shipping pace.');
+  } else if (components.evidenceQuality < 0.45) {
+    parts.push('Evidence is thin — validate ownership before moving forward.');
   }
   if (components.availabilityFit >= 0.55) {
     parts.push('Availability fits an active hiring timeline.');
@@ -364,24 +594,72 @@ export function rankBuildersForOpportunity(
 
     const componentScores: ComponentScores = {
       skillFit: scoreSkillFit(builder, projects, opportunity),
+      specializedFit: scoreSpecializedFit(builder, projects, opportunity),
       proofRelevance: scoreProofRelevance(builder, projects),
+      evidenceQuality: scoreEvidenceQuality(builder, projects),
       availabilityFit: scoreAvailabilityFit(builder, opportunity),
       workTypeFit: scoreWorkTypeFit(builder, opportunity),
       domainRelevance: scoreDomainRelevance(projects, opportunity),
       profileQuality: scoreProfileQuality(builder),
     };
 
+    const hasSpecificRequirements = Boolean(
+      (opportunity.skillsNeeded && opportunity.skillsNeeded.length > 0) ||
+      (opportunity.roleType && opportunity.roleType.length > 0) ||
+      opportunity.roleTitle
+    );
+    const hasConcreteSkillList = Boolean(opportunity.skillsNeeded && opportunity.skillsNeeded.length >= 3);
+    const hasAnyProfileSignal =
+      (builder.rolePreference || []).length > 0 ||
+      Boolean(builder.headline || builder.bio || builder.profileQuality?.oneLineSummary);
+    const hasAnyProjectEvidence = projects.some(hasStrongProjectEvidence);
+
+    if (
+      hasSpecificRequirements &&
+      !hasAnyProjectEvidence &&
+      (!hasAnyProfileSignal || componentScores.skillFit < 0.25)
+    ) {
+      continue;
+    }
+
+    if (hasConcreteSkillList && componentScores.skillFit < 0.22) {
+      continue;
+    }
+
+    if (
+      hasConcreteSkillList &&
+      componentScores.specializedFit < 0.12 &&
+      componentScores.skillFit < 0.35
+    ) {
+      continue;
+    }
+
+    if (
+      hasSpecificRequirements &&
+      componentScores.skillFit < 0.2 &&
+      componentScores.domainRelevance < 0.2 &&
+      componentScores.proofRelevance < 0.3
+    ) {
+      continue;
+    }
+
     const matchScore = Math.round(
-      (componentScores.skillFit * 0.3 +
-        componentScores.proofRelevance * 0.25 +
-        componentScores.availabilityFit * 0.15 +
-        componentScores.workTypeFit * 0.1 +
-        componentScores.domainRelevance * 0.1 +
-        componentScores.profileQuality * 0.1) *
+      (componentScores.skillFit * 0.36 +
+        componentScores.specializedFit * 0.18 +
+        componentScores.proofRelevance * 0.17 +
+        componentScores.evidenceQuality * 0.1 +
+        componentScores.domainRelevance * 0.06 +
+        componentScores.profileQuality * 0.04 +
+        componentScores.workTypeFit * 0.05 +
+        componentScores.availabilityFit * 0.04) *
         100
     );
     const profileStrength = profileStrengthScore(builder, projects);
-    const rankingStrength = Math.round(matchScore * 0.7 + profileStrength * 0.3);
+    const rankingStrength = Math.round(
+      matchScore * 0.78 +
+        profileStrength * 0.17 +
+        componentScores.availabilityFit * 5
+    );
 
     const skillSet = new Set<string>();
     (builder.rolePreference || []).forEach((s: string) => skillSet.add(s));
@@ -411,7 +689,7 @@ export function rankBuildersForOpportunity(
         proofOfWork: signalLevel(componentScores.proofRelevance),
         availability: signalLevel(componentScores.availabilityFit),
         startupReadiness: signalLevel(
-          (componentScores.proofRelevance + componentScores.profileQuality) / 2
+          (componentScores.proofRelevance + componentScores.evidenceQuality + componentScores.profileQuality) / 3
         ),
       },
       builder,
