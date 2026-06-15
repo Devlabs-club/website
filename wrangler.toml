@@ -21,4 +21,4 @@ WEBSITE_ROOT = "https://website.plain-fire-9ab3.workers.dev"
 WORKOS_REDIRECT_URI = "https://website.plain-fire-9ab3.workers.dev/api/auth/oauth/callback"
 # Mongoose / change-stream APIs run on Vercel; Worker proxies these paths.
 # Node/Mongoose APIs (agent actions, realtime). Use a Vercel deploy that includes devlabs-os routes.
-API_PROXY_ORIGIN = "https://website-iov0ggdhi-devlabs-projects-897ae3e7.vercel.app"
+API_PROXY_ORIGIN = "https://website-69v4rnc0y-devlabs-projects-897ae3e7.vercel.app"

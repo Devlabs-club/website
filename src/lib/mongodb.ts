@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import { ensureLocalEnvLoaded } from './loadEnv';
 
-dotenv.config();
+ensureLocalEnvLoaded();
 
 // Use environment variable for MongoDB URI
 const MONGODB_URI = process.env.MONGODB_URI;

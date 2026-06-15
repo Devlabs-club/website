@@ -1,5 +1,6 @@
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import Opportunity from '@/models/talent/Opportunity';
+import mongoose from 'mongoose';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import MatchRecord from '@/models/talent/MatchRecord';
 import Shortlist from '@/models/talent/Shortlist';
@@ -279,9 +280,10 @@ const ADMIN_SCOUT_TOOL_NAMES = new Set([
   'get_candidate_details',
 ]);
 
-const ADMIN_SCOUT_TOOLS = FOUNDER_TOOLS.filter((t) =>
-  ADMIN_SCOUT_TOOL_NAMES.has(t.function.name)
-);
+const ADMIN_SCOUT_TOOLS = [
+  ...FOUNDER_TOOLS.filter((t) => ADMIN_SCOUT_TOOL_NAMES.has(t.function.name)),
+  ...ADMIN_SCOUT_ONLY_TOOLS,
+];
 
 const ADMIN_SCOUT_PROMPT_ADDENDUM = `
 
@@ -289,7 +291,37 @@ ADMIN SCOUT MODE — internal operator console:
 - Skip intro requests, billing, and pipeline actions entirely.
 - Optimize for search quality and candidate transparency.
 - Company name can default to "Internal Scout" when the operator does not specify one.
-- After search, summarize top matches with names and fit scores.`;
+- After search, summarize top matches with names and fit scores.
+- When the session is marked [NEW SEARCH SESSION]: skip "continue vs start fresh" — go straight to intake for a brand-new role.
+- When the operator says start fresh / new search / from scratch: call begin_new_role_search first, then use create_role_brief (never update_role_brief on an old role).
+- When the operator picks an existing role to continue: call select_existing_role with that role's title, then use update_role_brief or run_search as needed.`;
+
+const ADMIN_SCOUT_ONLY_TOOLS: ToolDefinition[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'begin_new_role_search',
+      description:
+        'Clear the active role brief and start intake for a brand-new search. Call when the operator chooses start fresh or wants a new role unrelated to the current brief.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'select_existing_role',
+      description:
+        'Switch the active session to an existing role/search when the operator wants to continue one from get_all_roles.',
+      parameters: {
+        type: 'object',
+        properties: {
+          roleTitle: { type: 'string', description: 'Role title from get_all_roles (partial match ok)' },
+          opportunityId: { type: 'string', description: 'Opportunity id from get_all_roles if known' },
+        },
+      },
+    },
+  },
+];
 
 export type FounderAgentMode = 'founder' | 'admin_scout';
 
@@ -303,6 +335,7 @@ export async function runFounderAgentTurn(params: {
   founderStartupContext: FounderStartupContext;
   payloadOpportunityId: string | null;
   mode?: FounderAgentMode;
+  startFreshSession?: boolean;
 }): Promise<Response> {
   const {
     email,
@@ -313,6 +346,7 @@ export async function runFounderAgentTurn(params: {
     founderStartupContext,
     payloadOpportunityId,
     mode = 'founder',
+    startFreshSession = false,
   } = params;
   const isAdminScout = mode === 'admin_scout';
   const agentTools = isAdminScout ? ADMIN_SCOUT_TOOLS : FOUNDER_TOOLS;
@@ -346,6 +380,9 @@ export async function runFounderAgentTurn(params: {
   const systemPrompt =
     FOUNDER_SYSTEM_PROMPT +
     (isAdminScout ? ADMIN_SCOUT_PROMPT_ADDENDUM : '') +
+    (isAdminScout && startFreshSession
+      ? '\n\n[NEW SEARCH SESSION] The operator opened a blank new search. Do not ask whether to continue an old role. Start intake for a brand-new role brief immediately.'
+      : '') +
     startupBlock +
     talentPoolBlock +
     (isAdminScout || !memoryBlock ? '' : '\n\n' + memoryBlock);
@@ -358,6 +395,55 @@ export async function runFounderAgentTurn(params: {
     const currentOppId = opp ? String(opp._id) : null;
 
     switch (name) {
+      case 'begin_new_role_search': {
+        if (!isAdminScout) return { error: 'Not available in founder mode.' };
+        currentOpportunity = null;
+        lastOpportunityId = null;
+        return {
+          success: true,
+          message: 'Active brief cleared. Use create_role_brief when you have a role title and what they will build.',
+        };
+      }
+
+      case 'select_existing_role': {
+        if (!isAdminScout) return { error: 'Not available in founder mode.' };
+        const byId = args.opportunityId ? String(args.opportunityId) : '';
+        const byTitle = String(args.roleTitle || '').trim();
+
+        let found: any = null;
+        if (byId && mongoose.Types.ObjectId.isValid(byId)) {
+          found = await Opportunity.findOne({ _id: byId, founderEmail: email });
+        }
+        if (!found && byTitle) {
+          const roles = await Opportunity.find({
+            founderEmail: email,
+            status: { $nin: ['closed', 'archived', 'deleted'] },
+          })
+            .sort({ updatedAt: -1 })
+            .limit(20)
+            .lean();
+          const q = byTitle.toLowerCase();
+          found =
+            roles.find((r: any) => String(r.roleTitle || '').toLowerCase() === q) ||
+            roles.find((r: any) => String(r.roleTitle || '').toLowerCase().includes(q)) ||
+            roles.find((r: any) => q.includes(String(r.roleTitle || '').toLowerCase()));
+        }
+        if (!found) {
+          return { error: `Could not find an existing role matching "${byTitle || byId}". Call get_all_roles to list options.` };
+        }
+
+        currentOpportunity = await Opportunity.findById(found._id);
+        lastOpportunityId = String(found._id);
+        return {
+          success: true,
+          opportunityId: String(found._id),
+          roleTitle: found.roleTitle,
+          company: found.company,
+          status: found.status,
+          message: `Switched to "${found.roleTitle}". Use get_role_brief to see current fields.`,
+        };
+      }
+
       case 'get_role_brief': {
         if (!opp) return { message: 'No active role brief yet. Use create_role_brief to start one.' };
         const o = opp.toObject ? opp.toObject() : opp;
@@ -487,7 +573,15 @@ export async function runFounderAgentTurn(params: {
       }
 
       case 'update_role_brief': {
-        if (!opp) return { error: 'No active role brief. Create one first with create_role_brief.' };
+        if (!opp) {
+          if (isAdminScout && startFreshSession) {
+            return {
+              error:
+                'No new brief yet. Call begin_new_role_search if needed, then create_role_brief — do not update an old role.',
+            };
+          }
+          return { error: 'No active role brief. Create one first with create_role_brief.' };
+        }
         let fields = sanitizeRoleBriefArgs(args, founderStartupContext, userText);
 
         // AI enhancement on meaningful updates (skills or builderWillDo changing)
@@ -806,7 +900,15 @@ export async function runFounderAgentTurn(params: {
           };
         }
 
-        if ((tc.function.name === 'create_role_brief' || tc.function.name === 'update_role_brief') && result.opportunityId) {
+        if (tc.function.name === 'begin_new_role_search' && result.success) {
+          lastOpportunityId = null;
+        }
+        if (
+          (tc.function.name === 'create_role_brief' ||
+            tc.function.name === 'update_role_brief' ||
+            tc.function.name === 'select_existing_role') &&
+          result.opportunityId
+        ) {
           lastOpportunityId = String(result.opportunityId);
         }
         if (tc.function.name === 'get_role_brief' && !('error' in result) && !('message' in result) && currentOpportunity) {
@@ -824,7 +926,7 @@ export async function runFounderAgentTurn(params: {
     );
 
     messages.push(...toolResults);
-    agentResponse = await generateOpenRouterAgentTurn({ messages, tools: FOUNDER_TOOLS, temperature: 0.3, maxTokens: 700 });
+    agentResponse = await generateOpenRouterAgentTurn({ messages, tools: agentTools, temperature: 0.3, maxTokens: 700 });
   }
 
   const finalMessage = agentResponse.content || 'I ran into an issue. Try again.';

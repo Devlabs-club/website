@@ -111,6 +111,15 @@ export async function loadScoutShortlist(scoutSessionId: string, opportunityId: 
   }>('admin_scout_load_shortlist', scoutSessionId, { opportunityId });
 }
 
+export function isStartFreshIntent(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length > 200) return false;
+  return (
+    /\b(start fresh|start over|new search|begin fresh|from scratch|brand new)\b/i.test(trimmed) ||
+    /^(start fresh|new search|new role)$/i.test(trimmed)
+  );
+}
+
 export function formatScoutSearchDate(value: string | null | undefined): string {
   if (!value) return '—';
   try {

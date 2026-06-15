@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Loader2, ChevronRight, Pencil, CheckCircle2, XCircle } from 'lucide-react';
 import { canRunPreviewAnyway } from '@/lib/talent/founderSearchQuality';
 import {
-  getOrCreateScoutSessionId,
   parseAgentOptions,
+  isStartFreshIntent,
   type AdminCandidate,
   type AgentOption,
   type SearchQualityBlock,
@@ -74,6 +74,7 @@ export default function AdminScoutChat({
   const [opportunityId, setOpportunityId] = useState<string | null>(initialOpportunityId);
   const [currentBrief, setCurrentBrief] = useState<Record<string, unknown> | null>(null);
   const [toolCallLabel, setToolCallLabel] = useState<string | null>(null);
+  const [pendingNewSearch, setPendingNewSearch] = useState(startFresh);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -83,8 +84,9 @@ export default function AdminScoutChat({
     setMessages([]);
     setOpportunityId(initialOpportunityId);
     setCurrentBrief(null);
+    setPendingNewSearch(startFresh);
     initiatedRef.current = false;
-  }, [resetKey, initialOpportunityId]);
+  }, [resetKey, initialOpportunityId, startFresh]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -162,9 +164,18 @@ export default function AdminScoutChat({
   const sendToAgent = useCallback(
     async (text: string, history: ChatMessage[]) => {
       const isInit = text === '__init__';
+      const userWantsFresh = !isInit && isStartFreshIntent(text);
+      if (userWantsFresh) {
+        setOpportunityId(null);
+        setCurrentBrief(null);
+        setPendingNewSearch(true);
+        onOpportunityChange(null, null);
+      }
+
+      const inNewSearchMode = pendingNewSearch && !opportunityId;
       const userText = isInit
         ? startFresh || !initialOpportunityId
-          ? 'Internal admin scout session. I need to search the talent pool for a new role.'
+          ? 'New admin scout search. Start a brand-new role brief — ignore previous searches unless I ask to continue one.'
           : 'Continue working on my existing role search. Help me refine the brief or review candidates.'
         : text;
 
@@ -188,8 +199,8 @@ export default function AdminScoutChat({
             payload: {
               scoutSessionId,
               message: userText,
-              opportunityId: isInit && startFresh ? null : opportunityId,
-              startFresh: isInit && startFresh,
+              opportunityId: inNewSearchMode || userWantsFresh ? null : opportunityId,
+              startFresh: (isInit && startFresh) || inNewSearchMode || userWantsFresh,
               history: chatHistory.slice(-16),
             },
           }),
@@ -211,6 +222,7 @@ export default function AdminScoutChat({
           const id = String(opp._id);
           setOpportunityId(id);
           setCurrentBrief(opp);
+          setPendingNewSearch(false);
           onOpportunityChange(id, opp);
         }
 
@@ -288,7 +300,7 @@ export default function AdminScoutChat({
         setToolCallLabel(null);
       }
     },
-    [scoutSessionId, opportunityId, startFresh, initialOpportunityId, addMessage, updateMessage, onOpportunityChange, onSearchResults, onSearchStart, onSearchError, triggerSearch]
+    [scoutSessionId, opportunityId, pendingNewSearch, startFresh, initialOpportunityId, addMessage, updateMessage, onOpportunityChange, onSearchResults, onSearchStart, onSearchError, triggerSearch]
   );
 
   useEffect(() => {

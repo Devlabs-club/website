@@ -58,6 +58,15 @@ import {
   validateScoutSessionId,
 } from '@/lib/talent/adminScoutSession';
 import { runAdminScoutSearch } from '@/lib/talent/adminScoutSearch';
+
+function isAdminScoutStartFreshIntent(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length > 200) return false;
+  return (
+    /\b(start fresh|start over|new search|begin fresh|from scratch|brand new)\b/i.test(trimmed) ||
+    /^(start fresh|new search|new role)$/i.test(trimmed)
+  );
+}
 import { runFounderDiscoveryPipeline } from '@/lib/talent/discovery/index';
 import type { SearchMode } from '@/lib/talent/discovery/strategy';
 import { persistDiscoveryCandidates } from '@/lib/talent/founderSearchPersist';
@@ -76,10 +85,6 @@ import IntroRequest from '@/models/talent/IntroRequest';
 import CallSchedule from '@/models/talent/CallSchedule';
 import User from '@/models/user.tsx';
 import CandidateFeedback from '@/models/talent/CandidateFeedback';
-import {
-  writeFounderCandidateRejectionMemory,
-  writeFounderCandidateSaveMemory,
-} from '@/lib/agent/memoryWriter';
 import {
   countUnreadForBuilder,
   countUnreadForFounder,
@@ -1074,7 +1079,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       if (!userText) return bad('message is required');
 
       const payloadOpportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
-      const startFresh = payload?.startFresh === true;
+      const startFresh =
+        payload?.startFresh === true || isAdminScoutStartFreshIntent(userText);
       let currentOpportunity: any = null;
       if (payloadOpportunityId && mongoose.Types.ObjectId.isValid(payloadOpportunityId)) {
         currentOpportunity = await Opportunity.findOne({
@@ -1095,10 +1101,11 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
         founderId: identity.founderId,
         userText,
         history: Array.isArray(payload?.history) ? payload.history : [],
-        currentOpportunity,
+        currentOpportunity: startFresh ? null : currentOpportunity,
         founderStartupContext: { company: null, startupSummary: null, industry: null },
-        payloadOpportunityId,
+        payloadOpportunityId: startFresh ? null : payloadOpportunityId,
         mode: 'admin_scout',
+        startFreshSession: startFresh,
       });
     }
 

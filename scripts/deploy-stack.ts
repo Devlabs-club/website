@@ -13,6 +13,7 @@ import { spawnSync } from 'child_process';
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnvFile } from './envFile';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = new Set(process.argv.slice(2));
@@ -44,6 +45,101 @@ function run(
   return result.stdout || '';
 }
 
+/** Like run(), but returns null instead of exiting on failure. */
+function runOptional(
+  command: string,
+  commandArgs: string[],
+  env: Record<string, string> = {}
+): string | null {
+  console.log(`\n→ ${command} ${commandArgs.join(' ')}`);
+  const result = spawnSync(command, commandArgs, {
+    cwd: root,
+    stdio: ['inherit', 'pipe', 'pipe'],
+    encoding: 'utf8',
+    env: { ...process.env, ...env },
+  });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  if (result.status !== 0) return null;
+  return result.stdout || '';
+}
+
+function bypassSecretFromEnvFiles(): string | undefined {
+  if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim()) {
+    return process.env.VERCEL_AUTOMATION_BYPASS_SECRET.trim();
+  }
+  try {
+    const env = loadEnvFile(root);
+    return env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+  } catch {
+    return undefined;
+  }
+}
+
+function bypassSecretFromVercelCli(): string | undefined {
+  const output = runOptional('vercel', [
+    'project',
+    'protection',
+    'website',
+    '--format',
+    'json',
+  ]);
+  if (!output) return undefined;
+
+  try {
+    const json = JSON.parse(output.trim());
+    const keys = Object.keys(json.protectionBypass || {});
+    if (keys.length) return keys[0];
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+function enableVercelProtectionBypassViaCli(): boolean {
+  const output = runOptional('vercel', [
+    'project',
+    'protection',
+    'enable',
+    'website',
+    '--protection-bypass',
+    '-y',
+  ]);
+  return output !== null;
+}
+
+function ensureVercelProtectionBypass(): string | undefined {
+  const fromFiles = bypassSecretFromEnvFiles();
+  if (fromFiles) {
+    console.log('Using VERCEL_AUTOMATION_BYPASS_SECRET from env / .env.backup');
+    return fromFiles;
+  }
+
+  const fromCli = bypassSecretFromVercelCli();
+  if (fromCli) {
+    console.log('Vercel protection bypass secret found via CLI.');
+    return fromCli;
+  }
+
+  if (enableVercelProtectionBypassViaCli()) {
+    const created = bypassSecretFromVercelCli();
+    if (created) {
+      console.log('Enabled Vercel Protection Bypass for Automation.');
+      return created;
+    }
+  }
+
+  console.warn(
+    'No VERCEL_AUTOMATION_BYPASS_SECRET found. Skipping bypass setup.\n' +
+      '  • Add VERCEL_AUTOMATION_BYPASS_SECRET to .env.backup, or\n' +
+      '  • Upgrade Vercel CLI (npm i -g vercel@latest) and enable bypass in project settings.\n' +
+      '  Without it, proxied API calls may return Vercel SSO HTML instead of JSON.'
+  );
+  return undefined;
+}
+
 function parseVercelDeployUrl(output: string): string | null {
   const productionLine = output.match(/Production:\s+(https:\/\/[^\s]+)/i);
   if (productionLine?.[1]) return productionLine[1].replace(/\/$/, '');
@@ -63,34 +159,6 @@ function parseVercelDeployUrl(output: string): string | null {
 
   const matches = output.match(/https:\/\/[^\s"'`]+\.vercel\.app/gi);
   return matches?.length ? matches[matches.length - 1].replace(/\/$/, '') : null;
-}
-
-function getVercelBypassSecret(): string | undefined {
-  const output = run('vercel', ['project', 'protection', 'website', '--format', 'json']);
-  try {
-    const json = JSON.parse(output.trim());
-    const keys = Object.keys(json.protectionBypass || {});
-    if (keys.length) return keys[0];
-  } catch {
-    // ignore
-  }
-  return process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
-}
-
-function ensureVercelProtectionBypass(): string | undefined {
-  let secret = getVercelBypassSecret();
-  if (secret) {
-    console.log('Vercel protection bypass secret found.');
-    return secret;
-  }
-
-  console.log('Enabling Vercel Protection Bypass for Automation...');
-  run('vercel', ['project', 'protection', 'enable', 'website', '--protection-bypass', '-y']);
-  secret = getVercelBypassSecret();
-  if (!secret) {
-    console.warn('Could not read Vercel bypass secret. Proxy may hit SSO HTML errors.');
-  }
-  return secret;
 }
 
 function syncVercelEnv(): void {
@@ -121,6 +189,13 @@ function deployVercelBackend(): string {
   if (!url) {
     console.error(
       'Could not detect Vercel deployment URL. Re-run with VERCEL_BACKEND_URL=https://your-app.vercel.app'
+    );
+    process.exit(1);
+  }
+
+  if (/BUILD_ERROR|"readyState":\s*"ERROR"/i.test(output)) {
+    console.error(
+      'Vercel build failed. Check the deployment logs above, fix the error, then re-run deploy:stack.'
     );
     process.exit(1);
   }

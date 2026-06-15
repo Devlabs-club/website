@@ -194,7 +194,6 @@ export default function AdminTalentScoutDashboard() {
                   onOpportunityChange={(id, brief) => {
                     setOpportunityId(id);
                     setCurrentBrief(brief);
-                    if (startFresh && id) setStartFresh(false);
                   }}
                   onSearchStart={() => {
                     setSearchStatus('loading');
