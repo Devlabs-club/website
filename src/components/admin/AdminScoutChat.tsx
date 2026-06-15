@@ -4,6 +4,7 @@ import { canRunPreviewAnyway } from '@/lib/talent/founderSearchQuality';
 import {
   parseAgentOptions,
   isStartFreshIntent,
+  getOrCreateScoutSessionId,
   type AdminCandidate,
   type AgentOption,
   type SearchQualityBlock,
