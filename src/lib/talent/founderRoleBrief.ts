@@ -13,7 +13,35 @@ export type FounderStartupContext = {
   company: string | null;
   startupSummary: string | null;
   industry: string | null;
+  fundingStage?: string | null;
+  productDescription?: string | null;
+  techStackHints?: string[];
+  founderBio?: string | null;
+  enriched?: boolean;
 };
+
+export function formatFounderStartupContextForPrompt(ctx: FounderStartupContext): string {
+  if (!ctx.company && !ctx.startupSummary && !ctx.productDescription) return '';
+
+  const lines = ['[Startup context — from onboarding research]'];
+  if (ctx.company) lines.push(`- Company: ${ctx.company}`);
+  if (ctx.startupSummary) lines.push(`- Summary: ${ctx.startupSummary}`);
+  if (ctx.productDescription && ctx.productDescription !== ctx.startupSummary) {
+    lines.push(`- Product: ${ctx.productDescription}`);
+  }
+  if (ctx.industry) lines.push(`- Industry: ${ctx.industry}`);
+  if (ctx.fundingStage) lines.push(`- Stage: ${ctx.fundingStage}`);
+  if (ctx.techStackHints?.length) {
+    lines.push(`- Likely stack/domain: ${ctx.techStackHints.join(', ')}`);
+  }
+  if (ctx.founderBio) lines.push(`- Founder background: ${ctx.founderBio}`);
+  if (ctx.enriched) {
+    lines.push(
+      '- You already researched this founder/company at onboarding. Do not re-ask company name or "what are you building".'
+    );
+  }
+  return `\n\n${lines.join('\n')}`;
+}
 
 export type SanitizedRoleBriefFields = {
   roleTitle: string | null;
@@ -28,6 +56,9 @@ export type SanitizedRoleBriefFields = {
   budget: string | null;
   locationPreference: string | null;
   industry: string | null;
+  seniority: string | null;
+  fundingStage: string | null;
+  deliverables: string[];
 };
 
 function cleanStr(value: unknown): string | null {
@@ -97,6 +128,9 @@ export function sanitizeRoleBriefArgs(
   const hireType = normalizeHireType(args.hireType);
   const skillsNeeded = normalizeStringArray(args.skillsNeeded);
   const niceToHaveSkills = normalizeStringArray(args.niceToHaveSkills);
+  const seniority = cleanStr(args.seniority);
+  const fundingStage = cleanStr(args.fundingStage);
+  const deliverables = normalizeStringArray(args.deliverables);
 
   return {
     roleTitle,
@@ -111,6 +145,9 @@ export function sanitizeRoleBriefArgs(
     budget,
     locationPreference,
     industry,
+    seniority,
+    fundingStage,
+    deliverables,
   };
 }
 
@@ -135,79 +172,8 @@ export function applySanitizedToOpportunity(
   }
   if (fields.skillsNeeded.length > 0) opportunity.skillsNeeded = fields.skillsNeeded;
   if (fields.niceToHaveSkills.length > 0) opportunity.niceToHaveSkills = fields.niceToHaveSkills;
+  if (fields.seniority) opportunity.seniority = fields.seniority;
+  if (fields.fundingStage) opportunity.fundingStage = fields.fundingStage;
+  if (fields.deliverables.length > 0) opportunity.deliverables = fields.deliverables;
 }
 
-export function extractRoleHintsFromUserText(userText: string): Partial<SanitizedRoleBriefFields> {
-  const text = userText.trim();
-  if (!text) return {};
-
-  const hints: Partial<SanitizedRoleBriefFields> = {};
-
-  const buildingMatch = text.match(
-    /(?:we'?re building|i'?m building|building)\s+(.+?)(?:\.\s+|\.\s*|,\s*|\s+i need|\s+and i need)/i
-  );
-  if (buildingMatch) hints.startupSummary = buildingMatch[1].trim();
-
-  const atCompany = text.match(/\bat\s+([A-Z][A-Za-z0-9&.\-\s]{1,60})(?:\s*[,.]|$)/);
-  if (atCompany && !isPlaceholderCompany(atCompany[1])) {
-    hints.company = atCompany[1].trim();
-  }
-
-  const needMatch = text.match(
-    /(?:i need|looking for|hire|hiring)\s+(?:a\s+)?(.+?)(?:\.\s+|\.\s*|,\s*|\s+in the|\s+within|\s+for\s+the|\s+over)/i
-  );
-  if (needMatch) {
-    const role = needMatch[1].trim();
-    if (!isPlaceholderRoleTitle(role)) {
-      hints.roleTitle = role.charAt(0).toUpperCase() + role.slice(1);
-    }
-  }
-
-  const timelineMatch = text.match(/(\d+)\s*(weeks?|months?|days?)/i);
-  if (timelineMatch) hints.timeline = timelineMatch[0];
-
-  if (userMentionedCompensation(text)) {
-    const budgetMatch = text.match(/\$[\d,]+(?:\s*[-–]\s*\$[\d,]+)?|\d+k(?:\s*[-–]\s*\d+k)?/i);
-    if (budgetMatch) hints.budget = budgetMatch[0];
-  }
-
-  if (/remote/i.test(text)) hints.locationPreference = 'Remote';
-  if (/full[- ]?time/i.test(text)) hints.hireType = 'full_time';
-  else if (/intern(ship)?/i.test(text)) hints.hireType = 'internship';
-  else if (/either|open to both|both work/i.test(text)) hints.hireType = 'either';
-
-  const skillMatches = text.match(
-    /\b(React|TypeScript|Tailwind|Node\.?js|Python|Flutter|Next\.?js|PostgreSQL|MongoDB|Swift|Kotlin|Figma)\b/gi
-  );
-  if (skillMatches) {
-    hints.skillsNeeded = [...new Set(skillMatches.map((s) => s.charAt(0).toUpperCase() + s.slice(1)))];
-  }
-
-  return hints;
-}
-
-export function mergeHintsIntoSanitized(
-  base: SanitizedRoleBriefFields,
-  hints: Partial<SanitizedRoleBriefFields>
-): SanitizedRoleBriefFields {
-  return {
-    ...base,
-    roleTitle: base.roleTitle || hints.roleTitle || null,
-    company: base.company || hints.company || null,
-    startupSummary: base.startupSummary || hints.startupSummary || null,
-    builderWillDo: base.builderWillDo || hints.builderWillDo || null,
-    timeline: base.timeline || hints.timeline || null,
-    budget: base.budget || hints.budget || null,
-    locationPreference: base.locationPreference || hints.locationPreference || null,
-    hireType: base.hireType || hints.hireType || null,
-    workType: base.workType || hints.hireType || null,
-    skillsNeeded:
-      base.skillsNeeded.length > 0
-        ? base.skillsNeeded
-        : hints.skillsNeeded && hints.skillsNeeded.length > 0
-          ? hints.skillsNeeded
-          : [],
-    niceToHaveSkills:
-      base.niceToHaveSkills.length > 0 ? base.niceToHaveSkills : hints.niceToHaveSkills || [],
-  };
-}

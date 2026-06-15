@@ -1,6 +1,5 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 import {
-  detectRoleAmbiguity,
   getFilledOptionalFields,
   getFilledRequiredFields,
   getMissingOptionalFields,
@@ -11,7 +10,6 @@ import {
   type OpportunityLike,
 } from '@/lib/talent/founderSearchQuality';
 import {
-  extractRoleHintsFromUserText,
   isPlaceholderCompany,
   isPlaceholderRoleTitle,
 } from '@/lib/talent/founderRoleBrief';
@@ -245,16 +243,6 @@ export function buildFounderUiBlocks(opportunity: OpportunityLike): FounderUiBlo
     },
   });
 
-  const ambiguity = detectRoleAmbiguity(opportunity);
-  if (ambiguity) {
-    blocks.push({
-      type: 'role_ambiguity',
-      title: 'Role looks ambiguous',
-      body: 'You mentioned AI/ML, but the skills listed are mostly full-stack/frontend. Choose one:',
-      items: ambiguity.choices,
-    });
-  }
-
   if (missingRequired.length > 0) {
     blocks.push({
       type: 'missing_fields',
@@ -289,22 +277,11 @@ function detectIntentFromText(text: string, hasOpportunity: boolean): FounderAge
 }
 
 function deterministicExtract(userText: string): FounderExtractedData {
-  const hints = extractRoleHintsFromUserText(userText);
+  // Legacy non-LLM fallback (not wired to the live UI). The live founder flow
+  // relies on the LLM to extract structured fields from free text.
   const extracted: FounderExtractedData = {};
 
-  if (hints.roleTitle) extracted.roleTitle = hints.roleTitle;
-  if (hints.company) extracted.company = hints.company;
-  if (hints.startupSummary) extracted.startupSummary = hints.startupSummary;
-  if (hints.timeline) extracted.timeline = hints.timeline;
-  if (hints.budget) extracted.budget = hints.budget;
-  if (hints.locationPreference) extracted.locationPreference = hints.locationPreference;
-  if (hints.hireType) extracted.hireType = hints.hireType;
-  if (hints.skillsNeeded?.length) extracted.skillsNeeded = hints.skillsNeeded;
-
-  const lower = userText.toLowerCase();
-  if (/restaurant/i.test(lower)) extracted.industry = 'Restaurants / hospitality';
-
-  if (/(ship|build|implement|develop)/i.test(lower) && userText.length > 20) {
+  if (/(ship|build|implement|develop)/i.test(userText) && userText.length > 20) {
     extracted.builderWillDo = userText.trim().slice(0, 400);
   }
 

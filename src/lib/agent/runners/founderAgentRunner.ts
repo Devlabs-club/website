@@ -11,10 +11,9 @@ import { generateOpenRouterAgentTurn, getOpenRouterChatModel, generateOpenRouter
 import { buildFounderUiBlocks } from '@/lib/talent/founderAgent';
 import {
   applySanitizedToOpportunity,
-  extractRoleHintsFromUserText,
   isPlaceholderCompany,
-  mergeHintsIntoSanitized,
   sanitizeRoleBriefArgs,
+  formatFounderStartupContextForPrompt,
   type FounderStartupContext,
 } from '@/lib/talent/founderRoleBrief';
 import { getMissingRequiredFields, canRunPreviewAnyway } from '@/lib/talent/founderSearchQuality';
@@ -40,6 +39,7 @@ import {
 } from '@/lib/agent/memoryWriter';
 import { runFounderDiscoveryPipeline } from '@/lib/talent/discovery/index';
 import type { SearchMode } from '@/lib/talent/discovery/strategy';
+import { persistDiscoveryCandidates } from '@/lib/talent/founderSearchPersist';
 import type { AgentSearchQualityBlock, AgentCandidateCardBlock } from '@/lib/agent/uiBlocks';
 
 function ok(data: unknown) {
@@ -55,7 +55,8 @@ Tone: speak like a sharp technical co-founder, not a recruiter. Blunt, fast, bui
 
 On EVERY first message: call get_all_roles first, then respond based on what you find:
 - If get_all_roles returns existing roles: ask if they want to continue one or start fresh.
-- If get_all_roles returns an empty list: the founder has no active roles. Skip the pleasantries. Ask ONE sharp question: "What are you building and who do you need to build it?" — that's it.
+- If get_all_roles returns an empty list AND [Startup context] includes company + summary: you already know what they're building. Skip "what are you building" and company name. Ask ONE sharp question about the hire: "Who do you need to build it — role title and first deliverable?"
+- If get_all_roles returns an empty list with no startup context: skip the pleasantries. Ask ONE sharp question: "What are you building and who do you need to build it?" — that's it.
 - IMPORTANT: get_all_roles is the single source of truth for active roles. If your memory mentions role names but get_all_roles returns nothing, trust the tool — the roles were deleted. Never mention roles that aren't in the get_all_roles result.
 - Never use "Great!", "Awesome!", "Sure!", or any filler affirmation.
 
@@ -64,6 +65,18 @@ PROACTIVE BEHAVIOUR — when descriptions are vague, poke hard:
 - "Someone good with AI" → ask: what specifically — RAG pipelines? fine-tuning? inference? and what's the output?
 - "React developer" → ask: is this frontend-only or full-stack? what's the product context? what will they ship first?
 Never accept vague answers. Always drill into: what specifically they will build, what stack, what hire type.
+
+QUESTION ORDER — ask ONE question per turn, highest-signal first, so a useful search is reachable in ~3 answers:
+1. What will they ship first (the concrete first deliverable) — this also disambiguates the role.
+2. The exact stack / sub-domain — ask one sharp either/or (e.g. "retrieval or no retrieval", "frontend-only or full-stack", "native mobile or web").
+3. Confirm the skill list (see ENHANCEMENT CONFIRMATION).
+Only after those, collect logistics as option cards: hire type → timeline → location. Optionally capture seniority, funding stage, and an example deliverable when relevant.
+
+ROLE AMBIGUITY — if the role title/description points one way but the listed skills point another (e.g. says "AI/ML" but skills are all React/TypeScript; says "mobile app" but skills are web-only; says "designer" but skills are pure engineering), call it out and make the founder pick a direction with an option card before searching. Use your judgement from the brief and the pool stats — don't guess.
+
+ENHANCEMENT CONFIRMATION — create_role_brief / update_role_brief may return "enhancementApplied" (skills I mapped to the talent pool). When present, reflect it back and let the founder veto before moving on: "I mapped 'AI' → Python, OpenAI API, LangChain based on our pool — keep these or adjust?" Never silently change the skill list without telling the founder.
+
+RARE SKILL WARNING — the [Talent Pool Intelligence] block in your context lists each top skill with its builder count. Before running a search, if a required skill is missing from that list or has a low count, warn the founder and offer to broaden: "Heads up — [skill] is rare in our pool. Want to make it nice-to-have or swap in [common alternative]?"
 
 OPTION CARDS — whenever the answer is one of a short list, format your response like this:
 First write your message, then on a new line write the question, then list numbered options:
@@ -85,7 +98,7 @@ Hire type label → field mapping (always use these exact values):
 - "Internship" → hireType: "internship"
 - "Either works" → hireType: "either"
 
-NEVER RE-ASK — if a field was answered earlier in this conversation, never ask for it again. Check the role brief (get_role_brief) to confirm what is already filled before asking any question. Ask only about fields that are still missing.
+NEVER RE-ASK — if a field was answered earlier in this conversation, never ask for it again. Check the role brief (get_role_brief) to confirm what is already filled before asking any question. Ask only about fields that are still missing. If [Startup context] already covers company, product, industry, or stage, do not ask for those again — use them when creating/updating the brief.
 
 TOOL CHAINING:
 - Always call get_all_roles first on init
@@ -121,8 +134,8 @@ SEARCH QUALITY — after every search, always describe:
 - Whether to relax or tighten the search
 
 DATA DISCIPLINE — for create_role_brief / update_role_brief:
-- Only pass fields the founder explicitly stated
-- Never invent budgets, timelines, or company names
+- Only pass fields the founder explicitly stated OR fields already present in [Startup context] from onboarding research
+- Never invent budgets, timelines, or company names beyond confirmed startup context
 - Omit unknown fields entirely
 
 Confirmation required before: sending an intro, rejecting a candidate, closing a role.
@@ -163,6 +176,9 @@ const FOUNDER_TOOLS: ToolDefinition[] = [
           timeline: { type: 'string' },
           budget: { type: 'string' },
           locationPreference: { type: 'string' },
+          seniority: { type: 'string', description: 'Experience level the founder wants, e.g. "intern/early", "builder with shipped proof", "senior owner"' },
+          fundingStage: { type: 'string', description: 'Startup funding stage, e.g. pre-seed, seed, Series A, bootstrapped' },
+          deliverables: { type: 'array', items: { type: 'string' }, description: 'Concrete first deliverables the builder will ship (e.g. "live MVP of the chat feature")' },
         },
       },
     },
@@ -185,6 +201,9 @@ const FOUNDER_TOOLS: ToolDefinition[] = [
           timeline: { type: 'string' },
           budget: { type: 'string' },
           locationPreference: { type: 'string' },
+          seniority: { type: 'string', description: 'Experience level the founder wants, e.g. "intern/early", "builder with shipped proof", "senior owner"' },
+          fundingStage: { type: 'string', description: 'Startup funding stage, e.g. pre-seed, seed, Series A, bootstrapped' },
+          deliverables: { type: 'array', items: { type: 'string' }, description: 'Concrete first deliverables the builder will ship' },
         },
       },
     },
@@ -249,6 +268,31 @@ const FOUNDER_TOOLS: ToolDefinition[] = [
   },
 ];
 
+const ADMIN_SCOUT_TOOL_NAMES = new Set([
+  'get_role_brief',
+  'get_all_roles',
+  'create_role_brief',
+  'update_role_brief',
+  'get_talent_pool_context',
+  'run_search',
+  'get_shortlist',
+  'get_candidate_details',
+]);
+
+const ADMIN_SCOUT_TOOLS = FOUNDER_TOOLS.filter((t) =>
+  ADMIN_SCOUT_TOOL_NAMES.has(t.function.name)
+);
+
+const ADMIN_SCOUT_PROMPT_ADDENDUM = `
+
+ADMIN SCOUT MODE — internal operator console:
+- Skip intro requests, billing, and pipeline actions entirely.
+- Optimize for search quality and candidate transparency.
+- Company name can default to "Internal Scout" when the operator does not specify one.
+- After search, summarize top matches with names and fit scores.`;
+
+export type FounderAgentMode = 'founder' | 'admin_scout';
+
 export async function runFounderAgentTurn(params: {
   email: string;
   founderName: string;
@@ -258,8 +302,20 @@ export async function runFounderAgentTurn(params: {
   currentOpportunity: any | null;
   founderStartupContext: FounderStartupContext;
   payloadOpportunityId: string | null;
+  mode?: FounderAgentMode;
 }): Promise<Response> {
-  const { email, founderName, founderId, userText, history, founderStartupContext, payloadOpportunityId } = params;
+  const {
+    email,
+    founderName,
+    founderId,
+    userText,
+    history,
+    founderStartupContext,
+    payloadOpportunityId,
+    mode = 'founder',
+  } = params;
+  const isAdminScout = mode === 'admin_scout';
+  const agentTools = isAdminScout ? ADMIN_SCOUT_TOOLS : FOUNDER_TOOLS;
 
   let currentOpportunity = params.currentOpportunity;
   const oppId = () => currentOpportunity ? String(currentOpportunity._id) : null;
@@ -281,15 +337,18 @@ export async function runFounderAgentTurn(params: {
     ].filter(Boolean),
   });
 
-  const startupBlock = founderStartupContext.company
-    ? `\n\n[Startup context]\n- Company: ${founderStartupContext.company}${founderStartupContext.startupSummary ? `\n- Summary: ${founderStartupContext.startupSummary}` : ''}`
-    : '';
+  const startupBlock = formatFounderStartupContextForPrompt(founderStartupContext);
 
   const talentPoolBlock = talentStats
     ? `\n\n${formatStatsForPrompt(talentStats)}\n\nUse these pool statistics when creating or refining role briefs. Prefer skills that appear frequently in the pool. If the founder requests a skill that is rare in the pool, note it in the role brief as a stretch requirement.`
     : '';
 
-  const systemPrompt = FOUNDER_SYSTEM_PROMPT + startupBlock + talentPoolBlock + (memoryBlock ? '\n\n' + memoryBlock : '');
+  const systemPrompt =
+    FOUNDER_SYSTEM_PROMPT +
+    (isAdminScout ? ADMIN_SCOUT_PROMPT_ADDENDUM : '') +
+    startupBlock +
+    talentPoolBlock +
+    (isAdminScout || !memoryBlock ? '' : '\n\n' + memoryBlock);
 
   let uiBlocks: any[] = [];
   let lastOpportunityId: string | null = payloadOpportunityId;
@@ -358,11 +417,16 @@ export async function runFounderAgentTurn(params: {
       }
 
       case 'create_role_brief': {
-        const hints = extractRoleHintsFromUserText(userText);
-        let fields = mergeHintsIntoSanitized(sanitizeRoleBriefArgs(args, founderStartupContext, userText), hints);
+        let fields = sanitizeRoleBriefArgs(args, founderStartupContext, userText);
 
         if (!fields.roleTitle) return { error: 'Need a concrete role title from the founder before creating the brief.' };
-        if (!fields.company || isPlaceholderCompany(fields.company)) return { error: 'Need the real startup/company name.' };
+        if (!fields.company || isPlaceholderCompany(fields.company)) {
+          if (isAdminScout) {
+            fields.company = 'Internal Scout';
+          } else {
+            return { error: 'Need the real startup/company name.' };
+          }
+        }
 
         // AI enhancement — map founder inputs to skills/patterns that exist in the talent pool
         let enhancementNotes: string[] = [];
@@ -386,6 +450,9 @@ export async function runFounderAgentTurn(params: {
           builderWillDo: fields.builderWillDo || null,
           skillsNeeded: fields.skillsNeeded,
           niceToHaveSkills: fields.niceToHaveSkills,
+          seniority: fields.seniority || null,
+          fundingStage: fields.fundingStage || null,
+          deliverables: fields.deliverables.length ? fields.deliverables : undefined,
           hireType: fields.hireType || null,
           workType: fields.workType || null,
           timeline: fields.timeline || null,
@@ -397,15 +464,17 @@ export async function runFounderAgentTurn(params: {
         currentOpportunity = newOpp;
         lastOpportunityId = String(newOpp._id);
 
-        void writeFounderRoleCreatedMemory(addFounderMemory, {
-          founderId,
-          founderName,
-          opportunityId: String(newOpp._id),
-          roleTitle: newOpp.roleTitle,
-          company: newOpp.company,
-          hireType: newOpp.hireType || newOpp.workType || 'unspecified',
-          skills: newOpp.skillsNeeded || [],
-        });
+        if (!isAdminScout) {
+          void writeFounderRoleCreatedMemory(addFounderMemory, {
+            founderId,
+            founderName,
+            opportunityId: String(newOpp._id),
+            roleTitle: newOpp.roleTitle,
+            company: newOpp.company,
+            hireType: newOpp.hireType || newOpp.workType || 'unspecified',
+            skills: newOpp.skillsNeeded || [],
+          });
+        }
 
         return {
           success: true,
@@ -419,8 +488,7 @@ export async function runFounderAgentTurn(params: {
 
       case 'update_role_brief': {
         if (!opp) return { error: 'No active role brief. Create one first with create_role_brief.' };
-        const hints = extractRoleHintsFromUserText(userText);
-        let fields = mergeHintsIntoSanitized(sanitizeRoleBriefArgs(args, founderStartupContext, userText), hints);
+        let fields = sanitizeRoleBriefArgs(args, founderStartupContext, userText);
 
         // AI enhancement on meaningful updates (skills or builderWillDo changing)
         let enhancementNotes: string[] = [];
@@ -447,16 +515,21 @@ export async function runFounderAgentTurn(params: {
           fields.timeline ? 'timeline' : null,
           fields.budget ? 'budget' : null,
           fields.locationPreference ? 'locationPreference' : null,
+          fields.seniority ? 'seniority' : null,
+          fields.fundingStage ? 'fundingStage' : null,
+          fields.deliverables.length ? 'deliverables' : null,
         ] as Array<string | null>).filter(Boolean) as string[];
         await opp.save();
 
-        void writeFounderRoleUpdatedMemory(addFounderMemory, {
-          founderId,
-          founderName,
-          opportunityId: currentOppId!,
-          roleTitle: opp.roleTitle || 'Unknown',
-          changedFields: changed,
-        });
+        if (!isAdminScout) {
+          void writeFounderRoleUpdatedMemory(addFounderMemory, {
+            founderId,
+            founderName,
+            opportunityId: currentOppId!,
+            roleTitle: opp.roleTitle || 'Unknown',
+            changedFields: changed,
+          });
+        }
 
         return {
           success: true,
@@ -524,63 +597,23 @@ export async function runFounderAgentTurn(params: {
         });
 
         // Persist candidates as MatchRecords + Shortlist
-        const candidatesWithIds: any[] = [];
-        for (const candidate of result.candidates) {
-          const match = await MatchRecord.findOneAndUpdate(
-            { builderId: candidate.builderId, opportunityId: currentOppId },
-            {
-              $set: {
-                builderId: candidate.builderId,
-                opportunityId: currentOppId,
-                matchScore: Math.round(candidate.overallFit * 100),
-                matchLabel: candidate.matchLabel,
-                status: 'generated',
-                reasoning: candidate.explanation.strongestSignals.join('; '),
-                evidence: candidate.explanation.strongestSignals,
-                riskFlags: candidate.explanation.concerns,
-                missingProof: candidate.explanation.missingEvidence,
-              },
-            },
-            { upsert: true, new: true }
-          );
-          candidatesWithIds.push({
-            builderId: candidate.builderId,
-            matchRecordId: match._id,
-            matchLabel: candidate.matchLabel,
-            matchScore: Math.round(candidate.overallFit * 100),
-            topSkills: candidate.builder.rolePreference?.slice(0, 4) || [],
-            proofSummary: candidate.explanation.strongestSignals[0] || '',
-            whyTheyMatch: candidate.explanation.strongestSignals.join('; '),
+        await persistDiscoveryCandidates({
+          result,
+          opportunityId: currentOppId!,
+          founderEmail: email,
+        });
+
+        if (!isAdminScout) {
+          void writeFounderSearchRunMemory(addFounderMemory, {
+            founderId,
+            founderName,
+            opportunityId: currentOppId!,
+            roleTitle: oppPlain.roleTitle || 'Unknown',
+            totalFound: result.totalScanned,
+            strongCount: result.searchQuality.strongCandidates,
+            searchMode,
           });
         }
-
-        await Shortlist.findOneAndUpdate(
-          { opportunityId: currentOppId },
-          {
-            $set: {
-              opportunityId: currentOppId,
-              founderEmail: email,
-              totalMatches: result.totalScanned,
-              strongMatchCount: result.searchQuality.strongCandidates,
-              candidates: candidatesWithIds,
-              previewGeneratedAt: new Date(),
-              unlocked: true,
-              unlockedAt: new Date(),
-            },
-          },
-          { upsert: true, new: true }
-        );
-
-        // Write search memory
-        void writeFounderSearchRunMemory(addFounderMemory, {
-          founderId,
-          founderName,
-          opportunityId: currentOppId!,
-          roleTitle: oppPlain.roleTitle || 'Unknown',
-          totalFound: result.totalScanned,
-          strongCount: result.searchQuality.strongCandidates,
-          searchMode,
-        });
 
         // Build search quality UI block
         const sqBlock: AgentSearchQualityBlock = {
@@ -689,6 +722,7 @@ export async function runFounderAgentTurn(params: {
       }
 
       case 'request_intro': {
+        if (isAdminScout) return { error: 'Intro requests are disabled in admin scout mode.' };
         const builderName = String(args.builderName || '');
         const message = String(args.message || '');
         if (!currentOppId || !opp) return { error: 'No active role brief.' };
@@ -750,7 +784,7 @@ export async function runFounderAgentTurn(params: {
     { role: 'user', content: userText },
   ];
 
-  let agentResponse = await generateOpenRouterAgentTurn({ messages, tools: FOUNDER_TOOLS, temperature: 0.3, maxTokens: 700 });
+  let agentResponse = await generateOpenRouterAgentTurn({ messages, tools: agentTools, temperature: 0.3, maxTokens: 700 });
   const MAX_ITERATIONS = 5;
   let iterations = 0;
 
@@ -763,7 +797,14 @@ export async function runFounderAgentTurn(params: {
         let args: Record<string, unknown> = {};
         try { args = JSON.parse(tc.function.arguments || '{}'); } catch {}
         console.log(`[founderAgentRunner] tool_call: ${tc.function.name}`, args);
-        const result = await runTool(tc.function.name, args);
+        let result: Record<string, unknown>;
+        try {
+          result = await runTool(tc.function.name, args);
+        } catch (err) {
+          result = {
+            error: err instanceof Error ? err.message : 'Tool execution failed',
+          };
+        }
 
         if ((tc.function.name === 'create_role_brief' || tc.function.name === 'update_role_brief') && result.opportunityId) {
           lastOpportunityId = String(result.opportunityId);

@@ -2,11 +2,13 @@ import type { APIRoute } from 'astro';
 import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, verifyToken } from '@/lib/auth';
+import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 
-export const getTalentRealtime: APIRoute = async ({ request, url }) => {
+export const getTalentRealtime: APIRoute = async ({ request, url, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
   const cookieHeader = request.headers.get('cookie') || '';
   const token = extractTokenFromCookies(cookieHeader);
-  const payload = token ? verifyToken(token) : null;
+  const payload = token ? verifyToken(token, runtime) : null;
   if (!payload?.email) {
     return new Response('Unauthorized', { status: 401 });
   }

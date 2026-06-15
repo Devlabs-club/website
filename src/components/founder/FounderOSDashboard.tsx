@@ -9,6 +9,7 @@ import type {
   FounderPipeline,
 } from './founderTypes';
 import FounderRoleIntakeChat from './FounderRoleIntakeChat';
+import FounderOnboardingConfirm from './FounderOnboardingConfirm';
 import FounderRoleBriefEditor from './FounderRoleBriefEditor';
 import FounderUnifiedWorkspace from './FounderUnifiedWorkspace';
 import CallScheduleModal from './CallScheduleModal';
@@ -85,6 +86,9 @@ export default function FounderOSDashboard() {
     return false;
   });
   const [showIntakeChat, setShowIntakeChat] = useState(false);
+  const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
+  const [founderProfileReady, setFounderProfileReady] = useState<boolean | null>(null);
+  const [intakeEnrichedOnboarding, setIntakeEnrichedOnboarding] = useState(false);
   const [showBriefEditor, setShowBriefEditor] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
 
@@ -150,6 +154,36 @@ export default function FounderOSDashboard() {
   useEffect(() => {
     loadSearches();
   }, [loadSearches]);
+
+  const loadFounderOnboarding = useCallback(async () => {
+    try {
+      const response = await fetch('/api/agent/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'get_founder_onboarding', payload: {} }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load founder profile');
+      setFounderProfileReady(Boolean(data.onboardingCompleted));
+      setIntakeEnrichedOnboarding(Boolean(data.profile?.enrichmentStatus && data.profile.enrichmentStatus !== 'failed'));
+    } catch {
+      setFounderProfileReady(false);
+      setIntakeEnrichedOnboarding(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFounderOnboarding();
+  }, [loadFounderOnboarding]);
+
+  const startNewSearch = () => {
+    if (founderProfileReady === false) {
+      setShowOnboardingConfirm(true);
+      return;
+    }
+    setShowIntakeChat(true);
+  };
 
   const activeSearches = searches.filter((s) => s.status !== 'closed');
   const shouldShowOnboarding = !searchesLoading && activeSearches.length === 0;
@@ -422,7 +456,7 @@ export default function FounderOSDashboard() {
             className="flex-1 max-w-xl mx-auto border-solid bg-transparent"
             action={
               <>
-                <OsButton variant="shimmer" onClick={() => setShowIntakeChat(true)} className="flex items-center gap-2">
+                <OsButton variant="shimmer" onClick={startNewSearch} className="flex items-center gap-2">
                   <Plus className="w-5 h-5" />
                   Search for builder
                 </OsButton>
@@ -446,7 +480,7 @@ export default function FounderOSDashboard() {
             unlockShortlist={unlockShortlist}
             unlockBusy={unlockBusy}
             candidateActionBusy={candidateActionBusy}
-            onNewSearchClick={() => setShowIntakeChat(true)}
+            onNewSearchClick={startNewSearch}
             onExploreCandidate={(cand, oppId) => openDrawer(cand, oppId)}
             onRequestIntro={(cand, oppId) => openIntroModal(cand, oppId)}
             onBillingClick={() => setShowBilling(!showBilling)}
@@ -504,10 +538,25 @@ export default function FounderOSDashboard() {
         )}
       </div>
 
+      {showOnboardingConfirm && user && (
+        <FounderOnboardingConfirm
+          defaultName={user.name || ''}
+          defaultEmail={user.email || ''}
+          onClose={() => setShowOnboardingConfirm(false)}
+          onCompleted={() => {
+            setShowOnboardingConfirm(false);
+            setFounderProfileReady(true);
+            setIntakeEnrichedOnboarding(true);
+            setShowIntakeChat(true);
+          }}
+        />
+      )}
+
       {/* Full-Screen Intake Chat Overlay (new search only) */}
       {showIntakeChat && (
         <FounderRoleIntakeChat
           opportunityId={null}
+          enrichedOnboarding={intakeEnrichedOnboarding}
           onClose={() => setShowIntakeChat(false)}
           onSearchCompleted={(oppId) => {
             setShowIntakeChat(false);

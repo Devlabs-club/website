@@ -103,12 +103,14 @@ interface FounderRoleIntakeChatProps {
   opportunityId: string | null;
   onClose: () => void;
   onSearchCompleted: (opportunityId: string) => void;
+  enrichedOnboarding?: boolean;
 }
 
 export default function FounderRoleIntakeChat({
   opportunityId: initialOpportunityId,
   onClose,
   onSearchCompleted,
+  enrichedOnboarding = false,
 }: FounderRoleIntakeChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -139,7 +141,9 @@ export default function FounderRoleIntakeChat({
     const userText = isInit
       ? initialOpportunityId
         ? 'I want to work on my existing role or start a new search.'
-        : 'I just signed up. I want to hire a builder for my startup.'
+        : enrichedOnboarding
+          ? 'I confirmed my profile. You already have context on my company — help me find the right builder.'
+          : 'I just signed up. I want to hire a builder for my startup.'
       : text;
 
     if (!isInit) {
@@ -173,8 +177,18 @@ export default function FounderRoleIntakeChat({
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Agent failed');
+      const raw = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        throw new Error(
+          res.ok
+            ? 'Server returned invalid JSON'
+            : `Server error (${res.status}). Check API proxy / Vercel env.`
+        );
+      }
+      if (!res.ok || !data.success) throw new Error(data.error || data.message || 'Agent failed');
 
       if (data.opportunity?._id) {
         setOpportunityId(String(data.opportunity._id));
@@ -215,7 +229,7 @@ export default function FounderRoleIntakeChat({
       setIsBusy(false);
       setToolCallLabel(null);
     }
-  }, [opportunityId]);
+  }, [opportunityId, enrichedOnboarding, initialOpportunityId]);
 
   // Init effect — fires once after sendToAgent is available
   useEffect(() => {

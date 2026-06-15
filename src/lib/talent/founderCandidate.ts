@@ -199,6 +199,50 @@ export function suggestedTrialFromDraft(
   return buildSuggestedTrialProject(opportunity);
 }
 
+export type AdminCandidate = ReturnType<typeof buildFullCandidateCard> & {
+  email: string | null;
+  universityOrCompany: string | null;
+  signalScores: Record<string, unknown> | null;
+};
+
+export async function buildAdminCandidatesForShortlist(
+  shortlist: any,
+  opportunity: any,
+  deps: {
+    BuilderProfile: any;
+    ProjectRecord: any;
+    MatchRecord: any;
+  }
+): Promise<AdminCandidate[]> {
+  const base = await buildFullCandidatesForShortlist(shortlist, opportunity, deps);
+  const builderIds = base.map((c: any) => c.builderId);
+  const builders = await deps.BuilderProfile.find({ _id: { $in: builderIds } })
+    .select('email universityOrCompany')
+    .lean();
+  const builderMeta = new Map<string, { email: string | null; universityOrCompany: string | null }>(
+    builders.map((b: any) => [
+      String(b._id),
+      { email: b.email || null, universityOrCompany: b.universityOrCompany || null },
+    ])
+  );
+  const matches = await deps.MatchRecord.find({
+    opportunityId: shortlist.opportunityId,
+    builderId: { $in: builderIds },
+  })
+    .select('builderId signalScores')
+    .lean();
+  const signalByBuilder = new Map(
+    matches.map((m: any) => [String(m.builderId), m.signalScores || null])
+  );
+
+  return base.map((c: any) => ({
+    ...c,
+    email: builderMeta.get(c.builderId)?.email ?? null,
+    universityOrCompany: builderMeta.get(c.builderId)?.universityOrCompany ?? null,
+    signalScores: signalByBuilder.get(c.builderId) ?? null,
+  }));
+}
+
 export async function buildFullCandidatesForShortlist(
   shortlist: any,
   opportunity: any,

@@ -11,8 +11,12 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy": "vercel deploy --prod",
+    "deploy:vercel:backend": "ASTRO_ADAPTER=vercel vercel deploy --prod -y",
     "deploy:cloudflare": "bun run build && wrangler deploy",
     "deploy:cloudflare:secrets": "bun run scripts/push-cloudflare-secrets.ts",
+    "deploy:vercel:env": "bun run scripts/push-vercel-env.ts",
+    "deploy:stack": "bun run scripts/deploy-stack.ts",
+    "deploy:stack:secrets": "bun run scripts/deploy-stack.ts --secrets",
     "send-momentum-acceptance": "bun run scripts/send-momentum-acceptance-email.ts",
     "momentum:assign-missing-groups": "bun run scripts/assign-missing-groups.ts"
   },

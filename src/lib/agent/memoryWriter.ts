@@ -108,6 +108,43 @@ export async function writeBuilderHeadlineBioMemory(
   });
 }
 
+export async function writeFounderEnrichmentMemory(
+  addFn: AddMemoryFn,
+  params: {
+    founderId: string;
+    founderName: string;
+    company: string;
+    startupSummary?: string | null;
+    industry?: string | null;
+    fundingStage?: string | null;
+    productDescription?: string | null;
+    techStackHints?: string[];
+    founderBio?: string | null;
+    sources?: string[];
+  }
+): Promise<void> {
+  const parts = [
+    `Founder ${params.founderName} onboarded for company "${params.company}".`,
+    params.startupSummary ? `Summary: ${params.startupSummary}` : null,
+    params.industry ? `Industry: ${params.industry}` : null,
+    params.fundingStage ? `Stage: ${params.fundingStage}` : null,
+    params.productDescription ? `Product: ${params.productDescription}` : null,
+    params.techStackHints?.length ? `Stack hints: ${params.techStackHints.join(', ')}` : null,
+    params.founderBio ? `Founder bio: ${params.founderBio}` : null,
+    params.sources?.length ? `Sources: ${params.sources.join(', ')}` : null,
+  ].filter(Boolean);
+
+  void writeTypedMemory(addFn, {
+    content: parts.join(' '),
+    containerTag: containers.founder(params.founderId),
+    type: 'founder_preference',
+    actorType: 'agent',
+    actorId: params.founderId,
+    source: 'profile_update',
+    confidence: 'medium',
+  });
+}
+
 export async function writeFounderRoleCreatedMemory(
   addFn: AddMemoryFn,
   params: {

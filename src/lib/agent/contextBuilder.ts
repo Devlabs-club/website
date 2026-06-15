@@ -6,6 +6,7 @@ import {
   searchCandidateFitMemories,
   formatMultiMemoryForPrompt,
 } from '@/lib/talent/supermemory';
+import { formatFounderStartupContextForPrompt } from '@/lib/talent/founderRoleBrief';
 
 export type BuilderAgentContext = {
   builderId: string;
@@ -71,9 +72,7 @@ export async function buildFounderAgentContext(params: {
     opportunityMemories: oppMemories,
   });
 
-  const startupBlock = founderStartupContext.company
-    ? `\n\n[Startup context]\n- Company: ${founderStartupContext.company}${founderStartupContext.startupSummary ? `\n- Summary: ${founderStartupContext.startupSummary}` : ''}`
-    : '';
+  const startupBlock = formatFounderStartupContextForPrompt(founderStartupContext);
 
   return {
     founderId,

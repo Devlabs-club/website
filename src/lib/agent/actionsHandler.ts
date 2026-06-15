@@ -13,16 +13,26 @@ import { evaluateBuilderProfileQuality, evaluateDeterministicQuality } from '@/l
 import mongoose from 'mongoose';
 import { generateOpenRouterReply, generateOpenRouterAgentTurn, getOpenRouterChatModel, hasOpenRouterConfig, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
+import { runtimeEnvFromLocals, type RuntimeEnv } from '@/lib/workosEnv';
 import { buildFounderUiBlocks } from '@/lib/talent/founderAgent';
 import {
   applySanitizedToOpportunity,
-  extractRoleHintsFromUserText,
   isPlaceholderCompany,
-  mergeHintsIntoSanitized,
   sanitizeRoleBriefArgs,
   type FounderStartupContext,
 } from '@/lib/talent/founderRoleBrief';
+import FounderProfile from '@/models/talent/FounderProfile';
+import {
+  enrichFounderProfile,
+  profileToStartupContext,
+  serializeFounderProfile,
+} from '@/lib/talent/founderEnrichment';
 import { enhanceRoleBriefField, isEnhanceableRoleBriefField } from '@/lib/talent/roleBriefFieldEnhance';
+import {
+  writeFounderCandidateRejectionMemory,
+  writeFounderCandidateSaveMemory,
+  writeFounderEnrichmentMemory,
+} from '@/lib/agent/memoryWriter';
 import {
   applyEditFromText,
   buildCandidateAnswer,
@@ -40,7 +50,17 @@ import {
   toAnonymousCandidates,
   toPublicShortlist,
 } from '@/lib/talent/builderSearch';
-import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
+import { buildFullCandidatesForShortlist, buildAdminCandidatesForShortlist } from '@/lib/talent/founderCandidate';
+import {
+  checkAdminScoutRateLimit,
+  isAdminScoutEnabled,
+  resolveAdminScoutIdentity,
+  validateScoutSessionId,
+} from '@/lib/talent/adminScoutSession';
+import { runAdminScoutSearch } from '@/lib/talent/adminScoutSearch';
+import { runFounderDiscoveryPipeline } from '@/lib/talent/discovery/index';
+import type { SearchMode } from '@/lib/talent/discovery/strategy';
+import { persistDiscoveryCandidates } from '@/lib/talent/founderSearchPersist';
 import {
   buildFounderPipeline,
   buildSuggestedIntroMessage,
@@ -434,7 +454,7 @@ async function applyLinksUpdate(
   return await updateBuilderScores(builder);
 }
 
-async function resolveAuthedFounder(request: Request) {
+async function resolveAuthedFounder(request: Request, runtime?: RuntimeEnv) {
   const authHeader = request.headers.get('Authorization');
   const cookieHeader = request.headers.get('Cookie') || '';
   const token = extractTokenFromHeader(authHeader) || extractTokenFromCookies(cookieHeader);
@@ -442,13 +462,9 @@ async function resolveAuthedFounder(request: Request) {
     return { error: 'Please log in to continue.' as const };
   }
 
-  const decoded = verifyToken(token);
+  const decoded = verifyToken(token, runtime);
   if (!decoded) {
     return { error: 'Session expired. Please log in again.' as const };
-  }
-
-  if (decoded.role !== 'founder') {
-    return { error: 'Founder account required.' as const };
   }
 
   const email = (decoded.email || '').toLowerCase().trim();
@@ -457,21 +473,40 @@ async function resolveAuthedFounder(request: Request) {
   }
 
   let founderName = email.split('@')[0];
+  let role = decoded.role;
   try {
     await connectAdminDB();
-    const user = await User.findById(decoded.userId).select('name').lean();
+    const user = await User.findById(decoded.userId).select('name role email').lean();
     if (user?.name) founderName = user.name;
+    if (user?.role) role = String(user.role);
   } catch {
-    // use email fallback
+    // use JWT fallback
+  }
+
+  if (role !== 'founder') {
+    return { error: 'Founder account required. Sign up as a founder to use hiring features.' as const };
   }
 
   return { decoded, email, founderName };
 }
 
-async function loadFounderStartupContext(founderEmail: string): Promise<FounderStartupContext> {
+async function loadFounderStartupContext(
+  founderEmail: string,
+  founderId?: string | null
+): Promise<FounderStartupContext> {
+  const profileQuery = founderId
+    ? { $or: [{ userId: founderId }, { founderEmail }] }
+    : { founderEmail };
+
+  const profile = await FounderProfile.findOne(profileQuery).sort({ updatedAt: -1 }).lean();
+  const fromProfile = profileToStartupContext(profile);
+  if (fromProfile?.company || fromProfile?.startupSummary) {
+    return fromProfile;
+  }
+
   const last = await Opportunity.findOne({ founderEmail, status: { $ne: 'closed' } })
     .sort({ updatedAt: -1 })
-    .select('company startupSummary industry')
+    .select('company startupSummary industry fundingStage')
     .lean();
 
   const company =
@@ -481,10 +516,12 @@ async function loadFounderStartupContext(founderEmail: string): Promise<FounderS
     company,
     startupSummary: last?.startupSummary ? String(last.startupSummary) : null,
     industry: last?.industry ? String(last.industry) : null,
+    fundingStage: last?.fundingStage ? String(last.fundingStage) : null,
+    enriched: false,
   };
 }
 
-async function resolveAuthedBuilder(request: Request) {
+async function resolveAuthedBuilder(request: Request, runtime?: RuntimeEnv) {
   const authHeader = request.headers.get('Authorization');
   const cookieHeader = request.headers.get('Cookie') || '';
   const token = extractTokenFromHeader(authHeader) || extractTokenFromCookies(cookieHeader);
@@ -492,7 +529,7 @@ async function resolveAuthedBuilder(request: Request) {
     return { error: 'Please log in to continue.' as const };
   }
 
-  const decoded = verifyToken(token);
+  const decoded = verifyToken(token, runtime);
   if (!decoded) {
     return { error: 'Session expired. Please log in again.' as const };
   }
@@ -920,7 +957,8 @@ async function routeProjectCrudWithLLM(userText: string) {
   return null;
 }
 
-export const postAgentAction: APIRoute = async ({ request }) => {
+export const postAgentAction: APIRoute = async ({ request, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
   try {
     await connectAdminDB();
     const body = await request.json();
@@ -930,9 +968,203 @@ export const postAgentAction: APIRoute = async ({ request }) => {
 
     if (!action) return bad('action is required');
 
+    if (
+      action === 'admin_scout_chat' ||
+      action === 'admin_scout_search' ||
+      action === 'admin_scout_load_shortlist' ||
+      action === 'admin_scout_list_searches' ||
+      action === 'admin_scout_delete_search'
+    ) {
+      if (!isAdminScoutEnabled()) return bad('Admin talent scout is disabled.', 503);
+
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId);
+      if (!scoutSessionId) return bad('A valid scoutSessionId is required');
+
+      if (action !== 'admin_scout_list_searches' && action !== 'admin_scout_delete_search') {
+        const rate = checkAdminScoutRateLimit(
+          request,
+          scoutSessionId,
+          action === 'admin_scout_load_shortlist'
+            ? 'admin_scout_search'
+            : (action as 'admin_scout_chat' | 'admin_scout_search')
+        );
+        if (!rate.ok) return bad(rate.error, 429);
+      }
+    }
+
+    if (action === 'admin_scout_list_searches') {
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId)!;
+      const identity = resolveAdminScoutIdentity(scoutSessionId);
+
+      const opportunities = await Opportunity.find({ founderEmail: identity.founderEmail })
+        .sort({ updatedAt: -1 })
+        .limit(50)
+        .lean();
+
+      const oppIds = opportunities.map((o: { _id: unknown }) => o._id);
+      const shortlists = oppIds.length
+        ? await Shortlist.find({ opportunityId: { $in: oppIds }, founderEmail: identity.founderEmail })
+            .select('opportunityId totalMatches strongMatchCount previewGeneratedAt unlocked')
+            .lean()
+        : [];
+      const shortlistByOpp = new Map(
+        shortlists.map((s: { opportunityId: unknown }) => [String(s.opportunityId), s])
+      );
+
+      const searches = opportunities.map((opp: Record<string, unknown>) => {
+        const sl = shortlistByOpp.get(String(opp._id));
+        return {
+          id: String(opp._id),
+          roleTitle: opp.roleTitle || 'Untitled role',
+          company: opp.company || 'Internal Scout',
+          status: opp.status || 'draft',
+          skillsNeeded: Array.isArray(opp.skillsNeeded) ? opp.skillsNeeded.slice(0, 5) : [],
+          builderWillDo: opp.builderWillDo || null,
+          updatedAt: opp.updatedAt,
+          createdAt: opp.createdAt,
+          hasShortlist: Boolean(sl),
+          totalMatches: sl?.totalMatches ?? 0,
+          strongMatchCount: sl?.strongMatchCount ?? 0,
+          searchRunAt: sl?.previewGeneratedAt ?? null,
+        };
+      });
+
+      return ok({ searches });
+    }
+
+    if (action === 'admin_scout_delete_search') {
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId)!;
+      const identity = resolveAdminScoutIdentity(scoutSessionId);
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const opportunity = await Opportunity.findOne({
+        _id: opportunityId,
+        founderEmail: identity.founderEmail,
+      });
+      if (!opportunity) return bad('Search not found', 404);
+
+      await Promise.all([
+        MatchRecord.deleteMany({ opportunityId }),
+        Shortlist.deleteMany({ opportunityId, founderEmail: identity.founderEmail }),
+        Opportunity.deleteOne({ _id: opportunityId, founderEmail: identity.founderEmail }),
+      ]);
+
+      return ok({ message: 'Search deleted.', deletedId: opportunityId });
+    }
+
+    if (action === 'admin_scout_chat') {
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId)!;
+      const identity = resolveAdminScoutIdentity(scoutSessionId);
+
+      const userText = String(payload?.message || '').trim();
+      if (!userText) return bad('message is required');
+
+      const payloadOpportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
+      const startFresh = payload?.startFresh === true;
+      let currentOpportunity: any = null;
+      if (payloadOpportunityId && mongoose.Types.ObjectId.isValid(payloadOpportunityId)) {
+        currentOpportunity = await Opportunity.findOne({
+          _id: payloadOpportunityId,
+          founderEmail: identity.founderEmail,
+        });
+      }
+      if (!currentOpportunity && !startFresh) {
+        currentOpportunity = await Opportunity.findOne({
+          founderEmail: identity.founderEmail,
+          status: 'draft',
+        }).sort({ updatedAt: -1 });
+      }
+
+      return runFounderAgentTurn({
+        email: identity.founderEmail,
+        founderName: identity.founderName,
+        founderId: identity.founderId,
+        userText,
+        history: Array.isArray(payload?.history) ? payload.history : [],
+        currentOpportunity,
+        founderStartupContext: { company: null, startupSummary: null, industry: null },
+        payloadOpportunityId,
+        mode: 'admin_scout',
+      });
+    }
+
+    if (action === 'admin_scout_search') {
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId)!;
+      const identity = resolveAdminScoutIdentity(scoutSessionId);
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const searchMode = payload?.searchMode === 'broad' || payload?.searchMode === 'strict'
+        ? payload.searchMode
+        : 'balanced';
+
+      try {
+        const result = await runAdminScoutSearch({
+          opportunityId,
+          founderEmail: identity.founderEmail,
+          founderId: identity.founderId,
+          searchMode,
+        });
+
+        return ok({
+          message: result.message,
+          opportunity: result.opportunity,
+          shortlist: result.shortlist,
+          uiBlocks: [result.searchQuality],
+          meta: { model: hasOpenRouterConfig() ? getOpenRouterChatModel() : 'deterministic-fallback' },
+        });
+      } catch (error) {
+        return bad(error instanceof Error ? error.message : 'Search failed');
+      }
+    }
+
+    if (action === 'admin_scout_load_shortlist') {
+      const scoutSessionId = validateScoutSessionId(payload?.scoutSessionId)!;
+      const identity = resolveAdminScoutIdentity(scoutSessionId);
+
+      const opportunityId = String(payload?.opportunityId || '').trim();
+      if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
+        return bad('A valid opportunityId is required');
+      }
+
+      const opportunity = await Opportunity.findOne({
+        _id: opportunityId,
+        founderEmail: identity.founderEmail,
+      }).lean();
+      if (!opportunity) return bad('Search not found', 404);
+
+      const shortlistDoc = await Shortlist.findOne({
+        opportunityId,
+        founderEmail: identity.founderEmail,
+      });
+      if (!shortlistDoc) return ok({ shortlist: { candidates: [] }, opportunity });
+
+      const fullCandidates = await buildAdminCandidatesForShortlist(shortlistDoc, opportunity, {
+        BuilderProfile,
+        ProjectRecord,
+        MatchRecord,
+      });
+
+      return ok({
+        opportunity,
+        shortlist: {
+          totalMatches: shortlistDoc.totalMatches,
+          strongMatchCount: shortlistDoc.strongMatchCount,
+          candidates: fullCandidates,
+        },
+      });
+    }
+
     if (action === 'claim_profile') {
       const { claimConfirmed } = payload;
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -961,7 +1193,7 @@ export const postAgentAction: APIRoute = async ({ request }) => {
 
     if (action === 'update_availability') {
       const { availableNow, hoursPerWeek, desiredCompensation, remotePreference } = payload;
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -997,7 +1229,7 @@ export const postAgentAction: APIRoute = async ({ request }) => {
 
     if (action === 'update_links') {
       const { github, linkedin, portfolio } = payload;
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -1019,7 +1251,7 @@ export const postAgentAction: APIRoute = async ({ request }) => {
 
     if (action === 'update_profile_basics') {
       const { headline, bio } = payload;
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -1041,7 +1273,7 @@ export const postAgentAction: APIRoute = async ({ request }) => {
 
     if (action === 'update_work_preferences') {
       const { preferredWorkTypes, availableNow } = payload;
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -1072,7 +1304,7 @@ export const postAgentAction: APIRoute = async ({ request }) => {
     }
 
     if (action === 'builder_chat') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
       const userText = String(payload?.message || '').trim();
@@ -1566,7 +1798,7 @@ Rules:
     }
 
     if (action === 'evaluate_profile_quality') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -1586,8 +1818,115 @@ Rules:
       });
     }
 
+    if (action === 'get_founder_onboarding') {
+      const resolved = await resolveAuthedFounder(request, runtime);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, decoded } = resolved;
+      const founderId = decoded?.userId ? String(decoded.userId) : email;
+
+      const profile = await FounderProfile.findOne({
+        $or: [{ userId: founderId }, { founderEmail: email }],
+      })
+        .sort({ updatedAt: -1 })
+        .lean();
+
+      return ok({
+        profile: serializeFounderProfile(profile),
+        onboardingCompleted: Boolean(profile?.onboardingCompletedAt),
+      });
+    }
+
+    if (action === 'confirm_founder_onboarding') {
+      const resolved = await resolveAuthedFounder(request, runtime);
+      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const { email, founderName, decoded } = resolved;
+      const founderId = decoded?.userId ? String(decoded.userId) : email;
+
+      const company = String(payload?.company || '').trim();
+      if (!company || isPlaceholderCompany(company)) {
+        return bad('A real company name is required.');
+      }
+
+      const confirmInput = {
+        founderId,
+        founderEmail: email,
+        founderName: String(payload?.founderName || founderName).trim() || founderName,
+        company,
+        companyWebsite: payload?.companyWebsite ? String(payload.companyWebsite).trim() : null,
+        linkedin: payload?.linkedin ? String(payload.linkedin).trim() : null,
+      };
+
+      let enrichment;
+      try {
+        enrichment = await enrichFounderProfile(confirmInput);
+      } catch (error) {
+        console.error('[agent/actions] confirm_founder_onboarding:enrich_failed', error);
+        enrichment = {
+          company,
+          startupSummary: null,
+          industry: null,
+          fundingStage: null,
+          productDescription: null,
+          techStackHints: [] as string[],
+          founderBio: null,
+          logoUrl: null,
+          enrichmentStatus: 'failed' as const,
+          enrichmentSources: [] as string[],
+        };
+      }
+
+      const now = new Date();
+      const profile = await FounderProfile.findOneAndUpdate(
+        { userId: founderId },
+        {
+          $set: {
+            userId: founderId,
+            founderEmail: email,
+            founderName: confirmInput.founderName,
+            company: enrichment.company,
+            companyWebsite: confirmInput.companyWebsite,
+            linkedin: confirmInput.linkedin,
+            startupSummary: enrichment.startupSummary,
+            industry: enrichment.industry,
+            fundingStage: enrichment.fundingStage,
+            productDescription: enrichment.productDescription,
+            techStackHints: enrichment.techStackHints,
+            founderBio: enrichment.founderBio,
+            logoUrl: enrichment.logoUrl,
+            enrichmentStatus: enrichment.enrichmentStatus,
+            enrichmentSources: enrichment.enrichmentSources,
+            onboardingCompletedAt: now,
+            enrichedAt: now,
+          },
+        },
+        { upsert: true, new: true }
+      );
+
+      void writeFounderEnrichmentMemory(addFounderMemory, {
+        founderId,
+        founderName: confirmInput.founderName,
+        company: enrichment.company,
+        startupSummary: enrichment.startupSummary,
+        industry: enrichment.industry,
+        fundingStage: enrichment.fundingStage,
+        productDescription: enrichment.productDescription,
+        techStackHints: enrichment.techStackHints,
+        founderBio: enrichment.founderBio,
+        sources: enrichment.enrichmentSources,
+      });
+
+      return ok({
+        message:
+          enrichment.enrichmentStatus === 'failed'
+            ? 'Profile saved. I could not pull much public data — the agent will ask a few follow-ups.'
+            : 'Profile saved. I researched your company and will skip the repetitive questions.',
+        profile: serializeFounderProfile(profile),
+        onboardingCompleted: true,
+      });
+    }
+
     if (action === 'get_founder_dashboard') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1659,7 +1998,7 @@ Rules:
     }
 
     if (action === 'suggest_intro_message') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email, founderName } = resolved;
 
@@ -1703,7 +2042,7 @@ Rules:
     }
 
     if (action === 'request_intro') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email, founderName } = resolved;
 
@@ -1778,7 +2117,7 @@ Rules:
     }
 
     if (action === 'update_candidate_status') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1811,7 +2150,7 @@ Rules:
     }
 
     if (action === 'unlock_shortlist') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1854,7 +2193,7 @@ Rules:
     }
 
     if (action === 'generate_trial_project') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1925,7 +2264,7 @@ Rules:
     }
 
     if (action === 'save_trial_project') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1958,7 +2297,7 @@ Rules:
     }
 
     if (action === 'founder_candidate_action') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -1999,9 +2338,10 @@ Rules:
     }
 
     if (action === 'run_builder_search' || action === 'rerun_search') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
-      const { email } = resolved;
+      const { email, decoded } = resolved;
+      const founderId = decoded?.userId ? String(decoded.userId) : email;
 
       const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
       if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
@@ -2044,51 +2384,53 @@ Rules:
         projectsByBuilder.get(key)!.push(project);
       }
 
-      const ranked = rankBuildersForOpportunity(builders, projectsByBuilder, oppPlain, 12);
-      const previewCandidates = toAnonymousCandidates(ranked, ranked.length);
-      const strongMatchCount = ranked.filter((r) => r.matchLabel === 'Strong Match').length;
+      const feedbackDocs = await CandidateFeedback.find({
+        founderId,
+        opportunityId,
+        shouldAffectRanking: true,
+      })
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean();
+      const feedbackHistory = feedbackDocs.map((f: any) => ({
+        founderId: f.founderId,
+        opportunityId: f.opportunityId,
+        builderId: f.builderId,
+        action: f.action,
+        reasonCategory: f.reasonCategory,
+        notes: f.reasonText,
+        shouldAffectRanking: f.shouldAffectRanking,
+        createdAt: f.createdAt,
+      }));
 
-      const candidatesWithMatchIds: any[] = [];
-      for (const anon of previewCandidates) {
-        const entry = ranked.find((r) => r.builderId === anon.builderId);
-        if (!entry) continue;
+      const searchMode: SearchMode =
+        payload?.searchMode === 'broad' || payload?.searchMode === 'strict'
+          ? payload.searchMode
+          : 'balanced';
 
-        const existingMatch = await MatchRecord.findOne({
-          builderId: entry.builderId,
-          opportunityId,
-        }).lean();
+      const result = await runFounderDiscoveryPipeline({
+        opportunity: oppPlain,
+        founderId,
+        builders,
+        projectsByBuilder,
+        searchMode,
+        feedbackHistory,
+        enableLlmRerank: true,
+        generateReply: (sys, usr) =>
+          generateOpenRouterReply({ systemPrompt: sys, userPrompt: usr, temperature: 0, maxTokens: 400 }),
+        limit: 12,
+      });
 
-        const matchUpdate: Record<string, unknown> = {
-          builderId: entry.builderId,
-          opportunityId,
-          matchScore: entry.matchScore,
-          profileStrength: entry.profileStrength,
-          matchLabel: entry.matchLabel,
-          anonymousLabel: anon.anonymousLabel,
-          signalScores: entry.signals,
-          reasoning: entry.whyTheyMatch,
-          evidence: [],
-          riskFlags: entry.projects.length === 0 ? ['Limited verified proof'] : [],
-        };
-        if (!existingMatch || existingMatch.status === 'generated') {
-          matchUpdate.status = 'generated';
-        }
+      const { shortlistDoc, candidatesWithIds } = await persistDiscoveryCandidates({
+        result,
+        opportunityId,
+        founderEmail: email,
+      });
 
-        const match = await MatchRecord.findOneAndUpdate(
-          { builderId: entry.builderId, opportunityId },
-          { $set: matchUpdate },
-          { upsert: true, new: true }
-        );
-
-        candidatesWithMatchIds.push({
-          ...anon,
-          matchRecordId: match._id,
-          builderId: entry.builderId,
-        });
-      }
+      let mergedCandidates = [...candidatesWithIds];
 
       // Keep in-pipeline builders on the board even if they fall out of the new top ranks
-      const seenBuilderIds = new Set(candidatesWithMatchIds.map((c) => String(c.builderId)));
+      const seenBuilderIds = new Set(mergedCandidates.map((c) => String(c.builderId)));
       if (isRerun && existingShortlist?.candidates?.length) {
         const pipelineMatches = await MatchRecord.find({
           opportunityId,
@@ -2102,7 +2444,7 @@ Rules:
             (c) => String(c.builderId) === builderId
           );
           if (!prior) continue;
-          candidatesWithMatchIds.push({
+          mergedCandidates.push({
             ...prior,
             matchRecordId: pipelineMatch._id,
             builderId: pipelineMatch.builderId,
@@ -2111,36 +2453,42 @@ Rules:
         }
       }
 
-      const shortlistFields: Record<string, unknown> = {
-        opportunityId,
-        founderEmail: email,
-        totalMatches: ranked.length,
-        strongMatchCount,
-        candidates: candidatesWithMatchIds,
-        previewGeneratedAt: new Date(),
-      };
-
-      shortlistFields.unlocked = true;
-      shortlistFields.unlockedAt = existingShortlist?.unlockedAt || new Date();
-
-      const shortlist = await Shortlist.findOneAndUpdate(
-        { opportunityId },
-        { $set: shortlistFields },
-        { upsert: true, new: true }
-      );
+      if (mergedCandidates.length !== candidatesWithIds.length) {
+        await Shortlist.findOneAndUpdate(
+          { opportunityId },
+          { $set: { candidates: mergedCandidates } }
+        );
+      }
 
       opportunity.status = 'shortlisted';
       await opportunity.save();
 
+      const shortlist = shortlistDoc;
       const publicShortlist = toPublicShortlist(shortlist);
       const fullCandidates = await buildFullCandidatesForShortlist(shortlist, oppPlain, {
         BuilderProfile,
         ProjectRecord,
         MatchRecord,
       });
-      const previewExplanation = buildPreviewExplanation(oppPlain, ranked.length, strongMatchCount);
+      const strongMatchCount = result.searchQuality.strongCandidates;
+      const rankedCount = result.candidates.length;
+      const previewExplanation = buildPreviewExplanation(oppPlain, rankedCount, strongMatchCount);
       const uiBlocks: any[] = [
         buildTalentPreviewUiBlock(shortlist, oppPlain),
+        {
+          type: 'search_quality_report',
+          totalScanned: result.searchQuality.totalCandidatesScanned,
+          totalRetrieved: result.searchQuality.totalCandidatesRetrieved,
+          strongCount: result.searchQuality.strongCandidates,
+          mediumCount: result.searchQuality.mediumCandidates,
+          weakCount: result.searchQuality.weakCandidates,
+          poolStrength: result.searchQuality.poolStrength,
+          confidence: result.searchQuality.confidence,
+          bottlenecks: result.searchQuality.bottlenecks,
+          suggestedRelaxations: result.searchQuality.suggestedRelaxations,
+          suggestedNextAction:
+            result.searchQuality.suggestedRelaxations[0] || 'Review candidates on your board.',
+        },
         ...(previewExplanation
           ? [
               {
@@ -2150,27 +2498,39 @@ Rules:
               },
             ]
           : []),
-        ...previewCandidates.map((c) => ({
-          type: 'anonymous_candidate',
-          title: `${c.anonymousLabel} · ${c.matchLabel}`,
-          subtitle: c.roleType,
-          body: c.whyTheyMatch,
-          items: c.topSkills,
-          meta: {
-            proofSummary: c.proofSummary,
-            availabilitySummary: c.availabilitySummary,
-            matchScore: c.matchScore,
-            matchLabel: c.matchLabel,
-            locked: true,
-          },
-        })),
+        ...result.candidates.slice(0, 8).map((candidate) => {
+          const roleType =
+            (candidate.builder.rolePreference && candidate.builder.rolePreference[0]) ||
+            oppPlain.roleTitle ||
+            'Builder';
+          const topSkills = [
+            ...(candidate.builder.rolePreference || []),
+            ...candidate.projects.flatMap((p: any) => p.techStack || []).slice(0, 4),
+          ].slice(0, 6);
+          return {
+            type: 'anonymous_candidate',
+            title: `${roleType} · ${candidate.matchLabel}`,
+            subtitle: roleType,
+            body: candidate.explanation.strongestSignals.join('; '),
+            items: topSkills,
+            meta: {
+              proofSummary: candidate.explanation.strongestSignals[0] || '',
+              availabilitySummary: candidate.builder?.availability?.availableNow
+                ? 'Available now'
+                : 'Availability unclear',
+              matchScore: Math.round(candidate.overallFit * 100),
+              matchLabel: candidate.matchLabel,
+              locked: true,
+            },
+          };
+        }),
       ];
 
       const previewMsg = isRerun
-        ? `Search refreshed for ${oppPlain.roleTitle}. ${candidatesWithMatchIds.length} builder${candidatesWithMatchIds.length === 1 ? '' : 's'} on your board (${strongMatchCount} strong).`
-        : strongMatchCount === 0 && ranked.length > 0
-          ? `Search ready for ${oppPlain.roleTitle}: ${ranked.length} potential match${ranked.length === 1 ? '' : 'es'}, 0 strong matches yet — review them on your board.`
-          : `Search complete for ${oppPlain.roleTitle}. ${ranked.length} potential matches (${strongMatchCount} strong) are on your board.`;
+        ? `Search refreshed for ${oppPlain.roleTitle}. ${mergedCandidates.length} builder${mergedCandidates.length === 1 ? '' : 's'} on your board (${strongMatchCount} strong).`
+        : strongMatchCount === 0 && rankedCount > 0
+          ? `Search ready for ${oppPlain.roleTitle}: ${rankedCount} potential match${rankedCount === 1 ? '' : 'es'}, 0 strong matches yet — review them on your board.`
+          : `Search complete for ${oppPlain.roleTitle}. ${rankedCount} potential matches (${strongMatchCount} strong) are on your board.`;
 
       return ok({
         message: previewMsg,
@@ -2180,7 +2540,7 @@ Rules:
           fullCandidates: fullCandidates.filter((c: any) => !c.hidden),
         },
         searchStats: {
-          totalMatches: ranked.length,
+          totalMatches: result.totalScanned,
           strongMatchCount,
           previewGenerated: true,
           locked: false,
@@ -2191,7 +2551,7 @@ Rules:
     }
 
     if (action === 'enhance_role_brief_field') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -2224,7 +2584,7 @@ Rules:
     }
 
     if (action === 'update_role_brief') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -2286,7 +2646,7 @@ Rules:
     }
 
     if (action === 'archive_opportunity') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
 
@@ -2305,7 +2665,7 @@ Rules:
     }
 
     if (action === 'founder_chat') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email, founderName, decoded } = resolved;
 
@@ -2313,7 +2673,7 @@ Rules:
       if (!userText) return bad('message is required');
 
       const founderId = decoded?.userId ? String(decoded.userId) : email;
-      const founderStartupContext = await loadFounderStartupContext(email);
+      const founderStartupContext = await loadFounderStartupContext(email, founderId);
 
       const payloadOpportunityId = payload?.opportunityId ? String(payload.opportunityId) : null;
       let currentOpportunity: any = null;
@@ -2542,11 +2902,7 @@ End every response with one concrete next step.`;
           }
 
           case 'create_role_brief': {
-            const hints = extractRoleHintsFromUserText(userText);
-            let fields = mergeHintsIntoSanitized(
-              sanitizeRoleBriefArgs(args, founderStartupContext, userText),
-              hints
-            );
+            const fields = sanitizeRoleBriefArgs(args, founderStartupContext, userText);
 
             if (!fields.roleTitle) {
               return {
@@ -2589,11 +2945,7 @@ End every response with one concrete next step.`;
 
           case 'update_role_brief': {
             if (!opp) return { error: 'No active role brief. Create one first with create_role_brief.' };
-            const hints = extractRoleHintsFromUserText(userText);
-            const fields = mergeHintsIntoSanitized(
-              sanitizeRoleBriefArgs(args, founderStartupContext, userText),
-              hints
-            );
+            const fields = sanitizeRoleBriefArgs(args, founderStartupContext, userText);
             applySanitizedToOpportunity(opp, fields);
             const changed = (
               [
@@ -2869,7 +3221,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'get_builder_dashboard') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
@@ -2950,13 +3302,13 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'get_notifications') {
-      const founderResolved = await resolveAuthedFounder(request);
+      const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
         const notifications = await getNotificationsForFounder(founderResolved.email);
         const unreadCount = await countUnreadForFounder(founderResolved.email);
         return ok({ notifications, unreadCount, recipientType: 'founder' });
       }
-      const builderResolved = await resolveAuthedBuilder(request);
+      const builderResolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in builderResolved) return bad('Please log in to continue.', 401);
       const notifications = await getNotificationsForBuilder(String(builderResolved.builder._id));
       const unreadCount = await countUnreadForBuilder(String(builderResolved.builder._id));
@@ -2966,7 +3318,7 @@ End every response with one concrete next step.`;
     if (action === 'mark_notification_read') {
       const notificationId = String(payload?.notificationId || '').trim();
       const markAll = payload?.all === true;
-      const founderResolved = await resolveAuthedFounder(request);
+      const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
         if (markAll) {
           await markAllNotificationsRead({ type: 'founder', email: founderResolved.email });
@@ -2980,7 +3332,7 @@ End every response with one concrete next step.`;
         if (!updated) return bad('Notification not found', 404);
         return ok({ notification: updated });
       }
-      const builderResolved = await resolveAuthedBuilder(request);
+      const builderResolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in builderResolved) return bad('Please log in to continue.', 401);
       if (markAll) {
         await markAllNotificationsRead({
@@ -2999,14 +3351,14 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'get_builder_intro_inbox') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const introInbox = await getBuilderIntroInbox(String(resolved.builder._id));
       return ok({ introInbox });
     }
 
     if (action === 'respond_intro') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const introRequestId = String(payload?.introRequestId || '').trim();
       const response = String(payload?.response || '').trim() as 'view' | 'accept' | 'decline';
@@ -3043,7 +3395,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'schedule_call') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3068,7 +3420,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'respond_call_schedule') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const callScheduleId = String(payload?.callScheduleId || '').trim();
       const scheduleAction = String(payload?.scheduleAction || payload?.action || '').trim();
@@ -3090,7 +3442,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'confirm_call_schedule') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const callScheduleId = String(payload?.callScheduleId || '').trim();
       if (!callScheduleId) return bad('callScheduleId is required');
@@ -3103,7 +3455,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'complete_call') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3125,7 +3477,7 @@ End every response with one concrete next step.`;
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
-      const founderResolved = await resolveAuthedFounder(request);
+      const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
         const opp = await Opportunity.findOne({
           _id: opportunityId,
@@ -3133,7 +3485,7 @@ End every response with one concrete next step.`;
         }).lean();
         if (!opp) return bad('Not authorized', 403);
       } else {
-        const builderResolved = await resolveAuthedBuilder(request);
+        const builderResolved = await resolveAuthedBuilder(request, runtime);
         if ('error' in builderResolved) return bad('Please log in to continue.', 401);
         if (String(builderResolved.builder._id) !== builderId) return bad('Not authorized', 403);
       }
@@ -3142,7 +3494,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'send_trial_project') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3167,7 +3519,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'submit_trial') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(resolved.builder._id);
@@ -3190,7 +3542,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'review_trial_submission') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3214,7 +3566,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'hire_builder') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3235,7 +3587,7 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'reject_builder') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -3251,14 +3603,14 @@ End every response with one concrete next step.`;
     }
 
     if (action === 'get_founder_threads') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const threads = await getFounderThreads(resolved.email);
       return ok({ threads });
     }
 
     if (action === 'get_builder_threads') {
-      const resolved = await resolveAuthedBuilder(request);
+      const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const threads = await getBuilderThreads(String(resolved.builder._id));
       return ok({ threads });
@@ -3268,14 +3620,14 @@ End every response with one concrete next step.`;
       const threadId = String(payload?.threadId || '').trim();
       if (!threadId) return bad('threadId is required');
 
-      const founderResolved = await resolveAuthedFounder(request);
+      const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
         const result = await getThreadMessages(threadId, { type: 'founder', email: founderResolved.email });
         if ('error' in result && result.error) return bad(result.error, result.status || 400);
         return ok(result);
       }
 
-      const builderResolved = await resolveAuthedBuilder(request);
+      const builderResolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in builderResolved) return bad('Please log in to continue.', 401);
       const result = await getThreadMessages(threadId, { type: 'builder', builderId: String(builderResolved.builder._id) });
       if ('error' in result && result.error) return bad(result.error, result.status || 400);
@@ -3287,7 +3639,7 @@ End every response with one concrete next step.`;
       const body = String(payload?.body || payload?.message || '').trim();
       if (!threadId || !body) return bad('threadId and body are required');
 
-      const founderResolved = await resolveAuthedFounder(request);
+      const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
         const result = await sendThreadMessage({
           threadId,
@@ -3299,7 +3651,7 @@ End every response with one concrete next step.`;
         return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
       }
 
-      const builderResolved = await resolveAuthedBuilder(request);
+      const builderResolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in builderResolved) return bad('Please log in to continue.', 401);
       const result = await sendThreadMessage({
         threadId,
@@ -3314,7 +3666,7 @@ End every response with one concrete next step.`;
     // ── Phase 8: Candidate Feedback ──────────────────────────────────────────
 
     if (action === 'founder_save_candidate' || action === 'founder_reject_candidate') {
-      const resolved = await resolveAuthedFounder(request);
+      const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email, founderName, decoded } = resolved;
 

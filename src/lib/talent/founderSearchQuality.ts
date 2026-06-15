@@ -156,37 +156,6 @@ export function canRunPreviewAnyway(opportunity: OpportunityLike): boolean {
   return hasRole && hasBuild && hasSkills;
 }
 
-export type RoleAmbiguity = {
-  mentionedAiMl: boolean;
-  mostlyFrontendStack: boolean;
-  choices: string[];
-};
-
-export function detectRoleAmbiguity(opportunity: OpportunityLike): RoleAmbiguity | null {
-  const skills = (opportunity.skillsNeeded || []).map((s) => s.toLowerCase()).join(' ');
-  const roleText = `${opportunity.roleTitle || ''} ${(opportunity.roleType || []).join(' ')} ${skills}`.toLowerCase();
-
-  const mentionedAiMl =
-    /\b(ai|ml|machine learning|llm|embeddings|vector)\b/i.test(roleText) ||
-    (opportunity.roleType || []).some((r) => /ai|ml/i.test(r));
-
-  const frontendStack = ['react', 'typescript', 'tailwind', 'next.js', 'nextjs', 'vue', 'css'];
-  const mlStack = ['python', 'pytorch', 'tensorflow', 'embeddings', 'vector', 'ranking', 'recommendation'];
-
-  const frontendHits = frontendStack.filter((s) => skills.includes(s)).length;
-  const mlHits = mlStack.filter((s) => skills.includes(s)).length;
-  const mostlyFrontendStack = frontendHits >= 2 && mlHits === 0;
-
-  if (mentionedAiMl && mostlyFrontendStack) {
-    return {
-      mentionedAiMl: true,
-      mostlyFrontendStack: true,
-      choices: ['Full-stack builder', 'AI/ML engineer', 'Hybrid AI full-stack builder'],
-    };
-  }
-  return null;
-}
-
 export function buildPreviewExplanation(
   opportunity: OpportunityLike,
   totalMatches: number,
@@ -195,18 +164,7 @@ export function buildPreviewExplanation(
   if (strongMatchCount > 0 || totalMatches === 0) return null;
 
   const lines: string[] = ['Why 0 strong matches?'];
-  const ambiguity = detectRoleAmbiguity(opportunity);
-  if (ambiguity) {
-    lines.push(
-      '- The role mentions AI/ML, but listed skills are mostly full-stack/frontend (e.g. React, TypeScript, Tailwind).'
-    );
-    lines.push(
-      '- Available builders may have stronger full-stack/mobile proof than ML proof.'
-    );
-    lines.push(
-      '- Add Python, embeddings, ranking, recommendation systems, or vector search if you want a true ML role.'
-    );
-  } else if (totalMatches === 1) {
+  if (totalMatches === 1) {
     lines.push('- Only one builder met the minimum bar for this brief.');
     lines.push('- Tighten skills or broaden work type/location to surface more strong matches.');
   } else {
