@@ -1004,7 +1004,7 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const oppIds = opportunities.map((o: { _id: unknown }) => o._id);
       const shortlists = oppIds.length
         ? await Shortlist.find({ opportunityId: { $in: oppIds }, founderEmail: identity.founderEmail })
-            .select('opportunityId totalMatches strongMatchCount previewGeneratedAt unlocked')
+            .select('opportunityId totalMatches strongMatchCount previewGeneratedAt unlocked candidates')
             .lean()
         : [];
       const shortlistByOpp = new Map(
@@ -1012,7 +1012,17 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       );
 
       const searches = opportunities.map((opp: Record<string, unknown>) => {
-        const sl = shortlistByOpp.get(String(opp._id));
+        const sl = shortlistByOpp.get(String(opp._id)) as
+          | { candidates?: unknown[]; totalMatches?: number; strongMatchCount?: number; previewGeneratedAt?: Date }
+          | undefined;
+        const shortlistCount = Array.isArray(sl?.candidates) ? sl.candidates.length : 0;
+        const totalMatches = shortlistCount > 0 ? shortlistCount : sl?.totalMatches ?? 0;
+        const strongMatchCount =
+          shortlistCount > 0
+            ? (sl?.candidates as Array<{ matchLabel?: string }>).filter(
+                (c) => c.matchLabel === 'Strong Match'
+              ).length
+            : sl?.strongMatchCount ?? 0;
         return {
           id: String(opp._id),
           roleTitle: opp.roleTitle || 'Untitled role',
@@ -1023,8 +1033,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
           updatedAt: opp.updatedAt,
           createdAt: opp.createdAt,
           hasShortlist: Boolean(sl),
-          totalMatches: sl?.totalMatches ?? 0,
-          strongMatchCount: sl?.strongMatchCount ?? 0,
+          totalMatches,
+          strongMatchCount,
           searchRunAt: sl?.previewGeneratedAt ?? null,
         };
       });
@@ -1155,8 +1165,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       return ok({
         opportunity,
         shortlist: {
-          totalMatches: shortlistDoc.totalMatches,
-          strongMatchCount: shortlistDoc.strongMatchCount,
+          totalMatches: fullCandidates.length,
+          strongMatchCount: fullCandidates.filter((c) => c.matchLabel === 'Strong Match').length,
           candidates: fullCandidates,
         },
       });

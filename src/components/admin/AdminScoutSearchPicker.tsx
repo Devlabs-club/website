@@ -110,7 +110,7 @@ export default function AdminScoutSearchPicker({
                     <span>Updated {formatScoutSearchDate(search.updatedAt)}</span>
                     {search.hasShortlist ? (
                       <span className="text-[#fa7d22]/80">
-                        {search.totalMatches} match{search.totalMatches === 1 ? '' : 'es'}
+                        {search.totalMatches} result{search.totalMatches === 1 ? '' : 's'}
                       </span>
                     ) : (
                       <span>Not searched</span>

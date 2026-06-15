@@ -51,8 +51,8 @@ export async function persistDiscoveryCandidates(params: {
       $set: {
         opportunityId,
         founderEmail,
-        totalMatches: result.totalScanned,
-        strongMatchCount: result.searchQuality.strongCandidates,
+        totalMatches: candidatesWithIds.length,
+        strongMatchCount: candidatesWithIds.filter((c) => c.matchLabel === 'Strong Match').length,
         candidates: candidatesWithIds,
         previewGeneratedAt: new Date(),
         ...(unlockShortlist ? { unlocked: true, unlockedAt: new Date() } : {}),

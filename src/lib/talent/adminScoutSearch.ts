@@ -114,8 +114,8 @@ export async function runAdminScoutSearch(params: {
   return {
     opportunity: oppPlain,
     shortlist: {
-      totalMatches: result.totalScanned,
-      strongMatchCount: strong,
+      totalMatches: fullCandidates.length,
+      strongMatchCount: fullCandidates.filter((c) => c.matchLabel === 'Strong Match').length,
       candidates: fullCandidates,
     },
     searchQuality,

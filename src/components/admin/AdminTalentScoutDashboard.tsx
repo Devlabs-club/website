@@ -84,8 +84,7 @@ export default function AdminTalentScoutDashboard() {
         if (data.opportunity) setCurrentBrief(data.opportunity);
         const loaded = data.shortlist?.candidates || [];
         setCandidates(loaded);
-        const hasResults = loaded.length > 0 || (data.shortlist?.totalMatches ?? 0) > 0;
-        setSearchStatus(hasResults ? 'finished' : 'idle');
+        setSearchStatus(loaded.length > 0 ? 'finished' : 'idle');
       } catch {
         // workspace still opens; user can run search from chat
       }
