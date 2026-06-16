@@ -62,7 +62,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     strategy = { ...strategy, weights: adjustWeightsFromFeedback(strategy.weights, feedbackHistory) };
   }
 
-  // Stage 3a: build semantic score map (graceful — empty if no OPENAI_API_KEY)
+  // Stage 3a: semantic similarity via stored embeddings (OpenRouter text-embedding-3-small)
   let semanticScores = new Map<string, { profileScore: number; projectScore: number }>();
   try {
     semanticScores = await buildSemanticScoreMap({

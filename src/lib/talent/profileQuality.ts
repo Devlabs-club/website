@@ -230,7 +230,8 @@ Schema:
       source: 'llm'
     };
   } catch (error) {
-    console.error('[profileQuality] LLM evaluation failed, falling back to deterministic:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[profileQuality] LLM evaluation failed, using deterministic fallback: ${message}`);
     return deterministic;
   }
 }

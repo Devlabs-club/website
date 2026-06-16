@@ -1,0 +1,19 @@
+name = "builder-enrichment"
+main = "src/index.ts"
+compatibility_date = "2026-06-04"
+compatibility_flags = ["nodejs_compat"]
+account_id = "6af8f75897522ce7d97f9641eb37faa0"
+
+[vars]
+WEBSITE_ROOT = "https://website.plain-fire-9ab3.workers.dev"
+
+[[queues.consumers]]
+queue = "builder-enrichment"
+max_batch_size = 1
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "builder-enrichment-dlq"
+
+[[queues.producers]]
+queue = "builder-enrichment"
+binding = "BUILDER_ENRICHMENT_QUEUE"

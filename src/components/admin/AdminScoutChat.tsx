@@ -468,5 +468,3 @@ export default function AdminScoutChat({
     </div>
   );
 }
-
-export { getOrCreateScoutSessionId };

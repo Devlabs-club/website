@@ -8,6 +8,14 @@ export function hasOpenRouterConfig() {
   return Boolean(process.env.OPENROUTER_API_KEY);
 }
 
+export function getOpenRouterEmbeddingModel() {
+  return process.env.OPENROUTER_MODEL_EMBEDDING || 'openai/text-embedding-3-small';
+}
+
+export function hasOpenRouterEmbeddingConfig() {
+  return hasOpenRouterConfig();
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export type ToolDefinition = {
@@ -64,18 +72,23 @@ export async function generateOpenRouterReply(params: {
   temperature?: number;
   maxTokens?: number;
   history?: Array<{ role: string; content: string }>;
+  responseFormat?: 'json_object';
 }): Promise<string> {
   const messages = [
     { role: 'system', content: params.systemPrompt },
     ...(params.history || []),
     { role: 'user', content: params.userPrompt },
   ];
-  const data = await callOpenRouter({
+  const body: Record<string, unknown> = {
     model: getOpenRouterChatModel(),
     messages,
     temperature: params.temperature ?? 0.2,
     max_tokens: params.maxTokens ?? 400,
-  });
+  };
+  if (params.responseFormat === 'json_object') {
+    body.response_format = { type: 'json_object' };
+  }
+  const data = await callOpenRouter(body);
   const content = (data as any)?.choices?.[0]?.message?.content;
   if (!content || typeof content !== 'string') throw new Error('OpenRouter returned empty response');
   return content.trim();
@@ -106,4 +119,46 @@ export async function generateOpenRouterAgentTurn(params: {
     content: msg?.content ?? null,
     tool_calls: msg?.tool_calls ?? undefined,
   };
+}
+
+// ── Embeddings (OpenAI-compatible /embeddings route) ───────────────────────────
+
+const OPENROUTER_EMBEDDINGS_URL = 'https://openrouter.ai/api/v1/embeddings';
+
+export async function generateOpenRouterEmbedding(
+  text: string,
+  dimensions = 1536
+): Promise<number[] | null> {
+  if (!hasOpenRouterEmbeddingConfig() || !text.trim()) return null;
+
+  try {
+    const res = await fetch(OPENROUTER_EMBEDDINGS_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        ...(process.env.OPENROUTER_HTTP_REFERER ? { 'HTTP-Referer': process.env.OPENROUTER_HTTP_REFERER } : {}),
+        ...(process.env.OPENROUTER_APP_NAME ? { 'X-Title': process.env.OPENROUTER_APP_NAME } : {}),
+      },
+      body: JSON.stringify({
+        model: getOpenRouterEmbeddingModel(),
+        input: text.slice(0, 8000),
+        dimensions,
+        encoding_format: 'float',
+      }),
+    });
+
+    if (!res.ok) {
+      const details = await res.text();
+      console.warn('[openrouter] embeddings error:', res.status, details.slice(0, 300));
+      return null;
+    }
+
+    const data = (await res.json()) as { data?: Array<{ embedding?: number[] }> };
+    const embedding = data.data?.[0]?.embedding;
+    return Array.isArray(embedding) && embedding.length > 0 ? embedding : null;
+  } catch (err) {
+    console.warn('[openrouter] generateOpenRouterEmbedding failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
 }

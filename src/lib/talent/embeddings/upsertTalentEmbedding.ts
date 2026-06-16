@@ -29,8 +29,8 @@ export async function upsertBuilderEmbedding(params: {
   builderId: string;
   builder: any;
   projects: any[];
-}): Promise<void> {
-  void upsertTalentEmbedding({
+}): Promise<boolean> {
+  return upsertTalentEmbedding({
     entityType: 'builder_profile',
     entityId: params.builderId,
     builderId: params.builderId,
@@ -42,8 +42,8 @@ export async function upsertProjectEmbedding(params: {
   projectId: string;
   builderId: string;
   project: any;
-}): Promise<void> {
-  void upsertTalentEmbedding({
+}): Promise<boolean> {
+  return upsertTalentEmbedding({
     entityType: 'project',
     entityId: params.projectId,
     builderId: params.builderId,

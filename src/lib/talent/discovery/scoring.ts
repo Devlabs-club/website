@@ -109,18 +109,8 @@ function norm(s: string): string {
   return s.toLowerCase().trim();
 }
 
-const SKILL_ALIASES: Record<string, string[]> = {
-  gcp: ['gcp', 'google cloud', 'google cloud platform'],
-  golang: ['golang', 'go'],
-  go: ['golang', 'go'],
-  'ci/cd': ['ci/cd', 'cicd', 'continuous integration', 'github actions'],
-  devops: ['devops', 'docker', 'kubernetes', 'terraform'],
-  serverless: ['serverless', 'lambda', 'cloud functions'],
-};
-
-function skillTerms(input: string): string[] {
-  const n = norm(input).replace(/\s+/g, ' ');
-  return SKILL_ALIASES[n] || [n];
+function normalizeSkillTerm(input: string): string {
+  return norm(input).replace(/\s+/g, ' ');
 }
 
 function scoreDeterministicSkill(builder: any, projects: any[], opportunity: any, mustHaveSignals: string[]): number {
@@ -128,19 +118,20 @@ function scoreDeterministicSkill(builder: any, projects: any[], opportunity: any
     ...(opportunity.skillsNeeded || []),
     ...(opportunity.roleType || []),
     ...mustHaveSignals,
-  ].map(norm);
+  ].map(normalizeSkillTerm);
 
   if (!required.length) return 0.5;
 
   const builderSkills = new Set<string>([
-    ...(builder.rolePreference || []).flatMap((s: string) => skillTerms(s)),
-    ...projects.flatMap((p: any) => (p.techStack || []).flatMap((s: string) => skillTerms(s))),
+    ...(builder.rolePreference || []).map((s: string) => normalizeSkillTerm(s)),
+    ...projects.flatMap((p: any) => (p.techStack || []).map((s: string) => normalizeSkillTerm(s))),
   ]);
 
   let matched = 0;
   for (const req of required) {
-    const reqTerms = skillTerms(req);
-    if (reqTerms.some((t) => builderSkills.has(t))) matched++;
+    if ([...builderSkills].some((skill) => skill === req || skill.includes(req) || req.includes(skill))) {
+      matched++;
+    }
   }
 
   return Math.min(1, matched / Math.max(required.length, 1));

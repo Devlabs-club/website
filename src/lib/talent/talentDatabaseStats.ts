@@ -1,12 +1,10 @@
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import SystemStats from '@/models/SystemStats';
-import { addMemoryToContainer } from '@/lib/talent/supermemory';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STATS_DOC_TYPE = 'talent_pool_stats';
-const TALENT_POOL_CONTAINER = 'talent_database:global';
 
 // How long before stats are considered stale and need a recompute.
 // Reads ALWAYS serve from MongoDB (shared across all worker instances).
@@ -195,7 +193,7 @@ export async function getOrRefreshTalentStats(force = false): Promise<TalentData
 }
 
 /**
- * Recompute stats and persist to MongoDB + Supermemory. Safe to call fire-and-forget.
+ * Recompute stats and persist to MongoDB. Safe to call fire-and-forget.
  */
 export async function recomputeAndStore(): Promise<TalentDatabaseStats> {
   const t0 = Date.now();
@@ -203,12 +201,6 @@ export async function recomputeAndStore(): Promise<TalentDatabaseStats> {
   const durationMs = Date.now() - t0;
 
   await writeStatsToMongo(stats, durationMs);
-
-  // Also write to Supermemory so the founder agent can search it narratively.
-  void addMemoryToContainer(
-    TALENT_POOL_CONTAINER,
-    `DevLabs Talent Pool Statistics (recomputed ${stats.computedAt}, took ${durationMs}ms):\n${formatStatsForPrompt(stats)}`
-  );
 
   console.log(`[talentStats] recomputed in ${durationMs}ms — ${stats.totalBuilders} builders`);
   return stats;

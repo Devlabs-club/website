@@ -65,43 +65,8 @@ function norm(s: string) {
   return s.toLowerCase().trim();
 }
 
-const SKILL_ALIASES: Record<string, string[]> = {
-  ai: ['ai', 'artificial intelligence', 'machine learning', 'ml', 'llm', 'openai'],
-  ml: ['ml', 'machine learning', 'ai', 'artificial intelligence'],
-  'c#': ['c#', 'csharp', 'c sharp', '.net'],
-  'c++': ['c++', 'cpp'],
-  javascript: ['javascript', 'js'],
-  js: ['javascript', 'js'],
-  typescript: ['typescript', 'ts'],
-  ts: ['typescript', 'ts'],
-  react: ['react', 'react.js', 'reactjs'],
-  'react.js': ['react', 'react.js', 'reactjs'],
-  reactjs: ['react', 'react.js', 'reactjs'],
-  next: ['next', 'next.js', 'nextjs'],
-  'next.js': ['next', 'next.js', 'nextjs'],
-  nextjs: ['next', 'next.js', 'nextjs'],
-  node: ['node', 'node.js', 'nodejs'],
-  'node.js': ['node', 'node.js', 'nodejs'],
-  nodejs: ['node', 'node.js', 'nodejs'],
-  gcp: ['gcp', 'google cloud', 'google cloud platform'],
-  'google cloud': ['gcp', 'google cloud', 'google cloud platform'],
-  golang: ['golang', 'go'],
-  go: ['golang', 'go'],
-  llm: ['llm', 'large language model', 'gpt', 'openai'],
-  rag: ['rag', 'retrieval augmented generation', 'retrieval-augmented generation', 'vector search', 'embeddings'],
-  embeddings: ['embedding', 'embeddings', 'vector search', 'semantic search'],
-  'vector search': ['vector search', 'semantic search', 'embeddings'],
-  'ci/cd': ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
-  cicd: ['ci/cd', 'cicd', 'continuous integration', 'continuous deployment', 'github actions', 'jenkins'],
-  devops: ['devops', 'docker', 'kubernetes', 'terraform', 'jenkins', 'github actions'],
-  serverless: ['serverless', 'lambda', 'cloud functions', 'edge functions'],
-  'edge infrastructure': ['edge infrastructure', 'edge deployment', 'edge computing', 'low latency'],
-  'distributed systems': ['distributed systems', 'distributed', 'microservices', 'systems design'],
-};
-
-function canonicalSkillTerms(input: string) {
-  const normalized = norm(input).replace(/\s+/g, ' ');
-  return SKILL_ALIASES[normalized] || [normalized];
+function normalizeSkillTerm(input: string) {
+  return norm(input).replace(/\s+/g, ' ');
 }
 
 function tokenize(text: string): string[] {
@@ -204,19 +169,17 @@ function isUsefulDomainToken(token: string) {
 }
 
 function fuzzySkillMatch(required: string, haystack: Set<string>): boolean {
-  const requiredTerms = canonicalSkillTerms(required);
-  for (const r of requiredTerms) {
-    if (haystack.has(r)) return true;
-    for (const h of haystack) {
-      if (h === r) return true;
-      if (r.length < 4 || h.length < 4) continue;
-      if (h.includes(r)) return true;
-      const rTokens = new Set(tokenize(r));
-      const hTokens = new Set(tokenize(h));
-      const requiredTokens = [...rTokens].filter((token) => token.length >= 4);
-      if (requiredTokens.length > 1 && requiredTokens.every((token) => hTokens.has(token))) {
-        return true;
-      }
+  const r = normalizeSkillTerm(required);
+  if (haystack.has(r)) return true;
+  for (const h of haystack) {
+    if (h === r) return true;
+    if (r.length < 4 || h.length < 4) continue;
+    if (h.includes(r) || r.includes(h)) return true;
+    const rTokens = new Set(tokenize(r));
+    const hTokens = new Set(tokenize(h));
+    const requiredTokens = [...rTokens].filter((token) => token.length >= 4);
+    if (requiredTokens.length > 1 && requiredTokens.every((token) => hTokens.has(token))) {
+      return true;
     }
   }
   return false;

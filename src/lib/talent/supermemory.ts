@@ -122,41 +122,23 @@ export async function searchCandidateFitMemories(
   }
 }
 
-// ─── Write (scoped, fire-and-forget safe) ───────────────────────────────────
+// ─── Write (disabled — agent context uses MongoDB, not Supermemory) ─────────
 
-export async function addMemoryToContainer(containerTag: string, content: string): Promise<void> {
-  const client = getClient();
-  if (!client || !content.trim()) return;
-  try {
-    await client.add({
-      content,
-      containerTag,
-      entityContext: 'DevLabs OS — hiring intelligence platform.',
-    });
-  } catch (err) {
-    console.warn('[supermemory] addMemoryToContainer failed:', err instanceof Error ? err.message : err);
-  }
+export async function addMemoryToContainer(_containerTag: string, _content: string): Promise<void> {
+  // No-op: Supermemory writes removed; reads may still use get*Profile/search* if configured.
 }
 
-export async function addBuilderMemory(builderId: string, content: string): Promise<void> {
-  return addMemoryToContainer(containers.builder(builderId), content);
-}
+export async function addBuilderMemory(_builderId: string, _content: string): Promise<void> {}
 
-export async function addFounderMemory(founderId: string, content: string): Promise<void> {
-  return addMemoryToContainer(containers.founder(founderId), content);
-}
+export async function addFounderMemory(_founderId: string, _content: string): Promise<void> {}
 
-export async function addOpportunityMemory(opportunityId: string, content: string): Promise<void> {
-  return addMemoryToContainer(containers.opportunity(opportunityId), content);
-}
+export async function addOpportunityMemory(_opportunityId: string, _content: string): Promise<void> {}
 
 export async function addCandidateFitMemory(
-  opportunityId: string,
-  builderId: string,
-  content: string
-): Promise<void> {
-  return addMemoryToContainer(containers.candidateFit(opportunityId, builderId), content);
-}
+  _opportunityId: string,
+  _builderId: string,
+  _content: string
+): Promise<void> {}
 
 // ─── Prompt formatting ───────────────────────────────────────────────────────
 

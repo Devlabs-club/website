@@ -280,22 +280,6 @@ const ADMIN_SCOUT_TOOL_NAMES = new Set([
   'get_candidate_details',
 ]);
 
-const ADMIN_SCOUT_TOOLS = [
-  ...FOUNDER_TOOLS.filter((t) => ADMIN_SCOUT_TOOL_NAMES.has(t.function.name)),
-  ...ADMIN_SCOUT_ONLY_TOOLS,
-];
-
-const ADMIN_SCOUT_PROMPT_ADDENDUM = `
-
-ADMIN SCOUT MODE — internal operator console:
-- Skip intro requests, billing, and pipeline actions entirely.
-- Optimize for search quality and candidate transparency.
-- Company name can default to "Internal Scout" when the operator does not specify one.
-- After search, summarize top matches with names and fit scores.
-- When the session is marked [NEW SEARCH SESSION]: skip "continue vs start fresh" — go straight to intake for a brand-new role.
-- When the operator says start fresh / new search / from scratch: call begin_new_role_search first, then use create_role_brief (never update_role_brief on an old role).
-- When the operator picks an existing role to continue: call select_existing_role with that role's title, then use update_role_brief or run_search as needed.`;
-
 const ADMIN_SCOUT_ONLY_TOOLS: ToolDefinition[] = [
   {
     type: 'function',
@@ -322,6 +306,22 @@ const ADMIN_SCOUT_ONLY_TOOLS: ToolDefinition[] = [
     },
   },
 ];
+
+const ADMIN_SCOUT_TOOLS = [
+  ...FOUNDER_TOOLS.filter((t) => ADMIN_SCOUT_TOOL_NAMES.has(t.function.name)),
+  ...ADMIN_SCOUT_ONLY_TOOLS,
+];
+
+const ADMIN_SCOUT_PROMPT_ADDENDUM = `
+
+ADMIN SCOUT MODE — internal operator console:
+- Skip intro requests, billing, and pipeline actions entirely.
+- Optimize for search quality and candidate transparency.
+- Company name can default to "Internal Scout" when the operator does not specify one.
+- After search, summarize top matches with names and fit scores.
+- When the session is marked [NEW SEARCH SESSION]: skip "continue vs start fresh" — go straight to intake for a brand-new role.
+- When the operator says start fresh / new search / from scratch: call begin_new_role_search first, then use create_role_brief (never update_role_brief on an old role).
+- When the operator picks an existing role to continue: call select_existing_role with that role's title, then use update_role_brief or run_search as needed.`;
 
 export type FounderAgentMode = 'founder' | 'admin_scout';
 

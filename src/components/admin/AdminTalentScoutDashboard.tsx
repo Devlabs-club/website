@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { DottedGlowBackground } from '@/components/ui/dotted-glow-background';
-import AdminScoutChat, { getOrCreateScoutSessionId } from './AdminScoutChat';
+import AdminScoutChat from './AdminScoutChat';
 import AdminScoutResults, { type ScoutSearchStatus } from './AdminScoutResults';
 import AdminScoutCandidateDrawer from './AdminScoutCandidateDrawer';
 import AdminScoutSearchPicker from './AdminScoutSearchPicker';
 import {
   deleteScoutSearch,
   fetchScoutSearches,
+  getOrCreateScoutSessionId,
   loadScoutShortlist,
   type AdminCandidate,
   type ScoutSearchSummary,
