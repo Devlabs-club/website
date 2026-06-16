@@ -70,7 +70,7 @@ export async function proxyToNodeBackend(
       JSON.stringify({
         success: false,
         error:
-          'API backend blocked by Vercel SSO. Set VERCEL_AUTOMATION_BYPASS_SECRET on the Worker (bun run deploy:stack:secrets).',
+          'API backend blocked by Vercel SSO. Set VERCEL_AUTOMATION_BYPASS_SECRET on the Worker deployment environment.',
       }),
       {
         status: 502,
