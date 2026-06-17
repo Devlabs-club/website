@@ -20,6 +20,23 @@ type ChatMessage = {
   timestamp: Date;
 };
 
+function userExplicitlyRequestedSearch(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    /\b(run|start|launch|kick off)\b.*\b(search|builder search|talent search)\b/i.test(trimmed) ||
+    /\b(find|show)\b.*\b(builders|candidates|matches)\b/i.test(trimmed) ||
+    /\bready to search\b/i.test(trimmed)
+  );
+}
+
+function agentAskedToRunSearch(text: string): boolean {
+  return /\bwant me to run\b.*\bsearch\b/i.test(text) || /\bready\b.*\brun\b.*\bsearch\b/i.test(text);
+}
+
+function userConfirmedSearch(text: string): boolean {
+  return /^(yes|yep|yeah|sure|do it|go ahead|run it|run search|run the search)$/i.test(text.trim());
+}
+
 function SearchQualityCard({ sq }: { sq: SearchQualityBlock }) {
   const strengthColor =
     sq.poolStrength === 'strong'
@@ -80,8 +97,11 @@ export default function AdminScoutChat({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const initiatedRef = useRef(false);
+  const lastResetKeyRef = useRef(resetKey);
 
   useEffect(() => {
+    if (lastResetKeyRef.current === resetKey) return;
+    lastResetKeyRef.current = resetKey;
     setMessages([]);
     setOpportunityId(initialOpportunityId);
     setCurrentBrief(null);
@@ -166,6 +186,11 @@ export default function AdminScoutChat({
     async (text: string, history: ChatMessage[]) => {
       const isInit = text === '__init__';
       const userWantsFresh = !isInit && isStartFreshIntent(text);
+      const lastAgentMessage = [...history].reverse().find((m) => m.role === 'agent')?.text || '';
+      const userAskedForSearch =
+        !isInit &&
+        (userExplicitlyRequestedSearch(text) ||
+          (agentAskedToRunSearch(lastAgentMessage) && userConfirmedSearch(text)));
       if (userWantsFresh) {
         setOpportunityId(null);
         setCurrentBrief(null);
@@ -283,14 +308,7 @@ export default function AdminScoutChat({
           }
         }
 
-        const lower = rawMessage.toLowerCase();
-        const wantsSearch =
-          lower.includes('run the builder search') ||
-          lower.includes('run search') ||
-          lower.includes('want me to run') ||
-          lower.includes('run the search');
-
-        if (opp && canRunPreviewAnyway(opp) && wantsSearch) {
+        if (!sqBlock && opp && canRunPreviewAnyway(opp) && userAskedForSearch) {
           await triggerSearch(String(opp._id));
         }
       } catch (err: unknown) {
