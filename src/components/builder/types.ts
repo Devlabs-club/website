@@ -11,6 +11,23 @@ export type BuilderData = {
   location?: string | null;
   rolePreference?: string[];
   preferredWorkType?: string[];
+  experiences?: Array<{
+    title?: string;
+    company?: string;
+    companyLogoUrl?: string | null;
+    companyLinkedInUrl?: string | null;
+    employmentType?: string | null;
+    location?: string | null;
+    dateRange?: string | null;
+    startDateLabel?: string | null;
+    endDateLabel?: string | null;
+    duration?: string | null;
+    description?: string | null;
+    skills?: string[];
+    isCurrent?: boolean;
+    source?: string;
+    sourceId?: string;
+  }>;
   links?: {
     github?: string | null;
     linkedin?: string | null;

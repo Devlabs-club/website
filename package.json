@@ -10,6 +10,8 @@
     "build:clean": "rm -rf .astro dist node_modules/.vite node_modules/.astro node_modules/.cache .vercel/output .vercel/cache && NODE_OPTIONS=--max-old-space-size=8192 astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "enrich:builder": "node scripts/enrich-builder-linkedin-cdp.mjs",
+    "enrich:builder:playwright": "node scripts/enrich-builder-linkedin-cdp.mjs",
     "deploy:dev": "rm -rf .context/deploy-devlabs-os && git worktree prune && git fetch origin devlabs-os && git worktree add --detach .context/deploy-devlabs-os origin/devlabs-os && cd .context/deploy-devlabs-os && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-os && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7",
     "deploy:prod": "rm -rf .context/deploy-main && git worktree prune && git fetch origin main && git worktree add --detach .context/deploy-main origin/main && cd .context/deploy-main && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-website && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7"
   },

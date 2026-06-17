@@ -251,6 +251,12 @@ function buildEvidenceSources(builder: any, projects: any[]) {
     ...(builder.rolePreference || []),
     builder.headline,
     builder.bio,
+    ...(builder.experiences || []).flatMap((experience: any) => [
+      experience?.title,
+      experience?.company,
+      experience?.description,
+      ...(experience?.skills || []),
+    ]),
     builder.profileQuality?.oneLineSummary,
     ...(builder.profileQuality?.strengths || []).flatMap((strength: any) => [
       strength?.title,

@@ -36,6 +36,17 @@ function buildBuilderProfileText(builder: any, projects: any[]): string {
   const roles = (builder.rolePreference || []).slice(0, 12).join(', ');
   if (roles) parts.push(`Skills: ${roles}`);
 
+  const experiences = (builder.experiences || []).slice(0, 5);
+  for (const experience of experiences) {
+    const eParts: string[] = [];
+    if (experience.title || experience.company) {
+      eParts.push(`Experience: ${[experience.title, experience.company].filter(Boolean).join(' at ')}`);
+    }
+    if (experience.description) eParts.push(String(experience.description).slice(0, 220));
+    if ((experience.skills || []).length) eParts.push(`Experience skills: ${(experience.skills as string[]).slice(0, 6).join(', ')}`);
+    if (eParts.length) parts.push(eParts.join('. '));
+  }
+
   const rankedProjects = [...(projects || [])].sort((a, b) => {
     const score = (p: any) =>
       (p.builderContribution ? 2 : 0) +

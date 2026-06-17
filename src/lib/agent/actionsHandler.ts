@@ -1758,6 +1758,7 @@ Rules:
         availability: finalBuilder.availability,
         rolePreference: finalBuilder.rolePreference,
         preferredWorkType: finalBuilder.preferredWorkType,
+        experiences: finalBuilder.experiences,
         profileCompletion: computeBuilderScores(finalBuilder, finalProjects),
         profileQuality: finalBuilder.profileQuality,
       } : null;

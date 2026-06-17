@@ -226,6 +226,41 @@ export default function FounderCandidateDrawer({
             {candidate.location ? <p className="text-sm text-white/55 mt-2">{candidate.location}</p> : null}
           </section>
 
+          {candidate.experiences?.length ? (
+            <section>
+              <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Experience</h3>
+              <div className="space-y-3">
+                {candidate.experiences.slice(0, 3).map((experience) => (
+                  <div key={experience.sourceId || `${experience.company}-${experience.title}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex items-start gap-3">
+                      {experience.companyLogoUrl ? (
+                        <img
+                          src={experience.companyLogoUrl}
+                          alt={`${experience.company || 'Company'} logo`}
+                          className="h-9 w-9 rounded-md object-cover bg-white/5 border border-white/10"
+                        />
+                      ) : (
+                        <div className="h-9 w-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/40">
+                          {(experience.company || '?').slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{experience.title}</p>
+                        <p className="text-xs text-white/55 truncate">
+                          {experience.company}
+                          {experience.dateRange ? ` · ${experience.dateRange}` : ''}
+                        </p>
+                        {experience.description ? (
+                          <p className="text-xs text-white/45 mt-1 line-clamp-2">{experience.description}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Why they match</h3>
             <p className="text-sm text-white/80 leading-relaxed">{candidate.whyTheyMatch}</p>
