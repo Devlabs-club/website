@@ -76,6 +76,19 @@ export type FullCandidate = {
   };
   workTypes: string[];
   topSkills: string[];
+  experiences?: Array<{
+    title?: string;
+    company?: string;
+    companyLogoUrl?: string | null;
+    companyLinkedInUrl?: string | null;
+    employmentType?: string | null;
+    location?: string | null;
+    dateRange?: string | null;
+    description?: string | null;
+    skills?: string[];
+    isCurrent?: boolean;
+    sourceId?: string;
+  }>;
   founderClarityLabel: string | null;
   proofStrengthLabel: string;
   builderVerificationLabel: string;

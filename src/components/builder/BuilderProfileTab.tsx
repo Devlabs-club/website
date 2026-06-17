@@ -83,6 +83,39 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
             </div>
           ) : null}
 
+          {builder.experiences?.length ? (
+            <div className="space-y-2 pt-1">
+              <p className="text-xs uppercase tracking-wider text-white/35 font-semibold">Experience</p>
+              {builder.experiences.slice(0, 3).map((experience) => (
+                <div key={experience.sourceId || `${experience.company}-${experience.title}`} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                  <div className="flex items-start gap-3">
+                    {experience.companyLogoUrl ? (
+                      <img
+                        src={experience.companyLogoUrl}
+                        alt={`${experience.company || 'Company'} logo`}
+                        className="h-9 w-9 rounded-md object-cover bg-white/5 border border-white/8"
+                      />
+                    ) : (
+                      <div className="h-9 w-9 rounded-md bg-white/5 border border-white/8 flex items-center justify-center text-xs text-white/35">
+                        {(experience.company || '?').slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-white truncate">{experience.title}</p>
+                      <p className="text-xs text-white/50 truncate">
+                        {experience.company}
+                        {experience.dateRange ? ` · ${experience.dateRange}` : ''}
+                      </p>
+                      {experience.description ? (
+                        <p className="text-xs text-white/40 mt-1 line-clamp-2">{experience.description}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className="space-y-2 pt-1">
             {projects.slice(0, 2).map((project) => (
               <div key={project._id} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">

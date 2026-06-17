@@ -603,6 +603,7 @@ export async function runBuilderAgentTurn(params: {
         availability: finalBuilder.availability,
         rolePreference: finalBuilder.rolePreference,
         preferredWorkType: finalBuilder.preferredWorkType,
+        experiences: finalBuilder.experiences,
         profileCompletion: computeBuilderScores(finalBuilder, finalProjects),
         profileQuality: finalBuilder.profileQuality,
       }

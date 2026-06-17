@@ -158,6 +158,7 @@ export function buildFullCandidateCard(params: {
       desiredCompensation: availability.desiredCompensation || null,
     },
     workTypes: Array.isArray(builder.preferredWorkType) ? builder.preferredWorkType : [],
+    experiences: Array.isArray(builder.experiences) ? builder.experiences.slice(0, 5) : [],
     topSkills: shortlistCandidate?.topSkills?.length
       ? shortlistCandidate.topSkills
       : [
