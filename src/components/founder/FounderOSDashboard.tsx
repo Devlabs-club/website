@@ -9,7 +9,6 @@ import type {
   FounderPipeline,
 } from './founderTypes';
 import FounderRoleIntakeChat from './FounderRoleIntakeChat';
-import FounderOnboardingConfirm from './FounderOnboardingConfirm';
 import FounderRoleBriefEditor from './FounderRoleBriefEditor';
 import FounderUnifiedWorkspace from './FounderUnifiedWorkspace';
 import CallScheduleModal from './CallScheduleModal';
@@ -48,7 +47,7 @@ export type Opportunity = {
 };
 
 export default function FounderOSDashboard() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   
   // App States
   const [searches, setSearches] = useState<Opportunity[]>([]);
@@ -77,18 +76,7 @@ export default function FounderOSDashboard() {
     trialProject: FullCandidate['trialProject'];
   } | null>(null);
   const [activeOpportunityId, setActiveOpportunityId] = useState<string | null>(null);
-  const founderOnboardedKey = user?.id ? `devlabs_founder_onboarded_${user.id}` : null;
-
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(() => {
-    if (typeof window !== 'undefined' && founderOnboardedKey) {
-      return localStorage.getItem(founderOnboardedKey) === 'true';
-    }
-    return false;
-  });
   const [showIntakeChat, setShowIntakeChat] = useState(false);
-  const [showOnboardingConfirm, setShowOnboardingConfirm] = useState(false);
-  const [founderProfileReady, setFounderProfileReady] = useState<boolean | null>(null);
-  const [intakeEnrichedOnboarding, setIntakeEnrichedOnboarding] = useState(false);
   const [showBriefEditor, setShowBriefEditor] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
 
@@ -118,12 +106,7 @@ export default function FounderOSDashboard() {
   const loadSearches = useCallback(async () => {
     setSearchesLoading(true);
     try {
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action: 'get_founder_dashboard', payload: {} }),
-      });
+      const response = await fetch('/api/founder-agent/dashboard', { credentials: 'include' });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load dashboard data');
       
@@ -155,33 +138,7 @@ export default function FounderOSDashboard() {
     loadSearches();
   }, [loadSearches]);
 
-  const loadFounderOnboarding = useCallback(async () => {
-    try {
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action: 'get_founder_onboarding', payload: {} }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load founder profile');
-      setFounderProfileReady(Boolean(data.onboardingCompleted));
-      setIntakeEnrichedOnboarding(Boolean(data.profile?.enrichmentStatus && data.profile.enrichmentStatus !== 'failed'));
-    } catch {
-      setFounderProfileReady(false);
-      setIntakeEnrichedOnboarding(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadFounderOnboarding();
-  }, [loadFounderOnboarding]);
-
   const startNewSearch = () => {
-    if (founderProfileReady === false) {
-      setShowOnboardingConfirm(true);
-      return;
-    }
     setShowIntakeChat(true);
   };
 
@@ -192,15 +149,8 @@ export default function FounderOSDashboard() {
     [searches, activeOpportunityId]
   );
 
-  // Fresh founder state: no active searches → show onboarding again (e.g. after data reset)
-  useEffect(() => {
-    if (searchesLoading || activeSearches.length > 0 || !founderOnboardedKey) return;
-    localStorage.removeItem(founderOnboardedKey);
-    setOnboardingCompleted(false);
-  }, [searchesLoading, activeSearches.length, founderOnboardedKey]);
-
   useTalentRealtime({
-    enabled: Boolean(activeOpportunityId) && onboardingCompleted,
+    enabled: Boolean(activeOpportunityId),
     scope: 'founder',
     opportunityId: activeOpportunityId,
     onEvent: () => loadSearches(),
@@ -343,11 +293,7 @@ export default function FounderOSDashboard() {
     });
   };
 
-  const handleOnboardingCompleted = (opportunityId?: string) => {
-    if (founderOnboardedKey) {
-      localStorage.setItem(founderOnboardedKey, 'true');
-    }
-    setOnboardingCompleted(true);
+  const handleChatCompleted = (opportunityId?: string) => {
     if (opportunityId) setActiveOpportunityId(opportunityId);
     loadSearches();
   };
@@ -355,11 +301,11 @@ export default function FounderOSDashboard() {
   const rerunSearch = async (opportunityId: string) => {
     setSearchActionBusy(true);
     try {
-      const response = await fetch('/api/agent/actions', {
+      const response = await fetch('/api/founder-agent/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action: 'rerun_search', payload: { opportunityId } }),
+        body: JSON.stringify({ action: 'rerun_job_search', payload: { opportunityId } }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Search failed');
@@ -409,7 +355,7 @@ export default function FounderOSDashboard() {
       <FounderRoleIntakeChat
         opportunityId={null}
         onClose={() => loadSearches()}
-        onSearchCompleted={(oppId) => handleOnboardingCompleted(oppId)}
+        onSearchCompleted={(oppId) => handleChatCompleted(oppId)}
       />
     );
   }
@@ -538,25 +484,10 @@ export default function FounderOSDashboard() {
         )}
       </div>
 
-      {showOnboardingConfirm && user && (
-        <FounderOnboardingConfirm
-          defaultName={user.name || ''}
-          defaultEmail={user.email || ''}
-          onClose={() => setShowOnboardingConfirm(false)}
-          onCompleted={() => {
-            setShowOnboardingConfirm(false);
-            setFounderProfileReady(true);
-            setIntakeEnrichedOnboarding(true);
-            setShowIntakeChat(true);
-          }}
-        />
-      )}
-
       {/* Full-Screen Intake Chat Overlay (new search only) */}
       {showIntakeChat && (
         <FounderRoleIntakeChat
           opportunityId={null}
-          enrichedOnboarding={intakeEnrichedOnboarding}
           onClose={() => setShowIntakeChat(false)}
           onSearchCompleted={(oppId) => {
             setShowIntakeChat(false);

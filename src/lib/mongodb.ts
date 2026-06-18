@@ -43,7 +43,7 @@ async function makeConnection(
     }
 
     if (!cache.promise) {
-        cache.promise = mongoose.connect(mongo_url as string, { bufferCommands: false });
+        cache.promise = mongoose.connect(mongo_url as string, { bufferCommands: false, autoIndex: false });
     }
 
     try {

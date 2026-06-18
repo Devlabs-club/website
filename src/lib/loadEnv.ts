@@ -12,7 +12,7 @@ export function ensureLocalEnvLoaded(): void {
   if (loaded || typeof process === 'undefined') return;
   loaded = true;
 
-  if (import.meta.env.PROD === true) return;
+  if (import.meta.env?.PROD === true) return;
 
   const root = process.cwd();
   const files = ['.env', '.env.local', '.dev.vars', '.env.backup', '.env.local.backup'];

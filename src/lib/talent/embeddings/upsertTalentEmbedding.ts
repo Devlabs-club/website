@@ -1,5 +1,6 @@
 import TalentEmbedding from '@/models/talent/TalentEmbedding';
 import { embedTalentEntity, type EmbeddingInput } from './embedTalentEntity';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 
 export async function upsertTalentEmbedding(input: EmbeddingInput): Promise<boolean> {
   const result = await embedTalentEntity(input);
@@ -21,6 +22,10 @@ export async function upsertTalentEmbedding(input: EmbeddingInput): Promise<bool
     },
     { upsert: true }
   );
+
+  if (result.entityType === 'builder_profile' && result.builderId) {
+    void upsertTalentSearchIndexForBuilder(result.builderId);
+  }
 
   return true;
 }

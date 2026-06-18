@@ -12,6 +12,7 @@
     "astro": "astro",
     "enrich:builder": "node scripts/enrich-builder-linkedin-cdp.mjs",
     "enrich:builder:playwright": "node scripts/enrich-builder-linkedin-cdp.mjs",
+    "talent:index:backfill": "tsx scripts/backfill-talent-search-index.ts",
     "deploy:dev": "rm -rf .context/deploy-devlabs-os && git worktree prune && git fetch origin devlabs-os && git worktree add --detach .context/deploy-devlabs-os origin/devlabs-os && cd .context/deploy-devlabs-os && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-os && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7",
     "deploy:prod": "rm -rf .context/deploy-main && git worktree prune && git fetch origin main && git worktree add --detach .context/deploy-main origin/main && cd .context/deploy-main && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-website && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7"
   },
@@ -86,7 +87,6 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-tweet": "^3.3.0",
-    "supermemory": "^4.24.12",
     "tailwind-animate": "^0.2.10",
     "tailwind-merge": "^3.4.0",
     "three": "^0.184.0",

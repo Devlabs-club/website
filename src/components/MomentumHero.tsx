@@ -115,13 +115,6 @@ const companies = [
     className: "h-8 sm:h-10",
   },
   {
-    name: "supermemory",
-    logo: "/sponsors/supermemory.png",
-    alt: "supermemory",
-    url: "https://supermemory.com",
-    className: "h-8 sm:h-10",
-  },
-  {
     logo: "/sponsors/momentum/brief.png",
     alt: "brief",
     url: "https://briefhq.ai/",

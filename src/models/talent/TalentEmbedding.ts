@@ -20,6 +20,7 @@ const TalentEmbeddingSchema = new Schema(
 );
 
 TalentEmbeddingSchema.index({ entityType: 1, entityId: 1 }, { unique: true });
+TalentEmbeddingSchema.index({ entityType: 1, builderId: 1 });
 
 export default mongoose.models['TalentEmbedding'] ||
   mongoose.model('TalentEmbedding', TalentEmbeddingSchema);

@@ -33,9 +33,9 @@ export default function AdminScoutSearchPicker({
   return (
     <div className="max-w-5xl mx-auto w-full">
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-white">Your searches</h2>
+        <h2 className="text-lg font-semibold text-white">Founder agent test chats</h2>
         <p className="text-sm text-white/45 mt-1">
-          Open an existing search or start a new one. Searches are saved for this browser session.
+          Open an existing role or start a new founder-agent chat. Chats are saved for this browser session.
         </p>
       </div>
 
@@ -55,8 +55,8 @@ export default function AdminScoutSearchPicker({
               <Plus className="w-5 h-5 text-[#fa7d22]" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">Create new search</p>
-              <p className="text-xs text-white/40 mt-1">Start a fresh role brief with the agent</p>
+              <p className="text-sm font-semibold text-white">New hire</p>
+              <p className="text-xs text-white/40 mt-1">Start a fresh founder-agent chat</p>
             </div>
           </button>
 
@@ -110,10 +110,10 @@ export default function AdminScoutSearchPicker({
                     <span>Updated {formatScoutSearchDate(search.updatedAt)}</span>
                     {search.hasShortlist ? (
                       <span className="text-[#fa7d22]/80">
-                        {search.totalMatches} result{search.totalMatches === 1 ? '' : 's'}
+                        {search.totalMatches} candidate{search.totalMatches === 1 ? '' : 's'}
                       </span>
                     ) : (
-                      <span>Not searched</span>
+                      <span>No search yet</span>
                     )}
                   </div>
                 </button>
@@ -142,7 +142,7 @@ export default function AdminScoutSearchPicker({
 
       {!loading && searches.length === 0 ? (
         <p className="text-center text-sm text-white/35 mt-6">
-          No saved searches yet — create your first one above.
+          No saved chats yet. Start a new hire above.
         </p>
       ) : null}
     </div>
