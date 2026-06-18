@@ -4,6 +4,7 @@ import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import type { EnrichedProfileDraft, EnrichedProjectDraft } from './types';
 
 const CONFIRMED_STATUSES = new Set([
@@ -182,6 +183,8 @@ export async function refreshBuilderScores(
       builder: builder.toObject ? builder.toObject() : builder,
       projects,
     });
+  } else {
+    void upsertTalentSearchIndexForBuilder(builder._id);
   }
 
   return builder;

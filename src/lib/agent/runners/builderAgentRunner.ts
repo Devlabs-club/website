@@ -6,18 +6,12 @@ import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/emb
 import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { generateOpenRouterAgentTurn, getOpenRouterChatModel, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
 import { getBuilderIntroInbox } from '@/lib/talent/introFlow';
 import { getBuilderActiveTrials } from '@/lib/talent/trialFlow';
 import { getBuilderUpcomingCalls } from '@/lib/talent/callSchedule';
 import { getBuilderThreads, getThreadMessages } from '@/lib/talent/messageFlow';
-import { addBuilderMemory, getBuilderMemoryProfile } from '@/lib/talent/supermemory';
-import {
-  writeBuilderAvailabilityMemory,
-  writeBuilderLinksMemory,
-  writeBuilderProjectImportMemory,
-  writeBuilderHeadlineBioMemory,
-} from '@/lib/agent/memoryWriter';
 
 function ok(data: unknown) {
   return new Response(JSON.stringify({ success: true, ...(data as object) }), {
@@ -46,6 +40,7 @@ async function updateBuilderScores(builder: any) {
     console.error('[builderAgentRunner] quality eval failed:', err);
   }
   await builder.save();
+  void upsertTalentSearchIndexForBuilder(builder._id);
   return completion;
 }
 
@@ -298,14 +293,6 @@ export async function runBuilderAgentTurn(params: {
 }): Promise<Response> {
   const { builder, builderId, userText, history } = params;
 
-  const memoryProfile = await getBuilderMemoryProfile(builderId, userText).catch(() => null);
-  const memoryBlock = memoryProfile
-    ? '\n\n[Builder memory]\n' + [
-        ...(memoryProfile.static.slice(0, 5)),
-        ...(memoryProfile.dynamic.slice(0, 3)),
-      ].map((s) => `- ${s}`).join('\n')
-    : '';
-
   async function runTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
     const freshB = await reloadBuilder(builder._id);
     const freshProjects = await ProjectRecord.find({ builderId: builder._id })
@@ -367,13 +354,6 @@ export async function runBuilderAgentTurn(params: {
           ...(typeof args.remotePreference === 'string' ? { remotePreference: args.remotePreference } : {}),
         };
         await updateBuilderScores(b);
-        void writeBuilderAvailabilityMemory(addBuilderMemory, {
-          builderId,
-          builderName: b.name,
-          availableNow: b.availability?.availableNow,
-          hoursPerWeek: b.availability?.hoursPerWeek,
-          remotePreference: b.availability?.remotePreference,
-        });
         void upsertBuilderEmbedding({ builderId, builder: b, projects: freshProjects });
         scheduleTalentStatsRefresh();
         return { success: true, updated: { availableNow: b.availability?.availableNow, hoursPerWeek: b.availability?.hoursPerWeek, remotePreference: b.availability?.remotePreference } };
@@ -388,13 +368,6 @@ export async function runBuilderAgentTurn(params: {
           ...(typeof args.portfolio === 'string' ? { portfolio: args.portfolio } : {}),
         };
         await updateBuilderScores(b);
-        void writeBuilderLinksMemory(addBuilderMemory, {
-          builderId,
-          builderName: b.name,
-          github: args.github as string | null,
-          linkedin: args.linkedin as string | null,
-          portfolio: args.portfolio as string | null,
-        });
         scheduleTalentStatsRefresh();
         return { success: true, updated: { github: args.github ?? null, linkedin: args.linkedin ?? null, portfolio: args.portfolio ?? null } };
       }
@@ -405,12 +378,6 @@ export async function runBuilderAgentTurn(params: {
         if (typeof args.bio === 'string') b.bio = args.bio.trim() || null;
         await b.save();
         await updateBuilderScores(b);
-        void writeBuilderHeadlineBioMemory(addBuilderMemory, {
-          builderId,
-          builderName: b.name,
-          headline: args.headline as string | null,
-          bio: args.bio as string | null,
-        });
         scheduleTalentStatsRefresh();
         return { success: true, updated: { headline: args.headline ?? null, bio: typeof args.bio === 'string' ? (args.bio as string).slice(0, 80) + '...' : null } };
       }
@@ -420,14 +387,6 @@ export async function runBuilderAgentTurn(params: {
         if (!url) return { success: false, error: 'No URL provided' };
         try {
           const project = await importProject(url, builder._id);
-          void writeBuilderProjectImportMemory(addBuilderMemory, {
-            builderId,
-            builderName: (freshB || builder).name,
-            projectId: String(project._id),
-            projectName: project.projectName,
-            source: project.source || 'unknown',
-            techStack: project.techStack || [],
-          });
           void upsertProjectEmbedding({ projectId: String(project._id), builderId, project });
           void upsertBuilderEmbedding({ builderId, builder: freshB || builder, projects: [...freshProjects, project] });
           scheduleTalentStatsRefresh();
@@ -552,7 +511,7 @@ export async function runBuilderAgentTurn(params: {
   }
 
   const messages: AgentMessage[] = [
-    { role: 'system', content: BUILDER_SYSTEM_PROMPT + memoryBlock },
+    { role: 'system', content: BUILDER_SYSTEM_PROMPT },
     ...history.map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content })),
     { role: 'user', content: userText },
   ];

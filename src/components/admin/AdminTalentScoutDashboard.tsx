@@ -148,18 +148,18 @@ export default function AdminTalentScoutDashboard() {
                 className="flex items-center gap-1.5 text-xs text-white/45 hover:text-white shrink-0"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                All searches
+                All chats
               </button>
             ) : null}
             <div className="min-w-0">
               <p className="text-[#fa7d22] uppercase tracking-[0.2em] text-[10px] font-semibold">
                 Internal · No auth
               </p>
-              <h1 className="text-xl font-semibold text-white mt-1 truncate">Talent Scout Console</h1>
+              <h1 className="text-xl font-semibold text-white mt-1 truncate">Admin Squad</h1>
               <p className="text-xs text-white/40 mt-1 truncate">
                 {view === 'picker'
-                  ? 'Pick a search or create a new one'
-                  : `Same Founder OS agent & discovery pipeline${roleLabel ? ` · ${roleLabel}` : ''}`}
+                  ? 'Quick test console for the founder agent'
+                  : `Founder agent test chat${roleLabel ? ` · ${roleLabel}` : ''}`}
               </p>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function AdminTalentScoutDashboard() {
               onClick={handleCreateSearch}
               className="text-xs px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:text-white hover:border-white/30 shrink-0"
             >
-              New search
+              New hire
             </button>
           ) : null}
         </header>

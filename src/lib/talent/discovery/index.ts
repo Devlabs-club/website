@@ -11,7 +11,7 @@ import {
 import { buildSearchQualityReport, type SearchQualityReport } from './searchQuality';
 import { rerankTopCandidates } from './rerank';
 import { adjustWeightsFromFeedback, type CandidateFeedbackRecord } from './feedback';
-import { buildSemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
+import { buildSemanticScoreMap, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -22,6 +22,7 @@ export type DiscoveryInput = {
   feedbackHistory?: CandidateFeedbackRecord[];
   enableLlmRerank?: boolean;
   generateReply?: (systemPrompt: string, userPrompt: string) => Promise<string>;
+  semanticScores?: SemanticScoreMap;
   limit?: number;
 };
 
@@ -49,6 +50,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     feedbackHistory = [],
     enableLlmRerank = false,
     generateReply,
+    semanticScores: providedSemanticScores,
     limit = 12,
   } = input;
 
@@ -63,14 +65,24 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   }
 
   // Stage 3a: semantic similarity via stored embeddings (OpenRouter text-embedding-3-small)
-  let semanticScores = new Map<string, { profileScore: number; projectScore: number }>();
-  try {
-    semanticScores = await buildSemanticScoreMap({
-      queries: [strategy.primaryQuery, ...strategy.expandedQueries.slice(0, 2)],
-      minSimilarity: 0.25,
-    });
-  } catch {
-    // embeddings unavailable — proceed with deterministic scores only
+  let semanticScores = providedSemanticScores || new Map<string, { profileScore: number; projectScore: number }>();
+  if (!providedSemanticScores) {
+    try {
+      semanticScores = await Promise.race([
+        buildSemanticScoreMap({
+          queries: [strategy.primaryQuery, ...strategy.expandedQueries.slice(0, 2)],
+          minSimilarity: 0.25,
+        }),
+        new Promise<Map<string, { profileScore: number; projectScore: number }>>((resolve) =>
+          setTimeout(() => resolve(new Map()), 5000)
+        ),
+      ]);
+    } catch (error) {
+      console.warn('[founder-discovery] semantic scoring skipped', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // embeddings unavailable or slow — proceed with deterministic scores only
+    }
   }
 
   // Stage 3b: score all builders

@@ -45,6 +45,10 @@ const ProjectRecordSchema = new mongoose.Schema(
 );
 
 ProjectRecordSchema.index({ builderId: 1, sourceId: 1 }, { unique: false });
+ProjectRecordSchema.index({ builderId: 1, updatedAt: -1 });
+ProjectRecordSchema.index({ techStack: 1, builderId: 1 });
+ProjectRecordSchema.index({ contributionTags: 1, builderId: 1 });
+ProjectRecordSchema.index({ verificationStatus: 1, builderId: 1 });
 
 export default (mongoose.models.ProjectRecord as mongoose.Model<any>) ||
   mongoose.model('ProjectRecord', ProjectRecordSchema);

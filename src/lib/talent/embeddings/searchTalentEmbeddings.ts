@@ -38,6 +38,7 @@ export async function searchBuilderEmbeddings(params: {
     embedding: { $exists: true, $not: { $size: 0 } },
   })
     .select('entityId builderId embedding text')
+    .maxTimeMS(5000)
     .lean();
 
   if (!allEmbeddings.length) return [];
@@ -72,6 +73,7 @@ export async function searchProjectEmbeddings(params: {
     embedding: { $exists: true, $not: { $size: 0 } },
   })
     .select('entityId builderId embedding text')
+    .maxTimeMS(5000)
     .lean();
 
   if (!allEmbeddings.length) return [];
@@ -92,6 +94,14 @@ export async function searchProjectEmbeddings(params: {
 }
 
 export type SemanticScoreMap = Map<string, { profileScore: number; projectScore: number }>;
+
+export type SemanticRetrievalResult = {
+  builderIds: string[];
+  scores: SemanticScoreMap;
+  profileHitCount: number;
+  projectHitCount: number;
+  usedQuery: string;
+};
 
 export async function buildSemanticScoreMap(params: {
   queries: string[];
@@ -124,4 +134,58 @@ export async function buildSemanticScoreMap(params: {
   }
 
   return scoreMap;
+}
+
+export async function retrieveSemanticBuilderCandidates(params: {
+  queries: string[];
+  profileLimit?: number;
+  projectLimit?: number;
+  candidateLimit?: number;
+  minSimilarity?: number;
+}): Promise<SemanticRetrievalResult> {
+  const {
+    queries,
+    profileLimit = 100,
+    projectLimit = 180,
+    candidateLimit = 220,
+    minSimilarity = 0.22,
+  } = params;
+  const primaryQuery = queries.find((query) => query.trim()) || '';
+  const scoreMap: SemanticScoreMap = new Map();
+
+  if (!primaryQuery) {
+    return { builderIds: [], scores: scoreMap, profileHitCount: 0, projectHitCount: 0, usedQuery: '' };
+  }
+
+  const [profileResults, projectResults] = await Promise.all([
+    searchBuilderEmbeddings({ query: primaryQuery, limit: profileLimit, minSimilarity }),
+    searchProjectEmbeddings({ query: primaryQuery, limit: projectLimit, minSimilarity }),
+  ]);
+
+  for (const r of profileResults) {
+    if (!r.builderId) continue;
+    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+    existing.profileScore = Math.max(existing.profileScore, r.similarity);
+    scoreMap.set(r.builderId, existing);
+  }
+
+  for (const r of projectResults) {
+    if (!r.builderId) continue;
+    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+    existing.projectScore = Math.max(existing.projectScore, r.similarity);
+    scoreMap.set(r.builderId, existing);
+  }
+
+  const builderIds = [...scoreMap.entries()]
+    .sort(([, a], [, b]) => Math.max(b.profileScore, b.projectScore) - Math.max(a.profileScore, a.projectScore))
+    .map(([builderId]) => builderId)
+    .slice(0, candidateLimit);
+
+  return {
+    builderIds,
+    scores: scoreMap,
+    profileHitCount: profileResults.length,
+    projectHitCount: projectResults.length,
+    usedQuery: primaryQuery,
+  };
 }

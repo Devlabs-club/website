@@ -6,40 +6,6 @@ import { connectDB } from "../../../lib/mongodb";
 import { getMiniLM } from "../../../lib/MiniLMEmbeddings";
 import { sha256 } from "../../../lib/hash";
 
-const EmbResume =
-  mongoose.models.EmbResume ||
-  mongoose.model(
-    "EmbResume",
-    new mongoose.Schema({
-      name: String,
-      email: String,
-      phone: String,
-      links: [String],
-      skills: [String],
-      skillEmbeddings: [[Number]],
-      projects: [
-        {
-          title: String,
-          description: String,
-          inferredSkills: [String],
-        },
-      ],
-      experiences: [
-        {
-          title: String,
-          company: String,
-          description: String,
-          inferredSkills: [String],
-        },
-      ],
-      contextEmbeddings: [[Number]],
-      textHash: String,
-      resumeUrl: String,
-      model: String,
-      updatedAt: Date,
-    })
-  );
-
 export const GET: APIRoute = async () => {
   await connectDB();
   const db = mongoose.connection.db;

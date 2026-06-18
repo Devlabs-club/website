@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Loader2, ChevronRight, Pencil, CheckCircle2, XCircle } from 'lucide-react';
-import { canRunPreviewAnyway } from '@/lib/talent/founderSearchQuality';
+import { canRunPreviewAnyway } from '@/lib/talent/searchReadiness';
 import {
   parseAgentOptions,
   isStartFreshIntent,
@@ -19,6 +19,32 @@ type ChatMessage = {
   toolStatus?: 'loading' | 'done' | 'error';
   timestamp: Date;
 };
+
+async function fetchJsonWithTimeout(url: string, init: RequestInit, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    const raw = await res.text();
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(res.ok ? 'Invalid server response' : `Server error (${res.status})`);
+    }
+    if (!res.ok || !data.success) {
+      throw new Error(String(data.error || data.message || 'Request failed'));
+    }
+    return data;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Request timed out. Check server logs for the current tool step.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
 
 function userExplicitlyRequestedSearch(text: string): boolean {
   const trimmed = text.trim();
@@ -139,18 +165,18 @@ export default function AdminScoutChat({
       });
 
       try {
-        const res = await fetch('/api/agent/actions', {
+        console.info('[admin-squad-ui] search:start', { opportunityId: oppId });
+        const data = await fetchJsonWithTimeout('/api/agent/actions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'admin_scout_search',
             payload: { scoutSessionId, opportunityId: oppId },
           }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || 'Search failed');
+        }, 60000);
 
         const candidates = (data.shortlist?.candidates || []) as AdminCandidate[];
+        console.info('[admin-squad-ui] search:done', { opportunityId: oppId, candidates: candidates.length });
         onSearchResults(candidates, data.opportunity || currentBrief);
         updateMessage(toolMsg.id, {
           text:
@@ -162,6 +188,7 @@ export default function AdminScoutChat({
         addMessage({ role: 'agent', text: data.message || `Found ${candidates.length} builders.` });
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'Search failed';
+        console.error('[admin-squad-ui] search:error', { opportunityId: oppId, message });
         updateMessage(toolMsg.id, { text: `Search failed · ${message}`, toolStatus: 'error' });
         addMessage({ role: 'agent', text: `Search failed: ${message}` });
         onSearchResults([], currentBrief);
@@ -217,7 +244,12 @@ export default function AdminScoutChat({
       if (isInit) chatHistory.push({ role: 'user', content: userText });
 
       try {
-        const res = await fetch('/api/agent/actions', {
+        console.info('[admin-squad-ui] chat:start', {
+          opportunityId: inNewSearchMode || userWantsFresh ? null : opportunityId,
+          startFresh: (isInit && startFresh) || inNewSearchMode || userWantsFresh,
+          message: userText,
+        });
+        const data = await fetchJsonWithTimeout('/api/agent/actions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -230,18 +262,12 @@ export default function AdminScoutChat({
               history: chatHistory.slice(-16),
             },
           }),
+        }, 60000);
+        const toolCalls = Array.isArray(data.toolCalls) ? data.toolCalls as Array<{ name?: string; result?: Record<string, unknown> }> : [];
+        console.info('[admin-squad-ui] chat:done', {
+          opportunityId: (data.opportunity as Record<string, unknown> | undefined)?._id || null,
+          toolCalls: toolCalls.map((tool) => tool.name),
         });
-
-        const raw = await res.text();
-        let data: Record<string, unknown>;
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          throw new Error(res.ok ? 'Invalid server response' : `Server error (${res.status})`);
-        }
-        if (!res.ok || !data.success) {
-          throw new Error(String(data.error || data.message || 'Agent failed'));
-        }
 
         const opp = data.opportunity as Record<string, unknown> | undefined;
         if (opp?._id) {
@@ -253,9 +279,27 @@ export default function AdminScoutChat({
         }
 
         const rawMessage = String(data.message || '');
-        const sqBlock = (Array.isArray(data.uiBlocks) ? data.uiBlocks : []).find(
+        const failedTool = toolCalls.find((tool) => tool.result?.error);
+        if (toolCalls.length > 0) {
+          addMessage({
+            role: 'tool',
+            text: `Tool${toolCalls.length === 1 ? '' : 's'} called · ${toolCalls.map((tool) => tool.name || 'unknown').join(', ')}`,
+            toolStatus: failedTool ? 'error' : 'done',
+          });
+        }
+        if (failedTool?.result?.error) {
+          addMessage({
+            role: 'agent',
+            text: `Tool error: ${String(failedTool.result.error)}`,
+          });
+        }
+        const uiBlocks = Array.isArray(data.uiBlocks) ? data.uiBlocks : [];
+        const sqBlock = uiBlocks.find(
           (b: { type?: string }) => b.type === 'search_quality_report'
         ) as SearchQualityBlock | undefined;
+        const talentPreviewBlock = uiBlocks.find(
+          (b: { type?: string }) => b.type === 'talent_preview'
+        );
 
         const parsed = parseAgentOptions(rawMessage);
         if (parsed && parsed.options.length >= 2) {
@@ -270,7 +314,7 @@ export default function AdminScoutChat({
           addMessage({ role: 'agent', text: rawMessage, searchQuality: sqBlock ?? null });
         }
 
-        if (sqBlock && opp?._id) {
+        if ((sqBlock || talentPreviewBlock) && opp?._id) {
           onSearchStart();
           const toolMsg = addMessage({
             role: 'tool',
@@ -278,30 +322,28 @@ export default function AdminScoutChat({
             toolStatus: 'loading',
           });
           try {
-            const loadRes = await fetch('/api/agent/actions', {
+            console.info('[admin-squad-ui] load_shortlist:start', { opportunityId: String(opp._id) });
+            const loadData = await fetchJsonWithTimeout('/api/agent/actions', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 action: 'admin_scout_load_shortlist',
                 payload: { scoutSessionId, opportunityId: String(opp._id) },
               }),
+            }, 45000);
+            const loaded = (loadData.shortlist?.candidates || []) as AdminCandidate[];
+            console.info('[admin-squad-ui] load_shortlist:done', { opportunityId: String(opp._id), candidates: loaded.length });
+            onSearchResults(loaded, opp);
+            updateMessage(toolMsg.id, {
+              text:
+                loaded.length > 0
+                  ? `Search finished · ${loaded.length} builder${loaded.length === 1 ? '' : 's'} found`
+                  : 'Search finished · no matches found',
+              toolStatus: 'done',
             });
-            const loadData = await loadRes.json();
-            if (loadRes.ok && loadData.success) {
-              const loaded = (loadData.shortlist?.candidates || []) as AdminCandidate[];
-              onSearchResults(loaded, opp);
-              updateMessage(toolMsg.id, {
-                text:
-                  loaded.length > 0
-                    ? `Search finished · ${loaded.length} builder${loaded.length === 1 ? '' : 's'} found`
-                    : 'Search finished · no matches found',
-                toolStatus: 'done',
-              });
-            } else {
-              throw new Error(String(loadData.error || 'Could not load results'));
-            }
           } catch (loadErr: unknown) {
             const message = loadErr instanceof Error ? loadErr.message : 'Could not load results';
+            console.error('[admin-squad-ui] load_shortlist:error', { opportunityId: String(opp._id), message });
             updateMessage(toolMsg.id, { text: `Search failed · ${message}`, toolStatus: 'error' });
             onSearchResults([], opp);
             onSearchError?.(message);
@@ -313,7 +355,9 @@ export default function AdminScoutChat({
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : 'unknown error';
+        console.error('[admin-squad-ui] chat:error', { message });
         addMessage({ role: 'agent', text: `Something went wrong: ${message}. Try again.` });
+        onSearchError?.(message);
       } finally {
         setIsBusy(false);
         setToolCallLabel(null);
@@ -350,12 +394,12 @@ export default function AdminScoutChat({
     <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-sm font-semibold text-white">Talent Scout Agent</h2>
+          <h2 className="text-sm font-semibold text-white">Admin Squad</h2>
           <p className="text-xs text-white/40 mt-0.5 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#fa7d22] animate-pulse" />
             {currentBrief?.roleTitle && currentBrief.roleTitle !== 'New role'
               ? `${String(currentBrief.roleTitle)} · ${String(currentBrief.company || 'Draft')}`
-              : 'Describe the role to search'}
+              : 'Founder agent test chat'}
           </p>
         </div>
         {currentBrief?._id && canRunPreviewAnyway(currentBrief) ? (

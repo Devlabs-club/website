@@ -106,14 +106,14 @@ export default function EditableRoleBriefCard({
     if (!opportunityId) return;
     setSaving(true);
     try {
-      const response = await fetch('/api/agent/actions', {
+      const response = await fetch('/api/founder-agent/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          action: 'update_role_brief',
+          action: 'edit_job',
           payload: {
-            opportunityId,
+            jobId: opportunityId,
             fields: {
               roleTitle: form.roleTitle,
               company: form.company,
@@ -135,7 +135,7 @@ export default function EditableRoleBriefCard({
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error || 'Save failed');
       setEditing(false);
-      onSaved({ uiBlocks: data.uiBlocks, opportunity: data.opportunity });
+      onSaved({ uiBlocks: data.uiBlocks, opportunity: data.job || data.opportunity });
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Save failed');
     } finally {

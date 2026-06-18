@@ -21,13 +21,13 @@ import ConversationalShell from '@/components/portal/ConversationalShell';
         subtitle="Tell me what you’re building, who you need, and your timeline. I’ll do the structuring and search."
         options={[
           {
-            label: 'Create Role Brief',
-            action: 'create_role_brief',
+            label: 'Create Job',
+            action: 'create_job',
             placeholder: 'company | role title | startup summary | skills(csv) | budget | timeline | work type',
           },
           {
             label: 'Run Builder Search',
-            action: 'run_builder_search',
+            action: 'rerun_job_search',
             placeholder: 'Paste the opportunity ID from role-brief response',
           },
         ]}

@@ -1,7 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { Opportunity } from './founderTypes';
-import type { RoleBriefFieldKey } from '@/lib/talent/roleBriefFieldEnhance';
 
 type HireType = 'full_time' | 'internship' | 'either' | '';
 
@@ -49,24 +48,6 @@ function splitList(value: string): string[] {
     .filter(Boolean);
 }
 
-function formToBriefContext(form: RoleBriefForm): Record<string, unknown> {
-  return {
-    roleTitle: form.roleTitle,
-    company: form.company,
-    startupSummary: form.startupSummary,
-    builderWillDo: form.builderWillDo,
-    skillsNeeded: splitList(form.skillsNeeded),
-    niceToHaveSkills: splitList(form.niceToHaveSkills),
-    workType: form.hireType,
-    timeline: form.timeline,
-    budget: form.budget,
-    locationPreference: form.locationPreference,
-    seniority: form.seniority,
-    hoursPerWeek: form.hoursPerWeek,
-    deliverables: splitList(form.deliverables),
-  };
-}
-
 interface FounderRoleBriefEditorProps {
   opportunity: Opportunity;
   onClose: () => void;
@@ -80,55 +61,24 @@ export default function FounderRoleBriefEditor({
 }: FounderRoleBriefEditorProps) {
   const [form, setForm] = useState<RoleBriefForm>(() => opportunityToForm(opportunity));
   const [saving, setSaving] = useState(false);
-  const [enhancingField, setEnhancingField] = useState<RoleBriefFieldKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setForm(opportunityToForm(opportunity));
   }, [opportunity]);
 
-  const briefContext = useMemo(() => formToBriefContext(form), [form]);
-
-  const enhanceField = async (field: RoleBriefFieldKey) => {
-    setEnhancingField(field);
-    setError(null);
-    try {
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'enhance_role_brief_field',
-          payload: {
-            opportunityId: opportunity._id,
-            field,
-            currentValue: form[field],
-            briefContext,
-          },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'AI enhancement failed');
-      setForm((prev) => ({ ...prev, [field]: String(data.enhancedValue || '') }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'AI enhancement failed');
-    } finally {
-      setEnhancingField(null);
-    }
-  };
-
   const save = async () => {
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch('/api/agent/actions', {
+      const response = await fetch('/api/founder-agent/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          action: 'update_role_brief',
+          action: 'edit_job',
           payload: {
-            opportunityId: opportunity._id,
+            jobId: opportunity._id,
             fields: {
               roleTitle: form.roleTitle,
               company: form.company,
@@ -160,24 +110,12 @@ export default function FounderRoleBriefEditor({
 
   const renderField = (
     label: string,
-    key: RoleBriefFieldKey,
+    key: keyof RoleBriefForm,
     options?: { multiline?: boolean; placeholder?: string }
   ) => {
-    const busy = enhancingField === key;
     return (
       <label key={key} className="block space-y-2">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[11px] uppercase tracking-wider text-white/45 font-semibold">{label}</span>
-          <button
-            type="button"
-            onClick={() => enhanceField(key)}
-            disabled={busy || saving}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#fa7d22]/30 text-[11px] font-semibold text-[#ffb580] hover:bg-[#fa7d22]/10 disabled:opacity-40 transition-colors"
-          >
-            {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-            Ask AI
-          </button>
-        </div>
+        <span className="text-[11px] uppercase tracking-wider text-white/45 font-semibold">{label}</span>
         {options?.multiline ? (
           <textarea
             value={form[key]}

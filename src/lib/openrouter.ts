@@ -1,4 +1,5 @@
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 30000);
 
 export function getOpenRouterChatModel() {
   return process.env.OPENROUTER_MODEL_CHAT || 'google/gemini-2.5-flash';
@@ -47,8 +48,10 @@ export type OpenRouterAgentResponse = {
 
 async function callOpenRouter(body: Record<string, unknown>): Promise<Record<string, unknown>> {
   if (!process.env.OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not configured');
+  const startedAt = Date.now();
   const res = await fetch(OPENROUTER_BASE_URL, {
     method: 'POST',
+    signal: AbortSignal.timeout(OPENROUTER_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
       'Content-Type': 'application/json',
@@ -61,7 +64,13 @@ async function callOpenRouter(body: Record<string, unknown>): Promise<Record<str
     const details = await res.text();
     throw new Error(`OpenRouter request failed (${res.status}): ${details}`);
   }
-  return res.json();
+  const data = await res.json();
+  console.info('[openrouter] chat completion ok', {
+    model: body.model,
+    durationMs: Date.now() - startedAt,
+    hasTools: Array.isArray(body.tools),
+  });
+  return data;
 }
 
 // ── Simple reply (no tools) ──────────────────────────────────────────────────

@@ -26,22 +26,22 @@ function buildPayload(action: string, input: string) {
     };
   }
 
-  if (action === 'create_role_brief') {
+  if (action === 'create_job') {
     const [company, roleTitle, startupSummary, skills, budget, timeline, workType] = value
       .split('|')
       .map((part) => part.trim());
     return {
-      company,
-      roleTitle,
-      startupSummary,
+      companyName: company,
+      title: roleTitle,
+      description: startupSummary,
       skillsNeeded: (skills || '').split(',').map((skill) => skill.trim()).filter(Boolean),
-      budget,
+      salary: budget,
       timeline,
-      workType,
+      jobType: workType,
     };
   }
 
-  if (action === 'run_builder_search' || action === 'rerun_search') {
+  if (action === 'rerun_job_search') {
     return { opportunityId: value };
   }
 
@@ -75,7 +75,8 @@ export default function ConversationalShell({
     setLoading(true);
 
     try {
-      const response = await fetch('/api/agent/actions', {
+      const founderActions = new Set(['create_job', 'fetch_jobs', 'fetch_job', 'edit_job', 'update_company_info', 'search_talent', 'rerun_job_search']);
+      const response = await fetch(founderActions.has(activeOption.action) ? '/api/founder-agent/jobs' : '/api/agent/actions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: activeOption.action, payload: buildPayload(activeOption.action, userMessage) }),
