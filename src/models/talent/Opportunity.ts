@@ -11,6 +11,12 @@ const OpportunitySchema = new mongoose.Schema(
     roleTitle: { type: String, required: true },
     roleType: [{ type: String }],
     skillsNeeded: [{ type: String }],
+    searchRequirements: [
+      {
+        text: { type: String, required: true, trim: true },
+        importance: { type: String, enum: ['must', 'nice'], default: 'must' },
+      },
+    ],
     budget: { type: String, default: null },
     timeline: { type: String, default: null },
     workType: { type: String, default: null },

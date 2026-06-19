@@ -84,6 +84,8 @@ export type OpportunityInput = {
   builderWillDo?: string | null;
   skillsNeeded?: string[] | null;
   niceToHaveSkills?: string[] | null;
+  requirements?: string[] | null;
+  searchRequirements?: Array<{ text?: string | null; importance?: 'must' | 'nice' | string | null }> | null;
   hireType?: string | null;
   workType?: string | null;
   startupSummary?: string | null;
@@ -104,14 +106,15 @@ export function buildSearchStrategy(params: {
   const builderWillDo = opportunity.builderWillDo ?? '';
   const skills = opportunity.skillsNeeded ?? [];
   const niceToHave = opportunity.niceToHaveSkills ?? [];
+  const requirementTexts = normalizeRequirementTexts(opportunity);
 
-  const primaryQuery = [roleTitle, builderWillDo].filter(Boolean).join(' — ');
+  const primaryQuery = [roleTitle, builderWillDo, ...requirementTexts.slice(0, 2)].filter(Boolean).join(' — ');
 
-  const expandedQueries = buildExpandedQueries(roleTitle, builderWillDo, skills);
+  const expandedQueries = buildExpandedQueries(roleTitle, builderWillDo, skills, requirementTexts);
   const mustHaveSignals = skills.slice(0, 5);
   const niceToHaveSignals = niceToHave.slice(0, 5);
-  const proofSignals = buildProofSignals(roleTitle, skills, builderWillDo);
-  const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo);
+  const proofSignals = buildProofSignals(roleTitle, skills, builderWillDo, requirementTexts);
+  const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo, requirementTexts);
   const negativeSignals: string[] = [];
 
   const weights = selectWeights(roleTitle, opportunity.hireType ?? opportunity.workType ?? '', searchMode);
@@ -133,9 +136,19 @@ export function buildSearchStrategy(params: {
   };
 }
 
-function buildExpandedQueries(roleTitle: string, builderWillDo: string, skills: string[]): string[] {
+function normalizeRequirementTexts(opportunity: OpportunityInput): string[] {
+  const structured = (opportunity.searchRequirements || [])
+    .map((requirement) => String(requirement?.text || '').trim())
+    .filter(Boolean);
+  const legacy = (opportunity.requirements || [])
+    .map((requirement) => String(requirement || '').trim())
+    .filter(Boolean);
+  return [...new Set([...structured, ...legacy])].slice(0, 8);
+}
+
+function buildExpandedQueries(roleTitle: string, builderWillDo: string, skills: string[], requirements: string[]): string[] {
   const queries: string[] = [];
-  const lower = (roleTitle + ' ' + builderWillDo).toLowerCase();
+  const lower = (roleTitle + ' ' + builderWillDo + ' ' + requirements.join(' ')).toLowerCase();
 
   if (skills.length >= 2) {
     queries.push(skills.slice(0, 3).join(' ') + ' developer');
@@ -177,13 +190,16 @@ function buildExpandedQueries(roleTitle: string, builderWillDo: string, skills: 
   if (builderWillDo) {
     queries.push(builderWillDo.slice(0, 80));
   }
+  for (const requirement of requirements.slice(0, 4)) {
+    queries.push(requirement.slice(0, 120));
+  }
 
   return [...new Set(queries)].slice(0, 6);
 }
 
-function buildProofSignals(roleTitle: string, skills: string[], builderWillDo: string): string[] {
+function buildProofSignals(roleTitle: string, skills: string[], builderWillDo: string, requirements: string[]): string[] {
   const signals: string[] = [];
-  const lower = (roleTitle + ' ' + builderWillDo).toLowerCase();
+  const lower = (roleTitle + ' ' + builderWillDo + ' ' + requirements.join(' ')).toLowerCase();
 
   signals.push('shipped project with personal contribution');
   signals.push('GitHub or Devpost link');
@@ -198,13 +214,16 @@ function buildProofSignals(roleTitle: string, skills: string[], builderWillDo: s
   for (const skill of skills.slice(0, 3)) {
     signals.push(`${skill} project proof`);
   }
+  for (const requirement of requirements.slice(0, 3)) {
+    signals.push(`${requirement} evidence`);
+  }
 
   return [...new Set(signals)].slice(0, 8);
 }
 
-function buildSemanticConcepts(roleTitle: string, skills: string[], builderWillDo: string): string[] {
+function buildSemanticConcepts(roleTitle: string, skills: string[], builderWillDo: string, requirements: string[]): string[] {
   const concepts: Set<string> = new Set();
-  const all = (roleTitle + ' ' + builderWillDo + ' ' + skills.join(' ')).toLowerCase();
+  const all = (roleTitle + ' ' + builderWillDo + ' ' + skills.join(' ') + ' ' + requirements.join(' ')).toLowerCase();
 
   if (/ai|llm|gpt|openai/i.test(all)) concepts.add('AI product development');
   if (/dashboard|saas|platform/i.test(all)) concepts.add('SaaS product building');
@@ -219,6 +238,7 @@ function buildSemanticConcepts(roleTitle: string, skills: string[], builderWillD
 
   concepts.add('startup-ready builder');
   concepts.add('shipped project proof-of-work');
+  requirements.slice(0, 4).forEach((requirement) => concepts.add(requirement));
 
   return Array.from(concepts).slice(0, 8);
 }

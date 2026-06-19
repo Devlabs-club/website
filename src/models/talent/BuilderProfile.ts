@@ -21,6 +21,15 @@ const BuilderProfileSchema = new mongoose.Schema(
     timezone: { type: String, default: null },
     universityOrCompany: { type: String, default: null },
     graduationYear: { type: Number, default: null },
+    education: [
+      {
+        school: { type: String, trim: true, default: null },
+        degree: { type: String, trim: true, default: null },
+        field: { type: String, trim: true, default: null },
+        source: { type: String, default: 'linkedin' },
+        importedAt: { type: Date, default: Date.now },
+      },
+    ],
     currentStatus: {
       type: String,
       enum: ['student', 'full_time', 'unemployed', 'founder', 'freelancer', 'other'],

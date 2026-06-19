@@ -36,8 +36,17 @@ function mapVoyagerToDraft(
   voyager: Awaited<ReturnType<typeof fetchLinkedInProfileViaVoyager>>,
   linkedinUrl: string
 ): EnrichedProfileDraft {
+  const education = voyager.education
+    .map((entry) => ({
+      school: entry.school?.trim() || null,
+      degree: entry.degree?.trim() || null,
+      field: entry.field?.trim() || null,
+      source: 'linkedin',
+    }))
+    .filter((entry) => entry.school || entry.degree || entry.field)
+    .slice(0, 6);
   const university =
-    voyager.education[0]?.school ||
+    education[0]?.school ||
     voyager.positions[0]?.company ||
     null;
 
@@ -58,6 +67,7 @@ function mapVoyagerToDraft(
     headline: voyager.headline?.slice(0, 120) || null,
     bio: bio ? String(bio).slice(0, 2000) : null,
     universityOrCompany: university,
+    education,
     rolePreference: voyager.skills.slice(0, 20),
     links: { linkedin: linkedinUrl },
   };
@@ -70,6 +80,7 @@ Return strict JSON:
   "bio": "string | null (2-4 sentences about background and what they build, max 500 chars)",
   "universityOrCompany": "string | null",
   "graduationYear": "number | null",
+  "education": [{"school": "string | null", "degree": "string | null", "field": "string | null"}],
   "skills": ["string"]
 }
 Use only facts present in the text.`;
@@ -96,6 +107,17 @@ async function refineWithLlm(rawText: string, draft: EnrichedProfileDraft): Prom
         : draft.universityOrCompany,
     graduationYear:
       typeof parsed.graduationYear === 'number' ? parsed.graduationYear : draft.graduationYear,
+    education: Array.isArray(parsed.education)
+      ? parsed.education
+          .map((entry: any) => ({
+            school: typeof entry?.school === 'string' ? entry.school : null,
+            degree: typeof entry?.degree === 'string' ? entry.degree : null,
+            field: typeof entry?.field === 'string' ? entry.field : null,
+            source: 'linkedin',
+          }))
+          .filter((entry) => entry.school || entry.degree || entry.field)
+          .slice(0, 6)
+      : draft.education,
     rolePreference: Array.isArray(parsed.skills)
       ? [...new Set([...(draft.rolePreference || []), ...parsed.skills.map(String)])]
       : draft.rolePreference,

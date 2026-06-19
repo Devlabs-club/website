@@ -26,6 +26,8 @@ const BUILDER_INDEX_SELECT = [
   'profileQuality',
   'verificationStatus',
   'visibilityStatus',
+  'universityOrCompany',
+  'education',
   'updatedAt',
 ].join(' ');
 
@@ -103,11 +105,11 @@ function buildQueryTerms(values: unknown[]) {
       .filter((term) => term.length >= 2 && term.length <= 48)
       .filter((term) => !QUERY_STOP_TERMS.has(term))
   )].slice(0, 40);
-  if (exactTerms.length >= 3) return exactTerms;
 
   const expanded = expandTerms(values, 80);
   const selective = expanded.filter((term) => !QUERY_STOP_TERMS.has(term) && term.length >= 2);
-  return (selective.length >= 3 ? selective : expanded).slice(0, 40);
+  const tokenTerms = selective.length >= 3 ? selective : expanded;
+  return [...new Set([...exactTerms, ...tokenTerms])].slice(0, 60);
 }
 
 function projectEvidenceScore(project: any) {
@@ -150,6 +152,8 @@ function buildBuilderSnapshot(doc: any) {
     name: doc.name,
     headline: doc.headline,
     rolePreference: doc.rolePreference || [],
+    universityOrCompany: doc.universityOrCompany || null,
+    education: doc.education || [],
     preferredWorkType: doc.preferredWorkType || [],
     links: doc.links || {},
     availability: doc.availability || {},
@@ -224,10 +228,17 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
   const normalizedSkills = unique(builder.rolePreference || [], 40);
   const normalizedProjectTech = unique(projects.flatMap((project) => project.techStack || []), 60);
   const normalizedContributionTags = unique(projects.flatMap((project) => project.contributionTags || []), 60);
+  const educationTerms = (builder.education || []).flatMap((entry: any) => [
+    entry.school,
+    entry.degree,
+    entry.field,
+  ]);
   const searchTerms = expandTerms([
     ...(builder.rolePreference || []),
     ...(builder.preferredWorkType || []),
     builder.headline,
+    builder.universityOrCompany,
+    ...educationTerms,
     builder.profileQuality?.oneLineSummary,
     ...projects.flatMap((project) => [
       project.projectName,
@@ -244,6 +255,8 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
     name: builder.name || null,
     headline: builder.headline || null,
     rolePreference: builder.rolePreference || [],
+    universityOrCompany: builder.universityOrCompany || null,
+    education: (builder.education || []).slice(0, 6),
     normalizedSkills,
     normalizedProjectTech,
     normalizedContributionTags,
@@ -278,7 +291,7 @@ export async function upsertTalentSearchIndexForBuilder(builderId: unknown) {
   if (!mongoose.Types.ObjectId.isValid(String(builderId))) return null;
   const builder = await BuilderProfile.findById(builderId)
     .select(BUILDER_INDEX_SELECT)
-    .lean();
+    .lean() as any;
   if (!builder) {
     await TalentSearchIndex.deleteOne({ builderId });
     return null;
@@ -322,7 +335,7 @@ export async function backfillTalentSearchIndex(params: { limit?: number; batchS
       .sort({ _id: 1 })
       .limit(remaining)
       .maxTimeMS(15000)
-      .lean();
+      .lean() as any[];
     if (!batch.length) break;
     const startedAt = Date.now();
     const builderIds = batch.map((builder) => builder._id);
@@ -423,6 +436,8 @@ export async function searchTalentSearchIndex(params: {
           name: 1,
           headline: 1,
           rolePreference: 1,
+          universityOrCompany: 1,
+          education: 1,
           preferredWorkType: 1,
           links: 1,
           availability: 1,

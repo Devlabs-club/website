@@ -8,7 +8,7 @@ const MatchRecordSchema = new mongoose.Schema(
     profileStrength: { type: Number, min: 0, max: 100, default: 0 },
     matchLabel: {
       type: String,
-      enum: ['Strong Match', 'Good Match', 'Possible Match'],
+      enum: ['Strong Match', 'Good Match', 'Possible Match', 'Weak Match'],
       default: null,
     },
     anonymousLabel: { type: String, default: null },
@@ -21,6 +21,13 @@ const MatchRecordSchema = new mongoose.Schema(
       collaboration: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
     },
     reasoning: { type: String, default: null },
+    requirementFindings: [
+      {
+        text: { type: String, default: null },
+        met: { type: String, enum: ['yes', 'partial', 'no'], default: 'partial' },
+        evidence: { type: String, default: null },
+      },
+    ],
     evidence: [{ label: String, url: String }],
     riskFlags: [{ type: String }],
     status: {

@@ -110,27 +110,36 @@ export async function buildSemanticScoreMap(params: {
   const { queries, minSimilarity = 0.25 } = params;
   const scoreMap: SemanticScoreMap = new Map();
 
-  if (!queries.length) return scoreMap;
+  const uniqueQueries = Array.from(
+    new Set(queries.map((query) => String(query || '').trim()).filter(Boolean))
+  ).slice(0, 4);
+  if (!uniqueQueries.length) return scoreMap;
 
-  const primaryQuery = queries[0];
+  const queryResults = await Promise.all(
+    uniqueQueries.map(async (query, index) => {
+      const weight = index === 0 ? 1 : Math.max(0.78, 0.94 - index * 0.06);
+      const [profileResults, projectResults] = await Promise.all([
+        searchBuilderEmbeddings({ query, limit: 50, minSimilarity }),
+        searchProjectEmbeddings({ query, limit: 100, minSimilarity }),
+      ]);
+      return { weight, profileResults, projectResults };
+    })
+  );
 
-  const [profileResults, projectResults] = await Promise.all([
-    searchBuilderEmbeddings({ query: primaryQuery, limit: 50, minSimilarity }),
-    searchProjectEmbeddings({ query: primaryQuery, limit: 100, minSimilarity }),
-  ]);
+  for (const { weight, profileResults, projectResults } of queryResults) {
+    for (const r of profileResults) {
+      if (!r.builderId) continue;
+      const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+      existing.profileScore = Math.max(existing.profileScore, r.similarity * weight);
+      scoreMap.set(r.builderId, existing);
+    }
 
-  for (const r of profileResults) {
-    if (!r.builderId) continue;
-    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
-    existing.profileScore = Math.max(existing.profileScore, r.similarity);
-    scoreMap.set(r.builderId, existing);
-  }
-
-  for (const r of projectResults) {
-    if (!r.builderId) continue;
-    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
-    existing.projectScore = Math.max(existing.projectScore, r.similarity);
-    scoreMap.set(r.builderId, existing);
+    for (const r of projectResults) {
+      if (!r.builderId) continue;
+      const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+      existing.projectScore = Math.max(existing.projectScore, r.similarity * weight);
+      scoreMap.set(r.builderId, existing);
+    }
   }
 
   return scoreMap;
@@ -150,30 +159,46 @@ export async function retrieveSemanticBuilderCandidates(params: {
     candidateLimit = 220,
     minSimilarity = 0.22,
   } = params;
-  const primaryQuery = queries.find((query) => query.trim()) || '';
+  const uniqueQueries = Array.from(
+    new Set(queries.map((query) => String(query || '').trim()).filter(Boolean))
+  ).slice(0, 4);
+  const primaryQuery = uniqueQueries[0] || '';
   const scoreMap: SemanticScoreMap = new Map();
 
   if (!primaryQuery) {
     return { builderIds: [], scores: scoreMap, profileHitCount: 0, projectHitCount: 0, usedQuery: '' };
   }
 
-  const [profileResults, projectResults] = await Promise.all([
-    searchBuilderEmbeddings({ query: primaryQuery, limit: profileLimit, minSimilarity }),
-    searchProjectEmbeddings({ query: primaryQuery, limit: projectLimit, minSimilarity }),
-  ]);
+  let profileHitCount = 0;
+  let projectHitCount = 0;
+  const queryResults = await Promise.all(
+    uniqueQueries.map(async (query, index) => {
+      const weight = index === 0 ? 1 : Math.max(0.78, 0.94 - index * 0.06);
+      const [profileResults, projectResults] = await Promise.all([
+        searchBuilderEmbeddings({ query, limit: profileLimit, minSimilarity }),
+        searchProjectEmbeddings({ query, limit: projectLimit, minSimilarity }),
+      ]);
+      return { weight, profileResults, projectResults };
+    })
+  );
 
-  for (const r of profileResults) {
-    if (!r.builderId) continue;
-    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
-    existing.profileScore = Math.max(existing.profileScore, r.similarity);
-    scoreMap.set(r.builderId, existing);
-  }
+  for (const { weight, profileResults, projectResults } of queryResults) {
+    profileHitCount += profileResults.length;
+    projectHitCount += projectResults.length;
 
-  for (const r of projectResults) {
-    if (!r.builderId) continue;
-    const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
-    existing.projectScore = Math.max(existing.projectScore, r.similarity);
-    scoreMap.set(r.builderId, existing);
+    for (const r of profileResults) {
+      if (!r.builderId) continue;
+      const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+      existing.profileScore = Math.max(existing.profileScore, r.similarity * weight);
+      scoreMap.set(r.builderId, existing);
+    }
+
+    for (const r of projectResults) {
+      if (!r.builderId) continue;
+      const existing = scoreMap.get(r.builderId) || { profileScore: 0, projectScore: 0 };
+      existing.projectScore = Math.max(existing.projectScore, r.similarity * weight);
+      scoreMap.set(r.builderId, existing);
+    }
   }
 
   const builderIds = [...scoreMap.entries()]
@@ -184,8 +209,8 @@ export async function retrieveSemanticBuilderCandidates(params: {
   return {
     builderIds,
     scores: scoreMap,
-    profileHitCount: profileResults.length,
-    projectHitCount: projectResults.length,
+    profileHitCount,
+    projectHitCount,
     usedQuery: primaryQuery,
   };
 }

@@ -713,6 +713,7 @@ export function toPublicShortlist(shortlist: any) {
       proofSummary: c.proofSummary,
       availabilitySummary: c.availabilitySummary,
       whyTheyMatch: c.whyTheyMatch,
+      requirementFindings: c.requirementFindings || [],
     })),
   };
 }

@@ -19,6 +19,12 @@ const JobPostingSchema = new mongoose.Schema(
     originalSkillsNeeded: [{ type: String }],
     matchingSkills: [{ type: String }],
     requirements: [{ type: String }],
+    searchRequirements: [
+      {
+        text: { type: String, required: true, trim: true },
+        importance: { type: String, enum: ['must', 'nice'], default: 'must' },
+      },
+    ],
     responsibilities: [{ type: String }],
     builderWillDo: { type: String, default: null },
     deliverables: [{ type: String }],

@@ -20,6 +20,11 @@ export type CandidateExplanation = {
   strongestSignals: string[];
   concerns: string[];
   missingEvidence: string[];
+  requirementFindings?: Array<{
+    text: string;
+    met: 'yes' | 'partial' | 'no';
+    evidence: string;
+  }>;
   bestUseCase: string;
   recommendedAction: 'request_intro' | 'send_trial' | 'save' | 'reject' | 'review_more';
 };

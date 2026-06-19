@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { runtimeEnvFromLocals, type RuntimeEnv } from '@/lib/workosEnv';
-import { generateOpenRouterAgentTurn, getOpenRouterChatModel, hasOpenRouterConfig, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
-import User from '@/models/user.tsx';
+import { generateOpenRouterAgentTurn, generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
+import '@/models/user.tsx';
 import CompanyProfile from '@/models/founder/CompanyProfile';
 import JobPosting from '@/models/founder/JobPosting';
 import FounderChatSession from '@/models/founder/FounderChatSession';
@@ -27,6 +27,8 @@ import { countUnreadForFounder, getNotificationsForFounder } from '@/lib/talent/
 import { shapeJobForTalentPool } from '@/lib/founderAgent/jobShaping';
 import { retrieveSemanticBuilderCandidates, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
+
+const User: any = mongoose.models.User;
 
 export type FounderIdentity = {
   founderId: string;
@@ -60,14 +62,19 @@ Style:
 - Short, chill, Poke-like.
 - No long replies. Usually 1-3 sentences.
 - Say things like "Cool, I got it" only when useful.
-- Ask one focused follow-up when a required detail is missing.
+- Ask one focused follow-up when a required detail is missing. Do not create the job in the same turn as that follow-up.
 
 Rules:
 - You have two jobs: conversation and tool use.
 - Use chat history and company/job context before asking.
 - One chat session maps to one role/job. Do not mix role context across sessions.
-- Use create_job only when you have enough detail for: role/title, what the builder will do, skills, and company.
-- If create_job says a follow-up was already asked, infer sensible fields from context and create the job.
+- Use create_job only when you have enough detail for: role/title, what the builder will do, required skills/stack, company, and the founder's proof/preferences.
+- Treat founder phrases like "I want to build a chat interface", "build the dashboard", or "work on the AI agent" as the builderWillDo/description. Do not ask "what will they do" again when the feature/product has already been named.
+- If scope is genuinely unclear, ask: "Is this builder focused on a specific feature, or the broader product?" If they say broader product/product in general, use the saved company context to write the job description.
+- Before create_job, ask for missing skills/stack and ask for proof/preferences like experience level, internships, schools, project evidence, or "no preferences".
+- Keep preferences like "interned at big tech", "went to Stanford or Yale", "built a chat feature", or "strong design sense" as natural-language requirements/searchRequirements. Do not translate them into rigid fields or company lists.
+- Use searchRequirements with importance "must" for hard filters and "nice" for preferences. requirements can still be plain text when that is easier.
+- If create_job says needsFollowup, ask that follow-up and wait for the founder's answer. Never infer missing required fields just because a follow-up was already asked.
 - Use fetch_jobs when the founder asks what jobs/roles exist.
 - Use fetch_job when the founder asks about one specific job.
 - Use search_talent when the founder asks to find/search/match candidates for the current job.
@@ -88,6 +95,16 @@ const TOOLS: ToolDefinition[] = [
           description: { type: 'string' },
           skillsNeeded: { type: 'array', items: { type: 'string' } },
           requirements: { type: 'array', items: { type: 'string' } },
+          searchRequirements: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                text: { type: 'string' },
+                importance: { type: 'string', enum: ['must', 'nice'] },
+              },
+            },
+          },
           responsibilities: { type: 'array', items: { type: 'string' } },
           salary: { type: 'string' },
           jobType: { type: 'string' },
@@ -131,6 +148,16 @@ const TOOLS: ToolDefinition[] = [
           description: { type: 'string' },
           skillsNeeded: { type: 'array', items: { type: 'string' } },
           requirements: { type: 'array', items: { type: 'string' } },
+          searchRequirements: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                text: { type: 'string' },
+                importance: { type: 'string', enum: ['must', 'nice'] },
+              },
+            },
+          },
           responsibilities: { type: 'array', items: { type: 'string' } },
           salary: { type: 'string' },
           jobType: { type: 'string' },
@@ -199,6 +226,9 @@ const BUILDER_SEARCH_SELECT = [
   'profileQuality',
   'verificationStatus',
   'visibilityStatus',
+  'universityOrCompany',
+  'education',
+  'experiences',
   'updatedAt',
 ].join(' ');
 
@@ -219,6 +249,10 @@ function extractSearchTerms(opportunity: any, strategy: ReturnType<typeof buildS
     ...(Array.isArray(opportunity.matchingSkills) ? opportunity.matchingSkills : []),
     ...(Array.isArray(opportunity.skillsNeeded) ? opportunity.skillsNeeded : []),
     ...(Array.isArray(opportunity.niceToHaveSkills) ? opportunity.niceToHaveSkills : []),
+    ...(Array.isArray(opportunity.searchRequirements)
+      ? opportunity.searchRequirements.map((requirement: any) => requirement?.text)
+      : []),
+    ...(Array.isArray(opportunity.requirements) ? opportunity.requirements : []),
     ...strategy.mustHaveSignals,
     ...strategy.niceToHaveSignals,
     ...strategy.semanticConcepts,
@@ -309,7 +343,7 @@ function errorJson(error: string, status = 400) {
 export { okJson, errorJson };
 
 export async function resolveFounderIdentity(request: Request, locals?: App.Locals): Promise<FounderIdentity | { error: string; status: number }> {
-  const runtime = runtimeEnvFromLocals(locals);
+  const runtime = runtimeEnvFromLocals(locals as App.Locals);
   const authHeader = request.headers.get('Authorization');
   const cookieHeader = request.headers.get('Cookie') || '';
   const token = extractTokenFromHeader(authHeader) || extractTokenFromCookies(cookieHeader);
@@ -352,6 +386,57 @@ function cleanList(value: unknown): string[] {
   return [];
 }
 
+type SearchRequirement = {
+  text: string;
+  importance: 'must' | 'nice';
+};
+
+function normalizeSearchRequirements(value: unknown, fallbackImportance: SearchRequirement['importance'] = 'must'): SearchRequirement[] {
+  const rawItems = Array.isArray(value) ? value : typeof value === 'string' ? value.split(',') : [];
+  const seen = new Set<string>();
+  const requirements: SearchRequirement[] = [];
+
+  for (const item of rawItems) {
+    const text =
+      typeof item === 'string'
+        ? item.trim()
+        : item && typeof item === 'object' && typeof (item as any).text === 'string'
+          ? (item as any).text.trim()
+          : '';
+    if (!text) continue;
+
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const importance =
+      item && typeof item === 'object' && (item as any).importance === 'nice'
+        ? 'nice'
+        : fallbackImportance;
+    requirements.push({ text: text.slice(0, 180), importance });
+  }
+
+  return requirements.slice(0, 12);
+}
+
+function mergeSearchRequirements(...groups: SearchRequirement[][]): SearchRequirement[] {
+  const merged = new Map<string, SearchRequirement>();
+  for (const group of groups) {
+    for (const requirement of group) {
+      const key = requirement.text.toLowerCase();
+      const existing = merged.get(key);
+      if (!existing || existing.importance === 'nice' && requirement.importance === 'must') {
+        merged.set(key, requirement);
+      }
+    }
+  }
+  return Array.from(merged.values()).slice(0, 12);
+}
+
+function searchRequirementTexts(value: unknown): string[] {
+  return normalizeSearchRequirements(value).map((requirement) => requirement.text);
+}
+
 function guessSkills(text: string): string[] {
   const skills = [
     'React',
@@ -374,6 +459,78 @@ function guessSkills(text: string): string[] {
   return skills.filter((skill) => lower.includes(skill.toLowerCase())).slice(0, 8);
 }
 
+function founderExplicitlySkippedPreferences(text: string) {
+  const normalized = text.toLowerCase().trim();
+  if (!normalized) return false;
+  if (/^(no|nope|none|nothing|skip|flexible|open|anyone|any builder|not sure|no preference|no preferences|no prefs)$/i.test(normalized)) {
+    return true;
+  }
+  return /\b(no|none|nope|nothing|skip|flexible|open|not sure|no preferences?|no prefs?)\b/i.test(normalized)
+    && /\b(preferences?|requirements?|must[-\s]?haves?|nice[-\s]?to[-\s]?haves?|proof|background|internships?|schools?|projects?|experience|filters?)\b/i.test(normalized);
+}
+
+function buildCompanyProductDescription(company: any): string | null {
+  const companyName = cleanString(company?.name) || 'the company';
+  const productContext = cleanString(company?.productSummary)
+    || cleanString(company?.description)
+    || cleanString(company?.mission)
+    || cleanString(company?.industry);
+  if (!productContext) return null;
+  return `Work across ${companyName}'s product: ${productContext}`;
+}
+
+function inferBuilderWillDoFromFounderText(text: string, company: any): string | null {
+  const cleaned = cleanString(text);
+  if (!cleaned) return null;
+  const lower = cleaned.toLowerCase();
+
+  if (/\b(whole|entire|overall|broader|general)\s+product\b|\bproduct\s+in\s+general\b|\bacross\s+the\s+product\b|\bfull\s+product\b/.test(lower)) {
+    return buildCompanyProductDescription(company);
+  }
+
+  const hasBuildIntent = /\b(build|building|create|creating|make|making|ship|shipping|develop|developing|implement|implementing|work on|working on)\b/.test(lower);
+  const hasProductArtifact = /\b(interface|dashboard|feature|product|app|website|platform|agent|assistant|chat|messaging|inbox|workflow|automation|portal|api|backend|frontend)\b/.test(lower);
+  if (!hasBuildIntent && !hasProductArtifact) return null;
+  if (/^(fullstack|full-stack|frontend|front-end|backend|back-end|developer|engineer|builder)\b/i.test(cleaned) && cleaned.split(/\s+/).length <= 4) {
+    return null;
+  }
+
+  return cleaned.length > 180 ? cleaned.slice(0, 177).trimEnd() + '...' : cleaned;
+}
+
+function inferBuilderWillDoFromMessages(messages: any[], company: any): string | null {
+  for (const message of [...messages].reverse()) {
+    if (message?.role !== 'founder') continue;
+    const inferred = inferBuilderWillDoFromFounderText(String(message.content || ''), company);
+    if (inferred) return inferred;
+  }
+  return null;
+}
+
+function createJobMissingMessage(missing: string[]) {
+  if (missing.includes('role/title')) {
+    return 'What role/title should I use for this builder?';
+  }
+  if (missing.includes('what the builder will ship')) {
+    return 'Is this builder focused on a specific feature, or the broader product? If it is product-wide, I can use the company context.';
+  }
+  if (missing.includes('skills')) {
+    return 'What stack or skills are must-have? You can also add proof preferences like a chat-feature project, prior internship, school, or experience level.';
+  }
+  if (missing.includes('company')) {
+    return 'What company/startup is this role for?';
+  }
+  return `Need one thing: ${missing[0]}. What should I use?`;
+}
+
+function createJobPreferencesMessage(title: string, description: string) {
+  const target = title && title !== 'Builder role' ? `for this ${title}` : 'for this builder';
+  const projectHint = /chat|message|inbox|conversation|assistant|ai/i.test(description)
+    ? 'a project with a chat feature'
+    : 'a relevant shipped project';
+  return `Any proof or preferences ${target}? For example ${projectHint}, prior internship, school, experience level, or say no preferences.`;
+}
+
 function inferTitle(text: string) {
   const match = text.match(/\b(?:hire|need|looking for|find)\s+(?:a|an)?\s*([^.,\n]{3,60})/i);
   return match?.[1]?.replace(/\b(builder|developer|engineer)\b.*$/i, (m) => m).trim() || 'Builder role';
@@ -393,6 +550,9 @@ function serializeJob(job: any) {
     jobType: raw.jobType || raw.workType || raw.roleType?.[0] || null,
     workMode: raw.workMode || raw.locationPreference || null,
     location: raw.location || raw.locationPreference || null,
+    searchRequirements: normalizeSearchRequirements(raw.searchRequirements).length
+      ? normalizeSearchRequirements(raw.searchRequirements)
+      : normalizeSearchRequirements(raw.requirements),
   };
 }
 
@@ -509,7 +669,10 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
       builderWillDo: oppPlain.builderWillDo,
       skillsNeeded: oppPlain.skillsNeeded,
       niceToHaveSkills: oppPlain.niceToHaveSkills,
-      requirements: oppPlain.requirements,
+      requirements: [
+        ...(oppPlain.requirements || []),
+        ...searchRequirementTexts(oppPlain.searchRequirements),
+      ],
       responsibilities: oppPlain.responsibilities || oppPlain.deliverables,
       companyContext: [oppPlain.company, oppPlain.startupSummary, oppPlain.industry].filter(Boolean).join(' '),
     });
@@ -532,7 +695,7 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
       jobId,
       skillsNeeded: shaped.skillsNeeded,
       matchingSkills: shaped.matchingSkills,
-      poolCoverage: shaped.poolFitMetadata?.coverage,
+      poolConfidence: shaped.poolFitMetadata?.confidence,
     });
   } else {
     oppPlain.skillsNeeded = oppPlain.matchingSkills;
@@ -575,6 +738,9 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
   }
 
   const strategy = buildSearchStrategy({ opportunity: oppPlain, founderId: identity.founderId, searchMode });
+  const openRequirements = normalizeSearchRequirements(oppPlain.searchRequirements).length
+    ? normalizeSearchRequirements(oppPlain.searchRequirements)
+    : normalizeSearchRequirements(oppPlain.requirements);
   let semanticScores: SemanticScoreMap = new Map();
   let retrievalMode: RetrievalMode = 'limited_broad_fallback';
   let builders: any[] = [];
@@ -584,6 +750,7 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
   const indexTerms = [
     strategy.primaryQuery,
     ...strategy.expandedQueries,
+    ...openRequirements.map((requirement) => requirement.text),
     ...extractSearchTerms(oppPlain, strategy),
   ];
   logFounderAgent('search_talent:index_retrieval:start', {
@@ -624,7 +791,11 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
     try {
       const semantic = await Promise.race([
         retrieveSemanticBuilderCandidates({
-          queries: [strategy.primaryQuery, ...strategy.expandedQueries.slice(0, 2)],
+          queries: [
+            strategy.primaryQuery,
+            ...strategy.expandedQueries.slice(0, 2),
+            ...openRequirements.map((requirement) => requirement.text),
+          ],
           candidateLimit: 240,
           profileLimit: 120,
           projectLimit: 220,
@@ -635,8 +806,6 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
             () => resolve({
               builderIds: [],
               scores: new Map(),
-              profileHits: 0,
-              projectHits: 0,
               profileHitCount: 0,
               projectHitCount: 0,
               usedQuery: strategy.primaryQuery,
@@ -786,7 +955,11 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
       shouldAffectRanking: f.shouldAffectRanking,
       createdAt: f.createdAt,
     })),
-    enableLlmRerank: false,
+    enableLlmRerank: openRequirements.length > 0 && hasOpenRouterConfig(),
+    generateReply: openRequirements.length > 0 && hasOpenRouterConfig()
+      ? (systemPrompt, userPrompt) =>
+          generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 900 })
+      : undefined,
     semanticScores,
     limit: 12,
   });
@@ -840,9 +1013,26 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
 
 async function toolCreateJob(identity: FounderIdentity, session: any, args: Record<string, unknown>, userText: string, company: any) {
   const title = cleanString(args.title) || cleanString(args.roleTitle);
-  const description = cleanString(args.description) || cleanString(args.builderWillDo);
+  let description = cleanString(args.description) || cleanString(args.builderWillDo);
   const skills = cleanList(args.skillsNeeded);
   const companyName = cleanString(args.companyName) || company?.name || cleanString(args.company);
+  const searchRequirements = mergeSearchRequirements(
+    normalizeSearchRequirements(args.searchRequirements),
+    normalizeSearchRequirements(args.requirements)
+  );
+  if (!description) {
+    description = inferBuilderWillDoFromFounderText(userText, company);
+  }
+  if (!description && session?._id) {
+    const recentFounderMessages = await FounderChatMessage.find({
+      sessionId: session._id,
+      role: 'founder',
+    })
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .lean();
+    description = inferBuilderWillDoFromMessages([...recentFounderMessages].reverse(), company);
+  }
   const missing = [
     title ? null : 'role/title',
     description ? null : 'what the builder will ship',
@@ -851,26 +1041,46 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
   ].filter(Boolean) as string[];
 
   const metadata = session.metadata || {};
-  if (missing.length && !metadata.createJobFollowupAsked) {
-    session.metadata = { ...metadata, createJobFollowupAsked: true };
+  if (missing.length) {
+    session.metadata = {
+      ...metadata,
+      createJobFollowupAsked: true,
+      createJobMissingFields: missing,
+    };
     await session.save();
     return {
       needsFollowup: true,
-      message: `Need one thing: ${missing[0]}. What should I use?`,
+      message: createJobMissingMessage(missing),
       missing,
     };
   }
 
-  const inferredSkills = skills.length ? skills : guessSkills(userText);
-  const finalTitle = title || inferTitle(userText);
-  const finalDescription = description || userText || `Build and ship the first version of ${finalTitle}.`;
-  const finalCompany = companyName || 'Your startup';
+  if (!searchRequirements.length && !founderExplicitlySkippedPreferences(userText)) {
+    session.metadata = {
+      ...metadata,
+      createJobFollowupAsked: true,
+      createJobPreferenceFollowupAsked: true,
+    };
+    await session.save();
+    return {
+      needsFollowup: true,
+      message: createJobPreferencesMessage(title || '', description || ''),
+      missing: ['proof/preferences'],
+    };
+  }
+
+  const finalTitle = title!;
+  const finalDescription = description!;
+  const finalCompany = companyName!;
   const shaped = await shapeJobForTalentPool({
     title: finalTitle,
     description: finalDescription,
     builderWillDo: finalDescription,
-    skillsNeeded: inferredSkills.length ? inferredSkills : ['Builder mindset'],
-    requirements: cleanList(args.requirements),
+    skillsNeeded: skills,
+    requirements: [
+      ...cleanList(args.requirements),
+      ...searchRequirements.map((requirement) => requirement.text),
+    ],
     responsibilities: cleanList(args.responsibilities),
     companyContext: [finalCompany, company?.productSummary, company?.description, company?.industry].filter(Boolean).join(' '),
   });
@@ -892,6 +1102,7 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     skillsNeeded: shaped.skillsNeeded,
     matchingSkills: shaped.matchingSkills,
     requirements: cleanList(args.requirements),
+    searchRequirements,
     responsibilities: cleanList(args.responsibilities),
     salary: cleanString(args.salary),
     budget: cleanString(args.salary),
@@ -908,7 +1119,12 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
 
   session.jobId = job._id;
   session.title = finalTitle;
-  session.metadata = { ...metadata, createJobFollowupAsked: false };
+  session.metadata = {
+    ...metadata,
+    createJobFollowupAsked: false,
+    createJobMissingFields: [],
+    createJobPreferenceFollowupAsked: false,
+  };
   await session.save();
 
   return { job: serializeJob(job), message: `Cool, I created the ${finalTitle} job.` };
@@ -954,6 +1170,11 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   if (skills.length) fields.skillsNeeded = skills;
   const requirements = cleanList(mergedArgs.requirements);
   if (requirements.length) fields.requirements = requirements;
+  const searchRequirements = mergeSearchRequirements(
+    normalizeSearchRequirements(mergedArgs.searchRequirements),
+    normalizeSearchRequirements(mergedArgs.requirements)
+  );
+  if (searchRequirements.length) fields.searchRequirements = searchRequirements;
   const responsibilities = cleanList(mergedArgs.responsibilities);
   if (responsibilities.length) {
     fields.responsibilities = responsibilities;
@@ -1004,7 +1225,10 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
     builderWillDo: fields.builderWillDo as string || job.builderWillDo,
     skillsNeeded: (fields.skillsNeeded as string[]) || job.skillsNeeded || [],
     niceToHaveSkills: (fields.niceToHaveSkills as string[]) || job.niceToHaveSkills || [],
-    requirements: (fields.requirements as string[]) || job.requirements || [],
+    requirements: [
+      ...((fields.requirements as string[]) || job.requirements || []),
+      ...searchRequirementTexts((fields.searchRequirements as SearchRequirement[]) || job.searchRequirements || []),
+    ],
     responsibilities: (fields.responsibilities as string[]) || job.responsibilities || job.deliverables || [],
     companyContext: [fields.company, fields.startupSummary, job.company, job.startupSummary, job.industry].filter(Boolean).join(' '),
   });
@@ -1176,11 +1400,18 @@ export async function runFounderAgentChat(params: {
     .limit(40)
     .lean();
 
+  const inferredBuilderWillDo = inferBuilderWillDoFromMessages(historyDocs, company);
   const context = {
     founder: { id: params.identity.founderId, name: params.identity.founderName, email: params.identity.email },
     company: serializeCompany(company),
     currentJob: serializeJob(currentJob),
     session: serializeSession(session),
+    conversationSignals: {
+      builderWillDo: inferredBuilderWillDo,
+      guidance: inferredBuilderWillDo
+        ? 'The founder has already described what the builder should work on. Reuse this instead of asking what they will do.'
+        : 'If scope is unclear, ask whether the builder is focused on a specific feature or the broader product.',
+    },
   };
 
   const messages: AgentMessage[] = [

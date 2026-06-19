@@ -150,10 +150,12 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     finalCandidates = allScored;
   }
 
-  // Stage 6: search quality report
+  const returnedCandidates = finalCandidates.slice(0, limit);
+
+  // Stage 6: search quality report for the shortlist founders actually see
   const searchQuality = buildSearchQualityReport({
     totalScanned: builders.length,
-    scored: finalCandidates,
+    scored: returnedCandidates,
     opportunity,
     searchMode,
   });
@@ -161,7 +163,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   return {
     opportunityId: oppId,
     searchStrategy: strategy,
-    candidates: finalCandidates.slice(0, limit),
+    candidates: returnedCandidates,
     searchQuality,
     totalScanned: builders.length,
     generatedAt: new Date(),

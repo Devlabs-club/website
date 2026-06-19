@@ -27,6 +27,12 @@ export type EnrichedProfileDraft = {
   rolePreference?: string[];
   universityOrCompany?: string | null;
   graduationYear?: number | null;
+  education?: Array<{
+    school?: string | null;
+    degree?: string | null;
+    field?: string | null;
+    source?: string | null;
+  }>;
   links?: {
     github?: string | null;
     linkedin?: string | null;

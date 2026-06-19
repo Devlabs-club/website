@@ -32,6 +32,10 @@ function buildBuilderProfileText(builder: any, projects: any[]): string {
   if (builder.headline) parts.push(builder.headline);
   if (builder.bio) parts.push(builder.bio.slice(0, 400));
   if (builder.universityOrCompany) parts.push(`Background: ${builder.universityOrCompany}`);
+  for (const education of (builder.education || []).slice(0, 4)) {
+    const line = [education.school, education.degree, education.field].filter(Boolean).join(' — ');
+    if (line) parts.push(`Education: ${line}`);
+  }
 
   const roles = (builder.rolePreference || []).slice(0, 12).join(', ');
   if (roles) parts.push(`Skills: ${roles}`);

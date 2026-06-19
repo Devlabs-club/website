@@ -30,6 +30,39 @@ function mergeSkills(existing: string[] = [], incoming: string[] = []) {
   return Array.from(merged);
 }
 
+function normalizeEducationEntry(entry: any) {
+  const school = typeof entry?.school === 'string' ? entry.school.trim() : '';
+  const degree = typeof entry?.degree === 'string' ? entry.degree.trim() : '';
+  const field = typeof entry?.field === 'string' ? entry.field.trim() : '';
+  if (!school && !degree && !field) return null;
+  return {
+    school: school || null,
+    degree: degree || null,
+    field: field || null,
+    source: typeof entry?.source === 'string' && entry.source.trim() ? entry.source.trim() : 'linkedin',
+    importedAt: entry?.importedAt || new Date(),
+  };
+}
+
+function educationKey(entry: any) {
+  return [entry?.school, entry?.degree, entry?.field]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .join('|');
+}
+
+function mergeEducation(existing: any[] = [], incoming: any[] = []) {
+  const merged = new Map<string, any>();
+  for (const entry of existing) {
+    const normalized = normalizeEducationEntry(entry);
+    if (normalized) merged.set(educationKey(normalized), normalized);
+  }
+  for (const entry of incoming) {
+    const normalized = normalizeEducationEntry(entry);
+    if (normalized) merged.set(educationKey(normalized), normalized);
+  }
+  return Array.from(merged.values()).slice(0, 8);
+}
+
 export async function applyProfileDraft(
   builder: any,
   draft: EnrichedProfileDraft,
@@ -56,6 +89,18 @@ export async function applyProfileDraft(
   if (!isEmpty(draft.universityOrCompany) && isEmpty(builder.universityOrCompany)) {
     builder.universityOrCompany = String(draft.universityOrCompany).trim();
     updated.push('universityOrCompany');
+  }
+  if (draft.education?.length) {
+    const nextEducation = mergeEducation(builder.education || [], draft.education);
+    if (nextEducation.length > (builder.education?.length || 0)) {
+      builder.education = nextEducation;
+      updated.push('education');
+    }
+    const firstSchool = nextEducation.find((entry) => entry.school)?.school;
+    if (firstSchool && isEmpty(builder.universityOrCompany)) {
+      builder.universityOrCompany = firstSchool;
+      updated.push('universityOrCompany');
+    }
   }
   if (draft.graduationYear && !builder.graduationYear) {
     builder.graduationYear = draft.graduationYear;
@@ -88,7 +133,7 @@ export async function upsertEnrichedProjects(
   for (const draft of projects) {
     if (!draft.projectName || !draft.sourceId) continue;
 
-    const existing = await ProjectRecord.findOne({ builderId, sourceId: draft.sourceId }).lean();
+    const existing = await ProjectRecord.findOne({ builderId, sourceId: draft.sourceId }).lean() as any;
     const isConfirmed = existing && CONFIRMED_STATUSES.has(String(existing.verificationStatus));
 
     if (isConfirmed && !overwriteImported) continue;

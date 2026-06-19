@@ -22,6 +22,7 @@ export async function persistDiscoveryCandidates(params: {
     matchLabel: candidate.matchLabel,
     status: 'generated',
     reasoning: candidate.explanation.strongestSignals.join('; '),
+    requirementFindings: candidate.explanation.requirementFindings || [],
     evidence: buildMatchEvidenceFromExplanation({
       strongestSignals: candidate.explanation.strongestSignals,
       builder: candidate.builder,
@@ -67,6 +68,7 @@ export async function persistDiscoveryCandidates(params: {
       topSkills: candidate.builder.rolePreference?.slice(0, 4) || [],
       proofSummary: candidate.explanation.strongestSignals[0] || '',
       whyTheyMatch: candidate.explanation.strongestSignals.join('; '),
+      requirementFindings: candidate.explanation.requirementFindings || [],
     };
   });
 

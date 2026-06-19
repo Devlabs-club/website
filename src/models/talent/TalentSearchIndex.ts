@@ -29,6 +29,15 @@ const TalentSearchIndexSchema = new mongoose.Schema(
     name: { type: String, default: null },
     headline: { type: String, default: null },
     rolePreference: [{ type: String }],
+    universityOrCompany: { type: String, default: null },
+    education: [
+      {
+        school: { type: String, default: null },
+        degree: { type: String, default: null },
+        field: { type: String, default: null },
+        source: { type: String, default: null },
+      },
+    ],
     normalizedSkills: [{ type: String }],
     normalizedProjectTech: [{ type: String }],
     normalizedContributionTags: [{ type: String }],

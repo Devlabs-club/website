@@ -9,7 +9,7 @@ const AnonymousCandidateSchema = new mongoose.Schema(
     profileStrength: { type: Number, min: 0, max: 100, default: 0 },
     matchLabel: {
       type: String,
-      enum: ['Strong Match', 'Good Match', 'Possible Match'],
+      enum: ['Strong Match', 'Good Match', 'Possible Match', 'Weak Match'],
       required: true,
     },
     roleType: { type: String, default: null },
@@ -17,6 +17,13 @@ const AnonymousCandidateSchema = new mongoose.Schema(
     proofSummary: { type: String, default: null },
     availabilitySummary: { type: String, default: null },
     whyTheyMatch: { type: String, default: null },
+    requirementFindings: [
+      {
+        text: { type: String, default: null },
+        met: { type: String, enum: ['yes', 'partial', 'no'], default: 'partial' },
+        evidence: { type: String, default: null },
+      },
+    ],
   },
   { _id: false }
 );
