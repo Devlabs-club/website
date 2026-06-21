@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import FounderContextIntroModals from "@/components/founder/FounderContextIntroModals";
-import { ArrowRight, ChevronLeft, ChevronRight, Loader2, Paperclip, Plus } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Loader2, LogOut, Paperclip, Plus } from "lucide-react";
 
 type Role = {
   id: string;
@@ -100,7 +100,7 @@ const HeroBubble: React.FC = () => (
 );
 
 const FounderHomeInner: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [roles, setRoles] = useState<Role[]>([]);
   const [mode, setMode] = useState<"list" | "questions">("questions");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -232,7 +232,18 @@ const FounderHomeInner: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {showIntro && <FounderContextIntroModals onFinish={() => setShowIntro(false)} />}
-      <AppTopBar />
+      <AppTopBar
+        right={
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        }
+      />
       <main className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-16 sm:px-6">
         <section className="mb-8 text-center">
           <HeroBubble />
