@@ -15,6 +15,7 @@ const FounderProfileSchema = new mongoose.Schema(
     techStackHints: [{ type: String }],
     founderBio: { type: String, default: null },
     logoUrl: { type: String, default: null },
+    metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
     enrichmentStatus: {
       type: String,
       enum: ['pending', 'partial', 'complete', 'failed'],

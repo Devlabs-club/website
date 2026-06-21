@@ -11,6 +11,10 @@ function parseArgs(argv) {
     first: false,
     all: false,
     builderId: null,
+    linkedInUrl: null,
+    profileName: null,
+    email: null,
+    outputKey: null,
     cdpUrl: process.env.CHROME_CDP_URL || 'http://127.0.0.1:9222',
     waitMs: 12000,
     delayMs: 4000,
@@ -27,6 +31,14 @@ function parseArgs(argv) {
     else if (arg === '--apply') throw new Error('This script is dry-run only. Refusing --apply.');
     else if (arg === '--builderId') args.builderId = argv[++i];
     else if (arg.startsWith('--builderId=')) args.builderId = arg.slice('--builderId='.length);
+    else if (arg === '--linkedin-url') args.linkedInUrl = argv[++i];
+    else if (arg.startsWith('--linkedin-url=')) args.linkedInUrl = arg.slice('--linkedin-url='.length);
+    else if (arg === '--name') args.profileName = argv[++i];
+    else if (arg.startsWith('--name=')) args.profileName = arg.slice('--name='.length);
+    else if (arg === '--email') args.email = argv[++i];
+    else if (arg.startsWith('--email=')) args.email = arg.slice('--email='.length);
+    else if (arg === '--output-key') args.outputKey = argv[++i];
+    else if (arg.startsWith('--output-key=')) args.outputKey = arg.slice('--output-key='.length);
     else if (arg === '--limit') args.limit = Number(argv[++i]);
     else if (arg.startsWith('--limit=')) args.limit = Number(arg.slice('--limit='.length));
     else if (arg === '--offset') args.offset = Number(argv[++i]);
@@ -43,7 +55,7 @@ function parseArgs(argv) {
     else throw new Error(`Unknown argument: ${arg}`);
   }
 
-  if (!args.builderId && !args.first && !args.all) args.first = true;
+  if (!args.builderId && !args.linkedInUrl && !args.first && !args.all) args.first = true;
   if (!Number.isFinite(args.waitMs) || args.waitMs < 0) {
     throw new Error('--wait-ms must be a non-negative number');
   }
@@ -458,11 +470,34 @@ function linkedInDomExtractionExpression(builderName) {
       .sort((a, b) => b.score - a.score)
       .slice(0, 8);
 
+    // Collect every LinkedIn company link on the page so we can resolve the company
+    // username/slug for each experience (the slug lets us open the company About page).
+    const collectCompanyLinks = () => {
+      const map = new Map();
+      Array.from(document.querySelectorAll('a[href*="/company/"]')).forEach((anchor) => {
+        const url = absolutize(anchor.getAttribute('href'));
+        if (!url) return;
+        const match = url.match(/\/company\/([^/?#]+)/i);
+        if (!match) return;
+        const slug = match[1];
+        const name = String(anchor.innerText || anchor.getAttribute('aria-label') || '')
+          .trim()
+          .replace(/\s+/g, ' ');
+        if (!map.has(slug)) {
+          map.set(slug, { slug, name: name || null, url: `https://www.linkedin.com/company/${slug}` });
+        } else if (name && !map.get(slug).name) {
+          map.get(slug).name = name;
+        }
+      });
+      return Array.from(map.values()).slice(0, 40);
+    };
+
     return {
       title: document.title,
       url: location.href,
       text,
       experienceEntries: extractExperienceEntries(),
+      companyLinks: collectCompanyLinks(),
       candidates,
       bestPhoto: candidates[0] || null,
     };
@@ -481,6 +516,7 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     finalUrl: null,
     rawText: '',
     experienceEntries: [],
+    companyLinks: [],
     photo: {
       imageUrl: null,
       source: null,
@@ -525,6 +561,7 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     result.finalUrl = dom.url;
     result.rawText = dom.text || '';
     result.experienceEntries = dom.experienceEntries || [];
+    result.companyLinks = dom.companyLinks || [];
     result.photo.candidates = dom.candidates || [];
     if (dom.bestPhoto?.src) {
       result.photo.imageUrl = dom.bestPhoto.src;
@@ -713,7 +750,33 @@ function normalizeExperienceLines(lines) {
     .filter((line) => !/^… more$/i.test(line));
 }
 
-function parseExperienceEntry(rawEntry, builder) {
+function slugFromCompanyUrl(url) {
+  const match = String(url || '').match(/\/company\/([^/?#]+)/i);
+  return match ? match[1] : null;
+}
+
+/** Resolve a company's LinkedIn slug/url for an experience, using the page-wide company links. */
+function resolveCompanyLink(company, companyLinkedInUrl, companyLinks) {
+  let slug = slugFromCompanyUrl(companyLinkedInUrl);
+  let url = companyLinkedInUrl || null;
+
+  if (!slug && Array.isArray(companyLinks) && company) {
+    const target = compactKey(company);
+    const match = companyLinks.find((link) => link.name && compactKey(link.name) === target) ||
+      companyLinks.find((link) => link.name && (compactKey(link.name).includes(target) || target.includes(compactKey(link.name))));
+    if (match) {
+      slug = match.slug;
+      url = match.url;
+    }
+  }
+
+  return {
+    companyUsername: slug || null,
+    companyLinkedInUrl: url || (slug ? `https://www.linkedin.com/company/${slug}` : null),
+  };
+}
+
+function parseExperienceEntry(rawEntry, builder, companyLinks) {
   const lines = normalizeExperienceLines(rawEntry.lines || []);
   if (lines.length < 3) return null;
 
@@ -741,12 +804,14 @@ function parseExperienceEntry(rawEntry, builder) {
     .filter((skill, index, arr) => arr.findIndex((candidate) => candidate.toLowerCase() === skill.toLowerCase()) === index)
     .slice(0, 8);
   const sourceId = `linkedin:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${title}-${company}-${dateParts.dateRange || rawEntry.index}`)}`;
+  const { companyUsername, companyLinkedInUrl } = resolveCompanyLink(company, rawEntry.companyLinkedInUrl, companyLinks);
 
   return {
     title: title.slice(0, 140),
     company: company.slice(0, 140),
     companyLogoUrl: rawEntry.logo?.src || null,
-    companyLinkedInUrl: rawEntry.companyLinkedInUrl || null,
+    companyUsername,
+    companyLinkedInUrl,
     employmentType,
     location,
     dateRange: dateParts.dateRange,
@@ -763,8 +828,9 @@ function parseExperienceEntry(rawEntry, builder) {
 }
 
 function parseExperienceEntries(cdpExtraction, builder) {
+  const companyLinks = cdpExtraction.companyLinks || [];
   return (cdpExtraction.experienceEntries || [])
-    .map((entry) => parseExperienceEntry(entry, builder))
+    .map((entry) => parseExperienceEntry(entry, builder, companyLinks))
     .filter(Boolean)
     .filter((entry, index, arr) => arr.findIndex((candidate) => candidate.sourceId === entry.sourceId) === index)
     .slice(0, 12);
@@ -982,13 +1048,98 @@ async function processBuilder(builder, context, args) {
   };
 }
 
+async function processLinkedInUrl(args) {
+  const linkedInUrl = normalizeUrl(args.linkedInUrl);
+  if (!linkedInUrl) throw new Error('--linkedin-url must be a LinkedIn URL or URL-like value');
+
+  const builder = {
+    _id: args.outputKey || `linkedin-${compactKey(linkedInUrl) || Date.now()}`,
+    name: args.profileName || 'LinkedIn user',
+    email: args.email || null,
+    headline: null,
+    bio: null,
+    photoUrl: null,
+    phone: null,
+    location: null,
+    timezone: null,
+    universityOrCompany: null,
+    graduationYear: null,
+    currentStatus: 'student',
+    rolePreference: [],
+    preferredWorkType: [],
+    experiences: [],
+    links: { linkedin: linkedInUrl },
+    availability: {},
+    hiringIntent: {},
+    profileCompletion: {},
+    profileQuality: {},
+    verificationStatus: 'imported_unverified',
+    visibilityStatus: 'matched_only',
+    legacyRefs: [],
+  };
+
+  const cdpExtraction = await extractLinkedInProfileViaCDP(linkedInUrl, builder, args.cdpUrl, args.waitMs);
+  const extracted = extractLinkedInData(cdpExtraction.rawText, builder, cdpExtraction);
+  const diff = buildProposedDiff(builder, extracted);
+  const output = {
+    mode: 'dry-run',
+    wroteToMongo: false,
+    generatedAt: new Date().toISOString(),
+    source: {
+      browser: 'Chrome CDP',
+      linkedInUrl,
+      cdpUrl: args.cdpUrl,
+      pageClosed: cdpExtraction.pageClosed,
+      browserDisconnected: cdpExtraction.browserDisconnected,
+      dbName: null,
+      collectionName: null,
+    },
+    builder: {
+      _id: String(builder._id),
+      name: builder.name,
+      email: builder.email,
+      existingProfile: builder,
+    },
+    copiedLinkedInTextExcerpt: cdpExtraction.rawText.slice(0, 5000),
+    extracted,
+    ...diff,
+  };
+
+  await mkdir(OUTPUT_DIR, { recursive: true });
+  const outputPath = `${OUTPUT_DIR}/${builder._id}.json`;
+  await writeFile(outputPath, `${JSON.stringify(output, null, 2)}\n`, 'utf8');
+
+  return {
+    outputPath,
+    builderId: String(builder._id),
+    name: builder.name,
+    linkedInUrl,
+    extractedTextLength: cdpExtraction.rawText.length,
+    pageClosed: cdpExtraction.pageClosed,
+    browserDisconnected: cdpExtraction.browserDisconnected,
+    warnings: extracted.warnings,
+    proposedSetFields: Object.keys(output.proposedMongoUpdate.$set || {}),
+    proposedAddToSetFields: Object.keys(output.proposedMongoUpdate.$addToSet || {}),
+    proposedPushFields: Object.keys(output.proposedMongoUpdate.$push || {}),
+    extractedExperienceCount: extracted.experiences.length,
+    skipped: output.skipped,
+  };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   await loadLocalEnv();
-  const uri = getMongoUri();
-  if (!uri) throw new Error('Missing DEVLABS_MONGO_URI, ADMIN_MONGO_URI, or MONGODB_URI. Add it to .dev.vars, .env, or shell env.');
 
   await mkdir(OUTPUT_DIR, { recursive: true });
+
+  if (args.linkedInUrl) {
+    const result = await processLinkedInUrl(args);
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  const uri = getMongoUri();
+  if (!uri) throw new Error('Missing DEVLABS_MONGO_URI, ADMIN_MONGO_URI, or MONGODB_URI. Add it to .dev.vars, .env, or shell env.');
 
   if (args.all) {
     const runId = new Date().toISOString().replace(/[:.]/g, '-');

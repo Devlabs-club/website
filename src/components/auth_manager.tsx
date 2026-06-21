@@ -7,7 +7,10 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin' | 'founder';
+  role: 'user' | 'admin' | 'founder' | 'builder';
+  accountType?: 'founder' | 'builder' | null;
+  onboardingStatus?: string | null;
+  avatarUrl?: string | null;
   createdAt?: string;
 }
 

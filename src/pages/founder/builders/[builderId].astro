@@ -1,0 +1,10 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import BuilderFullProfilePage from "../../../components/founder/BuilderFullProfilePage";
+
+const builderId = Astro.params.builderId || "";
+---
+
+<AppLayout title="Builder profile · DevLabs">
+  <BuilderFullProfilePage builderId={builderId} client:load />
+</AppLayout>

@@ -66,7 +66,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
-          role: user.role
+          role: user.role,
+          accountType: user.accountType ?? null,
+          onboardingStatus: user.onboardingStatus ?? null,
+          avatarUrl: user.avatarUrl ?? null,
         },
         token
       }),

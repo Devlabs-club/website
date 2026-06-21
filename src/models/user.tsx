@@ -6,11 +6,16 @@ export interface IUser {
   name: string;
   email: string;
   password: string;
-  role: 'user' | 'admin' | 'founder';
+  role: 'user' | 'admin' | 'founder' | 'builder';
+  /** Chosen on the role-selection screen after auth. Drives onboarding routing. */
+  accountType?: 'founder' | 'builder' | null;
+  /** Where the user is in their onboarding flow, e.g. 'linkedin' | 'profile' | 'complete'. */
+  onboardingStatus?: string | null;
   major?: string;
   resumeUrl?: string;
   oauthProvider?: 'google' | null; // OAuth provider type
   oauthId?: string; // OAuth provider user ID
+  avatarUrl?: string | null;
   coolestThing?: string;
   hackathonStory?: string;
   additionalInfo?: string;
@@ -45,8 +50,21 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'founder'],
+    enum: ['user', 'admin', 'founder', 'builder'],
     default: 'user',
+  },
+  accountType: {
+    type: String,
+    enum: ['founder', 'builder', null],
+    default: null,
+  },
+  onboardingStatus: {
+    type: String,
+    default: null,
+  },
+  avatarUrl: {
+    type: String,
+    default: null,
   },
   major: {
     type: String,
