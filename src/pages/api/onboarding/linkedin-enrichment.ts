@@ -77,17 +77,22 @@ async function canReachCdp(cdpUrl: string) {
   }
 }
 
-async function ensureChromeCdp(cdpUrl: string) {
+function defaultChromeUserDataDir() {
+  if (process.platform === 'darwin') {
+    return `${process.env.HOME || ''}/Library/Application Support/Google/Chrome`;
+  }
+  return `${process.env.HOME || ''}/.config/google-chrome`;
+}
+
+async function ensureChromeCdp(cdpUrl: string, runtime?: Record<string, string | undefined>) {
   if (await canReachCdp(cdpUrl)) return { started: false };
 
   const { spawn } = await import('node:child_process');
-  const { mkdir } = await import('node:fs/promises');
-  const { join } = await import('node:path');
 
   const parsed = new URL(cdpUrl);
   const port = parsed.port || '9222';
-  const userDataDir = join(process.cwd(), '.context', 'chrome-linkedin-cdp');
-  await mkdir(userDataDir, { recursive: true });
+  const userDataDir = readEnv('CHROME_USER_DATA_DIR', runtime) || defaultChromeUserDataDir();
+  const profileDirectory = readEnv('CHROME_PROFILE_DIRECTORY', runtime) || 'Profile 1';
 
   const args =
     process.platform === 'darwin'
@@ -97,11 +102,13 @@ async function ensureChromeCdp(cdpUrl: string) {
           '--args',
           `--remote-debugging-port=${port}`,
           `--user-data-dir=${userDataDir}`,
+          `--profile-directory=${profileDirectory}`,
           'https://www.linkedin.com/feed/',
         ]
       : [
           `--remote-debugging-port=${port}`,
           `--user-data-dir=${userDataDir}`,
+          `--profile-directory=${profileDirectory}`,
           'https://www.linkedin.com/feed/',
         ];
 
@@ -115,7 +122,7 @@ async function ensureChromeCdp(cdpUrl: string) {
 
   const deadline = Date.now() + 12000;
   while (Date.now() < deadline) {
-    if (await canReachCdp(cdpUrl)) return { started: true };
+    if (await canReachCdp(cdpUrl)) return { started: true, profileDirectory };
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
@@ -320,7 +327,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     await connectAdminDB();
     const cdpUrl = readEnv('CHROME_CDP_URL', runtime) || 'http://127.0.0.1:9222';
-    const cdp = await ensureChromeCdp(cdpUrl);
+    const cdp = await ensureChromeCdp(cdpUrl, runtime);
     const result =
       accountType === 'founder'
         ? await enrichFounder(user, linkedInUrl, cdpUrl, runtime)

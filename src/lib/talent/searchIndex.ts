@@ -212,6 +212,50 @@ function buildSearchKeyRows(payload: any) {
   return [...rows.values()].slice(0, 180);
 }
 
+async function replaceTalentSearchKeys(builderId: any, keyRows: ReturnType<typeof buildSearchKeyRows>) {
+  const currentTerms = keyRows.map((row) => row.term);
+
+  if (keyRows.length) {
+    await upsertTalentSearchKeyRows(keyRows);
+  }
+
+  await TalentSearchKey.deleteMany({
+    builderId,
+    ...(currentTerms.length ? { term: { $nin: currentTerms } } : {}),
+  });
+}
+
+async function upsertTalentSearchKeyRows(keyRows: ReturnType<typeof buildSearchKeyRows>) {
+  try {
+    await TalentSearchKey.bulkWrite(
+      keyRows.map((row) => ({
+        updateOne: {
+          filter: { builderId: row.builderId, term: row.term },
+          update: { $set: row },
+          upsert: true,
+        },
+      })),
+      { ordered: false }
+    );
+  } catch (error: any) {
+    const duplicate =
+      error?.code === 11000 ||
+      error?.writeErrors?.some((writeError: any) => writeError?.code === 11000);
+    if (!duplicate) throw error;
+
+    await TalentSearchKey.bulkWrite(
+      keyRows.map((row) => ({
+        updateOne: {
+          filter: { builderId: row.builderId, term: row.term },
+          update: { $set: row },
+          upsert: false,
+        },
+      })),
+      { ordered: false }
+    );
+  }
+}
+
 export function buildSearchableBuilderFilter(extra: Record<string, unknown> = {}) {
   return {
     verificationStatus: { $in: SEARCHABLE_BUILDER_STATUSES },
@@ -306,9 +350,7 @@ export async function upsertTalentSearchIndexForBuilder(builderId: unknown) {
     { $set: payload },
     { upsert: true, new: true }
   );
-  await TalentSearchKey.deleteMany({ builderId: builder._id });
-  const keyRows = buildSearchKeyRows(payload);
-  if (keyRows.length) await TalentSearchKey.insertMany(keyRows, { ordered: false });
+  await replaceTalentSearchKeys(builder._id, buildSearchKeyRows(payload));
   return result;
 }
 
@@ -360,9 +402,20 @@ export async function backfillTalentSearchIndex(params: { limit?: number; batchS
       })),
       { ordered: false }
     );
-    await TalentSearchKey.deleteMany({ builderId: { $in: builderIds } });
     const keyRows = payloads.flatMap(buildSearchKeyRows);
-    if (keyRows.length) await TalentSearchKey.insertMany(keyRows, { ordered: false });
+    if (keyRows.length) {
+      await upsertTalentSearchKeyRows(keyRows);
+    }
+    const termsByBuilder = new Map<string, string[]>();
+    for (const row of keyRows) {
+      const id = String(row.builderId);
+      if (!termsByBuilder.has(id)) termsByBuilder.set(id, []);
+      termsByBuilder.get(id)!.push(row.term);
+    }
+    await Promise.all(builderIds.map((builderId) => TalentSearchKey.deleteMany({
+      builderId,
+      term: { $nin: termsByBuilder.get(String(builderId)) || [] },
+    })));
     updated += batch.length;
     processed += batch.length;
     lastId = batch[batch.length - 1]._id;

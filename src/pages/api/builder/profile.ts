@@ -61,6 +61,8 @@ function serializeProfile(profile: any, projects: any[] = []) {
       builderContribution: project.builderContribution || null,
       techStack: project.techStack || [],
       links: project.links || {},
+      source: project.source || 'manual',
+      sourceId: project.sourceId || null,
       verificationStatus: project.verificationStatus,
     })),
   };
@@ -72,7 +74,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   const id = url.searchParams.get('id');
   if (id) {
     if (!mongoose.Types.ObjectId.isValid(id)) return json({ success: false, error: 'Invalid builder id.' }, 400);
-    const profile = await BuilderProfile.findById(id).lean();
+    const profile = await BuilderProfile.findById(id).lean() as any;
     const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
     return json({ success: Boolean(profile), profile: serializeProfile(profile, projects) });
   }
@@ -82,7 +84,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
   const profile = await BuilderProfile.findOne({
     $or: [{ userId: user._id }, { email: user.email }],
-  }).lean();
+  }).lean() as any;
   const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
 
   return json({
@@ -157,33 +159,53 @@ export const PUT: APIRoute = async ({ request, locals }) => {
   );
 
   if (Array.isArray(body.projects)) {
+    const keptProjectIds: any[] = [];
+
     for (const [index, project] of body.projects.entries()) {
       const projectName = str(project.projectName);
       if (!projectName) continue;
-      await ProjectRecord.findOneAndUpdate(
-        { builderId: profile._id, source: 'manual', sourceId: project.sourceId || `manual-${index}` },
+
+      const existingProjectId =
+        str(project.id) && mongoose.Types.ObjectId.isValid(str(project.id)!)
+          ? new mongoose.Types.ObjectId(str(project.id)!)
+          : null;
+      const source = str(project.source) || 'manual';
+      const sourceId = str(project.sourceId) || `manual-${index}`;
+      const query = existingProjectId
+        ? { _id: existingProjectId, builderId: profile._id }
+        : { builderId: profile._id, source, sourceId };
+
+      const saved = await ProjectRecord.findOneAndUpdate(
+        query,
         {
           $set: {
             builderId: profile._id,
             projectName,
             description: str(project.description),
+            problemSolved: str(project.problemSolved),
             builderContribution: str(project.builderContribution),
             techStack: list(project.techStack),
             links: project.links || {},
-            source: 'manual',
-            sourceId: project.sourceId || `manual-${index}`,
+            source,
+            sourceId,
             verificationStatus: 'builder_confirmed',
           },
         },
         { upsert: true, new: true }
       );
+      if (saved?._id) keptProjectIds.push(saved._id);
     }
+
+    await ProjectRecord.deleteMany({
+      builderId: profile._id,
+      _id: { $nin: keptProjectIds },
+    });
   }
 
   await updateUserAccount(String(user._id), {
     role: 'builder',
     accountType: 'builder',
-    onboardingStatus: 'pending_verification',
+    onboardingStatus: 'refine',
     name: profile.name,
   }, runtime);
 

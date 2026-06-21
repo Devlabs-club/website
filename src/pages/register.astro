@@ -1,8 +1,10 @@
 ---
 const redirect = Astro.url.searchParams.get("redirect");
-const target = redirect
-  ? `/auth/signup?redirect=${encodeURIComponent(redirect)}`
-  : "/auth/signup";
+const target = new URL("/auth/signup", Astro.url);
+for (const key of ["redirect", "error", "reason"]) {
+  const value = Astro.url.searchParams.get(key);
+  if (value) target.searchParams.set(key, value);
+}
 
-return Astro.redirect(target);
+return Astro.redirect(`${target.pathname}${target.search}`);
 ---

@@ -13,7 +13,28 @@ const OrDivider = () => (
   </div>
 );
 
+function oauthErrorMessage(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const error = params.get("error");
+  const reason = params.get("reason");
+  if (!error) return null;
+
+  const messages: Record<string, string> = {
+    oauth_provider_disabled: "That sign-in provider is not enabled.",
+    oauth_init_failed: "Could not start Google sign-in. Check the local auth configuration and try again.",
+    oauth_provider_error: reason ? decodeURIComponent(reason) : "Google sign-in was cancelled or rejected.",
+    oauth_no_code: "Google sign-in did not return an authorization code.",
+    oauth_user_fetch_failed: "Google sign-in completed, but the user profile could not be loaded.",
+    oauth_callback_failed: "Google sign-in completed, but DevLabs could not finish creating your session.",
+  };
+
+  return messages[error] || "Sign-in failed. Please try again.";
+}
+
 export const AuthLoginPage: React.FC = () => {
+  const oauthError = oauthErrorMessage();
+
   return (
     <AuthProvider>
       <AuthShell>
@@ -22,6 +43,11 @@ export const AuthLoginPage: React.FC = () => {
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Log in to continue to DevLabs.
         </p>
+        {oauthError && (
+          <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {oauthError}
+          </p>
+        )}
 
         <div className="mt-8">
           <EmailAuthForm mode="login" />

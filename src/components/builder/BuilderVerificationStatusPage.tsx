@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AppTopBar } from "@/components/app/AppTopBar";
-import { CheckCircle2, Clock3, Loader2 } from "lucide-react";
+import { AuthProvider, useAuth } from "@/components/auth_manager";
+import { CheckCircle2, Clock3, Loader2, LogOut } from "lucide-react";
 
 type StatusProfile = {
   name?: string;
@@ -8,7 +9,8 @@ type StatusProfile = {
   profileCompletion?: { score?: number };
 };
 
-export const BuilderVerificationStatusPage: React.FC = () => {
+const BuilderVerificationStatusInner: React.FC = () => {
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<StatusProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +27,21 @@ export const BuilderVerificationStatusPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <AppTopBar right={<a href="/builder/profile" className="text-sm text-muted-foreground hover:text-foreground">Profile</a>} />
+      <AppTopBar
+        right={
+          <>
+            <a href="/builder/profile" className="text-sm text-muted-foreground hover:text-foreground">Profile</a>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </>
+        }
+      />
       <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-2xl items-center px-4 py-10">
         {loading ? (
           <div className="flex w-full justify-center text-muted-foreground">
@@ -58,5 +74,11 @@ export const BuilderVerificationStatusPage: React.FC = () => {
     </div>
   );
 };
+
+export const BuilderVerificationStatusPage: React.FC = () => (
+  <AuthProvider>
+    <BuilderVerificationStatusInner />
+  </AuthProvider>
+);
 
 export default BuilderVerificationStatusPage;

@@ -15,6 +15,7 @@ export const BuilderProfileRefinePage: React.FC = () => {
   const [intent, setIntent] = useState<(typeof options)[number]["id"]>("project");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
 
@@ -54,7 +55,24 @@ export const BuilderProfileRefinePage: React.FC = () => {
   };
 
   const save = async () => {
-    window.location.href = "/builder/home";
+    setSaving(true);
+    setStatus("Saving profile for founder discovery...");
+    try {
+      const res = await fetch("/api/builder/profile/refine", {
+        method: "PATCH",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.next || "/builder/home";
+      } else {
+        setStatus(data.error || "Could not save profile.");
+      }
+    } catch {
+      setStatus("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -114,8 +132,10 @@ export const BuilderProfileRefinePage: React.FC = () => {
               <button
                 type="button"
                 onClick={save}
-                className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground"
+                disabled={saving}
+                className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Save
               </button>
             </section>
