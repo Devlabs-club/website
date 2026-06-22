@@ -570,7 +570,8 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
       result.photo.score = dom.bestPhoto.score;
     }
 
-    if (/sign up|login|authwall|checkpoint/i.test(`${dom.title}\n${dom.text}`)) {
+    const authProbe = `${dom.title}\n${String(dom.text || '').slice(0, 600)}`;
+    if (/sign in|sign up|join now|authwall|checkpoint|log in to view/i.test(authProbe)) {
       result.warning = `LinkedIn appears to be showing login/authwall content. Page title: ${dom.title || 'unknown'}`;
     } else if (!result.rawText.trim()) {
       result.warning = 'CDP extraction returned no page text.';

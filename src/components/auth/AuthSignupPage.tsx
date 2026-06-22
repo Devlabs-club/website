@@ -27,7 +27,7 @@ export const AuthSignupPage: React.FC = () => {
         <div className="mt-8">
           <EmailAuthForm mode="signup" />
           <OrDivider />
-          <SocialRow />
+          <SocialRow label="Sign up with Google" />
         </div>
 
         <p className="mt-8 text-center text-xs text-muted-foreground">

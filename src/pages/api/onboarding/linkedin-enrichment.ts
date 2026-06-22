@@ -3,7 +3,11 @@ import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { findUserById, updateUserAccount } from '@/lib/adminMongo';
-import { readEnv, runtimeEnvFromLocals } from '@/lib/workosEnv';
+import { runtimeEnvFromLocals } from '@/lib/workosEnv';
+import {
+  requireRemoteLinkedInScraperConfig,
+  runRequiredRemoteLinkedInScraperScript,
+} from '@/lib/remoteLinkedInScraper';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
 
@@ -66,93 +70,12 @@ async function resolveUser(request: Request, locals: App.Locals) {
   return { user: await findUserById(decoded.userId, runtime), runtime };
 }
 
-async function canReachCdp(cdpUrl: string) {
-  try {
-    const response = await fetch(`${cdpUrl.replace(/\/$/, '')}/json/version`, {
-      signal: AbortSignal.timeout(1500),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-function defaultChromeUserDataDir() {
-  if (process.platform === 'darwin') {
-    return `${process.env.HOME || ''}/Library/Application Support/Google/Chrome`;
-  }
-  return `${process.env.HOME || ''}/.config/google-chrome`;
-}
-
-async function ensureChromeCdp(cdpUrl: string, runtime?: Record<string, string | undefined>) {
-  if (await canReachCdp(cdpUrl)) return { started: false };
-
-  const { spawn } = await import('node:child_process');
-
-  const parsed = new URL(cdpUrl);
-  const port = parsed.port || '9222';
-  const userDataDir = readEnv('CHROME_USER_DATA_DIR', runtime) || defaultChromeUserDataDir();
-  const profileDirectory = readEnv('CHROME_PROFILE_DIRECTORY', runtime) || 'Profile 1';
-
-  const args =
-    process.platform === 'darwin'
-      ? [
-          '-na',
-          'Google Chrome',
-          '--args',
-          `--remote-debugging-port=${port}`,
-          `--user-data-dir=${userDataDir}`,
-          `--profile-directory=${profileDirectory}`,
-          'https://www.linkedin.com/feed/',
-        ]
-      : [
-          `--remote-debugging-port=${port}`,
-          `--user-data-dir=${userDataDir}`,
-          `--profile-directory=${profileDirectory}`,
-          'https://www.linkedin.com/feed/',
-        ];
-
-  const command = process.platform === 'darwin' ? 'open' : 'google-chrome';
-  const child = spawn(command, args, {
-    cwd: process.cwd(),
-    detached: true,
-    stdio: 'ignore',
-  });
-  child.unref();
-
-  const deadline = Date.now() + 12000;
-  while (Date.now() < deadline) {
-    if (await canReachCdp(cdpUrl)) return { started: true, profileDirectory };
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-
-  throw new Error('Chrome CDP did not start on port 9222. Open Chrome with remote debugging and try again.');
-}
-
-async function runCdpScript(scriptName: string, args: string[]) {
-  const { execFile } = await import('node:child_process');
-  const { readFile } = await import('node:fs/promises');
-
-  const stdout = await new Promise<string>((resolve, reject) => {
-    execFile(process.execPath, [`scripts/${scriptName}`, ...args], {
-      cwd: process.cwd(),
-      env: process.env,
-      timeout: 75000,
-      maxBuffer: 1024 * 1024 * 80,
-    }, (error, out, err) => {
-      if (error) {
-        reject(new Error(err || out || error.message));
-        return;
-      }
-      resolve(out);
-    });
-  });
-
-  const start = stdout.lastIndexOf('\n{');
-  const jsonText = start >= 0 ? stdout.slice(start + 1) : stdout.slice(stdout.indexOf('{'));
-  const summary = JSON.parse(jsonText);
-  const artifact = summary.outputPath ? JSON.parse(await readFile(summary.outputPath, 'utf8')) : null;
-  return { summary, artifact };
+async function runCdpScript(
+  scriptName: string,
+  args: string[],
+  runtime?: Record<string, string | undefined>
+) {
+  return runRequiredRemoteLinkedInScraperScript(scriptName, args, runtime);
 }
 
 function applyableUpdate(artifact: any, linkedInUrl: string) {
@@ -198,7 +121,7 @@ async function enrichBuilder(user: any, linkedInUrl: string, cdpUrl: string, run
     cdpUrl,
     '--wait-ms',
     '12000',
-  ]);
+  ], runtime);
 
   if (artifact?.proposedMongoUpdate) {
     await BuilderProfile.updateOne({ _id: builder._id }, applyableUpdate(artifact, linkedInUrl));
@@ -233,7 +156,7 @@ async function enrichFounder(user: any, linkedInUrl: string, cdpUrl: string, run
     cdpUrl,
     '--wait-ms',
     '12000',
-  ]);
+  ], runtime);
 
   const extracted = artifact?.extracted || {};
   const allExperiences = Array.isArray(extracted.experiences) ? extracted.experiences : [];
@@ -326,8 +249,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     await connectAdminDB();
-    const cdpUrl = readEnv('CHROME_CDP_URL', runtime) || 'http://127.0.0.1:9222';
-    const cdp = await ensureChromeCdp(cdpUrl, runtime);
+    const cdpUrl = 'http://127.0.0.1:9222';
+    const remoteScraper = requireRemoteLinkedInScraperConfig(runtime);
+    const cdp = { started: false, remote: true, url: remoteScraper.url };
     const result =
       accountType === 'founder'
         ? await enrichFounder(user, linkedInUrl, cdpUrl, runtime)

@@ -1,4 +1,4 @@
-// Zo "http" scraper service.
+// LinkedIn scraper service.
 // Wraps the existing CDP enrichment scripts behind a tiny authenticated HTTP API
 // so the website's onboarding routes can trigger scraping on this remote box
 // (which holds the logged-in LinkedIn Chromium) instead of running it locally.
@@ -7,11 +7,11 @@
 // run it against 127.0.0.1:9222, then return { summary, artifact }.
 //
 // Env:
-//   PORT                injected by Zo for http services
-//   ZO_SCRAPER_SECRET   shared bearer token; must match the website
-//   MONGODB_URI         needed by scripts when called with --builderId
-//   CHROME_CDP_URL      defaults to http://127.0.0.1:9222
-//   GITHUB_TOKEN        used by the github enricher path (API token, no browser)
+//   PORT                      public platform port, or 6090 for direct local use
+//   LINKEDIN_SCRAPER_SECRET   shared bearer token; must match the website
+//   MONGODB_URI               needed by scripts when called with --builderId
+//   CHROME_CDP_URL            defaults to http://127.0.0.1:9222
+//   GITHUB_TOKEN              used by the github enricher path (API token, no browser)
 
 import { execFile } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
@@ -23,7 +23,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, '..');
 
 const PORT = Number(process.env.PORT || 6090);
-const SECRET = process.env.ZO_SCRAPER_SECRET || '';
+const SECRET = process.env.LINKEDIN_SCRAPER_SECRET || '';
 const CDP_URL = process.env.CHROME_CDP_URL || 'http://127.0.0.1:9222';
 
 // Only these scripts may be invoked.
@@ -124,5 +124,5 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[zo-scraper] listening on :${PORT}  cdp=${CDP_URL}  auth=${SECRET ? 'on' : 'OFF'}`);
+  console.log(`[linkedin-scraper] listening on :${PORT}  cdp=${CDP_URL}  auth=${SECRET ? 'on' : 'OFF'}`);
 });

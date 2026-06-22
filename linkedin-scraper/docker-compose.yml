@@ -1,14 +1,14 @@
 # Local test / VPS deploy. Single public port (nginx). Persistent volume for the
-# logged-in Chrome profile. Reads secrets from zo-deploy/.env (gitignored).
+# logged-in Chrome profile. Reads secrets from linkedin-scraper/.env (gitignored).
 #
-#   cd zo-deploy && docker compose up --build
+#   cd linkedin-scraper && docker compose up --build
 #   open http://localhost:8080/vnc.html   (password = VNC_PASSWORD)
 services:
   enrich-scraper:
     build:
       context: ..                       # repo root
-      dockerfile: zo-deploy/Dockerfile
-    env_file: .env                       # MONGODB_URI, GITHUB_TOKEN, ZO_SCRAPER_SECRET, VNC_PASSWORD…
+      dockerfile: linkedin-scraper/Dockerfile
+    env_file: .env                       # MONGODB_URI, GITHUB_TOKEN, LINKEDIN_SCRAPER_SECRET, VNC_PASSWORD
     environment:
       PORT: "8080"
     ports:

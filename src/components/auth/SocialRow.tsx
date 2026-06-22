@@ -15,35 +15,24 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const MicrosoftIcon = () => (
-  <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
-    <path fill="#F25022" d="M3 3h8.5v8.5H3z" />
-    <path fill="#7FBA00" d="M12.5 3H21v8.5h-8.5z" />
-    <path fill="#00A4EF" d="M3 12.5h8.5V21H3z" />
-    <path fill="#FFB900" d="M12.5 12.5H21V21h-8.5z" />
-  </svg>
-);
-
-const IconButton: React.FC<{ onClick?: () => void; disabled?: boolean; label: string; children: React.ReactNode }> = ({
+const GoogleAuthButton: React.FC<{ onClick?: () => void; disabled?: boolean; label: string }> = ({
   onClick,
   disabled,
   label,
-  children,
 }) => (
   <button
     type="button"
     onClick={onClick}
     disabled={disabled}
     aria-label={label}
-    title={label}
-    className="flex h-12 w-16 items-center justify-center rounded-xl border border-border bg-background transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+    className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
   >
-    {children}
+    <GoogleIcon />
+    <span>{disabled ? "Redirecting to Google..." : label}</span>
   </button>
 );
 
-/** Social provider icon row (Google, Microsoft). */
-export const SocialRow: React.FC = () => {
+export const SocialRow: React.FC<{ label?: string }> = ({ label = "Sign in with Google" }) => {
   const [redirecting, setRedirecting] = useState(false);
 
   const go = (path: string, provider?: "google") => {
@@ -56,14 +45,11 @@ export const SocialRow: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center gap-3">
-      <IconButton label="Continue with Google" disabled={redirecting} onClick={() => go("/api/auth/oauth/login", "google")}>
-        <GoogleIcon />
-      </IconButton>
-      <IconButton label="Microsoft (coming soon)" disabled>
-        <MicrosoftIcon />
-      </IconButton>
-    </div>
+    <GoogleAuthButton
+      label={label}
+      disabled={redirecting}
+      onClick={() => go("/api/auth/oauth/login", "google")}
+    />
   );
 };
 

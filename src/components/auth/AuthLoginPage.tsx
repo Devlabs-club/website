@@ -52,7 +52,7 @@ export const AuthLoginPage: React.FC = () => {
         <div className="mt-8">
           <EmailAuthForm mode="login" />
           <OrDivider />
-          <SocialRow />
+          <SocialRow label="Sign in with Google" />
         </div>
 
         <p className="mt-8 text-center text-xs text-muted-foreground">

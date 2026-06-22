@@ -1,4 +1,5 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
+import { runRemoteLinkedInScraperScript } from '@/lib/remoteLinkedInScraper';
 import { fetchUrlMarkdown, normalizeUrl } from './urlToMarkdown';
 import { urlForMarkdownFetch } from './urlForMarkdown';
 import {
@@ -167,6 +168,69 @@ async function refineWithLlm(rawText: string, draft: EnrichedProfileDraft): Prom
   };
 }
 
+function eachValues(value: any): string[] {
+  if (Array.isArray(value?.$each)) return value.$each.map(String);
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === 'string') return [value];
+  return [];
+}
+
+function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): EnrichedProfileDraft {
+  const proposed = artifact?.proposedMongoUpdate || {};
+  const set = proposed.$set || {};
+  const addToSet = proposed.$addToSet || {};
+  const push = proposed.$push || {};
+  const experiences = Array.isArray(push.experiences?.$each)
+    ? push.experiences.$each
+    : Array.isArray(artifact?.extracted?.experiences)
+      ? artifact.extracted.experiences
+      : undefined;
+  const education = Array.isArray(artifact?.extracted?.education) ? artifact.extracted.education : undefined;
+
+  return {
+    headline: typeof set.headline === 'string' ? set.headline : null,
+    bio: typeof set.bio === 'string' ? set.bio : null,
+    location: typeof set.location === 'string' ? set.location : null,
+    graduationYear: typeof set.graduationYear === 'number' ? set.graduationYear : null,
+    rolePreference: eachValues(addToSet.rolePreference).slice(0, 20),
+    experiences: Array.isArray(experiences) ? experiences.slice(0, 10) : undefined,
+    education: Array.isArray(education) ? education.slice(0, 6) : undefined,
+    links: { linkedin: linkedinUrl },
+  };
+}
+
+async function enrichFromRemoteCdp(builder: any, normalizedUrl: string): Promise<SourceEnrichmentResult | null> {
+  const args = builder?._id
+    ? ['--builderId', String(builder._id), '--wait-ms', '12000']
+    : [
+        '--linkedin-url',
+        normalizedUrl,
+        '--name',
+        String(builder?.name || builder?.email || 'Builder'),
+        '--wait-ms',
+        '12000',
+      ];
+
+  const result = await runRemoteLinkedInScraperScript('enrich-builder-linkedin-cdp.mjs', args);
+  if (!result) return null;
+
+  const artifact = result.artifact;
+  const extracted = artifact?.extracted || {};
+  return {
+    source: 'linkedin',
+    profile: profileDraftFromCdpArtifact(artifact, normalizedUrl),
+    meta: {
+      mode: 'remote_chrome_cdp',
+      summary: result.summary,
+      artifactPath: result.summary?.outputPath || null,
+      profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
+      extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
+      extractedEducationCount: Array.isArray(extracted.education) ? extracted.education.length : 0,
+      warnings: artifact?.warnings || extracted?.warnings || [],
+    },
+  };
+}
+
 export async function enrichFromLinkedIn(builder: any): Promise<SourceEnrichmentResult> {
   const linkedinUrl = builder?.links?.linkedin;
   if (!linkedinUrl) {
@@ -176,6 +240,13 @@ export async function enrichFromLinkedIn(builder: any): Promise<SourceEnrichment
   const normalizedUrl = normalizeLinkedInUrl(linkedinUrl);
   if (!normalizedUrl) {
     return { source: 'linkedin', errors: ['invalid_linkedin_url'] };
+  }
+
+  try {
+    const remote = await enrichFromRemoteCdp(builder, normalizedUrl);
+    if (remote) return remote;
+  } catch (err) {
+    console.warn('[linkedin] remote CDP enrichment failed, falling back', err);
   }
 
   try {

@@ -8,6 +8,9 @@ export PORT
 
 # Persistent volume: Chrome profile (the logged-in LinkedIn session) + VNC password.
 mkdir -p /data/chrome-profile
+rm -f /data/chrome-profile/SingletonCookie \
+      /data/chrome-profile/SingletonLock \
+      /data/chrome-profile/SingletonSocket
 
 # (Re)write the VNC password file from the env var on every boot.
 x11vnc -storepasswd "$VNC_PASSWORD" /data/vnc.passwd >/dev/null
@@ -17,4 +20,4 @@ x11vnc -storepasswd "$VNC_PASSWORD" /data/vnc.passwd >/dev/null
 envsubst '${PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
 
 echo "[entrypoint] starting supervisord (public port=$PORT)"
-exec supervisord -c /etc/supervisor/zo.conf
+exec supervisord -c /etc/supervisor/linkedin-scraper.conf
