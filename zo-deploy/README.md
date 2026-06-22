@@ -1,4 +1,43 @@
-# Running the LinkedIn CDP scraper + enrichment on Zo Computer
+# Running the LinkedIn CDP scraper + enrichment
+
+Two ways to host the logged-in-Chromium scraper:
+- **Zo Computer** — manual service setup (sections below).
+- **Docker** (Railway / Fly / VPS) — single image, `zo-deploy/Dockerfile` (see "Docker deploy").
+
+Either way the architecture is identical; only the hosting differs.
+
+## Docker deploy (Railway / Fly / VPS)
+
+One image bundles Chromium + Xvfb + x11vnc + noVNC + the scraper API, fronted by nginx on a
+**single public port** (path-routed: `/` → noVNC viewer, `/run` + `/health` → scraper API).
+
+**Hosting requirement — read this:** the LinkedIn session lives in the Chrome profile on a
+**persistent `/data` volume**. The host must keep a **long-running container with a persistent
+volume**. ✅ Railway, Fly.io, a VPS. ❌ **Cloudflare Workers/Pages** (no containers at all) and
+❌ **Cloudflare Containers** (ephemeral disk → you'd lose the login + redo 2FA on every redeploy).
+
+Build context is the **repo root**:
+```bash
+docker build -f zo-deploy/Dockerfile -t enrich-scraper .
+# local test:
+cd zo-deploy && docker compose up --build
+open http://localhost:8080/vnc.html      # password = VNC_PASSWORD from zo-deploy/.env
+```
+
+Required env (set as platform variables, or zo-deploy/.env for compose):
+`MONGODB_URI`, `ADMIN_MONGO_URI`, `GITHUB_TOKEN`, `ZO_SCRAPER_SECRET`, `VNC_PASSWORD`.
+Mount a volume at **`/data`**. Public port comes from `$PORT` (nginx binds it).
+
+After deploy:
+1. Open `https://<your-domain>/vnc.html` → enter `VNC_PASSWORD` → sign into LinkedIn + 2FA once.
+2. `https://<your-domain>/health` → `{"ok":true,"cdp":true}`.
+3. Point the website at it: `ZO_SCRAPER_URL=https://<your-domain>` + matching `ZO_SCRAPER_SECRET`.
+
+### Railway quickstart
+1. New service → Deploy from this repo; set Dockerfile path `zo-deploy/Dockerfile` (root build context).
+2. Add a **Volume** mounted at `/data`.
+3. Add the env vars above. Railway injects `PORT` automatically.
+4. Generate a domain; use it as `ZO_SCRAPER_URL` on the website.
 
 ## The core idea
 
