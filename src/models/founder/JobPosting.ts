@@ -32,6 +32,10 @@ const JobPostingSchema = new mongoose.Schema(
 
     salary: { type: String, default: null },
     budget: { type: String, default: null },
+    equity: { type: String, default: 'No' },
+    equityConfirmed: { type: Boolean, default: false },
+    visa: { type: String, default: 'Yes' },
+    visaConfirmed: { type: Boolean, default: false },
     jobType: { type: String, default: null },
     workMode: { type: String, default: null },
     workType: { type: String, default: null },

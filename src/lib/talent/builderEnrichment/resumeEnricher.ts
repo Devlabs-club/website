@@ -125,16 +125,24 @@ export async function extractResumeData(buffer: Buffer, options?: { localPdfPath
     return { text, extracted: null, reason: 'openrouter_not_configured' as const };
   }
 
-  const responseText = await generateOpenRouterReply({
-    systemPrompt: RESUME_EXTRACT_PROMPT,
-    userPrompt: `Resume Text:\n\n${text.substring(0, 12000)}`,
-    temperature: 0.1,
-    maxTokens: 8192,
-    responseFormat: 'json_object',
-  });
+  try {
+    const responseText = await generateOpenRouterReply({
+      systemPrompt: RESUME_EXTRACT_PROMPT,
+      userPrompt: `Resume Text:\n\n${text.substring(0, 12000)}`,
+      temperature: 0.1,
+      maxTokens: 8192,
+      responseFormat: 'json_object',
+    });
 
-  const parsed = normalizeAlternateResumeSchema(parseJsonFromLlmResponse(responseText));
-  return { text, extracted: parsed, reason: null };
+    const parsed = normalizeAlternateResumeSchema(parseJsonFromLlmResponse(responseText));
+    return { text, extracted: parsed, reason: null };
+  } catch (error) {
+    return {
+      text,
+      extracted: null,
+      reason: error instanceof Error ? error.message : 'resume_llm_failed',
+    };
+  }
 }
 
 export function mapResumeExtractionToDraft(extracted: Record<string, unknown>): {

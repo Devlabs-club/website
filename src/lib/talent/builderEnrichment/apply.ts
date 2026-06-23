@@ -63,6 +63,64 @@ function mergeEducation(existing: any[] = [], incoming: any[] = []) {
   return Array.from(merged.values()).slice(0, 8);
 }
 
+function normalizeExperienceEntry(entry: any, index = 0) {
+  const title = typeof entry?.title === 'string' ? entry.title.trim() : '';
+  const company = typeof entry?.company === 'string' ? entry.company.trim() : '';
+  if (!title && !company) return null;
+
+  const source = typeof entry?.source === 'string' && entry.source.trim() ? entry.source.trim() : 'linkedin';
+  const sourceId =
+    typeof entry?.sourceId === 'string' && entry.sourceId.trim()
+      ? entry.sourceId.trim()
+      : `${source}:${[title, company, entry?.dateRange].map((v) => String(v || '').trim().toLowerCase()).join('|') || index}`;
+
+  return {
+    title: title || 'Builder',
+    company: company || 'Independent',
+    companyLogoUrl: typeof entry?.companyLogoUrl === 'string' && entry.companyLogoUrl.trim() ? entry.companyLogoUrl.trim() : null,
+    companyLinkedInUrl:
+      typeof entry?.companyLinkedInUrl === 'string' && entry.companyLinkedInUrl.trim()
+        ? entry.companyLinkedInUrl.trim()
+        : null,
+    employmentType:
+      typeof entry?.employmentType === 'string' && entry.employmentType.trim() ? entry.employmentType.trim() : null,
+    location: typeof entry?.location === 'string' && entry.location.trim() ? entry.location.trim() : null,
+    dateRange: typeof entry?.dateRange === 'string' && entry.dateRange.trim() ? entry.dateRange.trim() : null,
+    startDateLabel:
+      typeof entry?.startDateLabel === 'string' && entry.startDateLabel.trim() ? entry.startDateLabel.trim() : null,
+    endDateLabel: typeof entry?.endDateLabel === 'string' && entry.endDateLabel.trim() ? entry.endDateLabel.trim() : null,
+    duration: typeof entry?.duration === 'string' && entry.duration.trim() ? entry.duration.trim() : null,
+    description: typeof entry?.description === 'string' && entry.description.trim() ? entry.description.trim() : null,
+    skills: Array.isArray(entry?.skills)
+      ? entry.skills.map(String).map((skill: string) => skill.trim()).filter(Boolean)
+      : [],
+    isCurrent: Boolean(entry?.isCurrent),
+    source,
+    sourceId,
+    importedAt: entry?.importedAt || new Date(),
+  };
+}
+
+function experienceKey(entry: any) {
+  return String(entry?.sourceId || '')
+    || [entry?.title, entry?.company, entry?.dateRange]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .join('|');
+}
+
+function mergeExperiences(existing: any[] = [], incoming: any[] = []) {
+  const merged = new Map<string, any>();
+  for (const [index, entry] of existing.entries()) {
+    const normalized = normalizeExperienceEntry(entry, index);
+    if (normalized) merged.set(experienceKey(normalized), normalized);
+  }
+  for (const [index, entry] of incoming.entries()) {
+    const normalized = normalizeExperienceEntry(entry, index);
+    if (normalized) merged.set(experienceKey(normalized), normalized);
+  }
+  return Array.from(merged.values()).slice(0, 10);
+}
+
 export async function applyProfileDraft(
   builder: any,
   draft: EnrichedProfileDraft,
@@ -79,6 +137,10 @@ export async function applyProfileDraft(
     builder.bio = String(draft.bio).trim().slice(0, 2000);
     updated.push('bio');
   }
+  if (!isEmpty(draft.location) && (overwrite || isEmpty(builder.location))) {
+    builder.location = String(draft.location).trim().slice(0, 120);
+    updated.push('location');
+  }
   if (draft.rolePreference?.length) {
     const next = mergeSkills(builder.rolePreference || [], draft.rolePreference);
     if (next.length > (builder.rolePreference?.length || 0)) {
@@ -86,7 +148,7 @@ export async function applyProfileDraft(
       updated.push('rolePreference');
     }
   }
-  if (!isEmpty(draft.universityOrCompany) && isEmpty(builder.universityOrCompany)) {
+  if (!isEmpty(draft.universityOrCompany) && (overwrite || isEmpty(builder.universityOrCompany))) {
     builder.universityOrCompany = String(draft.universityOrCompany).trim();
     updated.push('universityOrCompany');
   }
@@ -97,8 +159,20 @@ export async function applyProfileDraft(
       updated.push('education');
     }
     const firstSchool = nextEducation.find((entry) => entry.school)?.school;
-    if (firstSchool && isEmpty(builder.universityOrCompany)) {
+    if (firstSchool && (overwrite || isEmpty(builder.universityOrCompany))) {
       builder.universityOrCompany = firstSchool;
+      updated.push('universityOrCompany');
+    }
+  }
+  if (draft.experiences?.length) {
+    const nextExperiences = mergeExperiences(builder.experiences || [], draft.experiences);
+    if (JSON.stringify(nextExperiences) !== JSON.stringify(builder.experiences || [])) {
+      builder.experiences = nextExperiences;
+      updated.push('experiences');
+    }
+    const current = nextExperiences.find((entry) => entry.isCurrent) || nextExperiences[0];
+    if (current?.company && isEmpty(builder.universityOrCompany)) {
+      builder.universityOrCompany = current.company;
       updated.push('universityOrCompany');
     }
   }
@@ -228,9 +302,9 @@ export async function refreshBuilderScores(
       builder: builder.toObject ? builder.toObject() : builder,
       projects,
     });
-  } else {
-    void upsertTalentSearchIndexForBuilder(builder._id);
   }
+
+  await upsertTalentSearchIndexForBuilder(builder._id);
 
   return builder;
 }

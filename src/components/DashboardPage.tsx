@@ -1,16 +1,6 @@
-import React, { useEffect, useState, type ComponentType } from 'react';
+import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from './auth_manager';
 import { AmbientBackground } from './ui/AmbientBackground';
-
-const CHUNK_RELOAD_KEY = 'devlabs:chunk-reload';
-
-type DashboardModule = { default: ComponentType<unknown> };
-
-const dashboardLoaders: Record<string, () => Promise<DashboardModule>> = {
-  admin: () => import('./AdminDashboard'),
-  founder: () => import('./founder/FounderOSDashboard'),
-  builder: () => import('./builder/BuilderOSDashboard'),
-};
 
 function clearStaticLoader() {
   document.getElementById('dashboard-static-loader')?.remove();
@@ -33,77 +23,15 @@ function WorkspaceLoader({ text }: { text: string }) {
   );
 }
 
-function loadDashboardModule(role: string): Promise<DashboardModule> {
-  const key = role === 'admin' ? 'admin' : role === 'founder' ? 'founder' : 'builder';
-  return dashboardLoaders[key]();
-}
-
-function RoleDashboard({ role }: { role: string }) {
-  const [Module, setModule] = useState<ComponentType<unknown> | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+function RoleRedirect({ role, accountType }: { role: string; accountType?: 'founder' | 'builder' | null }) {
   useEffect(() => {
-    let active = true;
-    let loaded = false;
-    const timeoutId = window.setTimeout(() => {
-      if (!active || loaded) return;
-      if (import.meta.env.DEV && !sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
-        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-        window.location.reload();
-        return;
-      }
-      setError('Workspace took too long to load. Try a hard refresh.');
-    }, 25_000);
+    if (role === 'admin') window.location.href = '/admin/talent-scout';
+    else if (accountType === 'founder' || role === 'founder') window.location.href = '/founder/home';
+    else if (accountType === 'builder' || role === 'builder') window.location.href = '/builder/home';
+    else window.location.href = '/auth/select-role';
+  }, [role, accountType]);
 
-    loadDashboardModule(role)
-      .then((mod) => {
-        if (!active) return;
-        loaded = true;
-        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-        setModule(() => mod.default);
-      })
-      .catch((err) => {
-        if (!active) return;
-        if (import.meta.env.DEV && !sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
-          sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-          window.location.reload();
-          return;
-        }
-        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-        setError(err instanceof Error ? err.message : 'Failed to load workspace');
-      })
-      .finally(() => {
-        clearTimeout(timeoutId);
-      });
-
-    return () => {
-      active = false;
-      clearTimeout(timeoutId);
-    };
-  }, [role]);
-
-  if (error) {
-    return (
-      <div className="relative min-h-screen text-white flex flex-col items-center justify-center gap-4 p-10 text-center">
-        <AmbientBackground />
-        <p className="relative z-10 text-amber-200 max-w-md">{error}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="relative z-10 px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold"
-        >
-          Reload
-        </button>
-      </div>
-    );
-  }
-
-  if (!Module) {
-    return <WorkspaceLoader text="Loading workspace" />;
-  }
-
-  const Dashboard = Module;
-  return <Dashboard />;
+  return <WorkspaceLoader text="Opening workspace" />;
 }
 
 function DashboardContent() {
@@ -112,7 +40,7 @@ function DashboardContent() {
   useEffect(() => {
     if (loading || user) return;
     const id = window.setTimeout(() => {
-      window.location.href = '/login?redirect=/dashboard';
+      window.location.href = '/auth/login?redirect=/dashboard';
     }, 400);
     return () => window.clearTimeout(id);
   }, [loading, user]);
@@ -130,7 +58,7 @@ function DashboardContent() {
           <button type="button" onClick={() => refreshAuth()} className="px-4 py-2 rounded-xl bg-[#fa7d22] text-black text-sm font-semibold">
             Retry
           </button>
-          <a href="/login?redirect=/dashboard" className="px-4 py-2 rounded-xl border border-white/20 text-sm">
+          <a href="/auth/login?redirect=/dashboard" className="px-4 py-2 rounded-xl border border-white/20 text-sm">
             Sign in again
           </a>
         </div>
@@ -147,7 +75,7 @@ function DashboardContent() {
     );
   }
 
-  return <RoleDashboard role={user.role} />;
+  return <RoleRedirect role={user.role} accountType={user.accountType} />;
 }
 
 export default function DashboardPage() {

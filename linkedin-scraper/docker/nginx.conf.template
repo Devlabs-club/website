@@ -1,0 +1,37 @@
+worker_processes 1;
+events { worker_connections 1024; }
+
+http {
+  access_log /dev/stdout;
+  error_log  /dev/stderr;
+
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+  }
+
+  server {
+    listen ${PORT};
+    client_max_body_size 5m;
+
+    # Scraper API (the website calls these).
+    location = /run {
+      proxy_pass http://127.0.0.1:6090;
+      proxy_read_timeout 180s;
+      proxy_send_timeout 180s;
+    }
+    location = /health {
+      proxy_pass http://127.0.0.1:6090;
+    }
+
+    # Everything else -> noVNC viewer (incl. /vnc.html and /websockify upgrade).
+    location / {
+      proxy_pass http://127.0.0.1:6080;
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 3600s;
+    }
+  }
+}

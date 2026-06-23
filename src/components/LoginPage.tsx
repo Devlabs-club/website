@@ -44,6 +44,7 @@ function LoginPageContent({
     if (error) {
       const errorMessages: Record<string, string> = {
         oauth_init_failed: 'Failed to initialize OAuth login. Please try again.',
+        oauth_provider_disabled: 'LinkedIn login is no longer supported. Continue with Google or email.',
         oauth_no_code: 'OAuth authorization was cancelled or failed.',
         oauth_state_mismatch: 'Security validation failed. Please try again.',
         oauth_user_fetch_failed: 'Failed to retrieve user information from Google.',

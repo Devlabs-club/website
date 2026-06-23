@@ -3,3 +3,5 @@ const proc = globalThis.process as NodeJS.Process & { emitWarning?: (...args: un
 if (proc && typeof proc.emitWarning !== 'function') {
   proc.emitWarning = () => {};
 }
+
+export {};

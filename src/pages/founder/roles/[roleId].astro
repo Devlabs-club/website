@@ -1,0 +1,10 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import FounderRoleWorkspacePage from "../../../components/founder/FounderRoleWorkspacePage";
+
+const roleId = Astro.params.roleId || "";
+---
+
+<AppLayout title="Role workspace · DevLabs">
+  <FounderRoleWorkspacePage roleId={roleId} client:load />
+</AppLayout>

@@ -30,7 +30,7 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
   try {
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
-    let redirectUrl = '/dashboard';
+    let redirectUrl = '/auth/select-role';
     let redirectParamStr = '';
 
     if (stateParam) {
@@ -48,8 +48,22 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
       }
     }
 
+    // WorkOS/the provider can redirect back with an error instead of a code — surface it.
+    const oauthError = url.searchParams.get('error');
+    const oauthErrorDescription = url.searchParams.get('error_description');
+    if (oauthError || oauthErrorDescription) {
+      console.error('OAuth callback: provider returned an error', {
+        provider: 'google',
+        error: oauthError,
+        error_description: oauthErrorDescription,
+        query: url.search,
+      });
+      const reason = encodeURIComponent(oauthErrorDescription || oauthError || 'oauth_provider_error');
+      return redirect(`/login?error=oauth_provider_error&reason=${reason}${redirectParamStr}`);
+    }
+
     if (!code) {
-      console.error('OAuth callback: No authorization code provided');
+      console.error('OAuth callback: No authorization code provided', { provider: 'google', query: url.search });
       return redirect(`/login?error=oauth_no_code${redirectParamStr}`);
     }
 
@@ -81,14 +95,24 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
         email: workosUser.email,
         name: nameFromWorkOSUser(workosUser),
         oauthId: workosUser.id,
+        provider: 'google',
       },
       runtime
     );
 
     const token = generateToken(user, runtime);
+    // Founders/builders go straight to their home; users who haven't picked a role yet
+    // honor the post-auth redirect (e.g. the onboarding "connect LinkedIn" next step),
+    // falling back to role selection.
+    const destination =
+      user.accountType === 'founder'
+        ? '/founder/home'
+        : user.accountType === 'builder'
+          ? '/builder/home'
+          : redirectUrl;
 
     const headers = new Headers();
-    headers.set('Location', redirectUrl);
+    headers.set('Location', destination);
     headers.append('Set-Cookie', `auth-token=${token}; ${authCookieFlags()}`);
     if (sealedSession) {
       headers.append('Set-Cookie', `wos-session=${sealedSession}; ${authCookieFlags()}`);

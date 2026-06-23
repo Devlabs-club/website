@@ -92,7 +92,10 @@ export const POST: APIRoute = async ({ request }) => {
           id: newUser._id,
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          accountType: newUser.accountType ?? null,
+          onboardingStatus: newUser.onboardingStatus ?? null,
+          avatarUrl: newUser.avatarUrl ?? null,
         },
         token
       }),

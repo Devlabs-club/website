@@ -8,7 +8,12 @@ export const GET: APIRoute = async ({ request, redirect, locals }) => {
   try {
     const url = new URL(request.url);
     const redirectParam = url.searchParams.get('redirect')?.trim();
-    const postAuthPath = redirectParam || '/dashboard';
+    const rawProvider = url.searchParams.get('provider')?.trim().toLowerCase();
+    if (rawProvider && rawProvider !== 'google') {
+      const redirectQuery = redirectParam ? `&redirect=${encodeURIComponent(redirectParam)}` : '';
+      return redirect(`/login?error=oauth_provider_disabled${redirectQuery}`);
+    }
+    const postAuthPath = redirectParam || '/auth/select-role';
     const workos = createWorkOS(runtime);
     const { clientId } = getWorkOSConfig(runtime);
     if (!clientId) throw new Error('WORKOS_CLIENT_ID missing');
@@ -17,7 +22,7 @@ export const GET: APIRoute = async ({ request, redirect, locals }) => {
       provider: 'GoogleOAuth',
       redirectUri: getOAuthRedirectUri(request, runtime),
       clientId,
-      state: JSON.stringify({ redirect: postAuthPath }),
+      state: JSON.stringify({ redirect: postAuthPath, provider: 'google' }),
       prompt: 'select_account',
     });
 

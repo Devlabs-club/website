@@ -43,6 +43,8 @@ type ChatToolCall = {
 };
 
 type RetrievalMode = 'cached_shortlist' | 'search_index' | 'semantic' | 'keyword_fallback' | 'limited_broad_fallback';
+const DEFAULT_EQUITY = 'No';
+const DEFAULT_VISA_SPONSORSHIP = 'Yes';
 
 function logFounderAgent(event: string, meta: Record<string, unknown> = {}) {
   console.info(`[founder-agent] ${event}`, meta);
@@ -59,28 +61,61 @@ function logFounderAgentError(event: string, error: unknown, meta: Record<string
 const SYSTEM_PROMPT = `You are the DevLabs founder hiring agent.
 
 Style:
-- Short, chill, Poke-like.
-- No long replies. Usually 1-3 sentences.
-- Say things like "Cool, I got it" only when useful.
+- Talk like a real person texting a founder, not an AI assistant. Warm, direct, a little casual. Never say things like "as an AI", "I'd be happy to", "let me assist you", or other assistant-speak.
+- Never use em-dashes (—) or en-dashes (–). Use a comma, a period, or split into two sentences instead.
+- Keep it short. A sentence or two per message, no walls of text.
+- You can send a few short messages in a row to feel human. Separate each one with a blank line and the app shows them as separate texts. Usually 1-2 bubbles, occasionally 3. Don't pad.
+- Say things like "Cool, got it" only when it actually adds something.
 - Ask one focused follow-up when a required detail is missing. Do not create the job in the same turn as that follow-up.
 
 Rules:
 - You have two jobs: conversation and tool use.
 - Use chat history and company/job context before asking.
 - One chat session maps to one role/job. Do not mix role context across sessions.
-- Use create_job only when you have enough detail for: role/title, what the builder will do, required skills/stack, company, and the founder's proof/preferences.
+- Be proactive: keep the founder moving toward a finished role brief and a builder search. Encourage them to complete the remaining fields, then say something like "let's find you the perfect builder."
+- Use create_job only when you have enough detail for: role/title, what the builder will do, required skills/stack, company, salary/compensation, visa sponsorship confirmation, equity confirmation, and the founder's proof/preferences.
 - Treat founder phrases like "I want to build a chat interface", "build the dashboard", or "work on the AI agent" as the builderWillDo/description. Do not ask "what will they do" again when the feature/product has already been named.
 - If scope is genuinely unclear, ask: "Is this builder focused on a specific feature, or the broader product?" If they say broader product/product in general, use the saved company context to write the job description.
-- Before create_job, ask for missing skills/stack and ask for proof/preferences like experience level, internships, schools, project evidence, or "no preferences".
+- Before create_job, ask for missing skills/stack, salary/compensation, default visa sponsorship confirmation, default equity confirmation, and proof/preferences like experience level, internships, schools, project evidence, or "no preferences".
+- Default compensation policy: visa sponsorship is "Yes" and equity is "No". Confirm both with the founder in chat before creating the job or searching.
+- Use create_job and edit_job tool arguments as the structured JSON contract. Do not rely on hidden assumptions for salary, visa, equity, or responsibilities.
+- Auto-fill responsibilities from the company context, job description, and role title when the founder does not provide responsibilities. Do not ask for responsibilities just to create a job.
 - Keep preferences like "interned at big tech", "went to Stanford or Yale", "built a chat feature", or "strong design sense" as natural-language requirements/searchRequirements. Do not translate them into rigid fields or company lists.
 - Use searchRequirements with importance "must" for hard filters and "nice" for preferences. requirements can still be plain text when that is easier.
 - If create_job says needsFollowup, ask that follow-up and wait for the founder's answer. Never infer missing required fields just because a follow-up was already asked.
 - Use fetch_jobs when the founder asks what jobs/roles exist.
 - Use fetch_job when the founder asks about one specific job.
 - Use search_talent when the founder asks to find/search/match candidates for the current job.
-- Use edit_job when they want to change a job. The tool reruns search when possible.
+- Use edit_job when they want to change a job. It reruns search only when the brief is already solid; on a thin/pre-created role it just saves the change so you can keep gathering. After editing a thin role (e.g. a title change), do NOT claim you pulled builders. Ask the next gathering question instead.
+- When currentJob exists and the founder answers salary, visa sponsorship, or equity confirmation, use edit_job to persist those fields before calling search_talent.
 - Use update_company_info when they change company name, mission, product, website, industry, funding, or location.
-- Do not mention tools unless the action matters to the founder.`;
+- Do not mention tools unless the action matters to the founder.
+
+Your capabilities (know these so you ask the right questions):
+- edit_job lets you set: title, description, required skills/stack (skillsNeeded), nice-to-have skills, responsibilities, salary, equity, visa, job type, work mode, location.
+- searchRequirements capture founder preferences with importance "must" (hard filter) or "nice" (preference). Specific, concrete requirements directly change who the search surfaces.
+- search_talent runs the builder search. It ranks builders by real proof-of-work — their projects, verified skills, and GitHub/demo evidence — against this role's description, skills, and requirements.
+- fetch_jobs / fetch_job read roles; update_company_info edits the company profile.
+- The search is only as good as the brief. A thin brief returns weak matches. Gather strong, specific signal before you search.
+
+Roles pre-created from quick intake:
+- Some roles are created from a fast 3-question intake (role title, stack, compensation) BEFORE this chat opens. They start thin: short or empty description, only a couple of skills, no preferences. Check roleReadiness in the context.
+- When the role is thin, do NOT jump straight to search just because compensation is set. First proactively gather, one focused question per turn, persisting each answer with edit_job:
+  1. A real job description — what will the builder actually build and own? The product, feature, or problem.
+  2. Required experience/seniority and any must-have qualifications.
+  3. Preferences that sharpen the search: domain experience, internships/companies, schools, specific project evidence, or an explicit "no preferences". Save these as searchRequirements.
+  4. Any nice-to-have skills beyond the core stack.
+- Be proactive and thorough on behalf of the founder: ask as many high-signal questions as are genuinely useful to find the best builder, but stop once the brief is solid — don't over-ask.
+
+Starting the search:
+- When you tell the founder you'll find/search for a builder (e.g. "let's find you the perfect builder"), you MUST call search_talent in that same turn. Never announce a search without actually running it.
+- Only announce and run the search once the brief is solid (real description + skills + at least one round of preferences) and the founder is ready.
+- When the founder confirms the visa/equity defaults (e.g. "yes"), persist it with edit_job or just call search_talent. Do not ask the same visa/equity confirmation again once they've answered it.
+
+Talking about search results:
+- Never tell the founder there are "no strong matches", "weak matches", or that the results aren't great. Don't grade the results down.
+- If there are strong matches, you can say so (e.g. "found a couple of strong matches"). If there aren't, just say you've pulled together some builders for them to look at and keep it positive.
+- After a search runs, point them to the builders pane on the right. Don't repeat candidate counts over and over.`;
 
 const TOOLS: ToolDefinition[] = [
   {
@@ -106,7 +141,9 @@ const TOOLS: ToolDefinition[] = [
             },
           },
           responsibilities: { type: 'array', items: { type: 'string' } },
-          salary: { type: 'string' },
+          salary: { type: 'string', description: 'Founder-provided salary or compensation range.' },
+          equity: { type: 'string', description: 'Equity policy. Defaults to No only after the founder confirms it.' },
+          visa: { type: 'string', description: 'Visa sponsorship policy. Defaults to Yes only after the founder confirms it.' },
           jobType: { type: 'string' },
           workMode: { type: 'string' },
           location: { type: 'string' },
@@ -159,7 +196,9 @@ const TOOLS: ToolDefinition[] = [
             },
           },
           responsibilities: { type: 'array', items: { type: 'string' } },
-          salary: { type: 'string' },
+          salary: { type: 'string', description: 'Founder-provided salary or compensation range.' },
+          equity: { type: 'string', description: 'Equity policy. Defaults to No only after the founder confirms it.' },
+          visa: { type: 'string', description: 'Visa sponsorship policy. Defaults to Yes only after the founder confirms it.' },
           jobType: { type: 'string' },
           workMode: { type: 'string' },
           location: { type: 'string' },
@@ -469,6 +508,218 @@ function founderExplicitlySkippedPreferences(text: string) {
     && /\b(preferences?|requirements?|must[-\s]?haves?|nice[-\s]?to[-\s]?haves?|proof|background|internships?|schools?|projects?|experience|filters?)\b/i.test(normalized);
 }
 
+function normalizeEquity(value: unknown): string | null {
+  const text = cleanString(value);
+  if (!text) return null;
+  if (/^(no|none|nope|0|false|not offering|no equity)$/i.test(text)) return DEFAULT_EQUITY;
+  if (/^(yes|y|true)$/i.test(text)) return 'Yes';
+  return text;
+}
+
+function isAffirmative(text: string) {
+  return /^(yes|yeah|yep|correct|right|ok|okay|sounds good|confirmed|confirm|sure)$/i.test(text.trim());
+}
+
+function founderAffirmedPendingQuestion(text: string) {
+  const match = text.match(/founder replied:\s*"([^"]+)"/i);
+  return match ? isAffirmative(match[1]) : false;
+}
+
+function resolveEquity(args: Record<string, unknown>, userText: string, metadata: Record<string, any> = {}) {
+  const explicit = normalizeEquity(args.equity ?? args.equityOffered);
+  if (explicit) return { equity: explicit, confirmed: true };
+
+  const normalized = userText.toLowerCase();
+  if (/\b(no equity|without equity|equity is no|equity no|no stock|no options)\b/.test(normalized)) {
+    return { equity: DEFAULT_EQUITY, confirmed: true };
+  }
+  if ((metadata.defaultEquityConfirmationAsked || metadata.defaultCompensationConfirmationAsked) && isAffirmative(userText)) {
+    return { equity: DEFAULT_EQUITY, confirmed: true };
+  }
+  if (founderAffirmedPendingQuestion(userText) && /\bequity\s+(?:to|is)\s+no\b/i.test(userText)) {
+    return { equity: DEFAULT_EQUITY, confirmed: true };
+  }
+  if (metadata.defaultEquityConfirmed) {
+    return { equity: DEFAULT_EQUITY, confirmed: true };
+  }
+
+  return { equity: DEFAULT_EQUITY, confirmed: false };
+}
+
+function normalizeVisa(value: unknown): string | null {
+  const text = cleanString(value);
+  if (!text) return null;
+  if (/^(yes|y|true)$/i.test(text)) return DEFAULT_VISA_SPONSORSHIP;
+  if (/^(no|none|nope|false)$/i.test(text)) return 'No';
+  return text;
+}
+
+function resolveVisa(args: Record<string, unknown>, userText: string, metadata: Record<string, any> = {}) {
+  const explicit = normalizeVisa(args.visa ?? args.visaType ?? args.sponsorship ?? args.visaSponsorship);
+  if (explicit) return { visa: explicit, confirmed: true };
+
+  const normalized = userText.toLowerCase();
+  if (/\b(no visa|no sponsorship|without sponsorship|do not sponsor|don't sponsor)\b/.test(normalized)) {
+    return { visa: 'No', confirmed: true };
+  }
+  if ((metadata.defaultVisaConfirmationAsked || metadata.defaultCompensationConfirmationAsked) && isAffirmative(userText)) {
+    return { visa: DEFAULT_VISA_SPONSORSHIP, confirmed: true };
+  }
+  if (founderAffirmedPendingQuestion(userText) && /\bvisa sponsorship\s+(?:to|is)\s+yes\b/i.test(userText)) {
+    return { visa: DEFAULT_VISA_SPONSORSHIP, confirmed: true };
+  }
+  if (metadata.defaultVisaConfirmed) {
+    return { visa: DEFAULT_VISA_SPONSORSHIP, confirmed: true };
+  }
+
+  return { visa: DEFAULT_VISA_SPONSORSHIP, confirmed: false };
+}
+
+function createJobCompensationMessage(missing: string[]) {
+  const needsSalary = missing.includes('salary/compensation');
+  const needsVisa = missing.includes('visa sponsorship confirmation');
+  const needsEquity = missing.includes('equity confirmation');
+
+  if (needsSalary && needsVisa && needsEquity) {
+    return 'What salary range should I use? I can set visa sponsorship to Yes and equity to No if that works for you.';
+  }
+  if (needsSalary && needsVisa) {
+    return 'What salary range should I use? I can set visa sponsorship to Yes if that works.';
+  }
+  if (needsSalary && needsEquity) {
+    return 'What salary range should I use? I can set equity to No if that works.';
+  }
+  if (needsVisa && needsEquity) {
+    return 'Quick one before I search. Cool if I set visa sponsorship to Yes and equity to No?';
+  }
+  if (needsSalary) return 'What salary range should I use for this role?';
+  if (needsVisa) return 'Cool if I set visa sponsorship to Yes?';
+  if (needsEquity) return 'Cool if I set equity to No?';
+  return 'What compensation details should I use?';
+}
+
+/**
+ * Founder-facing message after a search runs. Never grades the results negatively
+ * or mentions "no strong matches" — surfaces strength only when it's good news.
+ */
+function searchResultMessage(search: any, prefix = ''): string {
+  const total = Number(search?.totalFound || 0);
+  const strong = Number(search?.strongCount || 0);
+  const head = prefix ? `${prefix} ` : '';
+  if (strong > 0) {
+    return `${head}I found ${strong} strong ${strong === 1 ? 'match' : 'matches'} for this role. They're in the builders pane on the right.`;
+  }
+  if (total > 0) {
+    return `${head}I pulled together some builders for this role. Take a look in the pane on the right and tell me what stands out.`;
+  }
+  return `${head}I just ran the search. Let's add a bit more detail to sharpen it. Anything specific on experience or background?`;
+}
+
+function compactDescription(value: string | null, fallback: string) {
+  const text = (value || fallback).replace(/\s+/g, ' ').trim();
+  return text.length > 110 ? `${text.slice(0, 107).trimEnd()}...` : text;
+}
+
+function parseJsonObject(value: string): Record<string, unknown> | null {
+  try {
+    return JSON.parse(value);
+  } catch {
+    const match = value.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function fallbackResponsibilitiesForJob(params: {
+  title?: string | null;
+  description?: string | null;
+  companyName?: string | null;
+  company?: any;
+  skills?: string[];
+}) {
+  const companyName = cleanString(params.companyName) || cleanString(params.company?.name) || 'the company';
+  const description = cleanString(params.description)
+    || cleanString(params.company?.productSummary)
+    || cleanString(params.company?.description)
+    || cleanString(params.title)
+    || 'the core product';
+  const text = description.toLowerCase();
+  const skills = (params.skills || []).slice(0, 4);
+  const responsibilities = new Set<string>();
+
+  responsibilities.add(`Ship production-ready work for ${compactDescription(description, 'the product')}.`);
+  if (/\b(chat|message|inbox|conversation|assistant|agent|ai)\b/.test(text)) {
+    responsibilities.add('Build reliable conversational flows, states, and product interactions.');
+  } else if (/\b(dashboard|analytics|admin|portal|crm)\b/.test(text)) {
+    responsibilities.add('Build clear dashboards, workflows, and data-driven product surfaces.');
+  } else if (/\b(mobile|ios|android|react native)\b/.test(text)) {
+    responsibilities.add('Build polished mobile experiences across core user flows.');
+  } else {
+    responsibilities.add(`Turn ${companyName}'s product requirements into shipped features.`);
+  }
+  if (skills.length) {
+    responsibilities.add(`Use ${skills.join(', ')} to implement, test, and iterate quickly.`);
+  }
+  responsibilities.add('Collaborate directly with the founder on scope, tradeoffs, and launch quality.');
+
+  return Array.from(responsibilities).slice(0, 5);
+}
+
+async function inferResponsibilitiesForJob(params: {
+  title?: string | null;
+  description?: string | null;
+  companyName?: string | null;
+  company?: any;
+  skills?: string[];
+}) {
+  const fallback = fallbackResponsibilitiesForJob(params);
+  if (!hasOpenRouterConfig()) return fallback;
+
+  const companyName = cleanString(params.companyName) || cleanString(params.company?.name) || 'the company';
+  const companyContext = [
+    cleanString(params.company?.productSummary),
+    cleanString(params.company?.description),
+    cleanString(params.company?.mission),
+    cleanString(params.company?.industry),
+  ].filter(Boolean).join(' ');
+
+  try {
+    const reply = await generateOpenRouterReply({
+      systemPrompt: 'Return only valid JSON in this shape: {"responsibilities":["short responsibility"]}. Write 3-5 concrete responsibilities for an early-stage startup builder role. Use the company context, role title, job description, and skills. Do not include markdown.',
+      userPrompt: JSON.stringify({
+        roleTitle: params.title || null,
+        jobDescription: params.description || null,
+        companyName,
+        companyContext,
+        skills: params.skills || [],
+      }),
+      temperature: 0.2,
+      maxTokens: 260,
+    });
+    const parsed = parseJsonObject(reply);
+    const responsibilities = cleanList((parsed as any)?.responsibilities).slice(0, 5);
+    return responsibilities.length ? responsibilities : fallback;
+  } catch (error) {
+    logFounderAgentError('responsibilities:generate_failed', error, {
+      title: params.title || null,
+      companyName,
+    });
+    return fallback;
+  }
+}
+
+function missingCompensationFields(job: any) {
+  const missing: string[] = [];
+  if (!cleanString(job?.salary) && !cleanString(job?.budget)) missing.push('salary/compensation');
+  if (job?.visaConfirmed !== true) missing.push('visa sponsorship confirmation');
+  if (job?.equityConfirmed !== true) missing.push('equity confirmation');
+  return missing;
+}
+
 function buildCompanyProductDescription(company: any): string | null {
   const companyName = cleanString(company?.name) || 'the company';
   const productContext = cleanString(company?.productSummary)
@@ -547,6 +798,10 @@ function serializeJob(job: any) {
     roleTitle: raw.roleTitle || raw.title,
     description: raw.description || raw.builderWillDo || raw.startupSummary || '',
     salary: raw.salary || raw.budget || null,
+    equity: raw.equity || DEFAULT_EQUITY,
+    equityConfirmed: raw.equityConfirmed === true,
+    visa: raw.visa || DEFAULT_VISA_SPONSORSHIP,
+    visaConfirmed: raw.visaConfirmed === true,
     jobType: raw.jobType || raw.workType || raw.roleType?.[0] || null,
     workMode: raw.workMode || raw.locationPreference || null,
     location: raw.location || raw.locationPreference || null,
@@ -650,7 +905,26 @@ async function appendMessage(params: {
   return message;
 }
 
-async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: SearchMode = 'balanced') {
+/**
+ * A role brief is "thin" (usually pre-created from the 3-question quick intake) until it
+ * has a real description, at least two skills, and at least one preference. We must not
+ * auto-run the builder search on a thin brief, e.g. when the founder only edits the title.
+ */
+function isJobBriefThin(job: any): boolean {
+  const description = String(job?.description || job?.builderWillDo || '').trim();
+  const skills = Array.isArray(job?.skillsNeeded) ? job.skillsNeeded : [];
+  const preferences = Array.isArray(job?.searchRequirements) ? job.searchRequirements : [];
+  const hasDescription = description.length > 40;
+  const hasPreferences = preferences.length > 0;
+  return !hasDescription || skills.length < 2 || !hasPreferences;
+}
+
+async function runSearchForJob(
+  identity: FounderIdentity,
+  job: any,
+  searchMode: SearchMode = 'balanced',
+  options: { force?: boolean } = {}
+) {
   const startedAt = Date.now();
   const oppPlain = typeof job.toObject === 'function' ? job.toObject() : job;
   const jobId = String(oppPlain._id || job._id || '');
@@ -712,7 +986,9 @@ async function runSearchForJob(identity: FounderIdentity, job: any, searchMode: 
 
   const lastSearchAt = job.lastSearchAt ? new Date(job.lastSearchAt) : null;
   const updatedAt = job.updatedAt ? new Date(job.updatedAt) : null;
-  if (lastSearchAt && updatedAt && updatedAt.getTime() <= lastSearchAt.getTime() + 5000) {
+  // `force` (used after an explicit edit) always re-runs so new requirements actually
+  // re-rank the shortlist instead of returning the previously cached candidates.
+  if (!options.force && lastSearchAt && updatedAt && updatedAt.getTime() <= lastSearchAt.getTime() + 5000) {
     const cachedShortlist = await Shortlist.findOne({ opportunityId: String(job._id) }).lean();
     if (cachedShortlist) {
       const publicShortlist = toPublicShortlist(cachedShortlist);
@@ -1015,11 +1291,15 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
   const title = cleanString(args.title) || cleanString(args.roleTitle);
   let description = cleanString(args.description) || cleanString(args.builderWillDo);
   const skills = cleanList(args.skillsNeeded);
+  const salary = cleanString(args.salary) || cleanString(args.budget) || cleanString(args.compensation);
   const companyName = cleanString(args.companyName) || company?.name || cleanString(args.company);
   const searchRequirements = mergeSearchRequirements(
     normalizeSearchRequirements(args.searchRequirements),
     normalizeSearchRequirements(args.requirements)
   );
+  const metadata = session.metadata || {};
+  const equityState = resolveEquity(args, userText, metadata);
+  const visaState = resolveVisa(args, userText, metadata);
   if (!description) {
     description = inferBuilderWillDoFromFounderText(userText, company);
   }
@@ -1039,8 +1319,12 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     skills.length ? null : 'skills',
     companyName ? null : 'company',
   ].filter(Boolean) as string[];
+  const compensationMissing = [
+    salary ? null : 'salary/compensation',
+    visaState.confirmed ? null : 'visa sponsorship confirmation',
+    equityState.confirmed ? null : 'equity confirmation',
+  ].filter(Boolean) as string[];
 
-  const metadata = session.metadata || {};
   if (missing.length) {
     session.metadata = {
       ...metadata,
@@ -1052,6 +1336,23 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
       needsFollowup: true,
       message: createJobMissingMessage(missing),
       missing,
+    };
+  }
+
+  if (compensationMissing.length) {
+    session.metadata = {
+      ...metadata,
+      createJobCompensationFollowupAsked: true,
+      defaultEquityConfirmationAsked: compensationMissing.includes('equity confirmation') || metadata.defaultEquityConfirmationAsked,
+      defaultVisaConfirmationAsked: compensationMissing.includes('visa sponsorship confirmation') || metadata.defaultVisaConfirmationAsked,
+      defaultCompensationConfirmationAsked: compensationMissing.includes('visa sponsorship confirmation') || compensationMissing.includes('equity confirmation') || metadata.defaultCompensationConfirmationAsked,
+      createJobMissingFields: compensationMissing,
+    };
+    await session.save();
+    return {
+      needsFollowup: true,
+      message: createJobCompensationMessage(compensationMissing),
+      missing: compensationMissing,
     };
   }
 
@@ -1072,6 +1373,15 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
   const finalTitle = title!;
   const finalDescription = description!;
   const finalCompany = companyName!;
+  const responsibilities = cleanList(args.responsibilities).length
+    ? cleanList(args.responsibilities)
+    : await inferResponsibilitiesForJob({
+        title: finalTitle,
+        description: finalDescription,
+        companyName: finalCompany,
+        company,
+        skills,
+      });
   const shaped = await shapeJobForTalentPool({
     title: finalTitle,
     description: finalDescription,
@@ -1081,7 +1391,7 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
       ...cleanList(args.requirements),
       ...searchRequirements.map((requirement) => requirement.text),
     ],
-    responsibilities: cleanList(args.responsibilities),
+    responsibilities,
     companyContext: [finalCompany, company?.productSummary, company?.description, company?.industry].filter(Boolean).join(' '),
   });
 
@@ -1103,9 +1413,14 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     matchingSkills: shaped.matchingSkills,
     requirements: cleanList(args.requirements),
     searchRequirements,
-    responsibilities: cleanList(args.responsibilities),
-    salary: cleanString(args.salary),
-    budget: cleanString(args.salary),
+    responsibilities,
+    deliverables: responsibilities,
+    salary,
+    budget: salary,
+    equity: equityState.equity,
+    equityConfirmed: equityState.confirmed,
+    visa: visaState.visa,
+    visaConfirmed: visaState.confirmed,
     jobType: cleanString(args.jobType),
     workType: cleanString(args.jobType),
     roleType: cleanString(args.jobType) ? [cleanString(args.jobType)] : [],
@@ -1124,6 +1439,12 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     createJobFollowupAsked: false,
     createJobMissingFields: [],
     createJobPreferenceFollowupAsked: false,
+    createJobCompensationFollowupAsked: false,
+    defaultEquityConfirmationAsked: false,
+    defaultVisaConfirmationAsked: false,
+    defaultCompensationConfirmationAsked: false,
+    defaultEquityConfirmed: equityState.confirmed && equityState.equity === DEFAULT_EQUITY,
+    defaultVisaConfirmed: visaState.confirmed && visaState.visa === DEFAULT_VISA_SPONSORSHIP,
   };
   await session.save();
 
@@ -1146,7 +1467,7 @@ async function toolFetchJob(identity: FounderIdentity, args: Record<string, unkn
   return { job: serializeJob(job) };
 }
 
-async function toolEditJob(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+async function toolEditJob(identity: FounderIdentity, args: Record<string, unknown>, session: any, userText = '') {
   const nestedFields = args.fields && typeof args.fields === 'object' ? args.fields as Record<string, unknown> : {};
   const mergedArgs = { ...nestedFields, ...args };
   const jobId = cleanString(mergedArgs.jobId) || cleanString(mergedArgs.opportunityId) || (session?.jobId ? String(session.jobId) : null);
@@ -1168,13 +1489,24 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   }
   const skills = cleanList(mergedArgs.skillsNeeded);
   if (skills.length) fields.skillsNeeded = skills;
-  const requirements = cleanList(mergedArgs.requirements);
-  if (requirements.length) fields.requirements = requirements;
-  const searchRequirements = mergeSearchRequirements(
+  // Accumulate preferences/requirements across turns instead of replacing them, so each
+  // new must-have (e.g. "worked at AWS") sharpens the search rather than wiping the
+  // earlier ones. Otherwise every edit re-runs the search against the same thin signal.
+  const newSearchRequirements = mergeSearchRequirements(
     normalizeSearchRequirements(mergedArgs.searchRequirements),
     normalizeSearchRequirements(mergedArgs.requirements)
   );
-  if (searchRequirements.length) fields.searchRequirements = searchRequirements;
+  if (newSearchRequirements.length) {
+    fields.searchRequirements = mergeSearchRequirements(
+      normalizeSearchRequirements(job.searchRequirements),
+      newSearchRequirements
+    );
+  }
+  const requirements = cleanList(mergedArgs.requirements);
+  if (requirements.length) {
+    const existingRequirements = cleanList(job.requirements);
+    fields.requirements = Array.from(new Set([...existingRequirements, ...requirements])).slice(0, 20);
+  }
   const responsibilities = cleanList(mergedArgs.responsibilities);
   if (responsibilities.length) {
     fields.responsibilities = responsibilities;
@@ -1186,6 +1518,22 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   if (salary) {
     fields.salary = salary;
     fields.budget = salary;
+  }
+  const equityState = resolveEquity(mergedArgs, userText, session?.metadata || {});
+  if (cleanString(mergedArgs.equity) || cleanString(mergedArgs.equityOffered)) {
+    fields.equity = equityState.equity;
+    fields.equityConfirmed = equityState.confirmed;
+  } else if ((session?.metadata?.defaultEquityConfirmationAsked || session?.metadata?.defaultCompensationConfirmationAsked) && equityState.confirmed) {
+    fields.equity = equityState.equity;
+    fields.equityConfirmed = true;
+  }
+  const visaState = resolveVisa(mergedArgs, userText, session?.metadata || {});
+  if (cleanString(mergedArgs.visa) || cleanString(mergedArgs.visaType) || cleanString(mergedArgs.sponsorship) || cleanString(mergedArgs.visaSponsorship)) {
+    fields.visa = visaState.visa;
+    fields.visaConfirmed = visaState.confirmed;
+  } else if ((session?.metadata?.defaultVisaConfirmationAsked || session?.metadata?.defaultCompensationConfirmationAsked) && visaState.confirmed) {
+    fields.visa = visaState.visa;
+    fields.visaConfirmed = true;
   }
   const jobType = cleanString(mergedArgs.jobType) || cleanString(mergedArgs.workType) || cleanString(mergedArgs.hireType);
   if (jobType) {
@@ -1219,6 +1567,17 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   if (status) fields.status = status;
 
   Object.assign(job, fields);
+  if ((!job.responsibilities || !job.responsibilities.length) && (!job.deliverables || !job.deliverables.length)) {
+    const inferredResponsibilities = await inferResponsibilitiesForJob({
+      title: job.title || job.roleTitle,
+      description: job.description || job.builderWillDo,
+      companyName: job.company,
+      company: job,
+      skills: job.skillsNeeded || [],
+    });
+    job.responsibilities = inferredResponsibilities;
+    job.deliverables = inferredResponsibilities;
+  }
   const shaped = await shapeJobForTalentPool({
     title: fields.title as string || job.title || job.roleTitle,
     description: fields.description as string || job.description,
@@ -1242,17 +1601,40 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   if (session) {
     session.jobId = job._id;
     session.title = job.title || job.roleTitle || session.title;
+    if (fields.equityConfirmed || fields.visaConfirmed) {
+      session.metadata = {
+        ...(session.metadata || {}),
+        defaultEquityConfirmationAsked: fields.equityConfirmed ? false : session.metadata?.defaultEquityConfirmationAsked,
+        defaultVisaConfirmationAsked: fields.visaConfirmed ? false : session.metadata?.defaultVisaConfirmationAsked,
+        defaultCompensationConfirmationAsked: fields.equityConfirmed && fields.visaConfirmed ? false : session.metadata?.defaultCompensationConfirmationAsked,
+        defaultEquityConfirmed: fields.equityConfirmed ? fields.equity === DEFAULT_EQUITY : session.metadata?.defaultEquityConfirmed,
+        defaultVisaConfirmed: fields.visaConfirmed ? fields.visa === DEFAULT_VISA_SPONSORSHIP : session.metadata?.defaultVisaConfirmed,
+      };
+    }
     await session.save();
   }
 
-  const search = await runSearchForJob(identity, job);
+  // Only auto-rerun the search when the brief is already solid. On a thin/pre-created
+  // role (e.g. the founder just changed the title), persist the edit but keep gathering
+  // detail instead of dumping match results before we've asked the real questions.
+  if (isJobBriefThin(job)) {
+    return {
+      job: serializeJob(job),
+      updatedFields: Object.keys(fields),
+      search: { skipped: true, reason: 'Role brief is still thin; gather more detail before searching.' },
+      searchSkippedThin: true,
+      message: 'Updated the role. Keep gathering the brief (description, then experience and preferences) before searching.',
+    };
+  }
+
+  const search = await runSearchForJob(identity, job, 'balanced', { force: true });
   return {
     job: serializeJob(job),
     updatedFields: Object.keys(fields),
     search,
     message: search.skipped
       ? 'Updated the job. Search needs a bit more detail before I rerun it.'
-      : `Updated the job and refreshed search: ${search.totalFound} candidates, ${search.strongCount} strong.`,
+      : searchResultMessage(search, 'Got it, updated the role.'),
   };
 }
 
@@ -1276,7 +1658,7 @@ async function toolUpdateCompany(identity: FounderIdentity, args: Record<string,
   return { company: serializeCompany(company), message: `Cool, updated ${company.name}.` };
 }
 
-async function toolSearchTalent(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+async function toolSearchTalent(identity: FounderIdentity, args: Record<string, unknown>, session: any, userText = '') {
   const jobId = cleanString(args.jobId) || cleanString(args.opportunityId) || (session?.jobId ? String(session.jobId) : null);
   if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) {
     logFounderAgent('tool:search_talent:invalid_job_id', { founderId: identity.founderId, args });
@@ -1289,9 +1671,66 @@ async function toolSearchTalent(identity: FounderIdentity, args: Record<string, 
     return { error: 'Job not found.' };
   }
 
+  // If the founder just confirmed the visa/equity defaults, persist that here so we don't
+  // loop on the same compensation question when the agent calls search_talent directly.
+  const metadata = session?.metadata || {};
+  let confirmationPersisted = false;
+  if (job.equityConfirmed !== true) {
+    const equityState = resolveEquity(args, userText, metadata);
+    if (equityState.confirmed) {
+      job.equity = job.equity || equityState.equity;
+      job.equityConfirmed = true;
+      confirmationPersisted = true;
+    }
+  }
+  if (job.visaConfirmed !== true) {
+    const visaState = resolveVisa(args, userText, metadata);
+    if (visaState.confirmed) {
+      job.visa = job.visa || visaState.visa;
+      job.visaConfirmed = true;
+      confirmationPersisted = true;
+    }
+  }
+  if (confirmationPersisted) await job.save();
+
+  const compensationMissing = missingCompensationFields(job);
+  if (compensationMissing.length) {
+    if (session) {
+      session.metadata = {
+        ...(session.metadata || {}),
+        createJobCompensationFollowupAsked: true,
+        defaultEquityConfirmationAsked: compensationMissing.includes('equity confirmation') || session.metadata?.defaultEquityConfirmationAsked,
+        defaultVisaConfirmationAsked: compensationMissing.includes('visa sponsorship confirmation') || session.metadata?.defaultVisaConfirmationAsked,
+        defaultCompensationConfirmationAsked: compensationMissing.includes('visa sponsorship confirmation') || compensationMissing.includes('equity confirmation') || session.metadata?.defaultCompensationConfirmationAsked,
+        createJobMissingFields: compensationMissing,
+      };
+      await session.save();
+    }
+    return {
+      needsFollowup: true,
+      missing: compensationMissing,
+      job: serializeJob(job),
+      message: createJobCompensationMessage(compensationMissing),
+    };
+  }
+
+  if ((!job.responsibilities || !job.responsibilities.length) && (!job.deliverables || !job.deliverables.length)) {
+    const inferredResponsibilities = await inferResponsibilitiesForJob({
+      title: job.title || job.roleTitle,
+      description: job.description || job.builderWillDo,
+      companyName: job.company,
+      company: job,
+      skills: job.skillsNeeded || [],
+    });
+    job.responsibilities = inferredResponsibilities;
+    job.deliverables = inferredResponsibilities;
+    await job.save();
+  }
+
   const rawMode = cleanString(args.searchMode);
   const searchMode: SearchMode = rawMode === 'broad' || rawMode === 'strict' ? rawMode : 'balanced';
-  const search = await runSearchForJob(identity, job, searchMode);
+  // Explicit search requests always re-run fresh rather than returning a cached shortlist.
+  const search = await runSearchForJob(identity, job, searchMode, { force: true });
 
   if (session) {
     session.jobId = job._id;
@@ -1305,7 +1744,7 @@ async function toolSearchTalent(identity: FounderIdentity, args: Record<string, 
     shortlist: (search as any).shortlist || null,
     message: search.skipped
       ? `Need a little more detail before I search: ${search.reason}`
-      : `Cool, I searched talent for ${job.title || job.roleTitle}. Found ${search.totalFound} candidates, ${search.strongCount} strong.`,
+      : searchResultMessage(search),
   };
 }
 
@@ -1331,10 +1770,10 @@ async function runTool(name: string, identity: FounderIdentity, session: any, ar
         result = await toolFetchJob(identity, args, session);
         break;
       case 'edit_job':
-        result = await toolEditJob(identity, args, session);
+        result = await toolEditJob(identity, args, session, userText);
         break;
       case 'search_talent':
-        result = await toolSearchTalent(identity, args, session);
+        result = await toolSearchTalent(identity, args, session, userText);
         break;
       case 'update_company_info':
         result = await toolUpdateCompany(identity, args);
@@ -1401,10 +1840,32 @@ export async function runFounderAgentChat(params: {
     .lean();
 
   const inferredBuilderWillDo = inferBuilderWillDoFromMessages(historyDocs, company);
+  const roleReadiness = currentJob
+    ? (() => {
+        const description = String(currentJob.description || currentJob.builderWillDo || '').trim();
+        const skills = Array.isArray(currentJob.skillsNeeded) ? currentJob.skillsNeeded : [];
+        const niceToHaves = Array.isArray(currentJob.niceToHaveSkills) ? currentJob.niceToHaveSkills : [];
+        const preferences = Array.isArray(currentJob.searchRequirements) ? currentJob.searchRequirements : [];
+        const hasDescription = description.length > 40;
+        const hasPreferences = preferences.length > 0;
+        const isThin = isJobBriefThin(currentJob);
+        return {
+          hasDescription,
+          hasPreferences,
+          hasNiceToHaves: niceToHaves.length > 0,
+          skillCount: skills.length,
+          isThin,
+          guidance: isThin
+            ? 'This role is still thin (likely pre-created from quick intake). Before searching, gather a real description, required experience/qualifications, and preferences (save as searchRequirements). Persist each answer with edit_job.'
+            : 'This role has a solid brief. Once the founder is ready, run search_talent.',
+        };
+      })()
+    : null;
   const context = {
     founder: { id: params.identity.founderId, name: params.identity.founderName, email: params.identity.email },
     company: serializeCompany(company),
     currentJob: serializeJob(currentJob),
+    roleReadiness,
     session: serializeSession(session),
     conversationSignals: {
       builderWillDo: inferredBuilderWillDo,
@@ -1520,6 +1981,17 @@ export async function runFounderAgentChat(params: {
       .lean(),
   ]);
 
+  // A search actually ran (via search_talent OR a job edit that reran search) and produced
+  // results — used by the UI to switch to the builders pane.
+  const searchRan = toolCalls.some((tool) => {
+    const result = tool.result as any;
+    if (!result || result.error || result.needsFollowup) return false;
+    return Boolean(result.search) && result.search.skipped !== true;
+  });
+  const searchNeedsFollowup = toolCalls.some(
+    (tool) => (tool.result as any)?.needsFollowup
+  );
+
   const response = {
     message: String(finalMessage),
     session: serializeSession(freshSession),
@@ -1527,6 +1999,8 @@ export async function runFounderAgentChat(params: {
     company: serializeCompany(freshCompany),
     history: freshMessages.map(serializeMessage),
     toolCalls,
+    searchRan,
+    searchNeedsFollowup,
     meta: { model: getOpenRouterChatModel(), iterations },
   };
   logFounderAgent('chat:done', {

@@ -11,8 +11,22 @@ export type LinkedInVoyagerProfile = {
   headline?: string;
   summary?: string;
   location?: string;
+  photoUrl?: string;
   skills: string[];
-  positions: Array<{ title?: string; company?: string; description?: string }>;
+  positions: Array<{
+    title?: string;
+    company?: string;
+    companyLogoUrl?: string;
+    companyLinkedInUrl?: string;
+    employmentType?: string;
+    location?: string;
+    dateRange?: string;
+    startDateLabel?: string;
+    endDateLabel?: string;
+    duration?: string;
+    description?: string;
+    isCurrent?: boolean;
+  }>;
   education: Array<{ school?: string; degree?: string; field?: string }>;
   rawText: string;
 };
@@ -227,6 +241,83 @@ function readLocalized(
   return undefined;
 }
 
+function extractVectorImageUrl(node: Record<string, unknown>): string | null {
+  const rootUrl = typeof node.rootUrl === 'string' ? node.rootUrl : null;
+  const artifacts = Array.isArray(node.artifacts) ? node.artifacts : [];
+  if (!rootUrl || !artifacts.length) return null;
+
+  const best = artifacts
+    .map((artifact) => artifact as Record<string, unknown>)
+    .filter((artifact) => typeof artifact.fileIdentifyingUrlPathSegment === 'string')
+    .sort((a, b) => Number(b.width || 0) - Number(a.width || 0))[0];
+
+  return best ? `${rootUrl}${best.fileIdentifyingUrlPathSegment}` : null;
+}
+
+function findLinkedInImageUrl(node: unknown, depth = 0): string | null {
+  if (depth > 8 || node == null) return null;
+
+  if (typeof node === 'string') {
+    return /^https:\/\/media\.licdn\.com\/dms\/image\//i.test(node) ? node : null;
+  }
+
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const found = findLinkedInImageUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  if (typeof node === 'object') {
+    const record = node as Record<string, unknown>;
+    const vector = extractVectorImageUrl(record);
+    if (vector) return vector;
+
+    for (const value of Object.values(record)) {
+      const found = findLinkedInImageUrl(value, depth + 1);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+function readDateLabel(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const record = value as Record<string, unknown>;
+  const year = typeof record.year === 'number' || typeof record.year === 'string' ? String(record.year) : '';
+  const monthValue = typeof record.month === 'number' || typeof record.month === 'string' ? Number(record.month) : null;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthValue && monthValue >= 1 && monthValue <= 12 ? months[monthValue - 1] : '';
+  return [month, year].filter(Boolean).join(' ') || undefined;
+}
+
+function readDateRange(node: Record<string, unknown>) {
+  const timePeriod =
+    (node.timePeriod && typeof node.timePeriod === 'object' ? node.timePeriod : null) ||
+    (node.dateRange && typeof node.dateRange === 'object' ? node.dateRange : null);
+  if (!timePeriod) return { startDateLabel: undefined, endDateLabel: undefined, dateRange: undefined, isCurrent: false };
+
+  const period = timePeriod as Record<string, unknown>;
+  const start = readDateLabel(period.startDate || period.start);
+  const end = readDateLabel(period.endDate || period.end);
+  const isCurrent = Boolean(start && !end);
+  const dateRange = start ? `${start} - ${end || 'Present'}` : undefined;
+
+  return { startDateLabel: start, endDateLabel: end, dateRange, isCurrent };
+}
+
+function readCompanyLinkedInUrl(node: Record<string, unknown>): string | undefined {
+  const universalName =
+    typeof node.companyUniversalName === 'string'
+      ? node.companyUniversalName
+      : typeof (node.company as Record<string, unknown> | undefined)?.universalName === 'string'
+        ? String((node.company as Record<string, unknown>).universalName)
+        : undefined;
+  return universalName ? `https://www.linkedin.com/company/${universalName}/` : undefined;
+}
+
 function isViewerIdentityNode(node: Record<string, unknown>, vanityName: string): boolean {
   const vanity = normalizeVanity(vanityName);
   const pub = node.publicIdentifier;
@@ -260,6 +351,7 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
     (typeof profile.geoLocationName === 'string' && profile.geoLocationName) ||
     (typeof profile.locationName === 'string' && profile.locationName) ||
     undefined;
+  const photoUrl = findLinkedInImageUrl(profile) || undefined;
 
   const skills: string[] = [];
   const positions: LinkedInVoyagerProfile['positions'] = [];
@@ -285,6 +377,7 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
     }
 
     if (type.includes('Position') || (typeof node.title === 'string' && node.companyName !== undefined)) {
+      const dates = readDateRange(node);
       positions.push({
         title: readLocalized(node, 'title'),
         company:
@@ -292,6 +385,14 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
           (typeof (node.company as Record<string, unknown>)?.name === 'string'
             ? String((node.company as Record<string, unknown>).name)
             : undefined),
+        companyLogoUrl: findLinkedInImageUrl(node) || undefined,
+        companyLinkedInUrl: readCompanyLinkedInUrl(node),
+        employmentType: readLocalized(node, 'employmentType'),
+        location: readLocalized(node, 'locationName') || readLocalized(node, 'geoLocationName'),
+        dateRange: dates.dateRange,
+        startDateLabel: dates.startDateLabel,
+        endDateLabel: dates.endDateLabel,
+        isCurrent: dates.isCurrent,
         description: readLocalized(node, 'description'),
       });
       continue;
@@ -316,6 +417,7 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
     headline,
     summary,
     location,
+    photoUrl,
     skills: [...new Set(skills.filter(Boolean))],
     positions: positions.filter((p) => p.title || p.company),
     education: education.filter((e) => e.school || e.degree),
@@ -331,7 +433,7 @@ function profileToRawText(profile: LinkedInVoyagerProfile): string {
   if (profile.skills.length) lines.push(`Skills: ${profile.skills.join(', ')}`);
   for (const p of profile.positions) {
     lines.push(
-      `Experience: ${[p.title, p.company].filter(Boolean).join(' at ')}${p.description ? ` — ${p.description.slice(0, 200)}` : ''}`
+      `Experience: ${[p.title, p.company].filter(Boolean).join(' at ')}${p.dateRange ? ` (${p.dateRange})` : ''}${p.description ? ` — ${p.description.slice(0, 200)}` : ''}`
     );
   }
   for (const e of profile.education) {
@@ -389,6 +491,7 @@ export async function fetchLinkedInProfileViaVoyager(
     headline: picked.headline,
     summary: picked.summary,
     location: picked.location,
+    photoUrl: picked.photoUrl,
     skills: picked.skills || [],
     positions: (picked.positions || []).slice(0, 6),
     education: (picked.education || []).slice(0, 4),

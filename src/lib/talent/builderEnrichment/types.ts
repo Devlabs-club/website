@@ -24,9 +24,27 @@ export type EnrichedProjectDraft = {
 export type EnrichedProfileDraft = {
   headline?: string | null;
   bio?: string | null;
+  location?: string | null;
   rolePreference?: string[];
   universityOrCompany?: string | null;
   graduationYear?: number | null;
+  experiences?: Array<{
+    title?: string | null;
+    company?: string | null;
+    companyLogoUrl?: string | null;
+    companyLinkedInUrl?: string | null;
+    employmentType?: string | null;
+    location?: string | null;
+    dateRange?: string | null;
+    startDateLabel?: string | null;
+    endDateLabel?: string | null;
+    duration?: string | null;
+    description?: string | null;
+    skills?: string[];
+    isCurrent?: boolean;
+    source?: string | null;
+    sourceId?: string | null;
+  }>;
   education?: Array<{
     school?: string | null;
     degree?: string | null;

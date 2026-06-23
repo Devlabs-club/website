@@ -7,6 +7,9 @@ export type AuthUser = {
   name: string;
   email: string;
   role: string;
+  accountType?: 'founder' | 'builder' | null;
+  onboardingStatus?: string | null;
+  avatarUrl?: string | null;
   oauthProvider?: string | null;
   oauthId?: string | null;
   createdAt?: Date;
@@ -71,6 +74,9 @@ function toAuthUser(doc: Document | null): AuthUser | null {
     name: String(doc.name ?? ''),
     email: String(doc.email ?? ''),
     role: String(doc.role ?? 'user'),
+    accountType: (doc.accountType as 'founder' | 'builder' | null | undefined) ?? null,
+    onboardingStatus: (doc.onboardingStatus as string | null | undefined) ?? null,
+    avatarUrl: (doc.avatarUrl as string | null | undefined) ?? null,
     oauthProvider: doc.oauthProvider as string | null | undefined,
     oauthId: doc.oauthId as string | null | undefined,
     createdAt: doc.createdAt as Date | undefined,
@@ -122,11 +128,14 @@ export async function upsertUserFromOAuth(
     email: string;
     name: string;
     oauthId: string;
+    provider?: 'google';
+    avatarUrl?: string | null;
   },
   runtime?: RuntimeEnv
 ): Promise<AuthUser> {
   const users = await usersCollection(runtime);
   const email = input.email.toLowerCase();
+  const provider = input.provider ?? 'google';
   const existing = await users.findOne({ email });
 
   if (existing) {
@@ -134,8 +143,11 @@ export async function upsertUserFromOAuth(
       name: input.name,
       updatedAt: new Date(),
     };
+    if (input.avatarUrl && !existing.avatarUrl) {
+      update.avatarUrl = input.avatarUrl;
+    }
     if (!existing.oauthProvider) {
-      update.oauthProvider = 'google';
+      update.oauthProvider = provider;
       update.oauthId = input.oauthId;
     }
     await users.updateOne({ _id: existing._id }, { $set: update });
@@ -153,7 +165,10 @@ export async function upsertUserFromOAuth(
     email,
     password: hashedPassword,
     role: 'user',
-    oauthProvider: 'google',
+    accountType: null,
+    onboardingStatus: null,
+    avatarUrl: input.avatarUrl ?? null,
+    oauthProvider: provider,
     oauthId: input.oauthId,
     createdAt: now,
     updatedAt: now,
@@ -162,4 +177,29 @@ export async function upsertUserFromOAuth(
   const user = toAuthUser({ _id: result.insertedId, ...insert });
   if (!user) throw new Error('Failed to load user after insert');
   return user;
+}
+
+/**
+ * Update mutable account fields (account type, onboarding status, role, profile basics).
+ * Used by the role-selection screen and onboarding steps.
+ */
+export async function updateUserAccount(
+  userId: string,
+  fields: Partial<{
+    accountType: 'founder' | 'builder' | null;
+    onboardingStatus: string | null;
+    role: string;
+    name: string;
+    avatarUrl: string | null;
+  }>,
+  runtime?: RuntimeEnv
+): Promise<AuthUser | null> {
+  const users = await usersCollection(runtime);
+  const update: Document = { updatedAt: new Date() };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) update[key] = value;
+  }
+  await users.updateOne({ _id: new ObjectId(userId) }, { $set: update });
+  const updated = await users.findOne({ _id: new ObjectId(userId) });
+  return toAuthUser(updated);
 }
