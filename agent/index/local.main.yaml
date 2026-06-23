@@ -1,0 +1,138 @@
+# agent/index/local.main.yaml
+# Key file index for the Agent Context Protocol project
+# See: agent/design/local.key-file-index-system.md
+
+local:
+  index:
+    - path: agent/design/acp-commands-design.md
+      weight: 0.9
+      kind: design
+      description: |
+        Core design document for the ACP command system. Defines how
+        commands are structured, discovered, and executed by agents.
+      rationale: |
+        Essential context for creating or modifying any ACP command.
+        Ensures new commands follow established conventions.
+      applies: acp.command-create, acp.design-create, acp.plan
+
+    - path: agent/design/acp-package-management-system.md
+      weight: 0.8
+      kind: design
+      description: |
+        Package management system design. Covers install, update,
+        remove, validate, and manifest tracking.
+      rationale: |
+        Required reading before any package system changes to
+        maintain consistency with the established architecture.
+      applies: acp.design-create, acp.plan, acp.proceed
+
+    - path: agent/patterns/local.e2e-testing.md
+      weight: 0.8
+      kind: pattern
+      description: |
+        E2E testing pattern used across all test suites.
+        Defines test structure, assertions, and fixture patterns.
+      rationale: |
+        Prevents agents from writing tests that don't follow
+        established project conventions.
+      applies: acp.task-create, acp.proceed
+
+    - path: agent/patterns/local.tracked-untracked-directories.md
+      weight: 0.7
+      kind: pattern
+      description: |
+        Defines which agent/ directories are tracked in git vs
+        generated locally. Critical for install and gitignore setup.
+      rationale: |
+        Prevents accidental commits of local-only files and ensures
+        new directories are correctly categorized.
+      applies: acp.proceed, acp.plan
+
+    - path: agent/design/local.key-file-index-system.md
+      weight: 0.7
+      kind: design
+      description: |
+        Design specification for the key file index system itself.
+        Defines schema, loading, validation, and integration points.
+      rationale: |
+        Required when working on index-related features or when
+        understanding how key file loading works.
+      applies: acp.proceed, acp.design-create, acp.plan
+
+    - path: agent/design/visualizer.requirements.md
+      weight: 0.7
+      kind: design
+      description: |
+        Requirements and design spec for the ACP Progress Visualizer.
+        Defines architecture, priority tiers, tech stack, and data model
+        for the browser-based progress.yaml dashboard.
+      rationale: |
+        Essential context when working on the visualizer project.
+        Contains all agreed-upon decisions from clarification-10.
+      applies: acp.proceed, acp.plan
+
+    - path: agent/design/local.artifact-commands-system.md
+      weight: 0.9
+      kind: design
+      description: |
+        Artifact command system design for creating long-lived reference
+        material (research, glossaries, references) via systematic research.
+        Defines command-first principle, quality standards, and integration
+        with existing ACP commands.
+      rationale: |
+        Essential context for implementing artifact commands, understanding
+        the command-first principle (executable directives vs passive info),
+        and maintaining quality standards for permanent reference material.
+      applies: acp.design-create, acp.plan, acp.proceed, acp.task-create
+
+    - path: agent/design/local.index-semantic-entry-types.md
+      weight: 0.8
+      kind: design
+      description: |
+        Design for extending index entries to support path: null inline
+        content (notes and directives) with no schema migration. Defines
+        the updated kind enum and loading behavior.
+      rationale: |
+        Required context when implementing or modifying the index system,
+        especially for path: null entry support.
+      applies: acp.proceed, acp.plan, acp.task-create
+
+    - path: agent/design/local.acp-code-design.md
+      weight: 0.7
+      kind: design
+      description: |
+        Design specification for acp-code — a proposed Python fork of ACP
+        with SQLite + events.jsonl persistence, VSCode-style plugin system,
+        library-first with MCP/CLI/REST adapters.
+      rationale: |
+        Required context for any work bootstrapping or evolving acp-code.
+        Synthesizes all decisions from clarification-14.
+      applies: acp.design-create, acp.plan, acp.proceed, acp.task-create
+
+    - path: agent/specs/local.acp-code-plugin-api.md
+      weight: 0.8
+      kind: spec
+      description: |
+        Spec for the acp-code PluginAPI contract — the capability object
+        plugins receive, four-hook lifecycle, identity binding, table
+        namespacing, scoped queries, and event write path.
+      rationale: |
+        Required reading before implementing any plugin-framework code
+        in acp-code. Defines the contract that every plugin author
+        codes against.
+      applies: acp.spec, acp.task-create, acp.proceed, acp.plan
+
+    - path: agent/design/local.pluggable-driver-system.md
+      weight: 0.8
+      kind: design
+      description: |
+        Design for the ACP pluggable driver system — agent/driver.yaml
+        bindings file, three ext-point IDs (marker.mint, query.run,
+        workflow.run), workflow-as-command-override, capabilities.watcher,
+        override-with-fallback routing, and validation rules.
+      rationale: |
+        Required reading before any task that touches driver.yaml,
+        ext-point routing, marker stamping, query dispatch, workflow
+        override directives, or @acp.validate's binding-validation
+        extension. Defines the v1 contract for any driver integration.
+      applies: acp.task-create, acp.proceed, acp.plan, acp.design-create
