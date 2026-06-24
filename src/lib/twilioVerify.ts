@@ -1,8 +1,8 @@
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
 
 type TwilioVerifyConfig = {
-  accountSid: string;
-  authToken: string;
+  username: string;
+  password: string;
   serviceSid: string;
 };
 
@@ -20,16 +20,20 @@ export type TwilioVerifyCheckResult = {
 export function getTwilioVerifyConfig(runtime?: RuntimeEnv): TwilioVerifyConfig | null {
   const accountSid = readEnv('TWILIO_ACCOUNT_SID', runtime);
   const authToken = readEnv('TWILIO_AUTH_TOKEN', runtime);
+  const apiKeySid = readEnv('TWILIO_API_KEY_SID', runtime);
+  const apiKeySecret = readEnv('TWILIO_API_KEY_SECRET', runtime);
   const serviceSid = readEnv('TWILIO_VERIFY_SERVICE_SID', runtime);
-  if (!accountSid || !authToken || !serviceSid) return null;
-  return { accountSid, authToken, serviceSid };
+  if (!serviceSid) return null;
+  if (apiKeySid && apiKeySecret) return { username: apiKeySid, password: apiKeySecret, serviceSid };
+  if (accountSid && authToken) return { username: accountSid, password: authToken, serviceSid };
+  return null;
 }
 
 function authHeader(config: TwilioVerifyConfig) {
   const encoded =
     typeof Buffer !== 'undefined'
-      ? Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64')
-      : btoa(`${config.accountSid}:${config.authToken}`);
+      ? Buffer.from(`${config.username}:${config.password}`).toString('base64')
+      : btoa(`${config.username}:${config.password}`);
   return `Basic ${encoded}`;
 }
 

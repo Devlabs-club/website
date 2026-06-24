@@ -16,9 +16,11 @@ export async function sendBuilderClaimMessage(
 ): Promise<ClaimMessageResult> {
   const webhookUrl = readEnv('BUILDER_CLAIM_MESSAGE_WEBHOOK_URL', runtime);
   if (!webhookUrl) {
+    const blueBubblesResult = await sendViaBlueBubbles(params, runtime);
+    if (blueBubblesResult.status === 'sent') return blueBubblesResult;
     const localResult = await sendViaLocalMacMessages(params);
     if (localResult.status === 'sent') return localResult;
-    console.warn('[builder-claim-message] delivery skipped: BUILDER_CLAIM_MESSAGE_WEBHOOK_URL is not configured');
+    console.warn('[builder-claim-message] delivery skipped: BlueBubbles or BUILDER_CLAIM_MESSAGE_WEBHOOK_URL is not configured');
     return { status: 'not_configured' };
   }
 
@@ -46,6 +48,42 @@ export async function sendBuilderClaimMessage(
 
   const data = (await response.json().catch(() => ({}))) as { messageId?: string; id?: string };
   return { status: 'sent', providerMessageId: data.messageId || data.id || null };
+}
+
+async function sendViaBlueBubbles(
+  params: {
+    toPhone: string;
+    body: string;
+    claimId: string;
+  },
+  runtime?: RuntimeEnv
+): Promise<ClaimMessageResult> {
+  const serverUrl = readEnv('BLUEBUBBLES_SERVER_URL', runtime)?.replace(/\/$/, '');
+  const password = readEnv('BLUEBUBBLES_PASSWORD', runtime);
+  if (!serverUrl || !password) return { status: 'not_configured' };
+
+  const response = await fetch(`${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chatGuid: `any;-;${params.toPhone}`,
+      tempGuid: `devlabs-${params.claimId}-${Date.now()}`,
+      message: params.body,
+      method: 'private-api',
+      subject: '',
+      effectId: '',
+      selectedMessageGuid: '',
+      partIndex: 0,
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`BlueBubbles send failed (${response.status}): ${detail || response.statusText}`);
+  }
+
+  const data = (await response.json().catch(() => ({}))) as { data?: { guid?: string }; guid?: string };
+  return { status: 'sent', providerMessageId: data.data?.guid || data.guid || null };
 }
 
 async function sendViaLocalMacMessages(params: {

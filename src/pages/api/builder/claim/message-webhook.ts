@@ -13,9 +13,15 @@ function json(body: unknown, status = 200) {
 export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = runtimeEnvFromLocals(locals);
   const expectedSecret = readEnv('BUILDER_CLAIM_INBOUND_WEBHOOK_SECRET', runtime);
-  if (expectedSecret) {
+  const url = new URL(request.url);
+  const querySecret = url.searchParams.get('secret') || url.searchParams.get('password');
+  const blueBubblesPassword = readEnv('BLUEBUBBLES_PASSWORD', runtime);
+  if (expectedSecret || blueBubblesPassword) {
     const auth = request.headers.get('Authorization') || '';
-    if (auth !== `Bearer ${expectedSecret}`) {
+    const authorized =
+      (expectedSecret && (auth === `Bearer ${expectedSecret}` || querySecret === expectedSecret)) ||
+      (blueBubblesPassword && querySecret === blueBubblesPassword);
+    if (!authorized) {
       return json({ success: false, error: 'Unauthorized' }, 401);
     }
   }
@@ -27,9 +33,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     text?: string;
     messageId?: string;
     id?: string;
+    type?: string;
+    data?: {
+      text?: string;
+      guid?: string;
+      handle?: { address?: string };
+      chats?: Array<{
+        participants?: Array<{ address?: string }>;
+      }>;
+    };
   };
-  const fromPhone = String(body.fromPhone || body.from || '');
-  const text = String(body.body || body.text || '');
+  const blueBubblesPhone =
+    body.data?.handle?.address ||
+    body.data?.chats?.[0]?.participants?.find((participant) => participant.address)?.address ||
+    '';
+  const fromPhone = String(body.fromPhone || body.from || blueBubblesPhone || '');
+  const text = String(body.body || body.text || body.data?.text || '');
+  const messageId = body.messageId || body.id || body.data?.guid || null;
   if (!fromPhone || !text.trim()) {
     return json({ success: false, error: 'fromPhone and body are required.' }, 400);
   }
@@ -39,7 +59,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     {
       fromPhone,
       body: text,
-      providerMessageId: body.messageId || body.id || null,
+      providerMessageId: messageId,
     },
     runtime
   );
