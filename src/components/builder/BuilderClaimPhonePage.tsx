@@ -120,14 +120,14 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
                 {claim?.builderName ? `Claim ${claim.builderName}` : "Claim your builder profile"}
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
-                This private link is tied to {claim?.builderEmail}. Verify your phone number, then continue the profile claim in Messages.
+                This private link is tied to {claim?.builderEmail}. Verify your phone number by SMS, then continue the profile claim with the DevLabs agent in Messages.
               </p>
               {claim?.headline && <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{claim.headline}</p>}
 
               {step === "phone" && (
                 <div className="mt-6 space-y-3">
                   <label className="block space-y-2">
-                    <span className="text-sm text-muted-foreground">Phone number for iMessage/SMS verification</span>
+                    <span className="text-sm text-muted-foreground">Phone number for SMS verification</span>
                     <input
                       className={inputClass}
                       placeholder="+1 480 555 0199"
@@ -166,7 +166,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
                     className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-50"
                   >
                     {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Verify and continue in Messages
+                    Verify phone number
                   </button>
                 </div>
               )}
@@ -178,7 +178,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
                     <div>
                       <h2 className="text-sm font-semibold">Continue on your phone</h2>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        The remaining identity checks and profile verification happen in Messages with the DevLabs agent.
+                        Your phone is verified. The DevLabs agent will message you to start the builder profile claim conversation.
                       </p>
                     </div>
                   </div>

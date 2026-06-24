@@ -16,6 +16,7 @@ export interface IUser {
   oauthProvider?: 'google' | null; // OAuth provider type
   oauthId?: string; // OAuth provider user ID
   avatarUrl?: string | null;
+  phone?: string | null;
   coolestThing?: string;
   hackathonStory?: string;
   additionalInfo?: string;
@@ -63,6 +64,10 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
   avatarUrl: {
+    type: String,
+    default: null,
+  },
+  phone: {
     type: String,
     default: null,
   },

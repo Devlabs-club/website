@@ -6,9 +6,9 @@ import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
+import { checkSmsVerification, startSmsVerification } from '@/lib/twilioVerify';
 
 const CLAIM_TTL_DAYS = 14;
-const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
 
 export function normalizeClaimEmail(email: string) {
@@ -118,39 +118,29 @@ export async function requestClaimPhoneVerification(rawToken: string, phoneInput
     return { error: 'Enter a valid phone number, including country code if outside the US.', status: 400 as const };
   }
 
-  const code = generatePhoneCode();
+  const verification = await startSmsVerification(phone, runtime);
   claim.phone = phone;
   claim.status = 'phone_pending';
-  claim.phoneVerificationCodeHash = hashClaimSecret(code);
-  claim.phoneVerificationExpiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+  claim.phoneVerificationProvider = 'twilio_verify';
+  claim.phoneVerificationSid = verification.sid;
+  claim.phoneVerificationStatus = verification.status;
+  claim.phoneVerificationCodeHash = null;
+  claim.phoneVerificationExpiresAt = null;
   claim.phoneVerificationAttempts = 0;
-  await claim.save();
-
-  const body = `Your DevLabs builder claim code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`;
-  const delivery = await sendBuilderClaimMessage(
-    {
-      toPhone: phone,
-      body,
-      claimId: String(claim._id),
-      builderId: claim.builderId ? String(claim.builderId) : null,
-      purpose: 'phone_verification',
-    },
-    runtime
-  );
 
   claim.messages.push({
     direction: 'outbound',
-    body,
-    channel: 'imessage',
-    providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
+    body: 'Sent DevLabs builder claim verification code by SMS.',
+    channel: 'sms',
+    providerMessageId: verification.sid,
   });
   claim.lastMessageAt = new Date();
   await claim.save();
 
   return {
     claim,
-    delivery,
-    debugCode: readEnv('NODE_ENV', runtime) === 'production' ? null : code,
+    delivery: { status: 'sent' as const, providerMessageId: verification.sid },
+    debugCode: null,
   };
 }
 
@@ -159,18 +149,18 @@ export async function verifyClaimPhone(rawToken: string, codeInput: string, runt
   if (!claim) return { error: 'Claim link was not found.', status: 404 as const };
   if (claim.status === 'expired') return { error: 'Claim link has expired.', status: 410 as const };
   if (claim.status === 'completed') return { error: 'This builder profile was already claimed.', status: 409 as const };
-  if (!claim.phone || !claim.phoneVerificationCodeHash) {
+  if (!claim.phone || claim.phoneVerificationProvider !== 'twilio_verify') {
     return { error: 'Request a phone verification code first.', status: 400 as const };
   }
   if (claim.phoneVerificationAttempts >= OTP_MAX_ATTEMPTS) {
     return { error: 'Too many attempts. Request a new code.', status: 429 as const };
   }
-  if (!claim.phoneVerificationExpiresAt || claim.phoneVerificationExpiresAt.getTime() < Date.now()) {
-    return { error: 'Verification code expired. Request a new code.', status: 400 as const };
-  }
 
   claim.phoneVerificationAttempts += 1;
-  if (hashClaimSecret(codeInput.trim()) !== claim.phoneVerificationCodeHash) {
+  const verification = await checkSmsVerification(claim.phone, codeInput.trim(), runtime);
+  claim.phoneVerificationSid = verification.sid || claim.phoneVerificationSid;
+  claim.phoneVerificationStatus = verification.status;
+  if (!verification.approved) {
     await claim.save();
     return { error: 'Incorrect verification code.', status: 400 as const };
   }
@@ -180,11 +170,19 @@ export async function verifyClaimPhone(rawToken: string, codeInput: string, runt
   claim.phoneVerificationCodeHash = null;
   claim.phoneVerificationExpiresAt = null;
 
+  const user = await findUserByEmail(claim.builderEmail, runtime);
+  if (user?._id) {
+    await updateUserAccount(String(user._id), {
+      phone: claim.phone,
+    }, runtime);
+  }
+
   if (claim.builderId && mongoose.Types.ObjectId.isValid(String(claim.builderId))) {
     await BuilderProfile.updateOne(
       { _id: claim.builderId },
       {
         $set: {
+          ...(user?._id ? { userId: user._id } : {}),
           phone: claim.phone,
           email: claim.builderEmail,
         },
