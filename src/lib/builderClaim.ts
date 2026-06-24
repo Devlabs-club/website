@@ -5,6 +5,7 @@ import BuilderProfile from '@/models/talent/BuilderProfile';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
+import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 
 const CLAIM_TTL_DAYS = 14;
 const OTP_TTL_MINUTES = 10;
@@ -365,16 +366,25 @@ export async function advanceClaimConversation(params: { fromPhone: string; body
     });
     claim.lastMessageAt = new Date();
     if (claim.builderId) {
+      const user = await findUserByEmail(claim.builderEmail, runtime);
       await BuilderProfile.updateOne(
         { _id: claim.builderId },
         {
           $set: {
+            ...(user?._id ? { userId: user._id } : {}),
             phone,
             email: claim.builderEmail,
             verificationStatus: 'builder_confirmed',
           },
         }
       );
+      if (user?._id) {
+        await updateUserAccount(String(user._id), {
+          role: 'builder',
+          accountType: 'builder',
+          onboardingStatus: 'complete',
+        }, runtime);
+      }
     }
     await claim.save();
     return { claim, completed: true, delivery: completeDelivery };
