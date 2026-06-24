@@ -1,0 +1,10 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import BuilderClaimPhonePage from "../../../components/builder/BuilderClaimPhonePage";
+
+const { token } = Astro.params;
+---
+
+<AppLayout title="Claim builder profile · DevLabs">
+  <BuilderClaimPhonePage token={token || ""} client:load />
+</AppLayout>
