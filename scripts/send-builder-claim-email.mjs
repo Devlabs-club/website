@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import sgMail from '@sendgrid/mail';
 
 function argValue(name, fallback = '') {
@@ -24,6 +24,7 @@ function createToken() {
 }
 
 const email = normalizeEmail(argValue('email'));
+const builderId = argValue('builder-id');
 const baseUrl = (argValue('base-url', process.env.WEBSITE_ROOT || 'https://devlabs.club') || 'https://devlabs.club').replace(/\/$/, '');
 const from = argValue('from', process.env.SENDGRID_FROM_EMAIL || 'people@devlabs.club');
 const mongoUri = process.env.ADMIN_MONGO_URI || process.env.MONGODB_URI;
@@ -38,10 +39,10 @@ const client = new MongoClient(mongoUri);
 await client.connect();
 const db = client.db();
 
-const builder = await db.collection('builderprofiles').findOne(
-  { email },
-  { projection: { _id: 1, email: 1, name: 1, headline: 1 } }
-);
+const builderQuery = builderId ? { _id: new ObjectId(builderId) } : { email };
+const builder = await db.collection('builderprofiles').findOne(builderQuery, {
+  projection: { _id: 1, email: 1, name: 1, headline: 1 },
+});
 
 const token = createToken();
 const claimUrl = `${baseUrl}/builder/claim/${encodeURIComponent(token)}`;
