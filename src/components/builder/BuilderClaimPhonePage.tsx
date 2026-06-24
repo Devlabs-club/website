@@ -15,6 +15,16 @@ type Step = "loading" | "phone" | "code" | "messages" | "error";
 const inputClass =
   "h-12 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40";
 
+async function readJsonResponse(res: Response) {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(res.ok ? "Unexpected empty response." : "Server returned an invalid response.");
+  }
+}
+
 export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) => {
   const [claim, setClaim] = useState<ClaimView | null>(null);
   const [step, setStep] = useState<Step>("loading");
@@ -29,7 +39,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
     (async () => {
       try {
         const res = await fetch(`/api/builder/claim/${encodeURIComponent(token)}`);
-        const data = await res.json();
+        const data = await readJsonResponse(res);
         if (!res.ok || !data.success) throw new Error(data.error || "Claim link is invalid.");
         setClaim(data.claim);
         if (data.claim.status === "completed") setStep("messages");
@@ -52,7 +62,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok || !data.success) throw new Error(data.error || "Could not send verification code.");
       setClaim(data.claim);
       setDebugCode(data.debugCode || null);
@@ -79,12 +89,14 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code }),
       });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok || !data.success) throw new Error(data.error || "Could not verify the code.");
       setClaim(data.claim);
       setNotice(
         data.delivery?.status === "not_configured"
           ? "Phone verified. Message delivery is not configured yet, so DevLabs could not start the Messages interview automatically."
+          : data.delivery?.status === "delivery_failed"
+            ? `Phone verified. DevLabs could not start the Messages interview automatically: ${data.delivery.error}`
           : "Phone verified. DevLabs sent you a message to continue the claim."
       );
       setStep("messages");

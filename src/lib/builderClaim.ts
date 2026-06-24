@@ -239,7 +239,7 @@ export async function startClaimConversation(claim: any, runtime?: RuntimeEnv) {
     runtime
   );
 
-  claim.status = 'conversation_started';
+  claim.status = delivery.status === 'sent' ? 'conversation_started' : 'phone_verified';
   claim.conversationQuestionIndex = 0;
   claim.messages.push({
     direction: 'outbound',
