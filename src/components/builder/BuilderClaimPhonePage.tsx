@@ -15,6 +15,10 @@ type Step = "loading" | "phone" | "code" | "messages" | "error";
 const inputClass =
   "h-12 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40";
 
+function isMessageStepStatus(status?: string) {
+  return status === "phone_verified" || status === "conversation_started" || status === "completed";
+}
+
 async function readJsonResponse(res: Response) {
   const text = await res.text();
   if (!text) return {};
@@ -42,7 +46,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
         const data = await readJsonResponse(res);
         if (!res.ok || !data.success) throw new Error(data.error || "Claim link is invalid.");
         setClaim(data.claim);
-        if (data.claim.status === "completed") setStep("messages");
+        if (isMessageStepStatus(data.claim.status)) setStep("messages");
         else setStep(data.claim.phone ? "code" : "phone");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Claim link is invalid.");
@@ -102,6 +106,31 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
       setStep("messages");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify the code.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const startMessages = async () => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch(`/api/builder/claim/${encodeURIComponent(token)}/message`, {
+        method: "POST",
+      });
+      const data = await readJsonResponse(res);
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not start the Messages interview.");
+      setClaim(data.claim);
+      setNotice(
+        data.delivery?.status === "delivery_failed"
+          ? `DevLabs could not start the Messages interview automatically: ${data.delivery.error}`
+          : data.delivery?.status === "not_configured"
+            ? "Message delivery is not configured yet, so DevLabs could not start the Messages interview automatically."
+          : "DevLabs sent you a message to continue the claim."
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start the Messages interview.");
     } finally {
       setBusy(false);
     }
@@ -190,8 +219,21 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
                     <div>
                       <h2 className="text-sm font-semibold">Continue on your phone</h2>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Your phone is verified. The DevLabs agent will message you to start the builder profile claim conversation.
+                        {claim?.status === "phone_verified"
+                          ? "Your phone is verified. Start the DevLabs Messages interview when iMessage delivery is ready."
+                          : "Your phone is verified. The DevLabs agent will message you to start the builder profile claim conversation."}
                       </p>
+                      {claim?.status === "phone_verified" && (
+                        <button
+                          type="button"
+                          onClick={() => void startMessages()}
+                          disabled={busy}
+                          className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                        >
+                          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                          Start Messages interview
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

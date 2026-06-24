@@ -195,6 +195,19 @@ export async function verifyClaimPhone(rawToken: string, codeInput: string, runt
   return { claim, delivery: start.delivery };
 }
 
+export async function requestClaimConversationStart(rawToken: string, runtime?: RuntimeEnv) {
+  const claim = await findClaimByRawToken(rawToken);
+  if (!claim) return { error: 'Claim link was not found.', status: 404 as const };
+  if (claim.status === 'expired') return { error: 'Claim link has expired.', status: 410 as const };
+  if (claim.status === 'completed') return { error: 'This builder profile was already claimed.', status: 409 as const };
+  if (!claim.phoneVerifiedAt || !claim.phone) {
+    return { error: 'Verify your phone number first.', status: 400 as const };
+  }
+
+  const start = await startClaimConversation(claim, runtime);
+  return { claim, delivery: start.delivery };
+}
+
 function firstName(value: string) {
   return value.trim().split(/\s+/)[0] || 'there';
 }
