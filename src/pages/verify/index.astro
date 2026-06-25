@@ -1,0 +1,143 @@
+---
+// Phone verification page — landing for the claim-email "Talk to us" button.
+// Step 1: enter phone -> OTP sent over iMessage. Step 2: enter code -> phone saved
+// to the builder's profile and the agent texts them first (Poke-style).
+const token = Astro.url.searchParams.get('t') || '';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Verify your phone · DevLabs</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root { --orange: #fa7d22; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100dvh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #fafafa; color: #111;
+        display: flex; align-items: center; justify-content: center; padding: 24px;
+      }
+      .card {
+        width: 100%; max-width: 380px; background: #fff;
+        border: 1px solid #eee; border-radius: 24px; padding: 32px 24px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+      }
+      .avatar { width: 72px; height: 72px; border-radius: 22px; object-fit: cover; display: block; margin: 0 auto 16px; background: var(--orange); }
+      h1 { font-size: 21px; margin: 0 0 6px; text-align: center; }
+      .sub { color: #777; font-size: 14px; margin: 0 0 24px; text-align: center; line-height: 1.5; }
+      label { display: block; font-size: 13px; font-weight: 600; color: #555; margin: 0 0 6px; }
+      input {
+        width: 100%; padding: 14px; font-size: 17px; border: 1px solid #ddd;
+        border-radius: 12px; margin-bottom: 14px; -webkit-appearance: none;
+      }
+      input:focus { outline: none; border-color: var(--orange); }
+      .btn {
+        display: block; width: 100%; padding: 15px; border: none; border-radius: 14px;
+        font-weight: 700; font-size: 16px; cursor: pointer; background: var(--orange); color: #000;
+      }
+      .btn:disabled { opacity: .5; }
+      .msg { font-size: 13px; margin-top: 12px; text-align: center; min-height: 18px; }
+      .msg.err { color: #c0392b; }
+      .msg.ok { color: #1a8a4a; }
+      .hide { display: none; }
+      .note { color: #aaa; font-size: 12px; margin-top: 18px; text-align: center; line-height: 1.5; }
+      .link { color: var(--orange); text-decoration: none; font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <img class="avatar" src="https://dhanush.wtf/media/b8cgzfegb9r.png" alt="DevLabs" />
+
+      <!-- Step 1 -->
+      <section id="step-phone">
+        <h1>Verify your phone</h1>
+        <p class="sub">We'll text you a code so the DevLabs agent can reach you about your profile. Takes a few seconds.</p>
+        <label for="phone">Mobile number</label>
+        <input id="phone" type="tel" inputmode="tel" placeholder="+1 555 123 4567" autocomplete="tel" />
+        <button class="btn" id="send-btn">Send code</button>
+        <p class="msg" id="msg1"></p>
+      </section>
+
+      <!-- Step 2 -->
+      <section id="step-code" class="hide">
+        <h1>Enter the code</h1>
+        <p class="sub">We texted a 6-digit code to <span id="phone-echo"></span>.</p>
+        <label for="code">Verification code</label>
+        <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+        <button class="btn" id="verify-btn">Verify</button>
+        <p class="msg" id="msg2"></p>
+      </section>
+
+      <!-- Success -->
+      <section id="step-done" class="hide" style="text-align:center;">
+        <h1>You're verified ✅</h1>
+        <p class="sub">DevLabs just texted you in Messages — open it and say hi 👋</p>
+        <a class="btn" id="open-msgs" href="#" style="text-decoration:none;display:block;">Open Messages</a>
+        <p class="note"><a class="link" href="/contact/devlabs.vcf" download>Save the DevLabs contact</a></p>
+      </section>
+
+      <p class="note">We only reach out when a founder actually wants to talk to you. No spam.</p>
+    </main>
+
+    <script define:vars={{ token }}>
+      const $ = (id) => document.getElementById(id);
+      let phoneVal = '';
+
+      async function post(path, body) {
+        const r = await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        return { status: r.status, data: await r.json().catch(() => ({})) };
+      }
+
+      $('send-btn').addEventListener('click', async () => {
+        const phone = $('phone').value.trim();
+        const msg = $('msg1');
+        msg.className = 'msg';
+        if (!phone) { msg.className = 'msg err'; msg.textContent = 'Enter your number.'; return; }
+        if (!token) { msg.className = 'msg err'; msg.textContent = 'This link is invalid or expired.'; return; }
+        $('send-btn').disabled = true; $('send-btn').textContent = 'Sending…';
+        const { status, data } = await post('/api/imessage/send-otp', { token, phone });
+        $('send-btn').disabled = false; $('send-btn').textContent = 'Send code';
+        if (status === 200 && data.ok) {
+          phoneVal = phone;
+          $('phone-echo').textContent = phone;
+          $('step-phone').classList.add('hide');
+          $('step-code').classList.remove('hide');
+          $('code').focus();
+        } else {
+          msg.className = 'msg err';
+          msg.textContent = data.error === 'invalid_phone' ? 'That doesn’t look like a valid number.' :
+            data.error === 'invalid_link' ? 'This link is invalid or expired.' : 'Couldn’t send the code. Try again.';
+        }
+      });
+
+      $('verify-btn').addEventListener('click', async () => {
+        const code = $('code').value.trim();
+        const msg = $('msg2');
+        msg.className = 'msg';
+        if (!code) { msg.className = 'msg err'; msg.textContent = 'Enter the code.'; return; }
+        $('verify-btn').disabled = true; $('verify-btn').textContent = 'Verifying…';
+        const { status, data } = await post('/api/imessage/verify-otp', { token, phone: phoneVal, code });
+        $('verify-btn').disabled = false; $('verify-btn').textContent = 'Verify';
+        if (status === 200 && data.ok) {
+          $('step-code').classList.add('hide');
+          $('step-done').classList.remove('hide');
+          $('open-msgs').setAttribute('href', 'sms:' + phoneVal);
+        } else {
+          msg.className = 'msg err';
+          msg.textContent = data.error === 'wrong_code'
+            ? `Wrong code. ${data.attemptsLeft ?? ''} tries left.`
+            : data.error === 'expired' ? 'Code expired — go back and resend.'
+            : data.error === 'too_many_attempts' ? 'Too many tries. Resend a new code.'
+            : 'Couldn’t verify. Try again.';
+        }
+      });
+    </script>
+  </body>
+</html>
