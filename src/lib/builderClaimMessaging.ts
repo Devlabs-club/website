@@ -75,12 +75,13 @@ async function sendViaBlueBubbles(
   if (!serverUrl || !password) return { status: 'not_configured' };
 
   try {
+    const tempGuid = `devlabs-${params.claimId}-${Date.now()}`;
     const response = await fetch(`${serverUrl}/api/v1/message/text?password=${encodeURIComponent(password)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chatGuid: `any;-;${params.toPhone}`,
-        tempGuid: `devlabs-${params.claimId}-${Date.now()}`,
+        tempGuid,
         message: params.body,
         method: 'private-api',
         subject: '',
@@ -92,6 +93,15 @@ async function sendViaBlueBubbles(
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
+      if (isBlueBubblesMissingChatError(detail)) {
+        return await createBlueBubblesChat({
+          serverUrl,
+          password,
+          toPhone: params.toPhone,
+          body: params.body,
+          tempGuid,
+        });
+      }
       return {
         status: 'delivery_failed',
         error: `BlueBubbles send failed (${response.status}): ${detail || response.statusText}`,
@@ -106,6 +116,49 @@ async function sendViaBlueBubbles(
       error: error instanceof Error ? error.message : 'BlueBubbles send failed.',
     };
   }
+}
+
+function isBlueBubblesMissingChatError(detail: string) {
+  return detail.toLowerCase().includes('chat does not exist');
+}
+
+async function createBlueBubblesChat(params: {
+  serverUrl: string;
+  password: string;
+  toPhone: string;
+  body: string;
+  tempGuid: string;
+}): Promise<ClaimMessageResult> {
+  const response = await fetch(`${params.serverUrl}/api/v1/chat/new?password=${encodeURIComponent(params.password)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      addresses: [params.toPhone],
+      message: params.body,
+      method: 'private-api',
+      service: 'iMessage',
+      tempGuid: params.tempGuid,
+      subject: '',
+      effectId: '',
+    }),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    return {
+      status: 'delivery_failed',
+      error: `BlueBubbles chat creation failed (${response.status}): ${detail || response.statusText}`,
+    };
+  }
+
+  const data = (await response.json().catch(() => ({}))) as {
+    data?: {
+      guid?: string;
+      messages?: Array<{ guid?: string; tempGuid?: string }>;
+    };
+  };
+  const sentMessage = data.data?.messages?.find((message) => message.tempGuid === params.tempGuid) || data.data?.messages?.[0];
+  return { status: 'sent', providerMessageId: sentMessage?.guid || data.data?.guid || null };
 }
 
 async function sendViaLocalMacMessages(params: {
