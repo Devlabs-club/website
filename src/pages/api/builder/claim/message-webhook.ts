@@ -34,15 +34,30 @@ export const POST: APIRoute = async ({ request, locals }) => {
     messageId?: string;
     id?: string;
     type?: string;
+    event?: string;
+    isFromMe?: boolean;
+    isFromMeString?: string;
     data?: {
       text?: string;
       guid?: string;
+      isFromMe?: boolean;
+      isFromMeString?: string;
       handle?: { address?: string };
       chats?: Array<{
         participants?: Array<{ address?: string }>;
       }>;
     };
   };
+  const eventType = String(body.event || body.type || '');
+  const isFromMe =
+    body.isFromMe === true ||
+    body.data?.isFromMe === true ||
+    body.isFromMeString === '1' ||
+    body.data?.isFromMeString === '1';
+  if (isFromMe || eventType === 'message-send-error') {
+    return json({ success: true, ignored: true });
+  }
+
   const blueBubblesPhone =
     body.data?.handle?.address ||
     body.data?.chats?.[0]?.participants?.find((participant) => participant.address)?.address ||

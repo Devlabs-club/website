@@ -318,6 +318,11 @@ export async function advanceClaimConversation(params: { fromPhone: string; body
   if (!claim) return { error: 'No active claim found for this phone number.', status: 404 as const };
 
   const body = params.body.trim();
+  if (params.providerMessageId) {
+    const alreadyHandled = claim.messages.some((message: any) => message.direction === 'inbound' && message.providerMessageId === params.providerMessageId);
+    if (alreadyHandled) return { claim, completed: false, delivery: { status: 'not_configured' as const } };
+  }
+
   claim.messages.push({
     direction: 'inbound',
     body,
@@ -332,6 +337,12 @@ export async function advanceClaimConversation(params: { fromPhone: string; body
   if (!valid) {
     const failure = `Question ${currentIndex + 1} did not match expected profile evidence.`;
     claim.conversationFailures.push(failure);
+    const failuresForQuestion = claim.conversationFailures.filter((item: string) => item === failure).length;
+    if (failuresForQuestion > 3) {
+      claim.lastMessageAt = new Date();
+      await claim.save();
+      return { claim, completed: false, delivery: { status: 'not_configured' as const } };
+    }
     const retryBody = 'I could not match that to the profile yet. Please reply with the exact requested detail from your DevLabs builder profile.';
     const retryDelivery = await sendBuilderClaimMessage(
       {
