@@ -1,19 +1,8 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 
 const DEV_MODE = import.meta.env.DEV || process.env.NODE_ENV === 'development';
 const EMAIL_ENABLED = process.env.TALENT_EMAIL_NOTIFICATIONS === 'true' || !DEV_MODE;
-
-function transporter() {
-  const user = process.env.ZOHO_EMAIL;
-  const pass = process.env.ZOHO_PASSWORD;
-  if (!user || !pass) return null;
-  return nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 465,
-    secure: true,
-    auth: { user, pass },
-  });
-}
+const FROM_EMAIL = process.env.CLAIM_FROM || process.env.MAIL_FROM || 'people@devlabs.club';
 
 export async function sendTalentEmail(params: {
   to: string;
@@ -27,11 +16,12 @@ export async function sendTalentEmail(params: {
     return { sent: false, reason: 'disabled' };
   }
 
-  const transport = transporter();
-  if (!transport) {
-    console.warn('[talentEmail] missing ZOHO credentials');
+  const apiKey = process.env.SENDGRID_API_KEY;
+  if (!apiKey) {
+    console.warn('[talentEmail] missing SENDGRID_API_KEY');
     return { sent: false, reason: 'no_credentials' };
   }
+  sgMail.setApiKey(apiKey);
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; color: #111;">
@@ -47,8 +37,8 @@ export async function sendTalentEmail(params: {
     </div>
   `;
 
-  await transport.sendMail({
-    from: `"DevLabs" <${process.env.ZOHO_EMAIL}>`,
+  await sgMail.send({
+    from: { email: FROM_EMAIL, name: 'DevLabs' },
     to: params.to,
     subject: params.subject,
     html,

@@ -1,0 +1,12 @@
+BEGIN:VCARD
+VERSION:3.0
+N:;DevLabs;;;
+FN:DevLabs
+ORG:DevLabs
+TITLE:Devlabs
+TEL;TYPE=CELL,VOICE,pref:+1XXXXXXXXXX
+EMAIL;TYPE=INTERNET:people@devlabs.club
+URL:https://devlabs.club
+PHOTO;VALUE=URI:https://dhanush.wtf/media/b8cgzfegb9r.png?file=
+NOTE:Your DevLabs builder profile lives here. Text to confirm it and make it founder-readable. We only reach out when a founder actually wants you.
+END:VCARD

@@ -1,0 +1,17 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DevLabs contact avatar">
+  <!-- Background: brand orange with a soft vertical gradient for depth -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF9645"/>
+      <stop offset="1" stop-color="#FA7D22"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="312" y1="300" x2="712" y2="724" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A1206"/>
+      <stop offset="1" stop-color="#000000"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- Monogram mark: a clean ">" build/prompt glyph + baseline, reads as "dev" -->
+  <path d="M360 332 L560 512 L360 692" stroke="url(#mark)" stroke-width="64" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect x="588" y="660" width="176" height="48" rx="24" fill="url(#mark)"/>
+</svg>

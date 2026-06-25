@@ -1,0 +1,68 @@
+---
+// DevLabs builder contact page — opened from the "Talk to us" button in the claim email.
+// Mobile-first: save the DevLabs contact, then send the first message in one tap.
+const AVATAR = 'https://dhanush.wtf/media/b8cgzfegb9r.png';
+// iMessage target the builder texts. Set PUBLIC_AGENT_IMESSAGE to the line's phone
+// (E.164, e.g. +16505092184) for production; falls back to the Apple ID email.
+const handle = import.meta.env.PUBLIC_AGENT_IMESSAGE || 'dhanush.kalaiselvan@gmail.com';
+const body = encodeURIComponent('Claim my profile');
+// iOS opens Messages from sms: and routes to iMessage when the address supports it.
+const sendHref = `sms:${handle}&body=${body}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Talk to DevLabs</title>
+    <meta name="robots" content="noindex" />
+    <style>
+      :root { --orange: #fa7d22; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100dvh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #fafafa; color: #111;
+        display: flex; align-items: center; justify-content: center;
+        padding: 24px;
+      }
+      .card {
+        width: 100%; max-width: 380px; background: #fff;
+        border: 1px solid #eee; border-radius: 24px;
+        padding: 32px 24px; text-align: center;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+      }
+      .avatar {
+        width: 96px; height: 96px; border-radius: 28px; object-fit: cover;
+        margin: 0 auto 16px; display: block; background: var(--orange);
+      }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: #777; font-size: 15px; margin: 0 0 28px; line-height: 1.5; }
+      .btn {
+        display: block; width: 100%; padding: 15px;
+        border-radius: 14px; text-decoration: none; font-weight: 700;
+        font-size: 16px; margin-bottom: 12px; transition: transform .05s ease;
+      }
+      .btn:active { transform: scale(0.98); }
+      .btn-primary { background: var(--orange); color: #000; }
+      .btn-secondary { background: #f1f1f1; color: #111; }
+      .note { color: #aaa; font-size: 12px; margin-top: 18px; line-height: 1.5; }
+      .step { color: #999; font-size: 13px; font-weight: 600; margin: 0 0 6px; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <img class="avatar" src={AVATAR} alt="DevLabs" />
+      <h1>DevLabs</h1>
+      <p class="sub">We already built your builder profile. Save us, then say hi — confirming it takes ~90 seconds.</p>
+
+      <p class="step">1 · Save the contact</p>
+      <a class="btn btn-secondary" href="/contact/devlabs.vcf" download>Save DevLabs contact</a>
+
+      <p class="step">2 · Send your first message</p>
+      <a class="btn btn-primary" href={sendHref}>Text “Claim my profile”</a>
+
+      <p class="note">We only reach out when a founder actually wants to talk to you. No spam.</p>
+    </main>
+  </body>
+</html>
