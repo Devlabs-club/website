@@ -1,0 +1,10 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import BuilderTokenProfilePage from "../../../components/builder/BuilderTokenProfilePage";
+
+const { token } = Astro.params;
+---
+
+<AppLayout title="Your builder profile · DevLabs">
+  <BuilderTokenProfilePage token={token || ""} client:load />
+</AppLayout>

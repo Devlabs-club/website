@@ -15,6 +15,7 @@ const BuilderProfileSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, index: true },
     headline: { type: String, default: null },
     bio: { type: String, default: null },
+    avatarUrl: { type: String, default: null },
     email: { type: String, lowercase: true, trim: true, index: true },
     phone: { type: String, default: null },
     location: { type: String, default: null },
@@ -65,6 +66,7 @@ const BuilderProfileSchema = new mongoose.Schema(
       personalWebsite: { type: String, default: null },
       resume: { type: String, default: null },
       devpost: { type: String, default: null },
+      twitter: { type: String, default: null },
     },
     availability: {
       availableNow: { type: Boolean, default: false },

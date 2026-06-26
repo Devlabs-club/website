@@ -28,6 +28,8 @@ const BuilderProfileClaimSchema = new mongoose.Schema(
     },
     phone: { type: String, default: null, index: true },
     phoneVerifiedAt: { type: Date, default: null },
+    // Secret token for the builder's private profile-view link (sent only over their verified iMessage).
+    viewToken: { type: String, default: null, index: true },
     phoneVerificationCodeHash: { type: String, default: null },
     phoneVerificationProvider: { type: String, default: null },
     phoneVerificationSid: { type: String, default: null },
