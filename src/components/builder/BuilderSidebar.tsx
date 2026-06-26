@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Home,
-  Bot,
   User,
   Mail,
   ClipboardList,
@@ -20,7 +19,6 @@ const navItems: Array<{ key: TabKey; label: string; icon: React.ReactNode; badge
   { key: 'messages', label: 'Messages', icon: <Mail className="w-4 h-4" />, badgeKey: 'messages' },
   { key: 'calls', label: 'Calls', icon: <Phone className="w-4 h-4" />, badgeKey: 'calls' },
   { key: 'trials', label: 'Trials', icon: <ClipboardList className="w-4 h-4" />, badgeKey: 'trials' },
-  { key: 'agent', label: 'Agent', icon: <Bot className="w-4 h-4" /> },
   { key: 'profile', label: 'Profile', icon: <User className="w-4 h-4" /> },
 ];
 
@@ -34,7 +32,6 @@ export default function BuilderSidebar({
   projectsCount,
   notifications,
   unreadNotificationCount,
-  unreadAgentCount,
   tabBadge,
   logout,
 }: {
@@ -47,7 +44,6 @@ export default function BuilderSidebar({
   projectsCount: number;
   notifications: NotificationItem[];
   unreadNotificationCount: number;
-  unreadAgentCount: number;
   tabBadge: (key?: string) => number;
   logout: () => void;
 }) {
@@ -75,12 +71,7 @@ export default function BuilderSidebar({
       <nav className="space-y-0.5 flex-1 px-1 overflow-y-auto">
         {navItems.map((item) => {
           const active = activeTab === item.key;
-          const badge =
-            item.key === 'agent' && unreadAgentCount > 0
-              ? unreadAgentCount
-              : item.badgeKey
-                ? tabBadge(item.badgeKey)
-                : 0;
+          const badge = item.badgeKey ? tabBadge(item.badgeKey) : 0;
           return (
             <button
               key={item.key}

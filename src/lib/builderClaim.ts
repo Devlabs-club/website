@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
-import ProjectRecord from '@/models/talent/ProjectRecord';
 import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import { checkSmsVerification, startSmsVerification } from '@/lib/twilioVerify';
@@ -51,6 +50,26 @@ export function claimBaseUrl(runtime?: RuntimeEnv) {
 
 export function claimUrlForToken(token: string, runtime?: RuntimeEnv) {
   return `${claimBaseUrl(runtime)}/builder/claim/${encodeURIComponent(token)}`;
+}
+
+/** Private link the builder uses to view their own full profile. */
+export function claimProfileViewUrl(token: string, runtime?: RuntimeEnv) {
+  return `${claimBaseUrl(runtime)}/builder/p/${encodeURIComponent(token)}`;
+}
+
+/**
+ * Ensure the claim has a profile-view token and return it. Mutates the claim in
+ * memory (the caller persists it); the token is the secret that gates the
+ * builder's private profile page.
+ */
+export function ensureClaimViewToken(claim: any) {
+  if (!claim.viewToken) claim.viewToken = createClaimToken();
+  return claim.viewToken as string;
+}
+
+export async function findClaimByViewToken(token: string) {
+  if (!token) return null;
+  return BuilderProfileClaim.findOne({ viewToken: token });
 }
 
 export async function createBuilderClaimForEmail(email: string, runtime?: RuntimeEnv) {
@@ -208,120 +227,145 @@ export async function requestClaimConversationStart(rawToken: string, runtime?: 
   return { claim, delivery: start.delivery };
 }
 
-function firstName(value: string) {
-  return value.trim().split(/\s+/)[0] || 'there';
+/** Map stored claim messages into agent conversation history (iMessage only). */
+function buildAgentHistory(claim: any): Array<{ role: 'user' | 'assistant'; content: string }> {
+  return (claim.messages || [])
+    .filter((m: any) => (m.channel || 'imessage') === 'imessage' && m.body)
+    .map((m: any) => ({
+      role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+      content: String(m.body),
+    }));
 }
 
-async function getClaimBuilder(claim: any) {
-  if (claim.builderId) return BuilderProfile.findById(claim.builderId).lean();
-  return BuilderProfile.findOne({ email: claim.builderEmail }).lean();
+async function finalizeClaimAccount(claim: any, runtime?: RuntimeEnv) {
+  claim.status = 'completed';
+  claim.completedAt = new Date();
+  if (claim.builderId) {
+    const user = await findUserByEmail(claim.builderEmail, runtime);
+    await BuilderProfile.updateOne(
+      { _id: claim.builderId },
+      {
+        $set: {
+          ...(user?._id ? { userId: user._id } : {}),
+          phone: claim.phone,
+          email: claim.builderEmail,
+          verificationStatus: 'builder_confirmed',
+        },
+      }
+    );
+    if (user?._id) {
+      await updateUserAccount(String(user._id), {
+        role: 'builder',
+        accountType: 'builder',
+        onboardingStatus: 'complete',
+      }, runtime);
+    }
+  }
 }
 
-function claimQuestions(builder: any) {
-  const name = builder?.name || 'this DevLabs builder profile';
-  const links = [builder?.links?.linkedin, builder?.links?.github, builder?.links?.devpost].filter(Boolean).join(' / ');
-  return [
-    {
-      key: 'identity',
-      body: `Hi ${firstName(builder?.name || '')}, this is DevLabs. Reply YES to confirm you are claiming the builder profile for ${name}.`,
-    },
-    {
-      key: 'links',
-      body: links
-        ? `Reply with the LinkedIn/GitHub/Devpost link that belongs to you. We have this on file: ${links}`
-        : 'Reply with the LinkedIn, GitHub, or Devpost link that belongs to you.',
-    },
-    {
-      key: 'proof',
-      body: 'Reply with one project, role, or experience from your profile so we can cross-check the claim.',
-    },
-  ];
-}
-
-export async function startClaimConversation(claim: any, runtime?: RuntimeEnv) {
-  const builder = await getClaimBuilder(claim);
-  const question = claimQuestions(builder)[0];
-  const delivery = await sendBuilderClaimMessage(
-    {
-      toPhone: claim.phone,
-      body: question.body,
-      claimId: String(claim._id),
-      builderId: claim.builderId ? String(claim.builderId) : null,
-      purpose: 'claim_conversation',
-    },
-    runtime
-  );
-
-  claim.status = delivery.status === 'sent' ? 'conversation_started' : 'phone_verified';
-  claim.conversationQuestionIndex = 0;
-  claim.messages.push({
-    direction: 'outbound',
-    body: question.body,
-    channel: 'imessage',
-    providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
-  });
+/**
+ * Send a sequence of agent bubbles over iMessage and record each on the claim.
+ * (We prefer several short texts over one wall of text, Poke-style.)
+ */
+async function sendReplies(claim: any, replies: string[], runtime?: RuntimeEnv) {
+  let lastDelivery: { status: string; providerMessageId?: string | null } = { status: 'not_configured' };
+  let anySent = false;
+  for (const body of replies) {
+    if (!body?.trim()) continue;
+    const delivery = await sendBuilderClaimMessage(
+      {
+        toPhone: claim.phone,
+        body,
+        claimId: String(claim._id),
+        builderId: claim.builderId ? String(claim.builderId) : null,
+        purpose: 'claim_conversation',
+      },
+      runtime
+    );
+    if (delivery.status === 'sent') anySent = true;
+    lastDelivery = delivery;
+    claim.messages.push({
+      direction: 'outbound',
+      body,
+      channel: 'imessage',
+      providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
+    });
+  }
   claim.lastMessageAt = new Date();
+  return { lastDelivery, anySent };
+}
+
+/**
+ * After the immediate "give me a sec" texts go out, run the scheduled
+ * scrape/research and send the follow-up texts reacting to what we found.
+ */
+async function runClaimFollowUp(claim: any, followUp: { sources: any[]; research: boolean; links?: string[] }, runtime?: RuntimeEnv) {
+  try {
+    const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+    const result = await runImessageBuilderAgentTurn({
+      claim,
+      history: buildAgentHistory(claim),
+      mode: 'followup',
+      followUpJob: { sources: followUp.sources as any, research: followUp.research, links: followUp.links || [] },
+      runtime,
+    });
+    claim.builderId = result.builderId;
+    await sendReplies(claim, result.replies, runtime);
+    if (result.completed && claim.status !== 'completed') {
+      await finalizeClaimAccount(claim, runtime);
+    }
+    await claim.save();
+  } catch (err) {
+    console.error('[builder-claim] follow-up turn failed', err);
+  }
+}
+
+/**
+ * The Poke-persona iMessage builder agent drives the whole conversation:
+ * identity is settled by phone verification, so it goes straight into reading
+ * the profile, scraping links, enriching gaps, ingesting resumes, and finalizing.
+ */
+export async function startClaimConversation(claim: any, runtime?: RuntimeEnv) {
+  const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+  const result = await runImessageBuilderAgentTurn({
+    claim,
+    history: buildAgentHistory(claim),
+    kickoff: true,
+    runtime,
+  });
+
+  claim.builderId = result.builderId;
+  const { lastDelivery, anySent } = await sendReplies(claim, result.replies, runtime);
+  claim.status = anySent ? 'conversation_started' : 'phone_verified';
   await claim.save();
 
-  return { delivery };
+  if (result.followUp) await runClaimFollowUp(claim, result.followUp, runtime);
+
+  return { delivery: lastDelivery };
 }
 
-function normalizeCheckText(value: unknown) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/https?:\/\//g, '')
-    .replace(/www\./g, '')
-    .replace(/[^a-z0-9./@_-]+/g, ' ')
-    .trim();
-}
-
-async function validateClaimAnswer(claim: any, answer: string, questionIndex: number) {
-  const builder = await getClaimBuilder(claim);
-  if (questionIndex === 0) {
-    return /^(yes|y|confirm|confirmed|that'?s me|this is me)\b/i.test(answer.trim());
-  }
-
-  if (!builder) return answer.trim().length >= 3;
-
-  const normalizedAnswer = normalizeCheckText(answer);
-  if (questionIndex === 1) {
-    const links = [builder.links?.linkedin, builder.links?.github, builder.links?.devpost, builder.email]
-      .filter(Boolean)
-      .map(normalizeCheckText)
-      .filter(Boolean);
-    return links.some((link) => normalizedAnswer.includes(link) || link.includes(normalizedAnswer));
-  }
-
-  const projects = await ProjectRecord.find({ builderId: builder._id }).select('projectName description techStack').limit(10).lean();
-  const profileText = normalizeCheckText(
-    [
-      builder.headline,
-      builder.bio,
-      builder.universityOrCompany,
-      ...(builder.rolePreference || []),
-      ...(builder.experiences || []).flatMap((exp: any) => [exp.title, exp.company, exp.description, ...(exp.skills || [])]),
-      ...projects.flatMap((project: any) => [project.projectName, project.description, ...(project.techStack || [])]),
-    ].join(' ')
-  );
-  const meaningfulTerms = normalizedAnswer.split(/\s+/).filter((term) => term.length >= 4);
-  if (meaningfulTerms.length === 0) return false;
-  return meaningfulTerms.some((term) => profileText.includes(term));
-}
-
-export async function advanceClaimConversation(params: { fromPhone: string; body: string; providerMessageId?: string | null }, runtime?: RuntimeEnv) {
+export async function advanceClaimConversation(
+  params: { fromPhone: string; body: string; providerMessageId?: string | null; resumeText?: string | null },
+  runtime?: RuntimeEnv
+) {
   const phone = normalizeClaimPhone(params.fromPhone);
   const claim = await BuilderProfileClaim.findOne({
     phone,
-    status: { $in: ['phone_verified', 'conversation_started'] },
+    status: { $in: ['phone_verified', 'conversation_started', 'completed'] },
   }).sort({ updatedAt: -1 });
 
   if (!claim) return { error: 'No active claim found for this phone number.', status: 404 as const };
 
   const body = params.body.trim();
   if (params.providerMessageId) {
-    const alreadyHandled = claim.messages.some((message: any) => message.direction === 'inbound' && message.providerMessageId === params.providerMessageId);
+    const alreadyHandled = claim.messages.some(
+      (message: any) => message.direction === 'inbound' && message.providerMessageId === params.providerMessageId
+    );
     if (alreadyHandled) return { claim, completed: false, delivery: { status: 'not_configured' as const } };
   }
+
+  // History is built BEFORE we append the current inbound message.
+  const history = buildAgentHistory(claim);
 
   claim.messages.push({
     direction: 'inbound',
@@ -330,108 +374,28 @@ export async function advanceClaimConversation(params: { fromPhone: string; body
     providerMessageId: params.providerMessageId || null,
   });
 
-  const builder = await getClaimBuilder(claim);
-  const questions = claimQuestions(builder);
-  const currentIndex = Math.min(claim.conversationQuestionIndex || 0, questions.length - 1);
-  const valid = await validateClaimAnswer(claim, body, currentIndex);
-  if (!valid) {
-    const failure = `Question ${currentIndex + 1} did not match expected profile evidence.`;
-    claim.conversationFailures.push(failure);
-    const failuresForQuestion = claim.conversationFailures.filter((item: string) => item === failure).length;
-    if (failuresForQuestion > 3) {
-      claim.lastMessageAt = new Date();
-      await claim.save();
-      return { claim, completed: false, delivery: { status: 'not_configured' as const } };
-    }
-    const retryBody = 'I could not match that to the profile yet. Please reply with the exact requested detail from your DevLabs builder profile.';
-    const retryDelivery = await sendBuilderClaimMessage(
-      {
-        toPhone: phone,
-        body: retryBody,
-        claimId: String(claim._id),
-        builderId: claim.builderId ? String(claim.builderId) : null,
-        purpose: 'claim_conversation',
-      },
-      runtime
-    );
-    claim.messages.push({
-      direction: 'outbound',
-      body: retryBody,
-      channel: 'imessage',
-      providerMessageId: retryDelivery.status === 'sent' ? retryDelivery.providerMessageId || null : null,
-    });
-    claim.lastMessageAt = new Date();
-    await claim.save();
-    return { claim, completed: false, delivery: retryDelivery };
-  }
-
-  const nextIndex = currentIndex + 1;
-  if (nextIndex >= questions.length) {
-    const completeBody = 'Thanks. Your phone number is verified and your DevLabs builder profile claim is complete.';
-    const completeDelivery = await sendBuilderClaimMessage(
-      {
-        toPhone: phone,
-        body: completeBody,
-        claimId: String(claim._id),
-        builderId: claim.builderId ? String(claim.builderId) : null,
-        purpose: 'claim_conversation',
-      },
-      runtime
-    );
-    claim.status = 'completed';
-    claim.completedAt = new Date();
-    claim.messages.push({
-      direction: 'outbound',
-      body: completeBody,
-      channel: 'imessage',
-      providerMessageId: completeDelivery.status === 'sent' ? completeDelivery.providerMessageId || null : null,
-    });
-    claim.lastMessageAt = new Date();
-    if (claim.builderId) {
-      const user = await findUserByEmail(claim.builderEmail, runtime);
-      await BuilderProfile.updateOne(
-        { _id: claim.builderId },
-        {
-          $set: {
-            ...(user?._id ? { userId: user._id } : {}),
-            phone,
-            email: claim.builderEmail,
-            verificationStatus: 'builder_confirmed',
-          },
-        }
-      );
-      if (user?._id) {
-        await updateUserAccount(String(user._id), {
-          role: 'builder',
-          accountType: 'builder',
-          onboardingStatus: 'complete',
-        }, runtime);
-      }
-    }
-    await claim.save();
-    return { claim, completed: true, delivery: completeDelivery };
-  }
-
-  const nextQuestion = questions[nextIndex];
-  const delivery = await sendBuilderClaimMessage(
-    {
-      toPhone: phone,
-      body: nextQuestion.body,
-      claimId: String(claim._id),
-      builderId: claim.builderId ? String(claim.builderId) : null,
-      purpose: 'claim_conversation',
-    },
-    runtime
-  );
-  claim.status = 'conversation_started';
-  claim.conversationQuestionIndex = nextIndex;
-  claim.messages.push({
-    direction: 'outbound',
-    body: nextQuestion.body,
-    channel: 'imessage',
-    providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
+  const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+  const result = await runImessageBuilderAgentTurn({
+    claim,
+    userText: body,
+    history,
+    resume: params.resumeText ? { text: params.resumeText } : null,
+    runtime,
   });
-  claim.lastMessageAt = new Date();
+
+  claim.builderId = result.builderId;
+  const { lastDelivery } = await sendReplies(claim, result.replies, runtime);
+
+  if (result.completed && claim.status !== 'completed') {
+    await finalizeClaimAccount(claim, runtime);
+  } else if (claim.status === 'phone_verified') {
+    claim.status = 'conversation_started';
+  }
+
   await claim.save();
-  return { claim, completed: false, delivery };
+
+  // Now do the slow scrape/research and text them the findings.
+  if (result.followUp) await runClaimFollowUp(claim, result.followUp, runtime);
+
+  return { claim, completed: result.completed, delivery: lastDelivery };
 }

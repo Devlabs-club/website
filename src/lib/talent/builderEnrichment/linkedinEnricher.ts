@@ -86,6 +86,7 @@ function mapVoyagerToDraft(
   return {
     headline: voyager.headline?.slice(0, 120) || null,
     bio: bio ? String(bio).slice(0, 2000) : null,
+    avatarUrl: voyager.photoUrl || null,
     location: voyager.location || null,
     universityOrCompany: university,
     education,
@@ -124,6 +125,7 @@ async function refineWithLlm(rawText: string, draft: EnrichedProfileDraft): Prom
   return {
     headline: typeof parsed.headline === 'string' ? parsed.headline : draft.headline,
     bio: typeof parsed.bio === 'string' ? parsed.bio : draft.bio,
+    avatarUrl: draft.avatarUrl,
     location: draft.location,
     universityOrCompany:
       typeof parsed.universityOrCompany === 'string'
@@ -190,6 +192,7 @@ function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): Enrich
   return {
     headline: typeof set.headline === 'string' ? set.headline : null,
     bio: typeof set.bio === 'string' ? set.bio : null,
+    avatarUrl: artifact?.extracted?.cdpExtraction?.photo?.imageUrl || null,
     location: typeof set.location === 'string' ? set.location : null,
     graduationYear: typeof set.graduationYear === 'number' ? set.graduationYear : null,
     rolePreference: eachValues(addToSet.rolePreference).slice(0, 20),

@@ -1,11 +1,12 @@
 import type { NotificationItem } from '@/components/founder/founderTypes';
 
-export type TabKey = 'home' | 'intros' | 'messages' | 'calls' | 'trials' | 'agent' | 'profile';
+export type TabKey = 'home' | 'intros' | 'messages' | 'calls' | 'trials' | 'profile';
 
 export type BuilderData = {
   _id: string;
   name: string;
   email: string;
+  avatarUrl?: string | null;
   headline?: string | null;
   bio?: string | null;
   location?: string | null;
@@ -32,8 +33,10 @@ export type BuilderData = {
     github?: string | null;
     linkedin?: string | null;
     portfolio?: string | null;
+    personalWebsite?: string | null;
     devpost?: string | null;
     resume?: string | null;
+    twitter?: string | null;
   };
   availability?: {
     availableNow?: boolean;
@@ -99,18 +102,6 @@ export type MatchData = {
   timeline?: string;
 };
 
-export type AgentMessage = { sender: 'agent' | 'user'; text: string };
-
-export type UiBlock = {
-  type: string;
-  title?: string;
-  body?: string;
-  items?: string[];
-  missingItems?: string[];
-  score?: number;
-  eligibility?: string;
-};
-
 export type BuilderDashboardContext = {
   user: { id?: string; email?: string } | null;
   builder: BuilderData;
@@ -122,12 +113,7 @@ export type BuilderDashboardContext = {
   notifications: NotificationItem[];
   unreadNotificationCount: number;
   projectStats: ProjectStats;
-  agentMessages: AgentMessage[];
-  agentInput: string;
-  agentBusy: boolean;
   refreshing: boolean;
-  uiBlocks: UiBlock[];
-  uploadingResume: boolean;
   messagesThreadId: string | null;
   messagesIntroId: string | null;
   settingsHours: string;
@@ -144,11 +130,9 @@ export type BuilderDashboardContext = {
   matchScore: number;
   qualityScore: number;
   qualityLabel: string;
-  unreadCount: number;
   topRoles: string[];
   topSkills: string[];
   setActiveTab: (tab: TabKey) => void;
-  setAgentInput: (v: string) => void;
   setMessagesThreadId: (v: string | null) => void;
   setMessagesIntroId: (v: string | null) => void;
   setSettingsHours: (v: string) => void;
@@ -160,12 +144,8 @@ export type BuilderDashboardContext = {
   setSettingsLinkedin: (v: string) => void;
   setSettingsPortfolio: (v: string) => void;
   toggleWorkType: (value: string) => void;
-  handleAgentSend: (overrideText?: string) => void;
-  handleResumeUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   saveSettings: () => void;
   loadDashboard: (opts?: { silent?: boolean }) => Promise<void>;
   logout: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
   tabBadge: (key?: string) => number;
 };

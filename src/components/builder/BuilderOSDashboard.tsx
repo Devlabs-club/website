@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/components/auth_manager';
-import { agentStorageKey, clearAgentStorageForUser, sanitizeAgentMessages } from '@/lib/talent/builderChatHelpers';
 import { useTalentRealtime } from '@/hooks/useTalentRealtime';
 import type { NotificationItem } from '@/components/founder/founderTypes';
 import { OsShell } from '@/components/os';
@@ -12,17 +11,14 @@ import BuilderIntrosTab from './BuilderIntrosTab';
 import BuilderMessagesTab from './BuilderMessagesTab';
 import BuilderCallsTab from './BuilderCallsTab';
 import BuilderTrialsTab from './BuilderTrialsTab';
-import BuilderAgentTab from './BuilderAgentTab';
 import BuilderProfileTab from './BuilderProfileTab';
 import type {
-  AgentMessage,
   BuilderData,
   BuilderDashboardContext,
   MatchData,
   ProjectData,
   ProjectStats,
   TabKey,
-  UiBlock,
 } from './types';
 
 export default function BuilderOSDashboard() {
@@ -44,14 +40,8 @@ export default function BuilderOSDashboard() {
     githubProjects: 0,
     verifiedContributions: 0,
   });
-  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
-  const [chatUserId, setChatUserId] = useState<string | null>(null);
-  const [agentInput, setAgentInput] = useState('');
-  const [agentBusy, setAgentBusy] = useState(false);
   const [messagesThreadId, setMessagesThreadId] = useState<string | null>(null);
   const [messagesIntroId, setMessagesIntroId] = useState<string | null>(null);
-  const [uiBlocks, setUiBlocks] = useState<UiBlock[]>([]);
-  const [uploadingResume, setUploadingResume] = useState(false);
   const [settingsHours, setSettingsHours] = useState('');
   const [settingsRemote, setSettingsRemote] = useState('unspecified');
   const [settingsAvailable, setSettingsAvailable] = useState(true);
@@ -62,52 +52,15 @@ export default function BuilderOSDashboard() {
   const [settingsLinkedin, setSettingsLinkedin] = useState('');
   const [settingsPortfolio, setSettingsPortfolio] = useState('');
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const loadInFlightRef = useRef(false);
   const profileEvalRequestedRef = useRef(false);
-  const hydratedUserRef = useRef<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-
-  // Hydrate agent chat once per user — independent from dashboard data sync.
-  useEffect(() => {
-    if (!user?.id) return;
-    if (hydratedUserRef.current === user.id) return;
-
-    if (chatUserId && chatUserId !== user.id) {
-      clearAgentStorageForUser(chatUserId);
-    }
-
-    hydratedUserRef.current = user.id;
-    setChatUserId(user.id);
-
-    try {
-      const saved = localStorage.getItem(agentStorageKey(user.id));
-      if (saved) {
-        const cleaned = sanitizeAgentMessages(JSON.parse(saved));
-        setAgentMessages(cleaned);
-        localStorage.setItem(agentStorageKey(user.id), JSON.stringify(cleaned));
-      } else {
-        setAgentMessages([]);
-      }
-    } catch {
-      setAgentMessages([]);
-    }
-  }, [user?.id, chatUserId]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && user?.id && agentMessages.length > 0) {
-      const cleaned = sanitizeAgentMessages(agentMessages);
-      localStorage.setItem(agentStorageKey(user.id), JSON.stringify(cleaned));
-    }
-  }, [agentMessages, user?.id]);
 
   const profileScore = builder?.profileCompletion?.profileScore ?? builder?.profileCompletion?.score ?? 0;
   const proofScore = builder?.profileCompletion?.proofScore ?? 0;
   const matchScore = builder?.profileCompletion?.matchScore ?? 0;
   const qualityScore = builder?.profileQuality?.overallScore || 0;
   const qualityLabel = builder?.profileQuality?.label || 'Needs Work';
-  const unreadCount = Math.max(0, uiBlocks.length);
   const callsBadgeCount = upcomingCalls.filter((c) => c.status === 'pending_builder').length;
 
   const tabBadge = (key?: string) => {
@@ -129,7 +82,7 @@ export default function BuilderOSDashboard() {
     return Array.from(new Set(projectSkills.filter(Boolean))).slice(0, 8);
   }, [projects]);
 
-  const loadDashboard = async (opts?: { silent?: boolean; seedAgentGreeting?: boolean }) => {
+  const loadDashboard = async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
 
     if (silent && loadInFlightRef.current) return;
@@ -183,17 +136,6 @@ export default function BuilderOSDashboard() {
           .catch(console.error);
       }
 
-      if (data.builder && (opts?.seedAgentGreeting || !silent)) {
-        setAgentMessages((prev) => {
-          if (prev.length > 0) return prev;
-          const missing = data.builder.profileCompletion?.missingItems?.[0];
-          const ql = data.builder.profileQuality?.label || 'Needs Work';
-          const base = `Hey ${data.builder.name.split(' ')[0]} — I reviewed your profile. Your quality score is ${ql}.`;
-          const priority = missing ? ` The highest priority right now is to ${missing.toLowerCase()}.` : ' Your profile looks strong!';
-          return [{ sender: 'agent', text: `${base}${priority} I can help you update your availability, summarize your profile, or add a project.` }];
-        });
-      }
-
       if (data.builder?.availability) {
         setSettingsHours(data.builder.availability.hoursPerWeek ? String(data.builder.availability.hoursPerWeek) : '');
         setSettingsRemote(data.builder.availability.remotePreference || 'unspecified');
@@ -229,11 +171,11 @@ export default function BuilderOSDashboard() {
   };
 
   useEffect(() => {
-    loadDashboard({ seedAgentGreeting: true });
+    loadDashboard();
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get('tab');
-      const validTabs: TabKey[] = ['home', 'intros', 'messages', 'calls', 'trials', 'agent', 'profile'];
+      const validTabs: TabKey[] = ['home', 'intros', 'messages', 'calls', 'trials', 'profile'];
       if (tab === 'matches' || tab === 'projects' || tab === 'events') setActiveTab('home');
       else if (tab === 'intros') setActiveTab('intros');
       else if (tab && validTabs.includes(tab as TabKey)) setActiveTab(tab as TabKey);
@@ -243,107 +185,10 @@ export default function BuilderOSDashboard() {
   }, []);
 
   useTalentRealtime({
-    enabled: Boolean(user?.id) && activeTab !== 'agent',
+    enabled: Boolean(user?.id),
     scope: 'builder',
     onEvent: () => loadDashboard({ silent: true }),
   });
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [agentMessages, agentBusy]);
-
-  const handleAgentSend = async (overrideText?: string) => {
-    const text = (typeof overrideText === 'string' ? overrideText : agentInput).trim();
-    if (!text || agentBusy) return;
-
-    setAgentMessages((prev) => [...prev, { sender: 'user', text }]);
-    if (!overrideText) setAgentInput('');
-    setAgentBusy(true);
-
-    try {
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'builder_chat',
-          payload: {
-            message: text,
-            history: agentMessages.map((m) => ({
-              role: m.sender === 'agent' ? 'assistant' : 'user',
-              content: m.text,
-            })),
-          },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Action failed');
-
-      setAgentMessages((prev) => [...prev, { sender: 'agent', text: data.message || 'Done.' }]);
-      setUiBlocks(Array.isArray(data.uiBlocks) ? data.uiBlocks : []);
-      if (data.builder) {
-        setBuilder((prev) => ({ ...(prev || {}), ...data.builder } as BuilderData));
-        setSettingsHeadline(data.builder.headline || '');
-        setSettingsBio(data.builder.bio || '');
-        setSettingsGithub(data.builder.links?.github || '');
-        setSettingsLinkedin(data.builder.links?.linkedin || '');
-        setSettingsPortfolio(data.builder.links?.portfolio || '');
-      }
-      if (Array.isArray(data.projects)) setProjects(data.projects);
-    } catch (error) {
-      setAgentMessages((prev) => [
-        ...prev,
-        { sender: 'agent', text: error instanceof Error ? error.message : 'Agent action failed.' },
-      ]);
-    } finally {
-      setAgentBusy(false);
-    }
-  };
-
-  const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setUploadingResume(true);
-    setAgentMessages((prev) => [...prev, { sender: 'user', text: `Uploading resume: ${file.name}` }]);
-
-    try {
-      const formData = new FormData();
-      formData.append('resume', file);
-      const uploadResponse = await fetch('/api/agent/upload-resume', { method: 'POST', credentials: 'include', body: formData });
-      const uploadData = await uploadResponse.json();
-      if (!uploadResponse.ok || !uploadData.success) throw new Error(uploadData.message || 'Resume upload failed');
-
-      const response = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'builder_chat',
-          payload: {
-            message: uploadData.extractedData
-              ? `I uploaded my resume. Skills: ${(uploadData.extractedData.skills || []).join(', ')}.`
-              : 'I uploaded my resume',
-            attachments: { resumeUrl: uploadData.resumeUrl },
-            history: agentMessages.map((m) => ({ role: m.sender === 'agent' ? 'assistant' : 'user', content: m.text })),
-          },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || 'Resume update failed');
-
-      setAgentMessages((prev) => [...prev, { sender: 'agent', text: data.message || 'Resume added.' }]);
-      setUiBlocks(Array.isArray(data.uiBlocks) ? data.uiBlocks : []);
-      if (data.builder) setBuilder((prev) => ({ ...(prev || {}), ...data.builder } as BuilderData));
-    } catch (error) {
-      setAgentMessages((prev) => [
-        ...prev,
-        { sender: 'agent', text: error instanceof Error ? error.message : 'Failed to upload resume.' },
-      ]);
-    } finally {
-      setUploadingResume(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
 
   const saveSettings = async () => {
     try {
@@ -362,14 +207,10 @@ export default function BuilderOSDashboard() {
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || `Failed to save ${action}`);
       }
-      setAgentMessages((prev) => [...prev, { sender: 'agent', text: 'Settings updated successfully.' }]);
-      setActiveTab('agent');
+      setActiveTab('profile');
     } catch (error) {
-      setAgentMessages((prev) => [
-        ...prev,
-        { sender: 'agent', text: error instanceof Error ? error.message : 'Failed to save settings.' },
-      ]);
-      setActiveTab('agent');
+      console.error('[BuilderOSDashboard] save settings failed', error);
+      setActiveTab('profile');
     }
   };
 
@@ -404,12 +245,7 @@ export default function BuilderOSDashboard() {
     notifications,
     unreadNotificationCount,
     projectStats,
-    agentMessages,
-    agentInput,
-    agentBusy,
     refreshing,
-    uiBlocks,
-    uploadingResume,
     messagesThreadId,
     messagesIntroId,
     settingsHours,
@@ -426,11 +262,9 @@ export default function BuilderOSDashboard() {
     matchScore,
     qualityScore,
     qualityLabel,
-    unreadCount,
     topRoles,
     topSkills,
     setActiveTab,
-    setAgentInput,
     setMessagesThreadId,
     setMessagesIntroId,
     setSettingsHours,
@@ -442,13 +276,9 @@ export default function BuilderOSDashboard() {
     setSettingsLinkedin,
     setSettingsPortfolio,
     toggleWorkType,
-    handleAgentSend,
-    handleResumeUpload,
     saveSettings,
     loadDashboard,
     logout,
-    fileInputRef,
-    messagesEndRef,
     tabBadge,
   };
 
@@ -458,7 +288,6 @@ export default function BuilderOSDashboard() {
     messages: <BuilderMessagesTab ctx={ctx} />,
     calls: <BuilderCallsTab ctx={ctx} />,
     trials: <BuilderTrialsTab ctx={ctx} />,
-    agent: <BuilderAgentTab ctx={ctx} />,
     profile: <BuilderProfileTab ctx={ctx} />,
   }[activeTab];
 
@@ -488,7 +317,6 @@ export default function BuilderOSDashboard() {
             projectsCount={projects.length}
             notifications={notifications}
             unreadNotificationCount={unreadNotificationCount}
-            unreadAgentCount={unreadCount}
             tabBadge={tabBadge}
             logout={logout}
           />

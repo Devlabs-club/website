@@ -5,6 +5,7 @@ import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 export type BuilderProfile = {
   id: string;
   name: string;
+  avatarUrl?: string | null;
   headline?: string | null;
   bio?: string | null;
   location?: string | null;
@@ -26,10 +27,19 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 export const BuilderProfileView: React.FC<{ profile: BuilderProfile }> = ({ profile }) => (
   <div>
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">{profile.name}</h1>
-        <p className="mt-2 text-muted-foreground">{profile.headline || profile.bio}</p>
-        <p className="mt-2 text-sm text-muted-foreground">{profile.location}</p>
+      <div className="flex min-w-0 items-start gap-4">
+        {profile.avatarUrl ? (
+          <img src={profile.avatarUrl} alt={profile.name} className="h-16 w-16 shrink-0 rounded-full border border-border object-cover" />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted text-xl font-semibold">
+            {profile.name.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h1 className="text-3xl font-semibold tracking-tight">{profile.name}</h1>
+          <p className="mt-2 text-muted-foreground">{profile.headline || profile.bio}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{profile.location}</p>
+        </div>
       </div>
       <div className="flex gap-2">
         {Object.entries(profile.links || {}).map(([label, href]) =>

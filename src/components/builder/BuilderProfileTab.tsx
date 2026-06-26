@@ -41,7 +41,6 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
     toggleWorkType,
     saveSettings,
     setActiveTab,
-    setAgentInput,
   } = ctx;
 
   return (
@@ -248,11 +247,10 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
             <OsButton
               variant="glass"
               onClick={() => {
-                setAgentInput('I want to update my headline and bio');
-                setActiveTab('agent');
+                setActiveTab('profile');
               }}
             >
-              Agent
+              Keep editing
             </OsButton>
           </div>
         </div>
@@ -270,8 +268,7 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
           <OsButton
             variant="glass"
             onClick={() => {
-              setAgentInput('I want to add a new project to my profile');
-              setActiveTab('agent');
+              setActiveTab('profile');
             }}
           >
             <Plus className="w-3.5 h-3.5 mr-1.5" /> Add project
@@ -282,14 +279,13 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
           <div className="rounded-xl border border-dashed border-white/15 p-10 text-center">
             <p className="text-white/45 text-sm">No projects added yet.</p>
             <p className="text-white/30 text-xs mt-1.5">
-              Import from GitHub or Devpost, or describe one to the Agent.
+              Import from GitHub or Devpost, or add one manually.
             </p>
             <div className="flex flex-wrap justify-center gap-3 mt-6">
               <OsButton
                 variant="glass"
                 onClick={() => {
-                  setAgentInput('Import my Devpost project');
-                  setActiveTab('agent');
+                  setActiveTab('profile');
                 }}
               >
                 Import from Devpost
@@ -297,8 +293,7 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
               <OsButton
                 variant="shimmer"
                 onClick={() => {
-                  setAgentInput('I want to add a project manually');
-                  setActiveTab('agent');
+                  setActiveTab('profile');
                 }}
               >
                 Add manually
@@ -339,8 +334,7 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
                         <button
                           type="button"
                           onClick={() => {
-                            setAgentInput(`Add my personal contribution to the project: ${project.projectName}`);
-                            setActiveTab('agent');
+                            setActiveTab('profile');
                           }}
                           className="ml-auto text-xs text-amber-400 underline shrink-0 hover:no-underline"
                         >
@@ -361,12 +355,11 @@ export default function BuilderProfileTab({ ctx }: { ctx: BuilderDashboardContex
                   <button
                     type="button"
                     onClick={() => {
-                      setAgentInput(`Help me improve the project: ${project.projectName}`);
-                      setActiveTab('agent');
+                      setActiveTab('profile');
                     }}
                     className="text-xs text-white/40 hover:text-[#fa7d22] transition-colors shrink-0 mt-0.5"
                   >
-                    Edit with Agent
+                    Edit profile
                   </button>
                 </div>
               </div>

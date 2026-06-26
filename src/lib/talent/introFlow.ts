@@ -3,12 +3,70 @@ import MessageThread from '@/models/talent/MessageThread';
 import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
+import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import {
   builderDashboardLink,
   createNotification,
   founderDashboardLink,
 } from '@/lib/talent/notifications';
+import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
+
+/**
+ * Text the builder on iMessage that a founder is interested.
+ * Best-effort: only fires when we have a verified phone for them; the in-app
+ * notification is the source of truth, this is the delightful surprise ping.
+ */
+async function pingBuilderInterestOverImessage(params: {
+  builderId: string;
+  builderEmail: string;
+  founderName: string;
+  roleTitle: string;
+  company: string;
+  introRequestId: string;
+}) {
+  try {
+    const claim = (await BuilderProfileClaim.findOne({
+      $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+      phone: { $ne: null },
+      phoneVerifiedAt: { $ne: null },
+    })
+      .sort({ updatedAt: -1 })
+      .lean()) as any;
+
+    const builderDoc = (await BuilderProfile.findById(params.builderId).select('phone').lean()) as any;
+    const phone = claim?.phone || builderDoc?.phone;
+    if (!phone) return;
+
+    const body = `yo — ${params.founderName} at ${params.company} wants to talk to you about ${params.roleTitle}. interested? reply here and i'll line it up.`;
+    const delivery = await sendBuilderClaimMessage({
+      toPhone: phone,
+      body,
+      claimId: claim ? String(claim._id) : `intro-${params.introRequestId}`,
+      builderId: params.builderId,
+      purpose: 'claim_conversation',
+    });
+
+    if (claim?._id) {
+      await BuilderProfileClaim.updateOne(
+        { _id: claim._id },
+        {
+          $push: {
+            messages: {
+              direction: 'outbound',
+              body,
+              channel: 'imessage',
+              providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
+            },
+          },
+          $set: { lastMessageAt: new Date() },
+        }
+      );
+    }
+  } catch (err) {
+    console.error('[introFlow] iMessage interest ping failed', err);
+  }
+}
 
 export async function notifyBuilderIntroReceived(params: {
   builderId: string;
@@ -18,6 +76,9 @@ export async function notifyBuilderIntroReceived(params: {
   company: string;
   introRequestId: string;
 }) {
+  // Surprise the builder on iMessage (best-effort, non-blocking on the notification).
+  void pingBuilderInterestOverImessage(params);
+
   return createNotification({
     recipientType: 'builder',
     recipientEmail: params.builderEmail,

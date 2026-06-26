@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
-import { runBuilderAgentTurn } from '@/lib/agent/runners/builderAgentRunner';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import Opportunity from '@/models/talent/Opportunity';
 import MatchRecord from '@/models/talent/MatchRecord';
@@ -67,14 +66,6 @@ import {
   sendTrialProjectToBuilder,
   submitTrialByBuilder,
 } from '@/lib/talent/trialFlow';
-import {
-  extractBioDraftFromHistory,
-  extractBioFromUserText,
-  extractHeadlineFromText,
-  isAffirmativeConfirmation,
-  wantsBioUpdate,
-  type ChatTurn,
-} from '@/lib/talent/builderChatHelpers';
 import {
   getBuilderThreads,
   getFounderThreads,
@@ -655,17 +646,6 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
           },
         ],
       });
-    }
-
-    if (action === 'builder_chat') {
-      const resolved = await resolveAuthedBuilder(request, runtime);
-      if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
-      const { builder } = resolved;
-      const userText = String(payload?.message || '').trim();
-      if (!userText) return bad('message is required');
-      const builderId = String(builder._id);
-      console.log('[agent/actions] builder_chat:delegating', { builderId });
-      return runBuilderAgentTurn({ builder, builderId, userText, history: Array.isArray(payload?.history) ? payload.history : [] });
     }
 
     if (action === 'evaluate_profile_quality') {
