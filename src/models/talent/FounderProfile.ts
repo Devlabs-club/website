@@ -8,6 +8,9 @@ const FounderProfileSchema = new mongoose.Schema(
     company: { type: String, required: true },
     companyWebsite: { type: String, default: null },
     linkedin: { type: String, default: null },
+    // Cal.com / Calendly scheduling link. Sent to a builder over iMessage when the
+    // founder requests an intro so they can book an interview directly.
+    schedulingLink: { type: String, default: null },
     startupSummary: { type: String, default: null },
     industry: { type: String, default: null },
     fundingStage: { type: String, default: null },

@@ -48,7 +48,9 @@ function splitIntoBubbles(text: string): string[] {
     .slice(0, 4);
 }
 
-const POKE_PERSONA = `You are Poke for DevLabs — a builder-care agent that texts builders on iMessage to get their DevLabs builder profile founder-ready.
+const AGENT_PERSONA = `You are DevLabs's builder agent — you text builders on iMessage to get their DevLabs builder profile founder-ready.
+
+YOUR NAME: you DON'T have one. You text in the voice/feel of Poke (sharp, fun, texty — see VOICE), but you are NOT "Poke" and you never call yourself Poke or any other name. Never introduce yourself with a name ("it's poke", "this is X"). If someone asks who/what you are or your name, keep it light and nameless — "just the devlabs agent, here to get your profile founder-ready" — and move on. Never claim a persona/brand name.
 
 VOICE — text like a sharp, fun, slightly sassy friend:
 - Short. iMessage, not email. Casual, lowercase-friendly, dry wit. No corporate tone.
@@ -372,6 +374,17 @@ export async function runImessageBuilderAgentTurn(params: {
   resume?: { text: string } | null;
   /** Open the conversation (no inbound message yet) right after phone verification. */
   kickoff?: boolean;
+  /**
+   * A founder just requested an intro to this builder — generate the surprise
+   * notification (no inbound message). The agent writes it personalized from the
+   * builder's memory + profile; nothing here is a fixed template.
+   */
+  intro?: {
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    schedulingLink?: string | null;
+  };
   /** Follow-up turn: execute previously scheduled scrape/research, then react to it. */
   mode?: 'normal' | 'followup';
   followUpJob?: FollowUpJob;
@@ -529,12 +542,12 @@ export async function runImessageBuilderAgentTurn(params: {
   const hasContribProject = (snapshot.projects || []).some((p: any) => p.contribution);
   const hasAvailability = snapshot.availability?.hoursPerWeek != null || snapshot.availability?.availableNow;
   const founderReady = (snapshot.profileScore ?? 0) >= 80 && hasContribProject && hasAvailability;
-  const founderReadyNote = founderReady && !isFollowup
+  const founderReadyNote = founderReady && !isFollowup && !params.intro
     ? `\n[system: this profile is founder-ready (profileScore ${snapshot.profileScore}). Proactively call finalize_profile and send_profile_link, tell them it's locked in and you'll ping them here when a founder wants an interview, and STOP manufacturing gaps to ask about — but stay available for their questions.]`
     : '';
 
   const systemContext = [
-    POKE_PERSONA,
+    AGENT_PERSONA,
     `\n${BUILDER_DATA_SCHEMA}`,
     created ? '\nThis builder had no profile yet — you just started a fresh one. Build it up from zero, one easy question at a time.' : '',
     memoryText ? `\nMEMORY (already told you — never re-ask):\n${memoryText}` : '',
@@ -550,7 +563,14 @@ export async function runImessageBuilderAgentTurn(params: {
     ? `[system: your background homework finished. FINDINGS:\n${followupNote || '(nothing useful came back)'}\n\nText the builder in 1-3 SHORT bubbles (blank line between each). LEAD with the single most surprising/specific thing you found and say it like you just KNOW it — do NOT explain that you scraped, searched, enriched, or researched anything. Then ask ONE sharp follow-up. If nothing useful came back, just ask your next question casually (don't mention you looked). Natural, a little cheeky, no buzzwords.]`
     : '';
 
-  const tools = isFollowup ? BASE_TOOLS : [...BASE_TOOLS, ...SCHEDULING_TOOLS];
+  const introTurnNote = params.intro
+    ? `[system: THE BIG MOMENT — a founder just asked to be introduced to this builder. This is the surprise we promised: they did nothing, and now a real founder wants them.
+Founder: ${params.intro.founderName} at ${params.intro.company}. Role: ${params.intro.roleTitle}.${params.intro.schedulingLink ? `\nFounder's booking link: ${params.intro.schedulingLink}` : ''}
+Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each). It MUST be personalized to THIS builder using MEMORY + their profile snapshot above — open with something specific you genuinely know about their work (a project, a win, a skill they're known for) so it reads like a person who follows them, never a mass alert. Then tell them THIS founder at THIS company wants to talk about THIS role and why they'd be a fit given what you know. ${params.intro.schedulingLink ? "Hand them the booking link so they can grab an interview slot themselves — work it in naturally, don't say 'here is a link'." : "Tell them to reply here and you'll set up a time."} Close by asking if they're interested. Never a template, never job-board language, no buzzwords, no emojis.]`
+    : '';
+
+  // Intro/follow-up turns don't need the scheduling tools (no scraping/finalizing here).
+  const tools = isFollowup || params.intro ? BASE_TOOLS : [...BASE_TOOLS, ...SCHEDULING_TOOLS];
 
   const messages: AgentMessage[] = [
     { role: 'system', content: systemContext },
@@ -559,7 +579,8 @@ export async function runImessageBuilderAgentTurn(params: {
     ...(autoLinkNote ? [{ role: 'system' as const, content: autoLinkNote }] : []),
     ...(kickoffNote ? [{ role: 'system' as const, content: kickoffNote }] : []),
     ...(followupTurnNote ? [{ role: 'system' as const, content: followupTurnNote }] : []),
-    ...(params.kickoff || isFollowup ? [] : [{ role: 'user' as const, content: userText }]),
+    ...(introTurnNote ? [{ role: 'system' as const, content: introTurnNote }] : []),
+    ...(params.kickoff || isFollowup || params.intro ? [] : [{ role: 'user' as const, content: userText }]),
   ];
 
   let agentResponse = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.6, maxTokens: 450 });
@@ -583,12 +604,24 @@ export async function runImessageBuilderAgentTurn(params: {
   }
 
   let replies = splitIntoBubbles(agentResponse.content || '');
+  // If the model came back empty, retry once before any fallback — we'd much
+  // rather send a real generated message than a canned one.
   if (!replies.length) {
-    if (finalizeCalled) {
+    const retry = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.7, maxTokens: 450 });
+    replies = splitIntoBubbles(retry.content || '');
+  }
+  // Last-resort safety net only (model returned nothing twice). Still contextual —
+  // never a generic blast.
+  if (!replies.length) {
+    const first = (builder.name || 'there').trim().split(/\s+/)[0];
+    if (params.intro) {
+      const i = params.intro;
+      replies = [`${first} — ${i.founderName} at ${i.company} just asked to talk to you about ${i.roleTitle}.`];
+      replies.push(i.schedulingLink ? `grab a time that works for you: ${i.schedulingLink}` : `want me to line up a time? reply here.`);
+    } else if (finalizeCalled) {
       replies = [`okay cool — we've got your profile locked in.`, `i'll text you right here when a founder wants to hire you. peek anytime: ${profileLink}`];
     } else if (params.kickoff) {
-      const first = (builder.name || 'there').trim().split(/\s+/)[0];
-      replies = [`hey ${first}, it's poke from devlabs.`, `let's get your builder profile founder-ready — what's your github?`];
+      replies = [`hey ${first}, devlabs here.`, `let's get your builder profile founder-ready — what's your github?`];
     } else if (isFollowup) {
       replies = [`ok, took a look — got what i needed.`];
     } else {

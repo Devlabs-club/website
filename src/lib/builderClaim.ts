@@ -321,7 +321,7 @@ async function runClaimFollowUp(claim: any, followUp: { sources: any[]; research
 }
 
 /**
- * The Poke-persona iMessage builder agent drives the whole conversation:
+ * The iMessage builder agent (Poke-style voice, no name) drives the whole conversation:
  * identity is settled by phone verification, so it goes straight into reading
  * the profile, scraping links, enriching gaps, ingesting resumes, and finalizing.
  */
@@ -398,4 +398,50 @@ export async function advanceClaimConversation(
   if (result.followUp) await runClaimFollowUp(claim, result.followUp, runtime);
 
   return { claim, completed: result.completed, delivery: lastDelivery };
+}
+
+/**
+ * A founder requested an intro to this builder → text them the surprise over
+ * iMessage. The message is written by the SAME iMessage agent that runs the rest of
+ * the conversation, personalized from this builder's memory + profile (no fixed
+ * template). Best-effort: only fires when we have a verified phone for them; the
+ * in-app notification stays the source of truth.
+ *
+ * Returns true if a claim with a verified phone was found and the agent ran.
+ */
+export async function notifyBuilderOfIntro(
+  params: {
+    builderId: string;
+    builderEmail: string;
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    schedulingLink?: string | null;
+  },
+  runtime?: RuntimeEnv
+): Promise<boolean> {
+  const claim = await BuilderProfileClaim.findOne({
+    $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+    phone: { $ne: null },
+    phoneVerifiedAt: { $ne: null },
+  }).sort({ updatedAt: -1 });
+  if (!claim) return false;
+
+  const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+  const result = await runImessageBuilderAgentTurn({
+    claim,
+    history: buildAgentHistory(claim),
+    intro: {
+      founderName: params.founderName,
+      company: params.company,
+      roleTitle: params.roleTitle,
+      schedulingLink: params.schedulingLink ?? null,
+    },
+    runtime,
+  });
+
+  claim.builderId = result.builderId;
+  await sendReplies(claim, result.replies, runtime);
+  await claim.save();
+  return true;
 }

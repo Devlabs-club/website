@@ -3,19 +3,22 @@ import MessageThread from '@/models/talent/MessageThread';
 import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
-import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
+import FounderProfile from '@/models/talent/FounderProfile';
 import {
   builderDashboardLink,
   createNotification,
   founderDashboardLink,
 } from '@/lib/talent/notifications';
-import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 
 /**
  * Text the builder on iMessage that a founder is interested.
- * Best-effort: only fires when we have a verified phone for them; the in-app
- * notification is the source of truth, this is the delightful surprise ping.
+ *
+ * The message itself is written by the iMessage builder agent — the same one that
+ * runs the rest of the builder's conversation — so it's fully personalized from
+ * that builder's memory + profile, not a fixed template. Best-effort: only fires
+ * when we have a verified phone for them; the in-app notification is the source
+ * of truth, this is the delightful surprise ping.
  */
 async function pingBuilderInterestOverImessage(params: {
   builderId: string;
@@ -24,45 +27,18 @@ async function pingBuilderInterestOverImessage(params: {
   roleTitle: string;
   company: string;
   introRequestId: string;
+  schedulingLink?: string | null;
 }) {
   try {
-    const claim = (await BuilderProfileClaim.findOne({
-      $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
-      phone: { $ne: null },
-      phoneVerifiedAt: { $ne: null },
-    })
-      .sort({ updatedAt: -1 })
-      .lean()) as any;
-
-    const builderDoc = (await BuilderProfile.findById(params.builderId).select('phone').lean()) as any;
-    const phone = claim?.phone || builderDoc?.phone;
-    if (!phone) return;
-
-    const body = `yo — ${params.founderName} at ${params.company} wants to talk to you about ${params.roleTitle}. interested? reply here and i'll line it up.`;
-    const delivery = await sendBuilderClaimMessage({
-      toPhone: phone,
-      body,
-      claimId: claim ? String(claim._id) : `intro-${params.introRequestId}`,
+    const { notifyBuilderOfIntro } = await import('@/lib/builderClaim');
+    await notifyBuilderOfIntro({
       builderId: params.builderId,
-      purpose: 'claim_conversation',
+      builderEmail: params.builderEmail,
+      founderName: params.founderName,
+      company: params.company,
+      roleTitle: params.roleTitle,
+      schedulingLink: params.schedulingLink ?? null,
     });
-
-    if (claim?._id) {
-      await BuilderProfileClaim.updateOne(
-        { _id: claim._id },
-        {
-          $push: {
-            messages: {
-              direction: 'outbound',
-              body,
-              channel: 'imessage',
-              providerMessageId: delivery.status === 'sent' ? delivery.providerMessageId || null : null,
-            },
-          },
-          $set: { lastMessageAt: new Date() },
-        }
-      );
-    }
   } catch (err) {
     console.error('[introFlow] iMessage interest ping failed', err);
   }
@@ -72,12 +48,30 @@ export async function notifyBuilderIntroReceived(params: {
   builderId: string;
   builderEmail: string;
   founderName: string;
+  founderEmail?: string;
   roleTitle: string;
   company: string;
   introRequestId: string;
 }) {
+  // Resolve the founder's Cal.com/Calendly link so the builder can book the
+  // interview straight from the iMessage ping. Best-effort — missing it just
+  // falls back to the plain "reply here" message.
+  let schedulingLink: string | null = null;
+  if (params.founderEmail) {
+    try {
+      const founderProfile = (await FounderProfile.findOne({
+        founderEmail: params.founderEmail.toLowerCase(),
+      })
+        .select('schedulingLink')
+        .lean()) as any;
+      schedulingLink = founderProfile?.schedulingLink || null;
+    } catch (err) {
+      console.error('[introFlow] founder scheduling link lookup failed', err);
+    }
+  }
+
   // Surprise the builder on iMessage (best-effort, non-blocking on the notification).
-  void pingBuilderInterestOverImessage(params);
+  void pingBuilderInterestOverImessage({ ...params, schedulingLink });
 
   return createNotification({
     recipientType: 'builder',

@@ -769,6 +769,7 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
           builderId,
           builderEmail: builderDoc.email,
           founderName: founderName || email.split('@')[0],
+          founderEmail: email,
           roleTitle: opportunityDoc?.roleTitle || 'Role',
           company: opportunityDoc?.company || 'Startup',
           introRequestId: String(intro._id),
