@@ -2,126 +2,2859 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
-import Main from "../components/Main.astro";
-import Events from "../components/Events.astro";
-import Team from "../components/Team.astro";
-import CenteredSection from "../components/CenteredSection.astro";
 
-import WrappedText from "../components/text/WrappedText.astro";
-import Heading from "../components/text/Heading.astro";
-import Highlight from "../components/text/Highlight.astro";
-import Paragraph from "../components/text/Paragraph.astro";
+const navLinks = [
+  { label: "Sponsor", href: "/sponsor" },
+  { label: "Events", href: "/events" },
+  { label: "Our Story", href: "/about" },
+];
 
-import ContactForm from "../components/ContactForm.astro";
+const folksLogos = [
+  { label: "browser-use", src: "/sponsors/browser-use.png" },
+  { label: "supermemory", src: "/sponsors/supermemory.png" },
+  { label: "Google DeepMind", src: "/sponsors/deepmind.png" },
+  { label: "AirGarage", src: "/sponsors/airgarage.png" },
+  { label: "Product Hunt", src: "/sponsors/ph.png" },
+  { label: "Kickstart", src: "/landing/kickstart-logo.png" },
+  { label: "Stripe", src: "/sponsors/momentum/stripe.png" },
+];
 
-import LinkButton from "../components/LinkButton.astro";
-import Scroll from "../components/Scroll.astro";
-import Cards from "../components/Cards.astro";
+const icons = {
+  package:
+    '<path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  trophy:
+    '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  rocket:
+    '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+  layers:
+    '<path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  calendar:
+    '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>',
+  message:
+    '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  github:
+    '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>',
+  globe:
+    '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  briefcase:
+    '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+};
 
-import GradientBlob from "../components/GradientBlob.astro";
-import HeroSection from "../components/HeroSection.astro";
-import IntroSection from "../components/IntroSection.astro";
-import PressSection from "../components/PressSection.astro";
-import ManifestoSection from "../components/ManifestoSection.astro";
-import EventsShowcase from "../components/EventsShowcase.astro";
-import Polaroid from "../components/Polaroid.astro";
-import JoinNowCTA from "../components/JoinNowCTA.astro";
+const evidenceBento = [
+  {
+    title: "Shipped Projects",
+    detail: "Live links, demos, GitHub, and screenshots — with clear ownership of what they actually built.",
+    chips: ["3 live in prod", "GitHub verified", "Role clarity"],
+    icon: icons.package,
+    span: "lg:col-span-2",
+  },
+  {
+    title: "Hackathon Signal",
+    detail: "What they built, who with, how fast they shipped, and whether they placed.",
+    chips: ["36h builds", "Finalist"],
+    icon: icons.trophy,
+    span: "lg:col-span-1",
+  },
+  {
+    title: "Startup Experience",
+    detail: "Internships, work trials, founder projects, and real users served.",
+    chips: ["Work trials", "Real users"],
+    icon: icons.rocket,
+    span: "lg:col-span-1",
+  },
+  {
+    title: "Technical Stack",
+    detail: "Frontend, backend, AI, infra, mobile, design, and data — mapped from real work, not keywords.",
+    chips: ["Frontend", "Backend", "AI / infra", "Mobile"],
+    icon: icons.layers,
+    span: "lg:col-span-2",
+  },
+  {
+    title: "Availability",
+    detail: "Internship, full-time, contract, work trial, or cofounder-style — always kept current.",
+    chips: ["Full-time", "Contract", "Work trial"],
+    icon: icons.calendar,
+    span: "lg:col-span-2",
+  },
+  {
+    title: "Founder Notes",
+    detail: "Speed, ownership, and reliability — written by people who built with them.",
+    chips: ["Ownership", "Reliable"],
+    icon: icons.message,
+    span: "lg:col-span-1",
+  },
+];
+
+// proof sources flowing into the verified profile (animated beam diagram)
+const beamSources = [
+  { label: "GitHub", icon: icons.github, x: 13, y: 12 },
+  { label: "Hackathons", icon: icons.trophy, x: 9, y: 33 },
+  { label: "Live demos", icon: icons.globe, x: 9, y: 54 },
+  { label: "Startup work", icon: icons.briefcase, x: 11, y: 75 },
+  { label: "References", icon: icons.message, x: 17, y: 93 },
+];
+
+const steps = [
+  {
+    n: "01",
+    title: "Tell us who you need.",
+    detail: "Describe the role in plain language. The agent turns it into the signals that actually matter.",
+  },
+  {
+    n: "02",
+    title: "Review proof-backed matches.",
+    detail: "Get a shortlist ranked by shipped work, event signal, and stack fit — not keyword-stuffed resumes.",
+  },
+  {
+    n: "03",
+    title: "Start with a call or work trial.",
+    detail: "Skip the screening rounds. Talk to builders who already proved they can move.",
+  },
+  {
+    n: "04",
+    title: "Hire with confidence.",
+    detail: "You hired from evidence, not a polished PDF. The first hire ships in week one.",
+  },
+];
+
+const programs = [
+  {
+    name: "DevHacks",
+    tagline: "Where builders prove they can ship fast.",
+    detail: "Our flagship hackathon. Teams build real prototypes around the clock — we watch who ships when the clock is real.",
+    image: "/events/devhacks.jpg",
+    stat: "$25K+ in prizes",
+    href: "https://devhacks.devlabs.club",
+  },
+  {
+    name: "DevHouse",
+    tagline: "A hacker house for ambitious builders.",
+    detail: "Top builders live and build together, working on real problem statements from sponsor companies. It changes how startups hire.",
+    image: "/events/devhouse-sf.jpg",
+    stat: "Top 100 builders",
+    href: "https://devhouse.devlabs.club",
+  },
+  {
+    name: "Momentum",
+    tagline: "A startup program for founders who build.",
+    detail: "A one-month SF intensive that helps founders build, validate, and pitch — backed by industry leaders.",
+    image: "/bg_momentum.png",
+    stat: "100+ founders",
+    href: "/momentum",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "The energy was electric and I've never seen a crowd like this before.",
+    name: "Paige Bailey",
+    role: "Lead DevRel, Google DeepMind",
+    initials: "PB",
+    avatar: "/team/paige.png",
+    logo: "/sponsors/deepmind.png",
+    logoAlt: "Google DeepMind",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+  {
+    quote:
+      "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
+    name: "Dhravya Shah",
+    role: "Founder, Supermemory",
+    initials: "DS",
+    avatar: "/team/dhravya.png",
+    logo: "/sponsors/supermemory.png",
+    logoAlt: "Supermemory",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+  {
+    quote:
+      "This is one of the best hackathons we've sponsored.",
+    name: "Saurav Panda",
+    role: "Founding Engineer, Browser Use",
+    initials: "SP",
+    avatar: "/team/saurav.png",
+    logo: "/sponsors/browser-use.png",
+    logoAlt: "Browser Use",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+];
+
 ---
 
-<Layout title="Devlabs">
-  <HeroSection />
+<Layout
+  title="DevLabs - Hire builders who can actually ship"
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+>
+  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+    <header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
+      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
+        <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
+      </a>
 
-  <IntroSection />
+      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
+        {navLinks.map((link) => (
+          <a href={link.href} class="transition-colors hover:text-[#ff7417]">
+            {link.label}
+          </a>
+        ))}
+        <a
+          href="/clientform"
+          class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
+        >
+          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
+          Hire now
+        </a>
+      </nav>
 
-  <PressSection />
-
-  <ManifestoSection />
-
-
-  <EventsShowcase />
-
-  <Events />
-
-  <JoinNowCTA />
-
-  <!--     
-
-  <Team
-    members={[
-      ["dhanush vardhan", "/team/dhanush.jpg", "president"],
-      ["soham daga", "/team/soham.jpg", "vice president"],
-      ["bhoomi singhani", "/team/bhoomi.jpeg", "vp of operations"], 
-      ["chakshu jain", "/team/chakshu.JPG", "vp of finance"],
-      ["tanish parsana", "/team/tanish.jpg", "vp of industry"],
-      ["adwait more", "/team/adwait.jpg", "marketing director"],
-      ["aditya bohra", "/team/aditya.jpg", "marketing officer"],
-      ["riya ubhe", "/team/riya.jpg", "marketing officer"],
-      ["anay shirolkar", "/team/anay.jpg", "marketing officer"],
-      ["dev thakkar", "/team/dev.jpeg", "events officer"],
-      ["khushal saini", "/team/khushal.jpeg", "videographer"],
-      ["sreeram sreedhar", "/team/sreeram.jpg", "photographer"],
-      ["debo bannerjee", "/team/debo.jpeg", "video editor"],
-      ["yuvam bhargav", "/team/yuvam.jpeg", "finance officer"],
-      ["aryan keluskar", "/team/aryan.png", "industry officer"],
-      ["pranay athipathala", "/team/pranay.jpg", "industry officer"],
-    ]}
-  />
-
-  <CenteredSection id="vision" className="mb-24">
-    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
-    <Polaroid
-      image="https://dhanush.wtf/media/udqhwdp2kcn.jpg?file="
-      rotate="-15deg"
-      top="25%"
-      left="10%"
-    />
-    <Polaroid
-      image="https://dhanush.wtf/media/uzp4y1ct1g.jpg?file="
-      rotate="6deg"
-      top="65%"
-      right="15%"
-    />
-
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <Heading
-        >We are building the <Highlight>launchpad</Highlight> for Arizona's next
-        <Highlight> 100 startups.</Highlight></Heading
+      <a
+        href="/clientform"
+        class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden"
       >
-      <div class="flex flex-col gap-6 items-center">
-        <WrappedText size="normal" className="">our vision</WrappedText>
+        Hire now
+      </a>
+    </header>
 
-                <div class="flex flex-col gap-4 items-center">
-                    <Paragraph>Build Arizona's first full-time incubator for real builders</Paragraph>
-                    <Paragraph>Launch a hacker house in PHX</Paragraph>
-                    <Paragraph>Fund and support 50+ startups in the next 3 years</Paragraph>
-                </div>
-                <Paragraph>Phoenix deserves this. We're building it.</Paragraph>
+    <section class="ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center overflow-hidden px-6 pb-24 pt-24 text-center sm:px-8 lg:px-10">
+      <canvas
+        class="ascii-star absolute left-[max(-12rem,-13vw)] top-32 h-[clamp(22rem,32vw,32rem)] w-[clamp(22rem,32vw,32rem)] -rotate-[22deg]"
+        data-star-canvas
+        aria-hidden="true"
+      ></canvas>
+      <canvas
+        class="ascii-star absolute right-[max(-11rem,-12vw)] top-20 h-[clamp(20rem,30vw,30rem)] w-[clamp(20rem,30vw,30rem)] rotate-[10deg]"
+        data-star-canvas
+        aria-hidden="true"
+      ></canvas>
+
+      <h1 data-hero-headline class="relative z-10 max-w-4xl text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
+        Hire
+        <br class="sm:hidden" />
+        <span class="relative inline-block font-extrabold">
+          builders
+         </span>
+        <br class="sm:hidden" />
+        who can<br />
+        actually <br class="sm:hidden" /><span class="font-extrabold">ship</span>
+      </h1>
+
+      <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
+        <div class="relative min-h-[520px] overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[390px] lg:min-h-[475px]">
+          <img
+            src="/landing/hero-meadow.png"
+            alt=""
+            loading="eager"
+            class="absolute inset-0 h-full w-full object-cover"
+          />
+          <div class="absolute inset-0 bg-white/5"></div>
+
+          <span class="selection-dot left-7 top-7"></span>
+          <span class="selection-dot right-7 top-7"></span>
+          <span class="selection-dot bottom-7 left-7"></span>
+          <span class="selection-dot bottom-7 right-7"></span>
+
+          <div class="hero-builder-card absolute left-1/2 top-[8%] w-[calc(100%_-_1rem)] -translate-x-1/2 border-2 border-black bg-white p-4 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] sm:top-[12%] sm:w-[min(84%,820px)] sm:p-5">
+            <div class="mb-3 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-3 py-2 text-sm font-semibold text-[#bf4f08]">
+              <span class="text-[#ff7417]">✦</span>
+              Builder search
             </div>
-        </div>
-    </CenteredSection> -->
-  <!-- 
-  <CenteredSection id="contact" className="mb-24">
-    <GradientBlob top="-400px" right="-350px" left="" scale="1.5" />
 
-    <div
-      class="w-2/3 flex flex-col lg:gap-16 md:gap-12 gap-8 items-center text-center md:py-40 py-20"
-    >
-      <WrappedText size="normal" className="">want to talk to us?</WrappedText>
-      <Heading><Highlight>reach out</Highlight> and say hi.</Heading>
-      <ContactForm />
+            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-3 sm:gap-4 sm:px-4" aria-label="Find me a cracked App dev with cool projects">
+              <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+              <p class="min-w-0 flex-1 overflow-hidden text-[0.68rem] font-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)]">
+                <span class="hero-typewriter-text">Find me a cracked App dev with cool projects</span>
+              </p>
+              <a
+                href="/clientform"
+                aria-label="Search builders"
+                class="hero-search-submit hidden h-10 w-10 shrink-0 place-items-center border border-black text-[#ff7417] transition-colors hover:bg-[#ff7417] hover:text-white sm:grid"
+              >
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </a>
+              <div class="hero-loading-row" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </div>
+
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
+              <div class="hero-result-card border border-black/15 bg-[#fffaf7] p-3">
+                <div class="flex items-start gap-3">
+                  <div class="grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-sm font-extrabold text-white">AV</div>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-bold text-black">Aarav V.</p>
+                    <p class="mt-0.5 text-xs text-black/55">iOS + AI agents · 94% match</p>
+                  </div>
+                </div>
+                <p class="mt-3 text-xs leading-relaxed text-black/60">
+                  Shipped a campus rides app, vision-based receipt scanner, and two Swift demos.
+                </p>
+              </div>
+
+              <div class="hero-result-card hero-result-card-two border border-black/15 bg-[#fffaf7] p-3">
+                <div class="flex items-start gap-3">
+                  <div class="grid h-10 w-10 shrink-0 place-items-center bg-black text-sm font-extrabold text-white">NK</div>
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-bold text-black">Niki K.</p>
+                    <p class="mt-0.5 text-xs text-black/55">React Native · 91% match</p>
+                  </div>
+                </div>
+                <p class="mt-3 text-xs leading-relaxed text-black/60">
+                  Built and launched three mobile prototypes with clean GitHub history.
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2">
+              {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
+                <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2.5 py-1 text-xs font-semibold text-[#bf4f08]">
+                  {signal}
+                </span>
+              ))}
+            </div>
+
+            <span class="hero-search-cursor" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4.2 2.8 20.8 12l-7.1 1.4 3.9 6.7-3.1 1.8-3.8-6.6-4.8 5.4L4.2 2.8Z"></path>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <span class="corner-square -left-2 -top-2"></span>
+        <span class="corner-square -right-2 -top-2"></span>
+        <span class="corner-square -bottom-2 -left-2"></span>
+        <span class="corner-square -bottom-2 -right-2"></span>
+      </div>
+
+      <svg class="absolute right-[5%] top-[44%] hidden h-9 w-9 text-[#168df7] sm:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 3 14.6 9.4 21 12l-6.4 2.6L12 21l-2.6-6.4L3 12l6.4-2.6L12 3Z"></path>
+      </svg>
+    </section>
+
+    <section class="ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <canvas
+        class="ascii-wave absolute inset-0 h-full w-full opacity-100 mix-blend-multiply"
+        data-ascii-wave
+        aria-hidden="true"
+      ></canvas>
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,116,23,0.24),rgba(255,116,23,0.1)_34%,transparent_68%),linear-gradient(90deg,#fbf6f3_0%,rgba(251,246,243,0.2)_18%,rgba(251,246,243,0)_50%,rgba(251,246,243,0.2)_82%,#fbf6f3_100%),linear-gradient(180deg,rgba(251,246,243,0.34),rgba(251,246,243,0.52)_72%)]"></div>
+      <div class="absolute inset-x-0 top-0 h-px bg-black/10"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl py-16 sm:py-20">
+        <div data-fluid-panel class="overflow-hidden rounded-none border border-black/10 bg-[#fbf6f3]/82 backdrop-blur-[1px]">
+          <div class="border-b border-black/10 px-6 py-6 sm:px-10">
+            <p class="text-[clamp(1.15rem,1.8vw,1.55rem)] font-semibold tracking-[-0.02em] text-black/68">
+              Worked with folks from
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
+            <div class="flex min-h-[15rem] flex-col justify-between border-b border-black/10 bg-[#f4f1ed]/88 p-8 sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:border-b-0 lg:border-r">
+               <div>
+                <p class="text-[clamp(2.5rem,4vw,3.8rem)] leading-none text-[#ff7417]">
+                Backed by
+                </p>
+                <p class="mt-5 max-w-xs text-base font-medium leading-relaxed text-black/62">
+                  We know these builders through events, shipped projects, and community momentum.
+                </p>
+              </div>
+            </div>
+
+            {folksLogos.map((logo) => (
+              <div class="logo-cell flex min-h-[8.5rem] items-center justify-center border-b border-black/10 p-8 sm:border-r lg:min-h-[9.5rem]">
+                <img
+                  src={logo.src}
+                  alt={logo.label}
+                  loading="lazy"
+                  class="max-h-10 max-w-[9.5rem] object-contain opacity-54 transition duration-300 hover:opacity-90"
+                  style="filter: grayscale(1) brightness(0);"
+                />
+              </div>
+            ))}
+
+            <div class="logo-cell hidden min-h-[9.5rem] items-center justify-center border-b border-black/10 p-8 text-center text-sm font-semibold leading-relaxed text-black/38 lg:flex">
+              Builders seen in the room, not just on paper
+            </div>
+          </div>
+        </div>
+
+        <div data-fluid-panel class="mx-auto mt-24 max-w-[22rem] text-center sm:mt-28 sm:max-w-5xl">
+          <h2 class="text-[clamp(2rem,9.8vw,6.4rem)] font-black leading-[0.96] tracking-[-0.04em] text-black sm:leading-[0.93]">
+            Hiring
+            <br class="sm:hidden" />
+            through
+            <br class="sm:hidden" />
+            resumes is broken.
+            <span class="mt-3 block font-normal text-black/72">
+              You need
+              <br class="sm:hidden" />
+              people
+              <br class="sm:hidden" />
+              who can
+              <span class="relative inline-block font-black text-black">
+                ship
+               </span>
+            </span>
+          </h2>
+
+          <p class="mx-auto mt-9 max-w-3xl text-[clamp(1.1rem,2vw,1.6rem)] font-medium leading-relaxed text-black/58">
+            DevLabs already knows those people because we watch them build at our events.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <!-- <div class="grid gap-10 border-x border-black/10 px-8 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
+          <div>
+            
+            <h2 class="mt-5 max-w-4xl text-[clamp(3.6rem,7.2vw,7.8rem)] font-black leading-[0.9] tracking-[-0.055em] text-black">
+              Built from a real builder ecosystem.
+            </h2>
+          </div>
+          <div class="flex items-end">
+            <p class="max-w-xl text-[clamp(1.1rem,1.65vw,1.45rem)] font-medium leading-relaxed text-black/58">
+              DevLabs sees builders before a resume does: who shows up, what they ship, and who founders trust when the deadline is real.
+            </p>
+          </div>
+        </div> -->
+
+        <div data-fluid-panel class="grid border border-black/10 lg:grid-cols-3">
+          <article class="metric-card metric-card-orange relative min-h-[24rem] overflow-hidden border-b border-black/10 bg-[#ff7417] p-8 text-white lg:border-b-0 lg:border-r">
+            <div class="relative z-10 flex h-full flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="rounded-full bg-white/[0.18] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em]">
+                  network
+                </span>
+                <span class="grid h-10 w-10 place-items-center border border-white/30 bg-white/10 text-lg font-black">01</span>
+              </div>
+
+              <div>
+                <p class="text-[clamp(5.5rem,8vw,8rem)] font-black leading-none tracking-[-0.07em]">
+                  <span data-count="2000" data-count-suffix="+">2,000+</span>
+                </p>
+                <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
+                  Builders in the DevLabs network
+                </p>
+              </div>
+            </div>
+            
+          </article>
+
+          <article class="metric-card relative min-h-[24rem] overflow-hidden border-b border-black/10 bg-[#1a1a1a] p-8 text-white lg:border-b-0 lg:border-r">
+            <div class="metric-bars absolute left-12 right-12 top-14 grid gap-3">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="relative z-10 flex h-full flex-col justify-end">
+              <p class="text-[clamp(6rem,8vw,8.5rem)] font-black leading-none tracking-[-0.07em]">
+                <span data-count="50" data-count-suffix="+">50+</span>
+              </p>
+              <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
+                Projects shipped through our programs
+              </p>
+            </div>
+          </article>
+
+          <article class="metric-card relative min-h-[24rem] overflow-hidden bg-[#c6d99b] p-8 text-[#20311d]">
+            <div class="absolute right-8 top-8 grid grid-cols-3 gap-2">
+              <span class="h-4 w-4 rounded-full bg-[#20311d]/70"></span>
+              <span class="h-4 w-4 rounded-full bg-white/70"></span>
+              <span class="h-4 w-4 rounded-full bg-[#ff7417]/80"></span>
+            </div>
+            <div class="metric-rings absolute -bottom-20 -right-16 h-64 w-64 rounded-full border border-[#20311d]/20"></div>
+            <div class="metric-rings metric-rings-delay absolute -bottom-8 -right-4 h-40 w-40 rounded-full border border-[#20311d]/25"></div>
+            <div class="relative z-10 flex h-full flex-col justify-end">
+              <p class="text-[clamp(6rem,8vw,8.5rem)] font-black leading-none tracking-[-0.07em]">
+                <span data-count="25" data-count-suffix="+">25+</span>
+              </p>
+              <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
+                Events hosted for builders and founders
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <div data-fluid-panel class="grid border-x border-b border-black/10 bg-[#fffaf7]/86 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
+          <div class="relative overflow-hidden border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
+            <div class="absolute inset-y-0 left-0 w-1 bg-[#ff7417]"></div>
+            <p class="max-w-4xl text-[clamp(1.8rem,3.4vw,3.5rem)] font-black leading-[1.02] tracking-[-0.045em] text-black">
+              A DevLabs builder was hired by
+              <span class="inline-flex items-center gap-3 whitespace-nowrap">
+                <img src="/sponsors/supermemory.png" alt="" class="h-8 w-auto object-contain" style="filter: grayscale(1) brightness(0);" />
+              </span>
+              after proving their work through the community.
+            </p>
+          </div>
+          <div class="border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
+            <p class="text-[clamp(3.8rem,5vw,5.8rem)] font-black leading-none tracking-[-0.06em] text-black">
+              <span data-count="100" data-count-suffix="+">100+</span>
+            </p>
+            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
+              Founders joined Momentum
+            </p>
+          </div>
+          <div class="p-8 lg:p-10">
+            <p class="text-[clamp(3.6rem,5vw,5.5rem)] font-black leading-none tracking-[-0.06em] text-black">
+              <span data-count="150" data-count-prefix="$" data-count-suffix="K+">$150K+</span>
+            </p>
+            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
+              Raised to support builder programs
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="agent-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-0 text-black sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <div data-fluid-panel class="role-search-panel relative mt-0 min-h-[39rem] overflow-hidden border border-black/10 bg-[#fffaf7]/84 lg:min-h-[42rem]">
+          <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fffaf7] via-[#fffaf7]/82 to-transparent"></div>
+          <div class="profile-marquee profile-marquee-one absolute top-16 flex gap-6">
+            {[
+              ["Isha R.", "96% match", "Stripe Connect · SaaS billing"],
+              ["Dev P.", "93% match", "Checkout migration · Next.js"],
+              ["Nora S.", "91% match", "Subscriptions · Clerk · Postgres"],
+              ["Arjun M.", "89% match", "Marketplace payouts · React"],
+            ].map(([name, score, proof]) => (
+              <div class="profile-card w-80 shrink-0 border border-black/10 bg-white/78 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.05)]">
+                <div class="flex items-center justify-between">
+                  <p class="font-black">{name}</p>
+                  <span class="text-xs font-black text-[#bf4f08]">{score}</span>
+                </div>
+                <p class="mt-3 text-sm font-semibold text-black/56">{proof}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="profile-marquee profile-marquee-two absolute bottom-16 flex gap-6">
+            {[
+              ["Maya T.", "Full-stack", "Stripe webhooks · Supabase"],
+              ["Kai L.", "Backend", "Payout ledgers · fraud checks"],
+              ["Sam G.", "Frontend", "Checkout UX · conversion"],
+              ["Leah V.", "AI engineer", "Matching agents · evals"],
+            ].map(([name, role, proof]) => (
+              <div class="profile-card w-80 shrink-0 border border-black/10 bg-white/78 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.05)]">
+                <div class="flex items-center justify-between">
+                  <p class="font-black">{name}</p>
+                  <span class="text-xs font-black text-black/40">{role}</span>
+                </div>
+                <p class="mt-3 text-sm font-semibold text-black/56">{proof}</p>
+              </div>
+            ))}
+          </div>
+
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#fffaf7_0%,#fffaf7_34%,rgba(255,250,247,0.88)_50%,rgba(255,250,247,0.3)_74%,#fffaf7_100%),linear-gradient(90deg,#fffaf7_0%,rgba(255,250,247,0.28)_20%,rgba(255,250,247,0.28)_80%,#fffaf7_100%)]"></div>
+
+          <div class="role-search-content relative z-10 mx-auto flex min-h-[39rem] max-w-4xl flex-col items-center justify-center px-8 py-20 text-center lg:min-h-[42rem] lg:py-24">
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
+              search by role
+            </p>
+            <h3 class="mt-4 text-[clamp(2.6rem,5.6vw,5.8rem)] font-black leading-[0.9] tracking-[-0.055em] text-black">
+              Tell the agent what you need.
+            </h3>
+            <div class="mt-10 w-full border-2 border-black bg-white px-5 py-4 text-left shadow-[0_22px_60px_rgba(0,0,0,0.08)]">
+              <div class="flex items-center gap-4">
+                <svg class="h-6 w-6 shrink-0 text-[#ff7417]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <p class="min-w-0 flex-1 truncate text-[clamp(1.2rem,2vw,1.7rem)] font-semibold tracking-[-0.03em] text-black">
+                  full stack dev with expertise in payment integration
+                </p>
+                <span class="grid h-11 w-11 place-items-center bg-[#ff7417] text-white">
+                  <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-6 flex flex-wrap justify-center gap-2">
+              {["Full-stack dev", "Backend engineer", "AI engineer", "Mobile app dev", "Product designer", "Growth engineer"].map((role) => (
+                <span class="border border-black/10 bg-[#fbf6f3]/86 px-3 py-2 text-sm font-bold text-black/58">{role}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div data-fluid-panel class="founder-agent-story relative mt-0 min-h-[38rem] overflow-hidden rounded-[34px] border border-black/10 bg-white p-5 shadow-[0_28px_90px_rgba(5,5,5,0.06)] lg:min-h-[44rem] lg:p-8">
+          <canvas
+            class="ascii-ripple absolute inset-0 h-full w-full"
+            data-ascii-ripple
+            aria-hidden="true"
+          ></canvas>
+          <div class="absolute inset-0 "></div>
+
+          <div class="relative z-10 flex min-h-[34rem] items-center justify-center lg:min-h-[40rem]">
+            <div class="mx-auto max-w-6xl px-8 py-12 text-center sm:px-12 lg:px-16 lg:py-16">
+              <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/36">
+                founder agent
+              </p>
+              <h2 class="mx-auto mt-6 max-w-5xl text-[clamp(2.7rem,5.8vw,6.6rem)] font-black leading-[0.92] tracking-[-0.055em] text-black">
+                <span class="text-black/18">A bad early</span>
+                hire costs more than money.
+              </h2>
+              <p class="mx-auto mt-8 max-w-4xl text-[clamp(1.1rem,1.75vw,1.55rem)] font-medium leading-relaxed text-black/62">
+                The agent turns vague founder needs into evidence-ranked builders, match reasons, and outreach-ready next steps.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* builder-profile / evidence section commented out for now
+    <section id="evidence" class="evidence-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-24 pt-0 text-black sm:px-8 sm:pt-0 lg:px-10 lg:pt-0">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <div data-fluid-panel class="profile-system-panel relative isolate overflow-hidden border border-black/10 shadow-[0_28px_90px_rgba(5,5,5,0.07)]">
+          <div class="profile-system-grid absolute inset-0" aria-hidden="true"></div>
+
+          <div class="relative z-10 border-b border-black/10 p-7 sm:p-10 lg:px-10 lg:py-9">
+            <div class="flex flex-col gap-5">
+              <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
+                builder profile
+              </p>
+              <h2 class="profile-heading text-[clamp(2.35rem,9.8vw,3.7rem)] font-black leading-[0.9] tracking-[-0.055em] text-black">
+                Every profile is built from
+                <span class="relative inline-block">
+                  proof
+                 </span>,
+                not promises.
+              </h2>
+        
+            </div>
+          </div>
+
+          <div class="profile-diagram relative z-10 overflow-hidden bg-[#f5f1ee] px-5 py-10 sm:px-8 lg:px-12">
+              <div class="profile-wave profile-wave-left" aria-hidden="true"></div>
+              <div class="profile-wave profile-wave-right" aria-hidden="true"></div>
+
+            <svg class="profile-diagram-lines absolute inset-0 hidden h-full w-full lg:block" viewBox="0 0 1200 560" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="profilePulse" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#ff7417" stop-opacity="0"></stop>
+                  <stop offset="48%" stop-color="#ff7417" stop-opacity="0.95"></stop>
+                  <stop offset="100%" stop-color="#ff7417" stop-opacity="0"></stop>
+                </linearGradient>
+              </defs>
+              <path class="profile-wire" d="M 144 188 L 372 188"></path>
+              <path class="profile-wire" d="M 372 188 L 600 188"></path>
+              <path class="profile-wire" d="M 600 188 L 828 188"></path>
+              <path class="profile-wire" d="M 828 188 L 1056 188"></path>
+              <path class="profile-pulse" d="M 144 188 L 1056 188"></path>
+              <path class="profile-wire profile-branch" d="M 600 260 C 600 335 423 326 423 392"></path>
+              <path class="profile-wire profile-branch" d="M 600 260 C 600 335 541 326 541 392"></path>
+              <path class="profile-wire profile-branch" d="M 600 260 C 600 335 659 326 659 392"></path>
+              <path class="profile-wire profile-branch" d="M 600 260 C 600 335 777 326 777 392"></path>
+            </svg>
+
+            <div class="profile-diagram-mobile-space relative grid gap-5 lg:h-[35rem] lg:grid-cols-none lg:gap-0">
+              <article class="profile-node profile-node-large lg:absolute lg:left-[12%] lg:top-[7.5rem]">
+                <div class="profile-node-head">
+                  <span class="profile-node-icon bg-[#fff1e8] text-[#bf4f08]">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.layers}></svg>
+                  </span>
+                  <div>
+                    <h3>Raw builder signal</h3>
+                    <p>Collected from the places they actually ship.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="profile-node profile-node-mid lg:absolute lg:left-[31%] lg:top-[7.5rem]">
+                <div class="profile-node-head">
+                  <span class="profile-node-icon bg-white text-black">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.github}></svg>
+                  </span>
+                  <div>
+                    <h3>Proof extraction</h3>
+                    <p>Ownership, stack, shipped links, event context.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="profile-node profile-core lg:absolute lg:left-1/2 lg:top-[5.85rem]">
+                <span class="profile-core-kicker">DevLabs</span>
+                <h3>Builder Profile</h3>
+                <p>Evidence resolved into a readable, ranked narrative.</p>
+                <div class="mt-5 grid grid-cols-3 gap-2 text-center">
+                  <span><strong>8.7</strong><small>ship score</small></span>
+                  <span><strong>4</strong><small>proof links</small></span>
+                  <span><strong>2</strong><small>refs</small></span>
+                </div>
+              </article>
+
+              <article class="profile-node profile-node-mid lg:absolute lg:left-[69%] lg:top-[7.5rem]">
+                <div class="profile-node-head">
+                  <span class="profile-node-icon bg-white text-black">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.message}></svg>
+                  </span>
+                  <div>
+                    <h3>Founder context</h3>
+                    <p>Translated into role fit and risk signals.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="profile-node profile-node-large lg:absolute lg:left-[88%] lg:top-[7.5rem]">
+                <div class="profile-node-head">
+                  <span class="profile-node-icon bg-black text-white">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21l-3-3"></path><circle cx="17" cy="17" r="3"></circle></svg>
+                  </span>
+                  <div>
+                    <h3>Founder-ready shortlist</h3>
+                    <p>No resume guessing. Just proof-backed intros.</p>
+                  </div>
+                </div>
+              </article>
+
+              <div class="profile-evidence-row lg:absolute lg:bottom-[3rem] lg:left-1/2 lg:grid lg:w-[49rem] lg:-translate-x-1/2 lg:grid-cols-4 lg:gap-4">
+                {[
+                  ["Projects", "Live demos, GitHub, screenshots", icons.package],
+                  ["Events", "Hackathons and DevLabs rooms", icons.trophy],
+                  ["Experience", "Startup work and real users", icons.briefcase],
+                  ["References", "Founder notes and teammate signal", icons.message],
+                ].map(([title, detail, icon]) => (
+                  <article class="profile-evidence-chip">
+                    <span class="profile-evidence-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icon}></svg>
+                    </span>
+                    <h4>{title}</h4>
+                    <p>{detail}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div class="relative z-10 grid border-t border-black/10 bg-[#fffaf7] md:grid-cols-[1fr_auto]">
+            <p class="max-w-5xl p-6 text-[clamp(1rem,1.35vw,1.24rem)] font-semibold leading-relaxed text-black/62 sm:p-7">
+              We pull signal from everywhere a builder already ships — GitHub, hackathons, live demos, startup work, and founder references — then resolve it into one founder-readable profile.
+            </p>
+            <a href="/founder-portal" class="group flex items-center justify-between gap-8 border-t border-black/10 px-6 py-5 text-sm font-extrabold uppercase tracking-[0.16em] text-black transition hover:bg-black hover:text-white md:border-l md:border-t-0 sm:px-7">
+              See founder view
+              <span class="transition group-hover:translate-x-1">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+    */}
+
+    <section class="howitworks-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-32 pt-28 text-black sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <div class="max-w-4xl">
+          <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">how it works</p>
+          <h2 class="mt-6 max-w-3xl text-[clamp(2.5rem,5.4vw,5.8rem)] font-black leading-[0.92] tracking-[-0.055em] text-black">
+            From hiring need to builder intro in days.
+          </h2>
+        </div>
+
+        <div data-fluid-panel class="mt-16 grid border border-black/10 md:grid-cols-2 lg:grid-cols-4">
+          {steps.map((step) => (
+            <article class="step-cell relative min-h-[20rem] border-b border-black/10 p-8">
+              <span class="text-[clamp(3.4rem,5vw,4.6rem)] font-black leading-none tracking-[-0.06em] text-[#ff7417]">{step.n}</span>
+              <h3 class="mt-8 text-2xl font-black leading-tight tracking-[-0.035em]">{step.title}</h3>
+              <p class="mt-4 text-base font-medium leading-relaxed text-black/58">{step.detail}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* network section commented out for now
+    <section class="programs-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-36 pt-20 text-black sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <!-- Section header -->
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="font-mono text-[0.78rem] font-extrabold uppercase tracking-[0.28em] text-black/42">the network</p>
+          <h2 class="mt-7 text-[clamp(2.6rem,4.8vw,5rem)] font-black leading-[0.9] tracking-[-0.055em] text-black">
+            Built through
+            <span class="relative inline-block">
+              programs
+              <span class="absolute bottom-[0.06em] left-0 right-0 -z-10 h-[0.16em] rotate-[-1deg] bg-[#ff7417]"></span>
+            </span>,
+            <span class="block sm:inline">not scraped databases.</span>
+          </h2>
+          <p class="mx-auto mt-6 max-w-xl text-[clamp(1.02rem,1.3vw,1.22rem)] font-medium leading-relaxed text-black/58">
+            We meet builders by running the rooms they ship in. The signal is real because it cannot be faked on a resume.
+          </p>
+        </div>
+
+        <!-- Bento grid -->
+        <div data-fluid-panel class="mt-14 grid auto-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[0.94fr_1fr_1fr] lg:grid-rows-2">
+          <!-- A — tall feature image card -->
+          <article class="bento-card group relative row-span-2 min-h-[26rem] overflow-hidden rounded-[26px] border border-black/8 bg-black text-white shadow-[0_24px_70px_rgba(5,5,5,0.1)]">
+            <img
+              src="/events/devhouse-sf.jpg"
+              alt="Builders shipping together at a DevLabs program"
+              loading="lazy"
+              class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+            />
+            <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,0.12)_0%,rgba(5,5,5,0.18)_38%,rgba(5,5,5,0.82)_100%)]"></div>
+
+            <!-- floating signal chips -->
+            <div class="absolute left-5 top-5 right-5 z-10 flex flex-col items-start gap-2.5" aria-hidden="true">
+              <span class="bento-chip self-end rounded-2xl rounded-tr-md bg-white/92 px-3.5 py-2 text-[0.78rem] font-bold leading-tight text-black shadow-[0_10px_30px_rgba(5,5,5,0.22)] backdrop-blur">
+                shipped a payments app · 24h
+              </span>
+              <span class="bento-chip rounded-2xl rounded-tl-md bg-[#ff7417] px-3.5 py-2 text-[0.78rem] font-bold leading-tight text-white shadow-[0_10px_30px_rgba(255,116,23,0.32)]">
+                placed top 3 · DevHacks
+              </span>
+            </div>
+
+            <div class="absolute inset-x-0 bottom-0 z-10 p-7">
+              <p class="font-mono text-[0.7rem] font-extrabold uppercase tracking-[0.22em] text-[#ffb27a]">built in the open</p>
+              <p class="mt-3 text-[clamp(1.9rem,2.6vw,2.6rem)] font-black leading-[0.96] tracking-[-0.04em]">We watch them build.</p>
+              <p class="mt-3 max-w-sm text-sm font-medium leading-relaxed text-white/72">
+                Every builder in our network earned their place by shipping in our rooms — never by uploading a PDF.
+              </p>
+            </div>
+          </article>
+
+          <!-- B — three live programs -->
+          <article class="bento-card relative flex flex-col justify-between overflow-hidden rounded-[26px] border border-black/8 bg-white p-6 shadow-[0_18px_55px_rgba(5,5,5,0.06)]">
+            <div class="grid grid-cols-3 gap-2.5">
+              {programs.map((program) => (
+                <a href={program.href} class="group flex flex-col items-center gap-2 rounded-2xl border border-black/8 bg-[#fbf6f3] px-2 py-4 transition hover:-translate-y-0.5 hover:border-[#ff7417]/40">
+                  <span class="grid h-11 w-11 place-items-center rounded-xl bg-black text-base font-black text-white transition group-hover:bg-[#ff7417]">
+                    {program.name.charAt(0)}
+                  </span>
+                  <span class="text-[0.78rem] font-extrabold tracking-[-0.01em] text-black">{program.name}</span>
+                </a>
+              ))}
+            </div>
+            <div class="mt-6">
+              <p class="text-lg font-black tracking-[-0.03em] text-black">Three live programs</p>
+              <p class="mt-1 text-sm font-medium leading-snug text-black/55">One network, hosted end to end by DevLabs.</p>
+            </div>
+          </article>
+
+          <!-- C — headline metric -->
+          <article class="bento-card relative flex flex-col justify-between overflow-hidden rounded-[26px] border border-black/8 bg-white p-6 shadow-[0_18px_55px_rgba(5,5,5,0.06)]">
+            <div class="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-[#ff7417]/10 blur-xl" aria-hidden="true"></div>
+            <span class="w-fit rounded-full border border-black/10 bg-[#fbf6f3] px-3 py-1 font-mono text-[0.66rem] font-extrabold uppercase tracking-[0.18em] text-black/45">network size</span>
+            <div>
+              <p class="text-[clamp(3.2rem,4.6vw,4.8rem)] font-black leading-none tracking-[-0.06em] text-black">2,000<span class="text-[#ff7417]">+</span></p>
+              <p class="mt-2 text-sm font-semibold leading-snug text-black/55">Builders we have watched ship in person.</p>
+            </div>
+          </article>
+
+          <!-- D — proof checklist -->
+          <article class="bento-card relative flex flex-col justify-between overflow-hidden rounded-[26px] border border-black/8 bg-white p-6 shadow-[0_18px_55px_rgba(5,5,5,0.06)]">
+            <div class="space-y-2.5">
+              {["Shipped projects & live demos", "Hackathon placements", "Real users, real traction"].map((item) => (
+                <div class="flex items-center gap-3 rounded-xl border border-black/8 bg-[#fbf6f3] px-3.5 py-2.5">
+                  <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#ff7417] text-white">
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </span>
+                  <span class="text-[0.82rem] font-bold text-black/78">{item}</span>
+                </div>
+              ))}
+            </div>
+            <div class="mt-5">
+              <p class="text-lg font-black tracking-[-0.03em] text-black">Proof we can see</p>
+              <p class="mt-1 text-sm font-medium leading-snug text-black/55">Every claim on a profile is verifiable.</p>
+            </div>
+          </article>
+
+          <!-- E — proof sources -->
+          <article class="bento-card relative flex flex-col justify-between overflow-hidden rounded-[26px] border border-black/8 bg-white p-6 shadow-[0_18px_55px_rgba(5,5,5,0.06)]">
+            <div class="flex gap-2.5">
+              <span class="grid h-12 flex-1 place-items-center rounded-2xl bg-[#fbf6f3] text-black/70" title="Hackathons">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-3 7h5l-3 7"></path><circle cx="12" cy="20" r="0.5"></circle></svg>
+              </span>
+              <span class="grid h-12 flex-1 place-items-center rounded-2xl bg-black text-white" title="Houses">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7"></path><path d="M5 9v11h14V9"></path></svg>
+              </span>
+              <span class="grid h-12 flex-1 place-items-center rounded-2xl bg-[#ff7417] text-white" title="Founder programs">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 16.5 3-3 3 3 6-6"></path><path d="M16.5 7.5h3v3"></path></svg>
+              </span>
+            </div>
+            <div class="mt-5">
+              <p class="text-lg font-black tracking-[-0.03em] text-black">Every proof source</p>
+              <p class="mt-1 text-sm font-medium leading-snug text-black/55">Hackathons · hacker houses · founder programs.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+    */}
+
+    <!-- Dark cinematic close: testimonials → split CTA → final CTA → footer -->
+    <div class="dark-act relative isolate -mt-[1px] overflow-hidden text-white">
+      <!-- warm blurred glow that hugs the curved boundary -->
+      <div class="dark-glow pointer-events-none absolute left-1/2 top-0 z-[1] -translate-x-1/2" aria-hidden="true"></div>
+      <!-- downward parabolic curve: cream fills above the curve, dark below -->
+      <svg class="dark-curve pointer-events-none absolute inset-x-0 top-0 z-[2] h-[120px] w-full sm:h-[170px]" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0,0 H1440 V52 Q720,200 0,52 Z" fill="#fbf6f3"></path>
+      </svg>
+      <canvas class="ascii-wave dark-wave absolute inset-0 h-full w-full" data-ascii-wave aria-hidden="true"></canvas>
+
+      <section class="relative px-6 pb-28 pt-52 sm:px-8 lg:px-10">
+        <div class="relative z-10 mx-auto w-full max-w-7xl">
+          <div class="mx-auto max-w-4xl text-center">
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">proof, not promises</p>
+            <h2 class="mx-auto mt-6 max-w-3xl text-[clamp(2.6rem,6vw,6.4rem)] font-black leading-[0.94] tracking-[-0.05em] text-white">
+              Don't take our word for it.
+            </h2>
+          </div>
+
+          <div data-fluid-panel class="mt-16 grid gap-6 lg:grid-cols-3">
+            {testimonials.map((t) => (
+              <figure class="relative flex min-h-[21rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-8 backdrop-blur-sm">
+                <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
+                <div class="flex items-start justify-between gap-5">
+                  <span class="inline-flex h-12 min-w-[14rem] items-center rounded-full border border-white/10 bg-white/[0.04] px-4">
+                    <img src={t.logo} alt={t.logoAlt} loading="lazy" class={t.logoClass} />
+                  </span>
+                  <span class="text-5xl font-black leading-none text-[#ff7417]/22">“</span>
+                </div>
+
+                <blockquote class="mt-10 text-xl font-semibold leading-relaxed tracking-[-0.01em] text-white/88">
+                  {t.quote}
+                </blockquote>
+
+                <figcaption class="mt-8 flex items-center gap-4 border-t border-white/10 pt-5">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    loading="lazy"
+                    class="h-16 w-16 shrink-0 border border-[#ff7417]/45 object-cover shadow-[0_0_0_4px_rgba(255,116,23,0.08)]"
+                  />
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-black text-white">{t.name}</span>
+                    <span class="block text-xs font-semibold leading-snug text-white/52">{t.role}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <footer class="relative px-6 pb-12 pt-8 sm:px-8 lg:px-10">
+        <div class="relative z-10 mx-auto w-full max-w-7xl">
+          <div data-fluid-panel class="footer-cta relative isolate flex min-h-[25rem] items-center justify-center overflow-hidden rounded-[32px] px-6 py-16 shadow-[0_36px_100px_rgba(0,0,0,0.45)] sm:min-h-[27rem] sm:px-10 sm:py-20">
+            <img src="/landing/footer-bg.png" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
+            <!-- subtle legibility wash over the bright image -->
+            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_78%_at_50%_40%,rgba(40,12,2,0.28),transparent_68%)]" aria-hidden="true"></div>
+
+            <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-2 text-center">
+              <img src="/logo.png" alt="DevLabs" class="h-11 w-11 object-contain brightness-0 invert" />
+              <h2 class="mt-6 text-[clamp(2.1rem,5vw,4rem)] font-black leading-[0.98] tracking-[-0.04em] text-white drop-shadow-[0_2px_18px_rgba(40,12,2,0.35)]">
+                Stop hiring from resumes
+              </h2>
+              <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/82">
+                Tell us who you need and get a proof-backed shortlist of builders who have already shipped — ready to start this week.
+              </p>
+              <a href="/clientform" class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
+                Hire with proof
+                <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </a>
+            </div>
+
+          </div>
+
+          <div class="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-3">
+              <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain" />
+              <span class="text-sm font-bold text-white/65">© {new Date().getFullYear()} DevLabs</span>
+            </div>
+            <div class="flex flex-wrap gap-x-7 gap-y-2 text-sm font-semibold text-white/55">
+              <a href="/clientform" class="transition hover:text-[#ff7417]">Hire talent</a>
+              <a href="/get-hired" class="transition hover:text-[#ff7417]">Join as builder</a>
+              <a href="/events" class="transition hover:text-[#ff7417]">Events</a>
+              <a href="/sponsor" class="transition hover:text-[#ff7417]">Sponsor</a>
+              <a href="/momentum" class="transition hover:text-[#ff7417]">Momentum</a>
+              <a href="/about" class="transition hover:text-[#ff7417]">Our story</a>
+              <a href="/discord" class="transition hover:text-[#ff7417]">Discord</a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
-  </CenteredSection> -->
+  </main>
 </Layout>
 
-<style>
-  /* Ensure polaroids in about section are below text but above background */
-  #about .polaroid {
-    z-index: 5;
+<script>
+  const canvases = Array.from(
+    document.querySelectorAll<HTMLCanvasElement>("[data-star-canvas]"),
+  );
+  const waveCanvases = Array.from(
+    document.querySelectorAll<HTMLCanvasElement>("[data-ascii-wave]"),
+  );
+  const rippleCanvases = Array.from(
+    document.querySelectorAll<HTMLCanvasElement>("[data-ascii-ripple]"),
+  );
+
+  function createStarAsciiRenderer(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return () => {};
+
+    const image = new Image();
+    image.src = "/star.svg";
+
+    const chars = " .:-=+*#%@";
+    const fontSize = 10;
+    const fontFamily =
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    const sourceScale = 2.05;
+    const revealMs = 1500;
+
+    let animationFrame = 0;
+    let startTime = 0;
+    let width = 0;
+    let height = 0;
+    let charWidth = 6;
+    let columns = 0;
+    let rows = 0;
+    let pixels: Uint8ClampedArray | null = null;
+    let seeds: Float32Array | null = null;
+
+    const clamp = (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value));
+
+    function setup() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      charWidth = Math.max(5, ctx.measureText("@").width);
+      columns = Math.ceil(width / charWidth);
+      rows = Math.ceil(height / fontSize);
+
+      const sampler = document.createElement("canvas");
+      sampler.width = columns;
+      sampler.height = rows;
+      const samplerCtx = sampler.getContext("2d");
+      if (!samplerCtx || !image.naturalWidth) return;
+
+      const drawWidth = columns * sourceScale;
+      const drawHeight = rows * sourceScale;
+      samplerCtx.clearRect(0, 0, columns, rows);
+      samplerCtx.drawImage(
+        image,
+        0,
+        0,
+        image.naturalWidth,
+        image.naturalHeight,
+        (columns - drawWidth) / 2,
+        (rows - drawHeight) / 2,
+        drawWidth,
+        drawHeight,
+      );
+
+      pixels = samplerCtx.getImageData(0, 0, columns, rows).data;
+      seeds = new Float32Array(columns * rows);
+      for (let index = 0; index < seeds.length; index += 1) {
+        seeds[index] = Math.random();
+      }
+    }
+
+    function draw(now: number) {
+      if (!pixels || !seeds) {
+        animationFrame = requestAnimationFrame(draw);
+        return;
+      }
+
+      if (!startTime) startTime = now;
+      const progress = clamp((now - startTime) / revealMs, 0, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const revealWave = eased * 0.66;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.textBaseline = "top";
+
+      const midX = columns / 2;
+      const midY = rows / 2;
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < columns; col += 1) {
+          const pixelIndex = (row * columns + col) * 4;
+          const alpha = pixels[pixelIndex + 3] / 255;
+          if (alpha < 0.06) continue;
+
+          const edgeDistance = Math.min(col / columns, 1 - col / columns);
+          const threshold = edgeDistance + seeds[row * columns + col] * 0.12;
+          const cellFade = clamp((revealWave - threshold) * 5.5, 0, 1);
+          if (cellFade <= 0) continue;
+
+          const distFromCenter = Math.sqrt(
+            Math.pow((col - midX) / midX, 2) + Math.pow((row - midY) / midY, 2),
+          );
+          const depth = clamp(1 - distFromCenter * 0.2, 0.55, 1);
+          const opacity = clamp(alpha * cellFade * depth, 0, 0.9);
+          const charIndex = Math.min(
+            chars.length - 1,
+            Math.floor(alpha * (chars.length - 1)),
+          );
+
+          ctx.fillStyle = `rgba(250, 125, 34, ${opacity})`;
+          ctx.fillText(chars[charIndex], col * charWidth, row * fontSize);
+        }
+      }
+
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(draw);
+      }
+    }
+
+    function start() {
+      cancelAnimationFrame(animationFrame);
+      startTime = 0;
+      setup();
+      animationFrame = requestAnimationFrame(draw);
+    }
+
+    if (image.complete && image.naturalWidth) start();
+    else image.addEventListener("load", start, { once: true });
+
+    window.addEventListener("resize", start);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", start);
+    };
   }
 
-  #about > div {
-    z-index: 20;
+  function createAsciiWave(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return () => {};
+
+    const chars = " .:-=+*#%@";
+    const fontFamily =
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
+
+    let animationFrame = 0;
+    let width = 0;
+    let height = 0;
+    let columns = 0;
+    let rows = 0;
+    let fontSize = 12;
+    let charWidth = 7;
+    let seeds: Float32Array | null = null;
+
+    const clamp = (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value));
+
+    function setup() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      fontSize = width < 640 ? 10 : 12;
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      charWidth = Math.max(6, ctx.measureText("@").width);
+      columns = Math.ceil(width / charWidth);
+      rows = Math.ceil(height / fontSize);
+
+      seeds = new Float32Array(columns * rows);
+      for (let index = 0; index < seeds.length; index += 1) {
+        seeds[index] = Math.random();
+      }
+    }
+
+    function draw(now: number) {
+      if (!seeds) {
+        animationFrame = requestAnimationFrame(draw);
+        return;
+      }
+
+      const time = prefersReducedMotion.matches ? 0 : now * 0.00028;
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.textBaseline = "top";
+
+      for (let row = 0; row < rows; row += 1) {
+        const y = row * fontSize;
+        const yNorm = row / Math.max(1, rows - 1);
+
+        for (let col = 0; col < columns; col += 1) {
+          const x = col * charWidth;
+          const xNorm = col / Math.max(1, columns - 1);
+          const centerA =
+            0.32 + Math.sin(xNorm * 7.4 + time * 2.2) * 0.075;
+          const centerB =
+            0.58 + Math.sin(xNorm * 5.8 - time * 1.7 + 1.2) * 0.095;
+          const bandA = Math.exp(-Math.pow((yNorm - centerA) / 0.13, 2));
+          const bandB = Math.exp(-Math.pow((yNorm - centerB) / 0.16, 2));
+          const topMist = Math.exp(-Math.pow((yNorm - 0.2) / 0.34, 2)) * 0.42;
+          const noise = seeds[row * columns + col] || 0;
+          const shimmer =
+            0.84 + Math.sin(noise * 11 + time * 6 + col * 0.04) * 0.16;
+          const edgeFade =
+            clamp(xNorm * 4.2, 0, 1) *
+            clamp((1 - xNorm) * 4.2, 0, 1) *
+            clamp((1 - yNorm) * 1.4, 0, 1);
+          const strength = clamp(
+            (bandA * 1.08 + bandB * 0.82 + topMist) * shimmer * edgeFade,
+            0,
+            1,
+          );
+
+          if (strength < 0.08 || noise > strength + 0.38) continue;
+
+          const charIndex = clamp(
+            Math.floor(strength * (chars.length - 1)),
+            0,
+            chars.length - 1,
+          );
+          const opacity = clamp(strength * 0.44, 0.06, 0.42);
+          const green = Math.round(84 + strength * 72);
+          ctx.fillStyle = `rgba(255, ${green}, 0, ${opacity})`;
+          ctx.fillText(chars[charIndex], x, y);
+        }
+      }
+
+      if (!prefersReducedMotion.matches) {
+        animationFrame = requestAnimationFrame(draw);
+      }
+    }
+
+    function start() {
+      cancelAnimationFrame(animationFrame);
+      setup();
+      animationFrame = requestAnimationFrame(draw);
+    }
+
+    start();
+    window.addEventListener("resize", start);
+    prefersReducedMotion.addEventListener("change", start);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", start);
+      prefersReducedMotion.removeEventListener("change", start);
+    };
   }
+
+  function createAsciiRipple(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return () => {};
+
+    const chars = " .:-=+*#%@";
+    const fontFamily =
+      "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
+
+    let animationFrame = 0;
+    let width = 0;
+    let height = 0;
+    let columns = 0;
+    let rows = 0;
+    let fontSize = 12;
+    let charWidth = 7;
+
+    const clamp = (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value));
+
+    function setup() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      fontSize = width < 720 ? 14 : 18;
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      charWidth = Math.max(8, ctx.measureText("@").width);
+      columns = Math.ceil(width / charWidth);
+      rows = Math.ceil(height / fontSize);
+    }
+
+    function draw(now: number) {
+      const time = prefersReducedMotion.matches ? 0 : now * 0.00018;
+      const centerX = width * 0.5;
+      const centerY = height * 0.5;
+      const maxRadius = Math.hypot(width, height) * 0.66;
+      const ringCount = 16;
+      const spacing = maxRadius / ringCount;
+      const thickness = Math.max(12, spacing * 0.085);
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.textBaseline = "top";
+
+      for (let row = 0; row < rows; row += 1) {
+        const y = row * fontSize;
+        const dy = y + fontSize * 0.5 - centerY;
+
+        for (let col = 0; col < columns; col += 1) {
+          const x = col * charWidth;
+          const dx = x + charWidth * 0.5 - centerX;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const phase = (distance / spacing - time) % 1;
+          const normalizedPhase = phase < 0 ? phase + 1 : phase;
+          const ringDistance = Math.min(normalizedPhase, 1 - normalizedPhase);
+          const strength = clamp(1 - (ringDistance * spacing) / thickness, 0, 1);
+          if (strength <= 0.02) continue;
+
+          const distanceFade = clamp(1 - distance / maxRadius, 0, 1);
+          const edgeFade =
+            clamp((x / width) * 6, 0, 1) *
+            clamp((1 - x / width) * 6, 0, 1) *
+            clamp((y / height) * 5, 0, 1) *
+            clamp((1 - y / height) * 5, 0, 1);
+          const opacity = strength * (0.24 + distanceFade * 0.42) * edgeFade;
+          if (opacity < 0.02) continue;
+
+          const charIndex = clamp(
+            Math.floor(strength * (chars.length - 1)),
+            0,
+            chars.length - 1,
+          );
+          ctx.fillStyle = `rgba(255, 116, 23, ${opacity})`;
+          ctx.fillText(chars[charIndex], x, y);
+        }
+      }
+
+      if (!prefersReducedMotion.matches) {
+        animationFrame = requestAnimationFrame(draw);
+      }
+    }
+
+    function start() {
+      cancelAnimationFrame(animationFrame);
+      setup();
+      animationFrame = requestAnimationFrame(draw);
+    }
+
+    start();
+    window.addEventListener("resize", start);
+    prefersReducedMotion.addEventListener("change", start);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", start);
+      prefersReducedMotion.removeEventListener("change", start);
+    };
+  }
+
+  function createFluidScrollPanels() {
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    );
+    const panels = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-fluid-panel]"),
+    );
+
+    if (!panels.length) return () => {};
+
+    const clamp = (value: number, min: number, max: number) =>
+      Math.max(min, Math.min(max, value));
+
+    let animationFrame = 0;
+    let resizeObserver: ResizeObserver | null = null;
+
+    function resetPanel(panel: HTMLElement) {
+      panel.style.removeProperty("--fluid-y");
+      panel.style.removeProperty("--fluid-scale");
+      panel.style.removeProperty("--fluid-opacity");
+      panel.style.removeProperty("--fluid-blur");
+      panel.style.removeProperty("--fluid-shadow");
+    }
+
+    function update() {
+      animationFrame = 0;
+
+      if (prefersReducedMotion.matches) {
+        panels.forEach(resetPanel);
+        return;
+      }
+
+      const viewportHeight = Math.max(window.innerHeight, 1);
+      const focusY = viewportHeight * 0.52;
+      const motionRange = viewportHeight * 0.78;
+      const moveAmount = window.innerWidth < 720 ? 18 : 42;
+
+      panels.forEach((panel) => {
+        const rect = panel.getBoundingClientRect();
+        const panelFocus = rect.top + rect.height * 0.44;
+        const distance = clamp((panelFocus - focusY) / motionRange, -1.25, 1.25);
+        const presence = clamp(1 - Math.abs(distance) * 0.74, 0, 1);
+        const easedPresence = 1 - Math.pow(1 - presence, 3);
+        const direction = distance < 0 ? -1 : 1;
+        const softenedDistance =
+          direction * Math.pow(Math.abs(distance), 0.84);
+        const y = softenedDistance * moveAmount * (1 - easedPresence * 0.18);
+        const scale = 0.972 + easedPresence * 0.028;
+        const opacity = 0.74 + easedPresence * 0.26;
+        const blur = (1 - easedPresence) * 0.35;
+        const shadow = easedPresence * 0.12;
+
+        panel.style.setProperty("--fluid-y", `${y.toFixed(2)}px`);
+        panel.style.setProperty("--fluid-scale", scale.toFixed(4));
+        panel.style.setProperty("--fluid-opacity", opacity.toFixed(3));
+        panel.style.setProperty("--fluid-blur", `${blur.toFixed(2)}px`);
+        panel.style.setProperty("--fluid-shadow", shadow.toFixed(3));
+      });
+    }
+
+    function scheduleUpdate() {
+      if (!animationFrame) {
+        animationFrame = requestAnimationFrame(update);
+      }
+    }
+
+    scheduleUpdate();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    prefersReducedMotion.addEventListener("change", scheduleUpdate);
+
+    if ("ResizeObserver" in window) {
+      resizeObserver = new ResizeObserver(scheduleUpdate);
+      panels.forEach((panel) => resizeObserver?.observe(panel));
+    }
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      prefersReducedMotion.removeEventListener("change", scheduleUpdate);
+      resizeObserver?.disconnect();
+      panels.forEach(resetPanel);
+    };
+  }
+
+  const cleanups = [
+    ...canvases.map((canvas) => createStarAsciiRenderer(canvas)),
+    ...waveCanvases.map((canvas) => createAsciiWave(canvas)),
+    ...rippleCanvases.map((canvas) => createAsciiRipple(canvas)),
+    createFluidScrollPanels(),
+  ];
+
+  window.addEventListener("pagehide", () => {
+    cleanups.forEach((cleanup) => cleanup());
+  });
+</script>
+
+<!-- Scroll storytelling: Lenis smooth scroll + GSAP ScrollTrigger choreography -->
+<script>
+  import Lenis from "lenis";
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+  import SplitType from "split-type";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // --- Smooth scroll (Lenis), wired into the GSAP ticker ---
+  let lenis: Lenis | null = null;
+  if (!reduce) {
+    lenis = new Lenis({ duration: 1.05, smoothWheel: true });
+    lenis.on("scroll", ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis?.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+  }
+
+  const ready =
+    document.fonts && document.fonts.ready
+      ? document.fonts.ready
+      : Promise.resolve();
+
+  // 1 — Hero: nav fades down, headline reveals line-by-line, search card slides up.
+  function initHero() {
+    const nav = document.querySelector<HTMLElement>("[data-nav]");
+    const headline = document.querySelector<HTMLElement>("[data-hero-headline]");
+    const card = document.querySelector<HTMLElement>("[data-hero-card]");
+
+    if (reduce) return;
+
+    // Hide synchronously so there's no flash before the timeline runs.
+    if (nav) gsap.set(nav, { opacity: 0, y: -16 });
+    if (card) gsap.set(card, { opacity: 0, y: 40 });
+    if (headline) gsap.set(headline, { opacity: 0 });
+
+    ready.then(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      if (nav) tl.to(nav, { opacity: 1, y: 0, duration: 0.7 }, 0);
+
+      if (headline) {
+        try {
+          const split = new SplitType(headline, { types: "lines" });
+          gsap.set(headline, { opacity: 1 });
+          gsap.set(split.lines, { opacity: 0, y: 28 });
+          tl.to(
+            split.lines,
+            { opacity: 1, y: 0, duration: 0.85, stagger: 0.14 },
+            0.12,
+          );
+        } catch {
+          tl.to(headline, { opacity: 1, duration: 0.8 }, 0.12);
+        }
+      }
+
+      if (card) tl.to(card, { opacity: 1, y: 0, duration: 0.95 }, 0.5);
+    });
+  }
+
+  // Global reveal system — opt-in via attributes so each section can be tuned.
+  // [data-reveal]            : element fades + rises into view
+  // [data-reveal-group]      : staggers its [data-reveal] children together
+  function initReveals() {
+    if (reduce) return;
+
+    gsap.utils.toArray<HTMLElement>("[data-reveal]").forEach((el) => {
+      if (el.closest("[data-reveal-group]")) return;
+      gsap.from(el, {
+        y: 26,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        scrollTrigger: { trigger: el, start: "top 86%" },
+      });
+    });
+
+    gsap.utils.toArray<HTMLElement>("[data-reveal-group]").forEach((group) => {
+      const items = group.querySelectorAll<HTMLElement>("[data-reveal]");
+      if (!items.length) return;
+      gsap.from(items, {
+        y: 28,
+        opacity: 0,
+        duration: 0.8,
+        ease: "power3.out",
+        stagger: 0.12,
+        scrollTrigger: { trigger: group, start: "top 82%" },
+      });
+    });
+  }
+
+  // Count-up — numbers tick from 0 to their value once, when scrolled into view.
+  // <span data-count="2000" data-count-prefix="$" data-count-suffix="+"></span>
+  function initCounters() {
+    gsap.utils.toArray<HTMLElement>("[data-count]").forEach((el) => {
+      const target = parseFloat(el.dataset.count || "0");
+      const prefix = el.dataset.countPrefix || "";
+      const suffix = el.dataset.countSuffix || "";
+      const decimals = parseInt(el.dataset.countDecimals || "0", 10);
+      const format = (n: number) =>
+        prefix +
+        n.toLocaleString("en-US", {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        }) +
+        suffix;
+
+      el.textContent = reduce ? format(target) : format(0);
+      if (reduce) return;
+
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top 80%",
+        once: true,
+        onEnter: () => {
+          const obj = { v: 0 };
+          gsap.to(obj, {
+            v: target,
+            duration: 1.5,
+            ease: "power2.out",
+            onUpdate: () => {
+              el.textContent = format(obj.v);
+            },
+          });
+        },
+      });
+    });
+  }
+
+  initHero();
+  initReveals();
+  initCounters();
+
+  // Recompute trigger positions once images/fonts settle.
+  ready.then(() => ScrollTrigger.refresh());
+  window.addEventListener("load", () => ScrollTrigger.refresh());
+
+  window.addEventListener("pagehide", () => {
+    lenis?.destroy();
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+  });
+</script>
+
+<style>
+  /* Lenis smooth-scroll baseline */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
+</style>
+
+<style>
+  .landing-page {
+    font-family: Manrope, system-ui, sans-serif;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(5, 5, 5, 0.024) 0,
+        rgba(5, 5, 5, 0.024) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(5, 5, 5, 0.022) 0,
+        rgba(5, 5, 5, 0.022) 1px,
+        transparent 1px,
+        transparent 24px
+      );
+  }
+
+  [data-fluid-panel] {
+    --fluid-y: 0px;
+    --fluid-scale: 1;
+    --fluid-opacity: 1;
+    --fluid-blur: 0px;
+    --fluid-shadow: 0;
+    position: relative;
+    transform: translate3d(0, var(--fluid-y), 0) scale(var(--fluid-scale));
+    transform-origin: center center;
+    opacity: var(--fluid-opacity);
+    filter: blur(var(--fluid-blur));
+    will-change: transform, opacity, filter;
+    backface-visibility: hidden;
+  }
+
+  [data-fluid-panel]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    border-radius: inherit;
+    box-shadow: 0 32px 120px rgba(5, 5, 5, var(--fluid-shadow));
+    opacity: var(--fluid-shadow);
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-fluid-panel] {
+      transform: none;
+      opacity: 1;
+      filter: none;
+    }
+
+    [data-fluid-panel]::after {
+      display: none;
+    }
+  }
+
+  .ruler-section {
+    position: relative;
+  }
+
+  .ruler-section::before,
+  .ruler-section::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    z-index: 0;
+    width: 100vw;
+    height: 1px;
+    transform: translateX(-50%);
+    background: rgba(5, 5, 5, 0.1);
+    pointer-events: none;
+  }
+
+  .ruler-section::before {
+    top: 0;
+  }
+
+  .ruler-section::after {
+    bottom: 0;
+  }
+
+  .ruler-rails {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    z-index: 0;
+    width: min(calc(100% - 3rem), 80rem);
+    transform: translateX(-50%);
+    border-inline: 1px solid rgba(5, 5, 5, 0.08);
+    pointer-events: none;
+  }
+
+  .ruler-rails::before,
+  .ruler-rails::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: 1px;
+    background: rgba(5, 5, 5, 0.055);
+  }
+
+  .ruler-rails::before {
+    left: 25%;
+  }
+
+  .ruler-rails::after {
+    right: 25%;
+  }
+
+  .section-linework {
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background-image:
+      linear-gradient(
+        116deg,
+        transparent 0,
+        transparent 42%,
+        rgba(5, 5, 5, 0.045) 42%,
+        rgba(5, 5, 5, 0.045) calc(42% + 1px),
+        transparent calc(42% + 1px)
+      ),
+      linear-gradient(
+        64deg,
+        transparent 0,
+        transparent 62%,
+        rgba(5, 5, 5, 0.038) 62%,
+        rgba(5, 5, 5, 0.038) calc(62% + 1px),
+        transparent calc(62% + 1px)
+      ),
+      radial-gradient(
+        circle at 82% 18%,
+        transparent 0,
+        transparent 12rem,
+        rgba(5, 5, 5, 0.045) calc(12rem + 1px),
+        transparent calc(12rem + 2px)
+      ),
+      radial-gradient(
+        circle at 12% 78%,
+        transparent 0,
+        transparent 9rem,
+        rgba(5, 5, 5, 0.035) calc(9rem + 1px),
+        transparent calc(9rem + 2px)
+      );
+  }
+
+  .section-linework::before,
+  .section-linework::after {
+    content: "";
+    position: absolute;
+    width: min(36rem, 42vw);
+    height: 1px;
+    background: rgba(5, 5, 5, 0.075);
+    transform-origin: left center;
+  }
+
+  .section-linework::before {
+    left: 8%;
+    top: 18%;
+    transform: rotate(-10deg);
+  }
+
+  .section-linework::after {
+    bottom: 20%;
+    right: 4%;
+    transform: rotate(8deg);
+  }
+
+  @media (min-width: 1024px) {
+    .logo-cell:nth-last-child(-n + 4) {
+      border-bottom: 0;
+    }
+  }
+
+  .metric-card {
+    isolation: isolate;
+  }
+
+  .metric-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .metric-card:nth-child(3)::before {
+    background-image:
+      linear-gradient(rgba(32, 49, 29, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(32, 49, 29, 0.08) 1px, transparent 1px);
+  }
+
+  .metric-search {
+    backdrop-filter: blur(10px);
+  }
+
+  .metric-bars span {
+    display: block;
+    height: 10px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), rgba(255, 116, 23, 0.72));
+  }
+
+  .metric-bars span:nth-child(2) {
+    width: 72%;
+  }
+
+  .metric-bars span:nth-child(3) {
+    width: 48%;
+  }
+
+  .metric-rings {
+    animation: metric-ring 5s ease-in-out infinite;
+  }
+
+  .metric-rings-delay {
+    animation-delay: 1.2s;
+  }
+
+  .agent-feature-card {
+    background: rgba(255, 250, 247, 0.76);
+  }
+
+  .programs-section {
+    margin-top: -1px;
+  }
+
+  .programs-section::before {
+    opacity: 0;
+  }
+
+  .bento-card {
+    transition:
+      transform 360ms ease,
+      box-shadow 360ms ease,
+      border-color 360ms ease;
+  }
+
+  .bento-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 30px 80px rgba(5, 5, 5, 0.12);
+  }
+
+  .bento-chip {
+    animation: bento-chip-float 4.5s ease-in-out infinite;
+  }
+
+  .bento-chip:last-child {
+    animation-delay: 0.9s;
+  }
+
+  @keyframes bento-chip-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bento-chip {
+      animation: none;
+    }
+  }
+
+  .hero-builder-card {
+    --hero-search-cycle: 11s;
+    overflow: visible;
+  }
+
+  .hero-search-input {
+    transition:
+      border-color 240ms ease,
+      box-shadow 240ms ease;
+    animation: hero-input-focus var(--hero-search-cycle) ease-in-out infinite;
+  }
+
+  .hero-typewriter-text {
+    display: inline-block;
+    max-width: 100%;
+    width: 0;
+    overflow: hidden;
+    vertical-align: bottom;
+    white-space: nowrap;
+    border-right: 2px solid transparent;
+    animation: hero-typewriter var(--hero-search-cycle) steps(48, end) infinite;
+  }
+
+  .hero-loading-row {
+    position: absolute;
+    left: 3.35rem;
+    bottom: -1.6rem;
+    display: flex;
+    gap: 0.36rem;
+    opacity: 0;
+    transform: translateY(-4px);
+    animation: hero-loading-row var(--hero-search-cycle) ease-in-out infinite;
+  }
+
+  .hero-loading-row span {
+    display: block;
+    width: 0.46rem;
+    height: 0.46rem;
+    border-radius: 999px;
+    background: #ff7417;
+    animation: hero-loading-dot 0.72s ease-in-out infinite;
+  }
+
+  .hero-loading-row span:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+
+  .hero-loading-row span:nth-child(3) {
+    animation-delay: 0.24s;
+  }
+
+  .hero-search-submit {
+    animation: hero-submit-pulse var(--hero-search-cycle) ease-in-out infinite;
+  }
+
+  .hero-result-card,
+  .hero-signal-chip {
+    opacity: 0;
+    transform: translateY(12px);
+    animation: hero-result-in var(--hero-search-cycle) ease-in-out infinite;
+  }
+
+  .hero-result-card-two {
+    animation-delay: 0.18s;
+  }
+
+  .hero-signal-chip:nth-child(1) {
+    animation-delay: 0.28s;
+  }
+
+  .hero-signal-chip:nth-child(2) {
+    animation-delay: 0.38s;
+  }
+
+  .hero-signal-chip:nth-child(3) {
+    animation-delay: 0.48s;
+  }
+
+  .hero-signal-chip:nth-child(4) {
+    animation-delay: 0.58s;
+  }
+
+  .hero-search-cursor {
+    position: absolute;
+    left: 74%;
+    top: -12%;
+    z-index: 20;
+    display: block;
+    width: 2.1rem;
+    height: 2.1rem;
+    color: #050505;
+    filter: drop-shadow(0 9px 12px rgba(5, 5, 5, 0.2));
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) rotate(-10deg);
+    animation: hero-cursor-path var(--hero-search-cycle) cubic-bezier(0.72, 0, 0.28, 1) infinite;
+  }
+
+  .hero-search-cursor svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  @keyframes hero-cursor-path {
+    0% {
+      left: 76%;
+      top: -11%;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.96) rotate(-10deg);
+    }
+    7% {
+      opacity: 1;
+    }
+    16% {
+      left: 33%;
+      top: 37%;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+    }
+    19% {
+      left: 33%;
+      top: 37%;
+      transform: translate(-50%, -50%) scale(0.82) rotate(-10deg);
+    }
+    22% {
+      left: 33%;
+      top: 37%;
+      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+    }
+    47% {
+      left: 91%;
+      top: 37%;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+    }
+    50% {
+      left: 91%;
+      top: 37%;
+      transform: translate(-50%, -50%) scale(0.82) rotate(-10deg);
+    }
+    54% {
+      left: 91%;
+      top: 37%;
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
+    }
+    100% {
+      left: 91%;
+      top: 37%;
+      opacity: 0;
+    }
+  }
+
+  @keyframes hero-input-focus {
+    0%,
+    15%,
+    54%,
+    100% {
+      border-color: #050505;
+      box-shadow: none;
+    }
+    18%,
+    49% {
+      border-color: #ff7417;
+      box-shadow: inset 0 0 0 1px rgba(255, 116, 23, 0.7), 0 0 0 4px rgba(255, 116, 23, 0.08);
+    }
+  }
+
+  @keyframes hero-typewriter {
+    0%,
+    20% {
+      width: 0;
+      border-right-color: transparent;
+    }
+    22%,
+    44% {
+      border-right-color: #050505;
+    }
+    45%,
+    88% {
+      width: 100%;
+      border-right-color: transparent;
+    }
+    96%,
+    100% {
+      width: 0;
+      border-right-color: transparent;
+    }
+  }
+
+  @keyframes hero-loading-row {
+    0%,
+    49%,
+    68%,
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    53%,
+    63% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes hero-loading-dot {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    50% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes hero-submit-pulse {
+    0%,
+    47%,
+    55%,
+    100% {
+      background: #fff;
+      color: #ff7417;
+      transform: scale(1);
+    }
+    50% {
+      background: #ff7417;
+      color: #fff;
+      transform: scale(0.94);
+    }
+  }
+
+  @keyframes hero-result-in {
+    0%,
+    61% {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    68%,
+    88% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    96%,
+    100% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .hero-search-cursor {
+      width: 1.7rem;
+      height: 1.7rem;
+    }
+
+    .hero-loading-row {
+      left: 3rem;
+      bottom: -1.35rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-search-input,
+    .hero-typewriter-text,
+    .hero-loading-row,
+    .hero-loading-row span,
+    .hero-search-submit,
+    .hero-result-card,
+    .hero-signal-chip,
+    .hero-search-cursor {
+      animation: none;
+    }
+
+    .hero-typewriter-text {
+      width: auto;
+    }
+
+    .hero-result-card,
+    .hero-signal-chip {
+      opacity: 1;
+      transform: none;
+    }
+
+    .hero-search-cursor,
+    .hero-loading-row {
+      display: none;
+    }
+  }
+
+  .profile-marquee {
+    left: 0;
+    width: max-content;
+    will-change: transform;
+  }
+
+  .profile-marquee-one {
+    animation: profile-marquee-left 24s linear infinite;
+  }
+
+  .profile-marquee-two {
+    animation: profile-marquee-right 28s linear infinite;
+  }
+
+  .profile-card {
+    backdrop-filter: blur(12px);
+  }
+
+  .evidence-card {
+    top: calc(5rem + (var(--card-index) * 0.7rem));
+    color: var(--card-fg);
+    background: var(--card-bg);
+  }
+
+  .evidence-card-grid {
+    background-image:
+      linear-gradient(currentColor 1px, transparent 1px),
+      linear-gradient(90deg, currentColor 1px, transparent 1px);
+    background-size: 34px 34px;
+    opacity: 0.055;
+    pointer-events: none;
+  }
+
+  .evidence-profile-card {
+    color: #050505;
+    backdrop-filter: blur(16px);
+  }
+
+  @keyframes metric-bar {
+    0%,
+    100% {
+      transform: scaleX(0.64);
+      opacity: 0.36;
+    }
+    50% {
+      transform: scaleX(1);
+      opacity: 0.86;
+    }
+  }
+
+  @keyframes metric-ring {
+    0%,
+    100% {
+      transform: scale(0.92);
+      opacity: 0.45;
+    }
+    50% {
+      transform: scale(1.08);
+      opacity: 0.78;
+    }
+  }
+
+  @keyframes profile-marquee-left {
+    from {
+      transform: translateX(2rem);
+    }
+    to {
+      transform: translateX(-46%);
+    }
+  }
+
+  @keyframes profile-marquee-right {
+    from {
+      transform: translateX(-42%);
+    }
+    to {
+      transform: translateX(4rem);
+    }
+  }
+
+  .ascii-star {
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ascii-wave {
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+    -webkit-mask-image: radial-gradient(
+      ellipse at center,
+      #000 0%,
+      #000 46%,
+      transparent 82%
+    );
+    mask-image: radial-gradient(
+      ellipse at center,
+      #000 0%,
+      #000 46%,
+      transparent 82%
+    );
+  }
+
+  .ascii-ripple {
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .selection-dot {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #168df7;
+    border-radius: 999px;
+    background: #fbf6f3;
+  }
+
+  .corner-square {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #168df7;
+    background: #fbf6f3;
+  }
+
+  /* Builder profile signals grid — clean inner rules */
+  @media (min-width: 1024px) {
+    .signal-cell:nth-child(3n) {
+      border-right: 0;
+    }
+    .signal-cell:nth-last-child(-n + 3) {
+      border-bottom: 0;
+    }
+  }
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .signal-cell:nth-child(2n) {
+      border-right: 0;
+    }
+    .signal-cell:nth-last-child(-n + 2) {
+      border-bottom: 0;
+    }
+  }
+
+  /* How it works — step grid rules */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .step-cell:nth-child(2n) {
+      border-right: 1px solid rgba(5, 5, 5, 0.1);
+    }
+    .step-cell:nth-last-child(-n + 2) {
+      border-bottom: 0;
+    }
+  }
+  @media (min-width: 1024px) {
+    .step-cell {
+      border-bottom: 0;
+    }
+    .step-cell:not(:last-child) {
+      border-right: 1px solid rgba(5, 5, 5, 0.1);
+    }
+  }
+
+  /* Magic-UI style border beam on the builder profile card */
+  .border-beam {
+    padding: 1.6px;
+    overflow: hidden;
+    opacity: 0.85;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  .border-beam::before {
+    content: "";
+    position: absolute;
+    inset: -60%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0 58%,
+      rgba(255, 116, 23, 0) 58%,
+      rgba(255, 116, 23, 0.95) 76%,
+      rgba(255, 180, 120, 0.6) 82%,
+      transparent 90%
+    );
+    animation: beam-rotate 7s linear infinite;
+  }
+
+  @keyframes beam-rotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Dark cinematic closing act */
+  .dark-act {
+    background-color: #0d0a09;
+    background-image:
+      linear-gradient(
+        180deg,
+        #2c1608 0,
+        #1a0f0a 200px,
+        rgba(13, 10, 9, 0) 560px
+      ),
+      radial-gradient(ellipse at 50% 2%, rgba(255, 116, 23, 0.12), transparent 52%),
+      radial-gradient(ellipse at 80% 92%, rgba(22, 141, 247, 0.06), transparent 60%),
+      repeating-linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.018) 0,
+        rgba(255, 255, 255, 0.018) 1px,
+        transparent 1px,
+        transparent 26px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.016) 0,
+        rgba(255, 255, 255, 0.016) 1px,
+        transparent 1px,
+        transparent 26px
+      );
+  }
+
+  /* warm blurred glow hugging the parabolic boundary */
+  .dark-glow {
+    width: min(80%, 70rem);
+    height: 280px;
+    top: 40px;
+    background: radial-gradient(
+      ellipse at 50% 30%,
+      rgba(255, 140, 50, 0.55) 0%,
+      rgba(200, 80, 20, 0.28) 34%,
+      rgba(120, 50, 12, 0.12) 56%,
+      transparent 74%
+    );
+    filter: blur(64px);
+  }
+
+  .dark-wave {
+    mix-blend-mode: screen;
+    opacity: 0.62;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 20%,
+      #000 84%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 20%,
+      #000 84%,
+      transparent 100%
+    );
+  }
+
+  /* Magic-UI style dot pattern background */
+  .dot-bg {
+    background-image: radial-gradient(rgba(5, 5, 5, 0.16) 1px, transparent 1px);
+    background-size: 16px 16px;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+    mask-image: radial-gradient(ellipse at center, #000 30%, transparent 78%);
+    pointer-events: none;
+  }
+
+  .dot-bg-soft {
+    background-image: radial-gradient(rgba(5, 5, 5, 0.08) 1px, transparent 1px);
+    -webkit-mask-image: radial-gradient(ellipse at 30% 0%, #000 0%, transparent 70%);
+    mask-image: radial-gradient(ellipse at 30% 0%, #000 0%, transparent 70%);
+  }
+
+  /* Builder profile technical diagram */
+  .profile-system-panel {
+    border-radius: 0;
+  }
+
+  .profile-system-grid {
+    background-image:
+      linear-gradient(rgba(5, 5, 5, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(5, 5, 5, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  @media (min-width: 1024px) {
+    .profile-heading {
+      white-space: nowrap;
+      font-size: clamp(2.85rem, 3.55vw, 3.65rem);
+    }
+  }
+
+  .profile-diagram {
+    min-height: 35rem;
+  }
+
+  .profile-diagram::before,
+  .profile-diagram::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(5, 5, 5, 0.08);
+    z-index: 0;
+  }
+
+  .profile-diagram::before {
+    left: 33.333%;
+  }
+
+  .profile-diagram::after {
+    right: 33.333%;
+  }
+
+  .profile-wave {
+    position: absolute;
+    top: 6.2rem;
+    width: 15rem;
+    height: 13rem;
+    opacity: 0.45;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at center, transparent 35%, rgba(255, 116, 23, 0.18) 36%, transparent 38%),
+      repeating-radial-gradient(ellipse at center, transparent 0 22px, rgba(255, 116, 23, 0.34) 23px 25px, transparent 26px 44px);
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  }
+
+  .profile-wave-left {
+    left: -7rem;
+  }
+
+  .profile-wave-right {
+    right: -7rem;
+    transform: scaleX(-1);
+  }
+
+  .profile-wire {
+    stroke: rgba(5, 5, 5, 0.22);
+    stroke-width: 1.15;
+    fill: none;
+  }
+
+  .profile-branch {
+    stroke: rgba(5, 5, 5, 0.18);
+  }
+
+  .profile-pulse {
+    stroke: url(#profilePulse);
+    stroke-width: 2.4;
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 120 920;
+    animation: profile-pulse 4.8s linear infinite;
+  }
+
+  @keyframes profile-pulse {
+    from {
+      stroke-dashoffset: 1040;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .profile-node {
+    width: min(100%, 14.5rem);
+    border: 1px solid rgba(5, 5, 5, 0.16);
+    background: rgba(255, 250, 247, 0.92);
+    box-shadow: 0 18px 44px rgba(5, 5, 5, 0.07);
+    backdrop-filter: blur(14px);
+    z-index: 2;
+  }
+
+  .profile-node-head {
+    display: flex;
+    align-items: center;
+    gap: 0.78rem;
+    padding: 0.88rem;
+  }
+
+  .profile-node h3 {
+    margin: 0;
+    font-size: 0.98rem;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    color: #050505;
+  }
+
+  .profile-node p {
+    margin-top: 0.28rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: rgba(5, 5, 5, 0.48);
+  }
+
+  .profile-node-icon {
+    display: grid;
+    width: 2.45rem;
+    height: 2.45rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid rgba(5, 5, 5, 0.12);
+  }
+
+  .profile-node-icon svg {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .profile-core {
+    width: min(100%, 16.5rem);
+    padding: 1.25rem;
+    border-color: rgba(255, 116, 23, 0.5);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 246, 240, 0.96)),
+      radial-gradient(circle at 50% 0%, rgba(255, 116, 23, 0.2), transparent 70%);
+    box-shadow:
+      0 22px 60px rgba(255, 116, 23, 0.18),
+      0 18px 48px rgba(5, 5, 5, 0.08);
+    text-align: center;
+    z-index: 4;
+  }
+
+  .profile-core-kicker {
+    display: inline-flex;
+    margin-bottom: 0.65rem;
+    border: 1px solid rgba(255, 116, 23, 0.32);
+    background: #fff1e8;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #bf4f08;
+  }
+
+  .profile-core span span,
+  .profile-core span {
+    display: block;
+  }
+
+  .profile-core strong {
+    display: block;
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .profile-core small {
+    margin-top: 0.25rem;
+    display: block;
+    font-size: 0.58rem;
+    font-weight: 900;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(5, 5, 5, 0.4);
+  }
+
+  .profile-evidence-row {
+    display: grid;
+    gap: 0.9rem;
+    z-index: 3;
+  }
+
+  .profile-evidence-chip {
+    border: 1px solid rgba(5, 5, 5, 0.14);
+    background: rgba(255, 250, 247, 0.9);
+    min-height: 8.4rem;
+    padding: 0.9rem;
+    box-shadow: 0 14px 34px rgba(5, 5, 5, 0.055);
+  }
+
+  .profile-evidence-icon {
+    display: grid;
+    width: 2.2rem;
+    height: 2.2rem;
+    place-items: center;
+    border: 1px solid rgba(255, 116, 23, 0.25);
+    background: #fff1e8;
+    color: #bf4f08;
+  }
+
+  .profile-evidence-icon svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .profile-evidence-chip h4 {
+    margin-top: 0.9rem;
+    font-size: 0.96rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .profile-evidence-chip p {
+    margin-top: 0.45rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: rgba(5, 5, 5, 0.5);
+  }
+
+  @media (min-width: 1024px) {
+    .profile-node {
+      transform: translateX(-50%);
+    }
+
+    .profile-core {
+      transform: translateX(-50%);
+    }
+
+    .profile-node-large {
+      width: 14.5rem;
+    }
+
+    .profile-node-mid {
+      width: 12.75rem;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .profile-diagram {
+      min-height: auto;
+    }
+
+    .profile-diagram-mobile-space {
+      justify-items: center;
+    }
+
+    .profile-node {
+      width: 100%;
+      max-width: 34rem;
+    }
+
+    .profile-evidence-row {
+      width: 100%;
+      max-width: 34rem;
+    }
+
+    .profile-wave,
+    .profile-diagram::before,
+    .profile-diagram::after {
+      display: none;
+    }
+  }
+
+  /* Animated beam diagram */
+  .beam-line {
+    stroke: rgba(5, 5, 5, 0.12);
+    stroke-width: 1.4;
+    fill: none;
+  }
+
+  .beam-flow {
+    stroke: url(#beamGrad);
+    stroke-width: 2.4;
+    fill: none;
+    stroke-linecap: round;
+    stroke-dasharray: 7 420;
+    stroke-dashoffset: 427;
+    animation: beam-flow 3s linear infinite;
+  }
+
+  @keyframes beam-flow {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .beam-node {
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .beam-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: rgba(5, 5, 5, 0.5);
+    white-space: nowrap;
+  }
+
+  .beam-center {
+    z-index: 3;
+  }
+
+  .beam-icon {
+    animation: beam-bob 4s ease-in-out infinite;
+  }
+
+  @keyframes beam-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .beam-flow,
+    .beam-icon {
+      animation: none;
+    }
+  }
+
+  /* Orange closing CTA / footer card */
+  .footer-cta {
+    background:
+      radial-gradient(
+        120% 130% at 50% 50%,
+        #33220f 0%,
+        #271907 52%,
+        #1a1004 100%
+      );
+  }
+
+
+  .footer-marquee {
+    animation: footer-scroll 26s linear infinite;
+  }
+
+  @keyframes footer-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .footer-marquee {
+      animation: none;
+    }
+  }
+
 </style>
