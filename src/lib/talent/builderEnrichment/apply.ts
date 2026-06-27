@@ -5,6 +5,7 @@ import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
+import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import type { EnrichedProfileDraft, EnrichedProjectDraft } from './types';
 
 const CONFIRMED_STATUSES = new Set([
@@ -121,6 +122,21 @@ function mergeExperiences(existing: any[] = [], incoming: any[] = []) {
   return Array.from(merged.values()).slice(0, 10);
 }
 
+async function syncBuilderUserAvatar(builder: any, avatarUrl: string) {
+  try {
+    let userId = builder.userId ? String(builder.userId) : null;
+    if (!userId && builder.email) {
+      const user = await findUserByEmail(String(builder.email));
+      userId = user?._id ? String(user._id) : null;
+    }
+    if (userId) {
+      await updateUserAccount(userId, { avatarUrl });
+    }
+  } catch (err) {
+    console.warn('[builderEnrichment] user avatar sync failed', err instanceof Error ? err.message : err);
+  }
+}
+
 export async function applyProfileDraft(
   builder: any,
   draft: EnrichedProfileDraft,
@@ -136,6 +152,11 @@ export async function applyProfileDraft(
   if (!isEmpty(draft.bio) && (overwrite || isEmpty(builder.bio))) {
     builder.bio = String(draft.bio).trim().slice(0, 2000);
     updated.push('bio');
+  }
+  if (!isEmpty(draft.avatarUrl) && (overwrite || isEmpty(builder.avatarUrl))) {
+    builder.avatarUrl = String(draft.avatarUrl).trim();
+    updated.push('avatarUrl');
+    await syncBuilderUserAvatar(builder, builder.avatarUrl);
   }
   if (!isEmpty(draft.location) && (overwrite || isEmpty(builder.location))) {
     builder.location = String(draft.location).trim().slice(0, 120);
@@ -183,7 +204,7 @@ export async function applyProfileDraft(
 
   if (draft.links) {
     builder.links = builder.links || {};
-    for (const key of ['github', 'linkedin', 'portfolio', 'personalWebsite', 'devpost'] as const) {
+    for (const key of ['github', 'linkedin', 'portfolio', 'personalWebsite', 'devpost', 'twitter'] as const) {
       const value = draft.links[key];
       if (!isEmpty(value) && isEmpty(builder.links[key])) {
         builder.links[key] = String(value).trim();

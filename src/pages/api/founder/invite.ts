@@ -54,6 +54,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       builderId,
       builderEmail: (builder as any).email,
       founderName: identity.founderName,
+      founderEmail: identity.email,
       roleTitle,
       company,
       introRequestId: String(intro._id),

@@ -10,6 +10,7 @@ export type AuthUser = {
   accountType?: 'founder' | 'builder' | null;
   onboardingStatus?: string | null;
   avatarUrl?: string | null;
+  phone?: string | null;
   oauthProvider?: string | null;
   oauthId?: string | null;
   createdAt?: Date;
@@ -77,6 +78,7 @@ function toAuthUser(doc: Document | null): AuthUser | null {
     accountType: (doc.accountType as 'founder' | 'builder' | null | undefined) ?? null,
     onboardingStatus: (doc.onboardingStatus as string | null | undefined) ?? null,
     avatarUrl: (doc.avatarUrl as string | null | undefined) ?? null,
+    phone: (doc.phone as string | null | undefined) ?? null,
     oauthProvider: doc.oauthProvider as string | null | undefined,
     oauthId: doc.oauthId as string | null | undefined,
     createdAt: doc.createdAt as Date | undefined,
@@ -191,6 +193,7 @@ export async function updateUserAccount(
     role: string;
     name: string;
     avatarUrl: string | null;
+    phone: string | null;
   }>,
   runtime?: RuntimeEnv
 ): Promise<AuthUser | null> {

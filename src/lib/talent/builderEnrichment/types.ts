@@ -1,4 +1,4 @@
-export type EnrichmentSource = 'resume' | 'devpost' | 'github' | 'linkedin' | 'portfolio';
+export type EnrichmentSource = 'resume' | 'devpost' | 'github' | 'linkedin' | 'portfolio' | 'twitter';
 
 export type EnrichedProjectDraft = {
   projectName: string;
@@ -24,6 +24,7 @@ export type EnrichedProjectDraft = {
 export type EnrichedProfileDraft = {
   headline?: string | null;
   bio?: string | null;
+  avatarUrl?: string | null;
   location?: string | null;
   rolePreference?: string[];
   universityOrCompany?: string | null;
@@ -57,6 +58,7 @@ export type EnrichedProfileDraft = {
     portfolio?: string | null;
     personalWebsite?: string | null;
     devpost?: string | null;
+    twitter?: string | null;
   };
 };
 

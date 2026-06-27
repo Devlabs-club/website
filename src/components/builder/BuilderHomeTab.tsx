@@ -40,7 +40,6 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
     topRoles,
     topSkills,
     setActiveTab,
-    setAgentInput,
     setMessagesThreadId,
     setMessagesIntroId,
   } = ctx;
@@ -139,12 +138,11 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
           <button
             type="button"
             onClick={() => {
-              setAgentInput('make my profile better');
-              setActiveTab('agent');
+              setActiveTab('profile');
             }}
             className="mt-auto w-full py-2.5 rounded-xl bg-[#fa7d22]/8 border border-[#fa7d22]/20 text-[#fa7d22] text-sm font-medium hover:bg-[#fa7d22]/15 transition-colors"
           >
-            Improve profile quality
+            Edit profile
           </button>
         </div>
 
@@ -221,8 +219,7 @@ export default function BuilderHomeTab({ ctx }: { ctx: BuilderDashboardContext }
                 variant="shimmer"
                 className="mt-2 self-start"
                 onClick={() => {
-                  setAgentInput('Review my projects and tell me what contribution details are missing');
-                  setActiveTab('agent');
+                  setActiveTab('profile');
                 }}
               >
                 Improve proof clarity

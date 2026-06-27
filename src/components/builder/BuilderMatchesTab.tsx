@@ -13,7 +13,6 @@ export default function BuilderMatchesTab({ ctx }: { ctx: BuilderDashboardContex
     matchScore,
     introInbox,
     setActiveTab,
-    setAgentInput,
     setMessagesThreadId,
     setMessagesIntroId,
   } = ctx;
@@ -100,8 +99,7 @@ export default function BuilderMatchesTab({ ctx }: { ctx: BuilderDashboardContex
                       <OsButton
                         variant="shimmer"
                         onClick={() => {
-                          setAgentInput(`I'm interested in the ${match.company || 'startup'} role`);
-                          setActiveTab('agent');
+                          setActiveTab('messages');
                         }}
                       >
                         Express interest
@@ -128,9 +126,9 @@ export default function BuilderMatchesTab({ ctx }: { ctx: BuilderDashboardContex
           action={
             <OsButton
               variant={projects.length === 0 ? 'white' : 'shimmer'}
-              onClick={() => setActiveTab(projects.length === 0 ? 'profile' : matchScore >= 80 ? 'agent' : 'profile')}
+              onClick={() => setActiveTab('profile')}
             >
-              {projects.length === 0 ? 'Add proof-of-work' : matchScore >= 80 ? 'Ask Agent to find matches' : 'Keep profile updated'}
+              {projects.length === 0 ? 'Add proof-of-work' : 'Keep profile updated'}
             </OsButton>
           }
         />

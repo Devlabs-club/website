@@ -9,6 +9,31 @@ function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
+/**
+ * Normalize and validate a founder scheduling link. We only accept Cal.com or
+ * Calendly URLs — that link is sent to builders over iMessage to book interviews,
+ * so it must be a real booking page. Returns the normalized URL or null if invalid.
+ */
+function normalizeSchedulingLink(v: unknown): string | null {
+  const raw = str(v);
+  if (!raw) return null;
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  let url: URL;
+  try {
+    url = new URL(withProtocol);
+  } catch {
+    return null;
+  }
+  const host = url.hostname.toLowerCase().replace(/^www\./, '');
+  const isAllowed =
+    host === 'cal.com' ||
+    host.endsWith('.cal.com') ||
+    host === 'calendly.com' ||
+    host.endsWith('.calendly.com');
+  if (!isAllowed) return null;
+  return url.toString();
+}
+
 /** Prefill data for the founder onboarding review screens. */
 export const GET: APIRoute = async ({ request, locals }) => {
   const identity = await resolveFounderIdentity(request, locals);
@@ -31,6 +56,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
       title: (founderProfile as any)?.metadata?.title ?? null,
       company: (founderProfile as any)?.company ?? (company as any)?.name ?? null,
       bio: (founderProfile as any)?.founderBio ?? null,
+      schedulingLink: (founderProfile as any)?.schedulingLink ?? null,
     },
     company: company
       ? {
@@ -54,6 +80,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const name = str(body.name) || identity.founderName;
   const company = str(body.company) || 'My company';
 
+  // Required: a Cal.com / Calendly link so builders can book interviews directly
+  // from the intro request we send them over iMessage.
+  if (!str(body.schedulingLink)) {
+    return errorJson('A Cal.com or Calendly link is required.', 400);
+  }
+  const schedulingLink = normalizeSchedulingLink(body.schedulingLink);
+  if (!schedulingLink) {
+    return errorJson('Enter a valid Cal.com or Calendly link (e.g. https://cal.com/yourname).', 400);
+  }
+
   await connectAdminDB();
 
   await FounderProfile.findOneAndUpdate(
@@ -64,6 +100,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         founderEmail: identity.email,
         founderName: name,
         company,
+        schedulingLink,
         founderBio: str(body.bio),
         ...(str(body.avatarUrl) ? { logoUrl: str(body.avatarUrl) } : {}),
         // Merge into metadata with dot-notation so we don't clobber the experiences

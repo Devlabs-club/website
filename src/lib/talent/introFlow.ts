@@ -3,6 +3,7 @@ import MessageThread from '@/models/talent/MessageThread';
 import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
+import FounderProfile from '@/models/talent/FounderProfile';
 import {
   builderDashboardLink,
   createNotification,
@@ -10,14 +11,68 @@ import {
 } from '@/lib/talent/notifications';
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 
-export async function notifyBuilderIntroReceived(params: {
+/**
+ * Text the builder on iMessage that a founder is interested.
+ *
+ * The message itself is written by the iMessage builder agent — the same one that
+ * runs the rest of the builder's conversation — so it's fully personalized from
+ * that builder's memory + profile, not a fixed template. Best-effort: only fires
+ * when we have a verified phone for them; the in-app notification is the source
+ * of truth, this is the delightful surprise ping.
+ */
+async function pingBuilderInterestOverImessage(params: {
   builderId: string;
   builderEmail: string;
   founderName: string;
   roleTitle: string;
   company: string;
   introRequestId: string;
+  schedulingLink?: string | null;
 }) {
+  try {
+    const { notifyBuilderOfIntro } = await import('@/lib/builderClaim');
+    await notifyBuilderOfIntro({
+      builderId: params.builderId,
+      builderEmail: params.builderEmail,
+      founderName: params.founderName,
+      company: params.company,
+      roleTitle: params.roleTitle,
+      schedulingLink: params.schedulingLink ?? null,
+    });
+  } catch (err) {
+    console.error('[introFlow] iMessage interest ping failed', err);
+  }
+}
+
+export async function notifyBuilderIntroReceived(params: {
+  builderId: string;
+  builderEmail: string;
+  founderName: string;
+  founderEmail?: string;
+  roleTitle: string;
+  company: string;
+  introRequestId: string;
+}) {
+  // Resolve the founder's Cal.com/Calendly link so the builder can book the
+  // interview straight from the iMessage ping. Best-effort — missing it just
+  // falls back to the plain "reply here" message.
+  let schedulingLink: string | null = null;
+  if (params.founderEmail) {
+    try {
+      const founderProfile = (await FounderProfile.findOne({
+        founderEmail: params.founderEmail.toLowerCase(),
+      })
+        .select('schedulingLink')
+        .lean()) as any;
+      schedulingLink = founderProfile?.schedulingLink || null;
+    } catch (err) {
+      console.error('[introFlow] founder scheduling link lookup failed', err);
+    }
+  }
+
+  // Surprise the builder on iMessage (best-effort, non-blocking on the notification).
+  void pingBuilderInterestOverImessage({ ...params, schedulingLink });
+
   return createNotification({
     recipientType: 'builder',
     recipientEmail: params.builderEmail,

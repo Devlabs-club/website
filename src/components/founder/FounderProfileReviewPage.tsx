@@ -12,7 +12,26 @@ interface ProfileState {
   title: string;
   workEmail: string;
   bio: string;
+  schedulingLink: string;
   avatarUrl: string | null;
+}
+
+/** Accept only Cal.com / Calendly booking links (mirrors the server check). */
+function isValidSchedulingLink(value: string): boolean {
+  const raw = value.trim();
+  if (!raw) return false;
+  try {
+    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    return (
+      host === "cal.com" ||
+      host.endsWith(".cal.com") ||
+      host === "calendly.com" ||
+      host.endsWith(".calendly.com")
+    );
+  } catch {
+    return false;
+  }
 }
 
 export const FounderProfileReviewPage: React.FC = () => {
@@ -22,6 +41,7 @@ export const FounderProfileReviewPage: React.FC = () => {
     title: "",
     workEmail: "",
     bio: "",
+    schedulingLink: "",
     avatarUrl: null,
   });
   const [loading, setLoading] = useState(true);
@@ -41,6 +61,7 @@ export const FounderProfileReviewPage: React.FC = () => {
             title: data.profile.title || "",
             workEmail: data.profile.email || "",
             bio: data.profile.bio || "",
+            schedulingLink: data.profile.schedulingLink || "",
             avatarUrl: data.profile.avatarUrl || null,
           }));
         }
@@ -57,6 +78,10 @@ export const FounderProfileReviewPage: React.FC = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidSchedulingLink(state.schedulingLink)) {
+      setError("Add a valid Cal.com or Calendly link so builders can book an interview with you.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -122,6 +147,21 @@ export const FounderProfileReviewPage: React.FC = () => {
           <div className="space-y-2">
             <label className={labelClass}>Work Email</label>
             <input className={fieldClass} type="email" value={state.workEmail} onChange={update("workEmail")} placeholder="you@company.com" />
+          </div>
+
+          <div className="space-y-2">
+            <label className={labelClass}>Scheduling link</label>
+            <input
+              className={fieldClass}
+              type="url"
+              value={state.schedulingLink}
+              onChange={update("schedulingLink")}
+              placeholder="https://cal.com/yourname or https://calendly.com/yourname"
+            />
+            <p className="text-xs text-muted-foreground">
+              Required. We send this to builders over iMessage when you request an intro, so they can
+              book an interview with you directly. Cal.com or Calendly only.
+            </p>
           </div>
 
           <div className="space-y-2">

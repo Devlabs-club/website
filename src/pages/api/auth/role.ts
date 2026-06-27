@@ -33,14 +33,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       {
         accountType,
         role: accountType, // mirror into role for role-based routing
-        onboardingStatus: accountType === 'builder' ? 'resume' : 'linkedin',
+        onboardingStatus: accountType === 'builder' ? 'imessage_claim' : 'linkedin',
       },
       runtime
     );
 
     if (!updated) return json({ success: false, message: 'User not found' }, 404);
 
-    const next = accountType === 'founder' ? '/founder/onboarding/linkedin' : '/builder/onboarding/resume';
+    const next = accountType === 'founder' ? '/founder/onboarding/linkedin' : '/builder/home';
     return json({ success: true, accountType, next });
   } catch (error) {
     console.error('Set account type error:', error);

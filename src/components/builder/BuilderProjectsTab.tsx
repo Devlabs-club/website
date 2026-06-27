@@ -7,7 +7,7 @@ import { getProjectImageUrl } from './builderUi';
 import type { BuilderDashboardContext } from './types';
 
 export default function BuilderProjectsTab({ ctx }: { ctx: BuilderDashboardContext }) {
-  const { projects, setActiveTab, setAgentInput } = ctx;
+  const { projects, setActiveTab } = ctx;
 
   return (
     <BlurFade className="space-y-6">
@@ -17,7 +17,7 @@ export default function BuilderProjectsTab({ ctx }: { ctx: BuilderDashboardConte
             Proof of <span className="font-serif italic hero-underline">Work</span>
           </>
         }
-        actions={<OsButton variant="glass" onClick={() => setActiveTab('agent')}>Ask Agent</OsButton>}
+        actions={<OsButton variant="glass" onClick={() => setActiveTab('profile')}>Edit profile</OsButton>}
       />
 
       {projects.length ? (
@@ -66,12 +66,11 @@ export default function BuilderProjectsTab({ ctx }: { ctx: BuilderDashboardConte
                             <button
                               type="button"
                               onClick={() => {
-                                setAgentInput(`Add my contribution to ${project.projectName}`);
-                                setActiveTab('agent');
+                                setActiveTab('profile');
                               }}
                               className="ml-auto text-xs underline"
                             >
-                              Fix with Agent
+                              Fix in profile
                             </button>
                           </div>
                         )}
@@ -98,10 +97,10 @@ export default function BuilderProjectsTab({ ctx }: { ctx: BuilderDashboardConte
           animateTitle={false}
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <OsButton variant="glass" onClick={() => { setAgentInput('I want to import a project from Devpost'); setActiveTab('agent'); }}>
+              <OsButton variant="glass" onClick={() => { setActiveTab('profile'); }}>
                 Import from Devpost
               </OsButton>
-              <OsButton variant="shimmer" onClick={() => { setAgentInput('I want to add a project manually'); setActiveTab('agent'); }}>
+              <OsButton variant="shimmer" onClick={() => { setActiveTab('profile'); }}>
                 Add manually
               </OsButton>
             </div>

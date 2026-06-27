@@ -80,9 +80,11 @@ async function runCdpScript(
 
 function applyableUpdate(artifact: any, linkedInUrl: string) {
   const proposed = artifact?.proposedMongoUpdate || {};
+  const photoUrl = cleanString(artifact?.extracted?.cdpExtraction?.photo?.imageUrl);
   const update: Record<string, any> = {
     $set: {
       ...(proposed.$set || {}),
+      ...(photoUrl ? { avatarUrl: photoUrl } : {}),
       'links.linkedin': linkedInUrl,
       updatedAt: new Date(),
     },
@@ -126,15 +128,17 @@ async function enrichBuilder(user: any, linkedInUrl: string, cdpUrl: string, run
   if (artifact?.proposedMongoUpdate) {
     await BuilderProfile.updateOne({ _id: builder._id }, applyableUpdate(artifact, linkedInUrl));
   }
+  const photoUrl = cleanString(artifact?.extracted?.cdpExtraction?.photo?.imageUrl);
 
   await updateUserAccount(String(user._id), {
     role: 'builder',
     accountType: 'builder',
-    onboardingStatus: 'profile',
+    onboardingStatus: 'imessage_claim',
+    ...(photoUrl ? { avatarUrl: photoUrl } : {}),
   }, runtime);
 
   return {
-    next: '/builder/onboarding/profile',
+    next: '/builder/home',
     profileId: String(builder._id),
     summary,
     artifact,

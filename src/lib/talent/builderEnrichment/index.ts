@@ -5,6 +5,7 @@ import { enrichFromGithub } from './githubEnricher';
 import { enrichFromLinkedIn } from './linkedinEnricher';
 import { enrichFromPortfolio } from './portfolioEnricher';
 import { enrichFromResume } from './resumeEnricher';
+import { enrichFromTwitter } from './twitterEnricher';
 import type { BuilderEnrichmentResult, EnrichmentSource } from './types';
 
 const DEFAULT_ORDER: EnrichmentSource[] = [
@@ -13,6 +14,7 @@ const DEFAULT_ORDER: EnrichmentSource[] = [
   'devpost',
   'linkedin',
   'portfolio',
+  'twitter',
 ];
 
 const ENRICHERS: Record<
@@ -24,6 +26,7 @@ const ENRICHERS: Record<
   devpost: enrichFromDevpost,
   linkedin: enrichFromLinkedIn,
   portfolio: enrichFromPortfolio,
+  twitter: enrichFromTwitter,
 };
 
 export async function enrichBuilderProfile(params: {
@@ -81,5 +84,5 @@ export async function enrichBuilderProfile(params: {
   };
 }
 
-export { enrichFromResume, enrichFromGithub, enrichFromDevpost, enrichFromLinkedIn, enrichFromPortfolio };
+export { enrichFromResume, enrichFromGithub, enrichFromDevpost, enrichFromLinkedIn, enrichFromPortfolio, enrichFromTwitter };
 export type { EnrichmentSource, BuilderEnrichmentResult } from './types';
