@@ -32,6 +32,7 @@ const SSR_EXTERNAL = [
 ];
 
 export default defineConfig({
+  site: process.env.WEBSITE_ROOT || "https://www.devlabs.club",
   server: {
     allowedHosts: true,
     host: true,

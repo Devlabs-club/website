@@ -29,8 +29,15 @@ const {
   skipParallax = false,
 } = Astro.props;
 
-// Absolute URL required for Twitter/OG image crawlers - relative paths don't work
-const siteOrigin = Astro.url.origin;
+// Absolute URL required for Twitter/OG image crawlers - relative paths don't work.
+// Prerendered pages bake meta tags at build time, so Astro.url.origin is localhost;
+// Astro.site (from astro.config site + WEBSITE_ROOT on Vercel) is the canonical origin.
+const siteOrigin = Astro.site
+  ? new URL(Astro.site).origin
+  : Astro.url.origin;
+const canonicalUrl = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).href
+  : Astro.url.href;
 const defaultDescription =
   "We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups.";
 const defaultOgImage = `${siteOrigin}/og.png`;
@@ -64,7 +71,7 @@ const metaKeywords = keywords ?? defaultKeywords;
     <meta property="og:image:alt" content={metaOgImageAlt} />
     <meta property="og:title" content={title} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={Astro.url} />
+    <meta property="og:url" content={canonicalUrl} />
     <meta property="og:description" content={metaDescription} />
 
     <!-- Twitter Card meta tags -->
