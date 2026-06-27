@@ -15,6 +15,8 @@ export default function RegisterPage() {
       const errorMessages: Record<string, string> = {
         oauth_init_failed:
           "Failed to initialize OAuth signup. Please try again.",
+        oauth_provider_disabled:
+          "LinkedIn signup is no longer supported. Continue with Google or email.",
         oauth_no_code: "OAuth authorization was cancelled or failed.",
         oauth_state_mismatch: "Security validation failed. Please try again.",
         oauth_user_fetch_failed:

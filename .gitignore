@@ -12,10 +12,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+logs/
+cookie.txt
 
 # environment variables
 .env
 .env.production
+.dev.vars
+.cloudflare-secrets.json
+.linkedin-session.json
 
 # macOS-specific files
 .DS_Store

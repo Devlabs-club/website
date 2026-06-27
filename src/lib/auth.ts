@@ -1,5 +1,10 @@
 import jwt from 'jsonwebtoken';
 import type { IUser } from '../models/user.tsx';
+import type { AuthUser } from './adminMongo';
+import { ensureLocalEnvLoaded } from './loadEnv';
+import { readEnv, type RuntimeEnv } from './workosEnv';
+
+ensureLocalEnvLoaded();
 
 export interface JWTPayload {
   userId: string;
@@ -7,31 +12,35 @@ export interface JWTPayload {
   role: string;
 }
 
-// Generate JWT token
-export function generateToken(user: IUser): string {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined');
+function getJwtSecret(runtime?: RuntimeEnv): string {
+  const secret = readEnv('JWT_SECRET', runtime);
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET is not defined. Add it to .env, .env.local, or .dev.vars (see .dev.vars.example).'
+    );
   }
+  return secret;
+}
 
+type TokenUser = Pick<IUser, '_id' | 'email' | 'role'> | AuthUser;
+
+// Generate JWT token
+export function generateToken(user: TokenUser, runtime?: RuntimeEnv): string {
   const payload: JWTPayload = {
-    userId: user._id!,
+    userId: String(user._id),
     email: user.email,
-    role: user.role
+    role: user.role,
   };
 
-  return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '7d' // Token expires in 7 days
+  return jwt.sign(payload, getJwtSecret(runtime), {
+    expiresIn: '7d',
   });
 }
 
 // Verify JWT token
-export function verifyToken(token: string): JWTPayload | null {
+export function verifyToken(token: string, runtime?: RuntimeEnv): JWTPayload | null {
   try {
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, getJwtSecret(runtime)) as JWTPayload;
     return decoded;
   } catch (error) {
     console.error('Token verification failed:', error);
@@ -65,10 +74,10 @@ export function extractTokenFromCookies(cookies: string): string | null {
   return null;
 }
 
-// Validate email format
+// Validate email format (aligned with User schema — supports modern TLDs)
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  return emailRegex.test(email);
+  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+  return emailRegex.test(email.trim());
 }
 
 // Validate password strength

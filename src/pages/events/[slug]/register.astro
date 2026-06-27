@@ -1,0 +1,47 @@
+---
+import EventRegistrationPageWrapper from '../../../components/events/EventRegistrationPageWrapper';
+import '../../../styles/global.css';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/404');
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event Registration - Devlabs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[hsl(8,8%,3.5%)] text-gray-400 min-h-screen">
+    <div class="fixed inset-0 pointer-events-none z-0">
+      <div class="absolute inset-0 bg-texture"></div>
+      <div class="absolute inset-0 app-surface-overlay"></div>
+      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay"></div>
+    </div>
+    <div class="relative z-10">
+      <div class="container mx-auto px-4 pt-8 pb-4">
+        <a href="/" class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300">
+          <img src="/logo.png" alt="Devlabs" class="h-8 w-8" />
+          <span>Devlabs</span>
+        </a>
+      </div>
+      <EventRegistrationPageWrapper client:load slug={slug} />
+    </div>
+  </body>
+</html>
+
+<style>
+  html {
+    font-family: Manrope, sans-serif;
+  }
+</style>

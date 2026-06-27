@@ -90,7 +90,7 @@ function Sparkle({ x, y, size = 16, opacity = 0.6 }: { x: string; y: string; siz
 export default function ScoutHero() {
   return (
     <section
-      className="relative w-full min-h-screen bg-[#080808] flex flex-col items-center overflow-hidden"
+      className="relative w-full min-h-screen flex flex-col items-center overflow-hidden"
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {/* Stars scattered */}
@@ -102,14 +102,6 @@ export default function ScoutHero() {
       <Sparkle x="5%" y="60%" size={16} opacity={0.35} />
       <Sparkle x="45%" y="15%" size={6} opacity={0.25} />
       <Sparkle x="60%" y="30%" size={8} opacity={0.2} />
-
-      {/* Top orange radial glow */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] pointer-events-none"
-        style={{
-          background: "radial-gradient(ellipse at 50% 0%, rgba(250,125,34,0.18) 0%, transparent 70%)",
-        }}
-      />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center pt-28 px-6 max-w-4xl mx-auto w-full">
@@ -185,22 +177,6 @@ export default function ScoutHero() {
 
       {/* Globe — bottom half, large, like the Nexus layout */}
       <div className="relative w-full flex justify-center items-end" style={{ marginTop: "-2rem" }}>
-        {/* Globe glow behind */}
-        <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[900px] h-[400px] pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse at 50% 100%, rgba(250,125,34,0.14) 0%, rgba(250,125,34,0.05) 40%, transparent 70%)",
-            zIndex: 0,
-          }}
-        />
-        {/* Curved horizon glow */}
-        <div
-          className="absolute bottom-0 left-0 right-0 h-48 pointer-events-none"
-          style={{
-            background: "radial-gradient(ellipse 120% 60% at 50% 130%, rgba(250,125,34,0.18) 0%, transparent 65%)",
-            zIndex: 1,
-          }}
-        />
         <div
           className="relative z-10 w-full max-w-[680px] mx-auto"
           style={{ marginBottom: "-30%" }}
@@ -211,7 +187,7 @@ export default function ScoutHero() {
 
       {/* Sponsors strip */}
       <div
-        className="relative z-20 w-full bg-[#080808] pt-4 pb-10 border-t border-white/[0.06]"
+        className="relative z-20 w-full pt-4 pb-10 border-t border-white/[0.06] bg-[hsl(8_8%_3.5%/0.4)] backdrop-blur-sm"
         style={{ marginTop: "auto" }}
       >
         <p className="text-center font-manrope text-xs text-white/30 uppercase tracking-widest mb-6">

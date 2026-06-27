@@ -5,11 +5,51 @@ import Layout from "../layouts/Layout.astro";
 const title = "Dashboard - Devlabs";
 ---
 
-<Layout title={title}>
-  <DashboardPage client:load />
+<Layout title={title} hideNavbar hideFooter skipPageLoader skipParallax>
+  <div id="dashboard-static-loader" class="dashboard-static-loader" aria-live="polite">
+    <div class="dashboard-static-loader__spinner" aria-hidden="true"></div>
+    <p class="dashboard-static-loader__text">Loading workspace…</p>
+  </div>
+  <div class="min-h-screen">
+    <DashboardPage client:load />
+  </div>
   <style>
-    .page-spacing {
-      padding-top: 6rem;
+    .dashboard-static-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      background: hsl(8 8% 3.5%);
+      pointer-events: none;
+    }
+
+    .dashboard-static-loader__spinner {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-top-color: #fa7d22;
+      animation: dashboard-spin 0.8s linear infinite;
+    }
+
+    .dashboard-static-loader__text {
+      margin: 0;
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.55);
+      font-family: Manrope, sans-serif;
+    }
+
+    @keyframes dashboard-spin {
+      to {
+        transform: rotate(360deg);
+      }
     }
   </style>
+  <script is:inline>
+    fetch("/api/auth/me", { credentials: "include" });
+  </script>
 </Layout>

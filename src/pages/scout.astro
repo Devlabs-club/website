@@ -10,7 +10,7 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
   title="Scout by DevLabs — Hire builders, not engineers"
   description="Scout matches startup founders with verified DevLabs builders. People who build for the love of it, not just the paycheck."
 >
-  <div class="scout-page bg-[#080808] min-h-screen text-white overflow-x-hidden">
+  <div class="scout-page relative min-h-screen text-white overflow-x-hidden">
 
     <!-- NAV -->
     <nav class="fixed top-0 left-0 w-full z-50 bg-[rgba(8,8,8,0.85)] backdrop-blur-[10px] border-b border-white/10">
@@ -49,7 +49,7 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
     <ScoutSteps client:load />
 
     <!-- PAIN POINTS -->
-    <section class="py-24 px-6 relative bg-[#080808]">
+    <section class="py-24 px-6 relative">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-14">
           <p class="font-manrope text-sm text-[#fa7d22] uppercase tracking-widest mb-3 font-medium">The problem</p>
@@ -85,7 +85,7 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
     </section>
 
     <!-- SIGNAL SCORE -->
-    <section id="signal" class="py-24 px-6 bg-[#080808]">
+    <section id="signal" class="py-24 px-6 relative">
       <div class="max-w-5xl mx-auto">
         <div class="bg-white/[0.03] border border-white/10 rounded-3xl overflow-hidden">
           <div class="grid md:grid-cols-2 gap-0">
@@ -151,7 +151,7 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
     <ScoutNetwork client:load />
 
     <!-- STATS -->
-    <section class="py-20 px-6 bg-[#080808]">
+    <section class="py-20 px-6 relative">
       <div class="max-w-5xl mx-auto">
         <div class="text-center mb-10">
           <p class="font-manrope text-white/40 text-sm">The network behind Scout</p>
@@ -173,8 +173,7 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
     </section>
 
     <!-- PRICING -->
-    <section id="pricing" class="py-24 px-6 bg-[#080808] relative">
-      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(250,125,34,0.05) 0%, transparent 65%);"></div>
+    <section id="pricing" class="py-24 px-6 relative">
       <div class="max-w-5xl mx-auto relative z-10">
         <div class="text-center mb-14">
           <p class="font-manrope text-sm text-[#fa7d22] uppercase tracking-widest mb-3 font-medium">Pricing</p>
@@ -263,12 +262,12 @@ import ScoutFinalCTA from "../components/scout/ScoutFinalCTA";
     </section>
 
     <!-- 4. FINAL CTA (Image 3) -->
-    <div class="py-4 bg-[#080808]">
+    <div class="py-4 relative">
       <ScoutFinalCTA client:load />
     </div>
 
     <!-- FOOTER -->
-    <footer class="border-t border-white/10 py-10 px-6 bg-[#080808]">
+    <footer class="border-t border-white/10 py-10 px-6 relative">
       <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <div class="flex items-center gap-2.5">
           <img src="/logo.png" alt="DevLabs" class="h-6 w-6 object-contain opacity-70" />

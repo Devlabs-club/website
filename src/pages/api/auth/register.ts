@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
+import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -9,7 +10,7 @@ export const POST: APIRoute = async ({ request }) => {
     await connectAdminDB();
 
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, role } = body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -74,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
       name: name.trim(),
       email: email.toLowerCase(),
       password,
-      role: 'user'
+      role: role === 'founder' ? 'founder' : 'user'
     });
 
     await newUser.save();
@@ -91,7 +92,10 @@ export const POST: APIRoute = async ({ request }) => {
           id: newUser._id,
           name: newUser.name,
           email: newUser.email,
-          role: newUser.role
+          role: newUser.role,
+          accountType: newUser.accountType ?? null,
+          onboardingStatus: newUser.onboardingStatus ?? null,
+          avatarUrl: newUser.avatarUrl ?? null,
         },
         token
       }),
@@ -99,7 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
         status: 201,
         headers: { 
           'Content-Type': 'application/json',
-          'Set-Cookie': `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`
+          'Set-Cookie': buildAuthTokenCookie(token)
         }
       }
     );

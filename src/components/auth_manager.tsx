@@ -1,17 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { clearCachedAuthUser, readCachedAuthUser, writeCachedAuthUser } from '@/lib/dashboardCache';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'founder' | 'builder';
+  accountType?: 'founder' | 'builder' | null;
+  onboardingStatus?: string | null;
+  avatarUrl?: string | null;
   createdAt?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  authError: string | null;
+  refreshAuth: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
   logout: () => Promise<void>;
@@ -24,34 +30,56 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+const AUTH_CHECK_TIMEOUT_MS = 12_000;
 
-  // Check if user is authenticated on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const cachedUser = typeof window !== 'undefined' ? readCachedAuthUser() : null;
+  const [user, setUser] = useState<User | null>(cachedUser);
+  // Always revalidate before rendering route content — cached user is a hint only.
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const checkAuth = async () => {
+    setAuthError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_CHECK_TIMEOUT_MS);
+
     try {
       const response = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include',
+        signal: controller.signal,
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
           setUser(data.user);
+          writeCachedAuthUser(data.user);
+          return;
         }
       }
+      setUser(null);
+      clearCachedAuthUser();
     } catch (error) {
       console.error('Auth check failed:', error);
+      if (!cachedUser) {
+        setUser(null);
+      }
+      if (error instanceof Error && error.name === 'AbortError') {
+        setAuthError('Session check timed out. Please try again.');
+      } else if (!cachedUser) {
+        setAuthError('Could not verify your session. Please try again.');
+      }
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
@@ -68,6 +96,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.success) {
         setUser(data.user);
+        writeCachedAuthUser(data.user);
         return { success: true, message: 'Login successful' };
       } else {
         return { success: false, message: data.message || 'Login failed' };
@@ -93,6 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (data.success) {
         setUser(data.user);
+        writeCachedAuthUser(data.user);
         return { success: true, message: 'Registration successful' };
       } else {
         return { success: false, message: data.message || 'Registration failed' };
@@ -110,6 +140,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         credentials: 'include',
       });
       const data = await response.json();
+
+      clearCachedAuthUser();
       
       if (data.logoutUrl && data.logoutUrl !== '/login') {
         window.location.href = data.logoutUrl;
@@ -118,16 +150,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       setUser(null);
+      clearCachedAuthUser();
     } catch (error) {
       console.error('Logout failed:', error);
       // Even if the API call fails, clear local state
       setUser(null);
+      clearCachedAuthUser();
     }
+  };
+
+  const refreshAuth = async () => {
+    setLoading(true);
+    await checkAuth();
   };
 
   const value: AuthContextType = {
     user,
     loading,
+    authError,
+    refreshAuth,
     login,
     register,
     logout,

@@ -1,0 +1,12 @@
+"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
+
+[scripts]
+# Astro app, package manager is bun (see vercel.json + package.json scripts).
+setup = "bun install --frozen-lockfile"
+# `astro dev` honors the --port flag, overriding the 4321 default in astro.config.
+# Each workspace gets its own CONDUCTOR_PORT, so instances don't collide.
+run = "bun run dev --port $CONDUCTOR_PORT"
+# Reclaim disk on archive by removing regenerable artifacts only (never source).
+archive = "rm -rf node_modules dist .astro"
+# Per-workspace ports + a remote MongoDB (no fixed local resource) => safe in parallel.
+run_mode = "concurrent"

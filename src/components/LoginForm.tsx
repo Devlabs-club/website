@@ -14,6 +14,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthRedirecting, setOauthRedirecting] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -66,7 +67,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             {/* Google OAuth Button */}
             <button
               type="button"
+              disabled={oauthRedirecting || loading}
               onClick={() => {
+                setOauthRedirecting(true);
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirect = urlParams.get('redirect');
                 window.location.href = `/api/auth/oauth/login${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`;
@@ -74,8 +77,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               className="w-full flex items-center justify-center gap-3 bg-white/10 border border-white/20 
                        hover:bg-white/20 text-white py-3 px-6 rounded-xl backdrop-blur-sm
                        transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-white/30
-                       group relative overflow-hidden"
+                       group relative overflow-hidden disabled:opacity-60 disabled:cursor-wait disabled:hover:scale-100"
             >
+              {oauthRedirecting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                  Redirecting to Google…
+                </>
+              ) : (
+                <>
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -95,6 +105,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 />
               </svg>
               Continue with Google
+                </>
+              )}
             </button>
 
             <div className="relative">

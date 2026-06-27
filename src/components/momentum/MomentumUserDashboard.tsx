@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { toPng } from "html-to-image";
 import {
@@ -32,8 +32,13 @@ import {
   MomentumPointsTasksProvider,
   MomentumTaskSubmissionsCard,
 } from "./MomentumPointsAndTasks";
-import { CanvasRevealBadgeCard } from "../CanvasRevealBadgeCard";
 import { isMomentumKickoffRevealed } from "../../lib/momentumKickoff";
+
+const CanvasRevealBadgeCard = lazy(() =>
+  import("../CanvasRevealBadgeCard").then((m) => ({
+    default: m.CanvasRevealBadgeCard,
+  })),
+);
 
 function DetailCard({
   title,
@@ -457,10 +462,6 @@ export default function MomentumUserDashboard({
   const checkpoint4Deadline = new Date("2026-05-23T06:59:00Z"); // May 22 11:59 PM MST = May 23 06:59 AM UTC
   const isCheckpoint4Locked = new Date() > checkpoint4Deadline;
 
-  // Checkpoint 5 deadline: May 29, 2026 11:59 PM MST (end of W5)
-  const checkpoint5Deadline = new Date("2026-05-30T06:59:00Z"); // May 29 11:59 PM MST = May 30 06:59 AM UTC
-  const isCheckpoint5Locked = new Date() > checkpoint5Deadline;
-
   const dashboardGridClass =
     "mt-6 flex flex-col-reverse items-stretch gap-24 lg:mt-24 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr),min(300px,100%)] lg:items-start lg:gap-10 xl:grid-cols-[minmax(0,1fr),320px]";
 
@@ -471,17 +472,23 @@ export default function MomentumUserDashboard({
           {isRevealed ? (
             <>
               <div ref={badgeCaptureRef} className="w-full">
-                <CanvasRevealBadgeCard
-                  group={application.group || undefined}
-                  imagePath={
-                    application.group
-                      ? `/badges/${application.group.toLowerCase()}.png`
-                      : undefined
+                <Suspense
+                  fallback={
+                    <div className="aspect-[4/5] w-full max-w-sm mx-auto rounded-2xl border border-white/10 bg-white/5 animate-pulse" />
                   }
-                  firstName={application.firstName}
-                  lastName={application.lastName}
-                  startupName={application.startupName}
-                />
+                >
+                  <CanvasRevealBadgeCard
+                    group={application.group || undefined}
+                    imagePath={
+                      application.group
+                        ? `/badges/${application.group.toLowerCase()}.png`
+                        : undefined
+                    }
+                    firstName={application.firstName}
+                    lastName={application.lastName}
+                    startupName={application.startupName}
+                  />
+                </Suspense>
               </div>
               {application.status === "approved" && application.group && (
                 <button
@@ -1268,7 +1275,6 @@ export default function MomentumUserDashboard({
                           Checkpoint 5 Submission
                         </h2>
                         <p className="text-sm text-white/60">
-                          Due Friday, May 29th at 11:59 PM MST (end of W5).
                           Record a ~3‑min pitch with a{" "}
                           <span className="text-white/80">live demo</span>,
                           publicly post it (
@@ -1317,16 +1323,6 @@ export default function MomentumUserDashboard({
                         >
                           Edit submission
                         </button>
-                      </div>
-                    ) : isCheckpoint5Locked ? (
-                      <div className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 text-rose-200">
-                        <Lock className="h-5 w-5 shrink-0" />
-                        <div className="text-sm">
-                          <span className="font-medium">
-                            Checkpoint locked.
-                          </span>{" "}
-                          The deadline for this checkpoint has passed.
-                        </div>
                       </div>
                     ) : (
                       <form

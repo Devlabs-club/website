@@ -1,7 +1,12 @@
-import React, { useMemo } from "react";
+import React, { Suspense, lazy, useMemo } from "react";
 import { motion } from "framer-motion";
-import { CanvasRevealEffect } from "@/components/ui/canvas-reveal-effect";
 import { cn } from "@/lib/utils";
+
+const CanvasRevealEffect = lazy(() =>
+  import("@/components/ui/canvas-reveal-effect").then((m) => ({
+    default: m.CanvasRevealEffect,
+  }))
+);
 
 export const Icon = ({ className, ...rest }: any) => {
   return (
@@ -122,12 +127,14 @@ export function CanvasRevealBadgeCard({
             "radial-gradient(circle at center, transparent var(--hole-size), black calc(var(--hole-size) + 1%))",
         }}
       >
-        <CanvasRevealEffect
-          animationSpeed={3}
-          colors={colors}
-          dotSize={2}
-          containerClassName="h-full w-full bg-black"
-        />
+        <Suspense fallback={<div className="h-full w-full bg-black" />}>
+          <CanvasRevealEffect
+            animationSpeed={3}
+            colors={colors}
+            dotSize={2}
+            containerClassName="h-full w-full bg-black"
+          />
+        </Suspense>
       </motion.div>
 
       {imagePath && (firstName || startupName) && (

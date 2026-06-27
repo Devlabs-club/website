@@ -20,7 +20,7 @@ import { HeroParallaxDemo } from "./HeroParallaxDemo";
     aria-hidden="true"
   >
     <DottedGlowBackground
-      client:load
+      client:visible
       className="w-full h-full"
       color="rgba(255,255,255,0.5)"
       glowColor="rgba(250, 125, 34, 0.75)"
@@ -115,7 +115,7 @@ import { HeroParallaxDemo } from "./HeroParallaxDemo";
       >
         <!-- Primary CTA: Join now -->
         <a
-          href="/api/auth/oauth/login"
+          href="/register?redirect=/dashboard"
           class="hero-join-cta group relative inline-flex items-center justify-center gap-1.5 md:gap-2 px-4 py-2.5 md:px-12 md:py-5
                  rounded-full overflow-hidden whitespace-nowrap
                  bg-white text-[#1a1a1a] font-semibold text-sm md:text-xl tracking-wide

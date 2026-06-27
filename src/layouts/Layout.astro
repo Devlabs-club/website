@@ -11,9 +11,23 @@ interface Props {
   ogImage?: string;
   ogImageAlt?: string;
   keywords?: string;
+  hideNavbar?: boolean;
+  hideFooter?: boolean;
+  skipPageLoader?: boolean;
+  skipParallax?: boolean;
 }
 
-const { title, description, ogImage, ogImageAlt, keywords } = Astro.props;
+const {
+  title,
+  description,
+  ogImage,
+  ogImageAlt,
+  keywords,
+  hideNavbar = false,
+  hideFooter = false,
+  skipPageLoader = false,
+  skipParallax = false,
+} = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work
 const siteOrigin = Astro.url.origin;
@@ -36,7 +50,7 @@ const metaKeywords = keywords ?? defaultKeywords;
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth overflow-x-hidden">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={metaDescription} />
@@ -70,31 +84,37 @@ const metaKeywords = keywords ?? defaultKeywords;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link
-      href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully"
+      href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://db.onlinewebfonts.com/c/5de0a211c8f197500215b63ee263c25f?family=Mistrully&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
-  <body class="text-gray-400 overflow-x-hidden loader-visible">
-    <PageLoader />
-    <!-- Fixed background -->
+  <body class:list={['text-gray-400 bg-[hsl(8,8%,3.5%)]', !skipPageLoader && 'loader-visible']}>
+    {!skipPageLoader ? <PageLoader /> : null}
+    <!-- Fixed background: texture + grain -->
     <div class="fixed inset-0 pointer-events-none z-0">
-      <!-- Texture background -->
       <div class="absolute inset-0 bg-texture"></div>
-      <!-- Noise texture -->
-      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay">
-      </div>
+      <div class="absolute inset-0 app-surface-overlay"></div>
+      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay"></div>
     </div>
 
-    <Navbar />
+    {!hideNavbar && <Navbar />}
     <main class="relative z-10">
       <slot />
     </main>
     <!-- <Footer /> -->
-    <NewFooter />
+    {!hideFooter ? <NewFooter /> : null}
   </body>
 </html>
 <style>
@@ -103,24 +123,11 @@ const metaKeywords = keywords ?? defaultKeywords;
   }
 
   body {
-    background-color: transparent;
+    background-color: hsl(8 8% 3.5%);
   }
 
   body.loader-visible {
     overflow: hidden;
-  }
-
-  .bg-texture {
-    background-image: url("/texture.webp");
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat;
-  }
-
-  .bg-noise {
-    background-image: url("/noise.png");
-    background-size: 100px 100px;
-    background-repeat: repeat;
   }
 
   /* Global section parallax: reveal + depth */
@@ -138,7 +145,9 @@ const metaKeywords = keywords ?? defaultKeywords;
     transform: translateY(var(--parallax-offset-y));
   }
 </style>
-<script>
-  import { initSectionParallax } from "../lib/scroll.js";
-  initSectionParallax();
-</script>
+{!skipParallax ? (
+  <script>
+    import { initSectionParallax } from "../lib/scroll.js";
+    initSectionParallax();
+  </script>
+) : null}

@@ -1,0 +1,9 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import AdminTalentScoutDashboard from '@/components/admin/AdminTalentScoutDashboard';
+---
+
+<Layout title="Admin Squad · DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
+  <AdminTalentScoutDashboard client:load />
+</Layout>

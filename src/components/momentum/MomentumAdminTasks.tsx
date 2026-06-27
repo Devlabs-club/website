@@ -8,7 +8,7 @@ import {
   ExternalLink,
   Trophy,
 } from "lucide-react";
-import { TASK_LABELS } from "../../models/momentumTaskSubmission";
+import { TASK_LABELS } from "../../lib/momentumTasks";
 
 export function MomentumAdminTasks() {
   const [tasks, setTasks] = useState<any[]>([]);

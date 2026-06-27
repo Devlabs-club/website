@@ -1,0 +1,24 @@
+name = "website"
+main = "./dist/_worker.js/index.js"
+compatibility_date = "2026-06-04"
+compatibility_flags = ["nodejs_compat"]
+account_id = "6af8f75897522ce7d97f9641eb37faa0"
+
+[alias]
+sharp = "./src/lib/sharp-stub.mjs"
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+
+[observability]
+enabled = true
+
+# Production site root (post-login paths are relative, e.g. /dashboard).
+# Local dev: copy .dev.vars.example → .dev.vars so localhost overrides these via platformProxy.
+[vars]
+WEBSITE_ROOT = "https://website.plain-fire-9ab3.workers.dev"
+WORKOS_REDIRECT_URI = "https://website.plain-fire-9ab3.workers.dev/api/auth/oauth/callback"
+# Mongoose / change-stream APIs run on Vercel; Worker proxies these paths.
+# Node/Mongoose APIs (agent actions, realtime). Use a Vercel deploy that includes devlabs-os routes.
+API_PROXY_ORIGIN = "https://website-eight-tau-50.vercel.app"

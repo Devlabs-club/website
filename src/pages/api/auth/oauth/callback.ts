@@ -1,55 +1,85 @@
 import type { APIRoute } from 'astro';
-import { WorkOS } from '@workos-inc/node';
-import { connectAdminDB } from '../../../../lib/mongodb.ts';
-import User from '../../../../models/user.tsx';
 import { generateToken } from '../../../../lib/auth.ts';
+import { upsertUserFromOAuth } from '../../../../lib/adminMongo';
+import { sanitizePostAuthRedirect } from '../../../../lib/oauthRedirect';
+import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../../lib/workosEnv';
 
-// Initialize WorkOS client with proper configuration (use import.meta.env - Vite injects .env here, not process.env)
-const workos = new WorkOS(import.meta.env.WORKOS_API_KEY, {
-  clientId: import.meta.env.WORKOS_CLIENT_ID,
-});
+function nameFromWorkOSUser(workosUser: {
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+}) {
+  const full = `${workosUser.firstName || ''} ${workosUser.lastName || ''}`.trim();
+  if (full) return full;
 
-export const GET: APIRoute = async ({ request, redirect, url }) => {
+  const localPart = workosUser.email.split('@')[0] || 'user';
+  return localPart
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (ch) => ch.toUpperCase())
+    .trim() || 'DevLabs User';
+}
+
+function authCookieFlags(): string {
+  const secure = import.meta.env.PROD ? '; Secure' : '';
+  return `HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${secure}`;
+}
+
+export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
+
   try {
-    // Connect to database
-    await connectAdminDB();
-
-    // Extract code from query parameters
     const code = url.searchParams.get('code');
     const stateParam = url.searchParams.get('state');
-    let redirectUrl = '/dashboard';
+    let redirectUrl = '/auth/select-role';
     let redirectParamStr = '';
 
     if (stateParam) {
       try {
-        // Try parsing as JSON first
         const stateObj = JSON.parse(stateParam);
         if (stateObj.redirect) {
-          redirectUrl = stateObj.redirect;
-          redirectParamStr = `&redirect=${encodeURIComponent(stateObj.redirect)}`;
+          redirectUrl = sanitizePostAuthRedirect(stateObj.redirect, request, runtime);
+          redirectParamStr = `&redirect=${encodeURIComponent(redirectUrl)}`;
         }
-      } catch (e) {
-        console.log('State param is not JSON, trying as plain string');
-        // If it's not JSON, maybe it's just the plain redirect string
+      } catch {
         if (stateParam.startsWith('/')) {
-          redirectUrl = stateParam;
-          redirectParamStr = `&redirect=${encodeURIComponent(stateParam)}`;
+          redirectUrl = sanitizePostAuthRedirect(stateParam, request, runtime);
+          redirectParamStr = `&redirect=${encodeURIComponent(redirectUrl)}`;
         }
       }
     }
 
+    // WorkOS/the provider can redirect back with an error instead of a code — surface it.
+    const oauthError = url.searchParams.get('error');
+    const oauthErrorDescription = url.searchParams.get('error_description');
+    if (oauthError || oauthErrorDescription) {
+      console.error('OAuth callback: provider returned an error', {
+        provider: 'google',
+        error: oauthError,
+        error_description: oauthErrorDescription,
+        query: url.search,
+      });
+      const reason = encodeURIComponent(oauthErrorDescription || oauthError || 'oauth_provider_error');
+      return redirect(`/login?error=oauth_provider_error&reason=${reason}${redirectParamStr}`);
+    }
+
     if (!code) {
-      console.error('OAuth callback: No authorization code provided');
+      console.error('OAuth callback: No authorization code provided', { provider: 'google', query: url.search });
       return redirect(`/login?error=oauth_no_code${redirectParamStr}`);
     }
 
-    // Exchange the authorization code for user session using WorkOS session management
+    const workos = createWorkOS(runtime);
+    const { clientId, cookiePassword } = getWorkOSConfig(runtime);
+
+    if (!clientId || !cookiePassword) {
+      throw new Error('WorkOS client ID or cookie password not configured');
+    }
+
     const authenticateResponse = await workos.userManagement.authenticateWithCode({
-      clientId: import.meta.env.WORKOS_CLIENT_ID,
+      clientId,
       code,
       session: {
         sealSession: true,
-        cookiePassword: import.meta.env.WORKOS_COOKIE_PASSWORD,
+        cookiePassword,
       },
     });
 
@@ -60,57 +90,38 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
       return redirect(`/login?error=oauth_user_fetch_failed${redirectParamStr}`);
     }
 
-    // Check if user already exists in our database
-    let user = await User.findOne({ email: workosUser.email.toLowerCase() });
-
-    if (user) {
-      // User exists - update their information if needed
-      const updatedUser = await User.findByIdAndUpdate(
-        user._id,
-        {
-          name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
-          // Add OAuth provider info if not already present
-          ...(user.oauthProvider ? {} : { 
-            oauthProvider: 'google',
-            oauthId: workosUser.id 
-          })
-        },
-        { new: true }
-      );
-      user = updatedUser;
-    } else {
-      // Create new user from OAuth profile
-      user = new User({
-        name: `${workosUser.firstName} ${workosUser.lastName}`.trim(),
-        email: workosUser.email.toLowerCase(),
-        password: crypto.randomUUID(), // Generate random password for OAuth users
-        role: 'user',
-        oauthProvider: 'google',
+    const user = await upsertUserFromOAuth(
+      {
+        email: workosUser.email,
+        name: nameFromWorkOSUser(workosUser),
         oauthId: workosUser.id,
-      });
+        provider: 'google',
+      },
+      runtime
+    );
 
-      await user.save();
+    const token = generateToken(user, runtime);
+    // Founders/builders go straight to their home; users who haven't picked a role yet
+    // honor the post-auth redirect (e.g. the onboarding "connect LinkedIn" next step),
+    // falling back to role selection.
+    const destination =
+      user.accountType === 'founder'
+        ? '/founder/home'
+        : user.accountType === 'builder'
+          ? '/builder/home'
+          : redirectUrl;
+
+    const headers = new Headers();
+    headers.set('Location', destination);
+    headers.append('Set-Cookie', `auth-token=${token}; ${authCookieFlags()}`);
+    if (sealedSession) {
+      headers.append('Set-Cookie', `wos-session=${sealedSession}; ${authCookieFlags()}`);
     }
 
-    // Generate JWT token for the user
-    const token = generateToken(user);
-
-    // Create response with redirect to dashboard and set cookies
-    return new Response(null, {
-      status: 302,
-      headers: {
-        'Location': redirectUrl,
-        'Set-Cookie': [
-          `auth-token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Strict`,
-          `wos-session=${sealedSession}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`
-        ].join(', ')
-      }
-    });
-
+    return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error('OAuth callback error:', error);
-    
-    // Extract redirect URL to preserve it on error
+
     let redirectParamStr = '';
     const stateParam = url.searchParams.get('state');
     if (stateParam) {
@@ -119,14 +130,13 @@ export const GET: APIRoute = async ({ request, redirect, url }) => {
         if (stateObj.redirect) {
           redirectParamStr = `&redirect=${encodeURIComponent(stateObj.redirect)}`;
         }
-      } catch (e) {
+      } catch {
         if (stateParam.startsWith('/')) {
           redirectParamStr = `&redirect=${encodeURIComponent(stateParam)}`;
         }
       }
     }
-    
-    // Redirect to login with error
+
     return redirect(`/login?error=oauth_callback_failed${redirectParamStr}`);
   }
 };
