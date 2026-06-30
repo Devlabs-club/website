@@ -763,21 +763,37 @@ const testimonials = [
       <div class="section-linework absolute inset-0" aria-hidden="true"></div>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div class="max-w-4xl">
-          <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">how it works</p>
-          <h2 class="mt-6 max-w-3xl text-[clamp(2.3rem,11vw,5.8rem)] font-black leading-[0.94] tracking-[-0.05em] text-black sm:leading-[0.92]">
-            From hiring need to builder intro in days.
-          </h2>
+        <div class="grind-panel relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden border border-black/10 bg-[#fffaf7]/84">
+          <div class="contrib-wall-backdrop absolute inset-0 z-[2] overflow-hidden" data-contrib-wall-backdrop aria-hidden="true"></div>
+          <div class="grind-vignette pointer-events-none absolute inset-0 z-[4]" aria-hidden="true"></div>
+          <div class="grind-content relative z-20 flex min-h-[clamp(22rem,42vw,34rem)] flex-col items-center justify-center px-4 py-14 text-center sm:px-8 sm:py-20">
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">how it works</p>
+            <h2 class="mt-4 text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
+              Our builders are grinding every second.
+            </h2>
+            <p class="mt-5 flex items-center justify-center gap-2 text-sm font-semibold text-black/45">
+              <span class="grind-live-dot" aria-hidden="true"></span>
+              GitHub contributions from the DevLabs network
+            </p>
+          </div>
         </div>
 
-        <div data-fluid-panel class="mt-10 sm:mt-16">
-          <div class="hiw-demo relative mx-auto w-full max-w-3xl overflow-hidden border border-black/10 bg-[#fffaf7] p-6 sm:p-9">
+        {/* previous how-it-works agent demo — kept for reference
+        <div class="grid items-center gap-10 lg:grid-cols-2 lg:gap-12 xl:gap-16">
+          <div class="order-1">
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">how it works</p>
+            <h2 class="mt-6 text-[clamp(2.3rem,6vw,4.8rem)] font-black leading-[0.94] tracking-[-0.05em] text-black sm:leading-[0.92]">
+              Your hiring went from weeks to days.
+            </h2>
+          </div>
+
+          <div data-fluid-panel class="order-2">
+            <div class="hiw-demo relative w-full overflow-hidden border border-black/10 bg-[#fffaf7] p-6 sm:p-9">
             <span class="corner-square -left-2 -top-2"></span>
             <span class="corner-square -right-2 -top-2"></span>
             <span class="corner-square -bottom-2 -left-2"></span>
             <span class="corner-square -bottom-2 -right-2"></span>
 
-            <!-- Stage 1 — founder types -->
             <p class="hiw-label">Founder types</p>
             <div class="hiw-input">
               <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -789,7 +805,6 @@ const testimonials = [
 
             <div class="hiw-arrow" aria-hidden="true">↓</div>
 
-            <!-- Stage 2 — agent thinks -->
             <p class="hiw-label">Agent thinks</p>
             <ul class="hiw-log">
               <li>Reading GitHub…</li>
@@ -802,7 +817,6 @@ const testimonials = [
 
             <div class="hiw-arrow" aria-hidden="true">↓</div>
 
-            <!-- Stage 3 — builder cards fly in -->
             <p class="hiw-label">Evidence-ranked builders</p>
             <div class="hiw-cards">
               <article class="hiw-card hiw-card-1">
@@ -833,7 +847,6 @@ const testimonials = [
 
             <div class="hiw-arrow" aria-hidden="true">↓</div>
 
-            <!-- Stage 4 — one expands -->
             <article class="hiw-expand">
               <div class="hiw-expand-head">
                 <span class="hiw-avatar">AV</span>
@@ -852,7 +865,9 @@ const testimonials = [
               </div>
             </article>
           </div>
+          </div>
         </div>
+        */}
       </div>
     </section>
 
@@ -1732,9 +1747,165 @@ const testimonials = [
     });
   }
 
+  function initContributionWall() {
+    const backdrop = document.querySelector<HTMLElement>("[data-contrib-wall-backdrop]");
+    if (!backdrop) return;
+
+    const COLORS = ["#f3ebe6", "#ffe4d1", "#ffc9a3", "#ff9f52", "#ff7417"];
+    const CELL = 7;
+    const CELL_GAP = 3;
+    const TILE_GAP = 8;
+    const TILE_WIDTH = Math.ceil(182 / 7) * (CELL + CELL_GAP) - CELL_GAP;
+    const TILE_HEIGHT = 7 * (CELL + CELL_GAP) - CELL_GAP;
+
+    type ContributionWall = {
+      githubUsername: string;
+      displayName: string;
+      initials: string;
+      totalContributions: number;
+      levels: number[];
+    };
+
+    function encodeLevelsFromDays(days: Array<{ count: number }>) {
+      return days.slice(-182).map((day) => {
+        const count = day.count;
+        if (count <= 0) return 0;
+        if (count <= 3) return 1;
+        if (count <= 6) return 2;
+        if (count <= 9) return 3;
+        return 4;
+      });
+    }
+
+    function normalizeWall(raw: ContributionWall & { days?: Array<{ count: number }> }): ContributionWall {
+      if (Array.isArray(raw.levels) && raw.levels.length > 0) return raw;
+      if (Array.isArray(raw.days) && raw.days.length > 0) {
+        return { ...raw, levels: encodeLevelsFromDays(raw.days) };
+      }
+      return { ...raw, levels: [] };
+    }
+
+    function renderContributionSvg(levels: number[]) {
+      if (!levels.length) return "";
+      const rows = 7;
+      const cols = Math.ceil(levels.length / rows);
+      const width = cols * (CELL + CELL_GAP) - CELL_GAP;
+      const height = rows * (CELL + CELL_GAP) - CELL_GAP;
+      const rects: string[] = [];
+
+      for (let i = 0; i < levels.length; i += 1) {
+        const col = Math.floor(i / rows);
+        const row = i % rows;
+        const x = col * (CELL + CELL_GAP);
+        const y = row * (CELL + CELL_GAP);
+        const fill = COLORS[levels[i]] ?? COLORS[0];
+        rects.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" rx="1.5" fill="${fill}"/>`);
+      }
+
+      return `<svg class="contrib-graph-svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">${rects.join("")}</svg>`;
+    }
+
+    function renderWall(wall: ContributionWall) {
+      const graph = renderContributionSvg(wall.levels);
+      if (!graph) return "";
+      return `<span class="contrib-wall-tile">${graph}</span>`;
+    }
+
+    function paintBackdrop(walls: ContributionWall[]) {
+      const normalized = walls
+        .map(normalizeWall)
+        .filter((wall) => wall.levels.length > 0)
+        .sort((a, b) => b.totalContributions - a.totalContributions);
+      if (!normalized.length) return;
+
+      const panel = backdrop.closest<HTMLElement>(".grind-panel");
+      const panelRect = panel?.getBoundingClientRect();
+      const panelWidth = Math.max(panelRect?.width || backdrop.clientWidth || 1200, 320);
+      const panelHeight = Math.max(panelRect?.height || backdrop.clientHeight || 520, 280);
+
+      const cols = Math.max(
+        1,
+        Math.floor((panelWidth - TILE_GAP * 2 + TILE_GAP) / (TILE_WIDTH + TILE_GAP)),
+      );
+      const rows = Math.max(
+        1,
+        Math.floor((panelHeight - TILE_GAP * 2 + TILE_GAP) / (TILE_HEIGHT + TILE_GAP)),
+      );
+      const perPage = cols * rows;
+
+      const pages: ContributionWall[][] = [];
+      for (let i = 0; i < normalized.length; i += perPage) {
+        const chunk = normalized.slice(i, i + perPage);
+        while (chunk.length < perPage) {
+          chunk.push(normalized[chunk.length % normalized.length]);
+        }
+        pages.push(chunk);
+      }
+
+      const pageHtml = pages
+        .map(
+          (page) => `
+            <div class="contrib-wall-page">
+              <div class="contrib-wall-grid">
+                ${page.map((wall) => renderWall(wall)).join("")}
+              </div>
+            </div>
+          `,
+        )
+        .join("");
+
+      backdrop.style.setProperty("--tile-w", `${TILE_WIDTH}px`);
+      backdrop.style.setProperty("--tile-h", `${TILE_HEIGHT}px`);
+      backdrop.style.setProperty("--cols", String(cols));
+      backdrop.style.setProperty("--page-w", `${panelWidth}px`);
+      backdrop.style.setProperty("--page-count", String(pages.length));
+      backdrop.innerHTML = `
+        <div class="contrib-wall-canvas">
+          ${pageHtml}
+          ${pageHtml}
+        </div>
+      `;
+    }
+
+    async function loadWalls() {
+      backdrop.innerHTML = "";
+      try {
+        const res = await fetch("/api/builders/github-contributions");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data?.success || !Array.isArray(data.walls) || data.walls.length === 0) return;
+        (backdrop as HTMLElement & { __walls?: ContributionWall[] }).__walls = data.walls as ContributionWall[];
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => paintBackdrop(data.walls as ContributionWall[]));
+        });
+      } catch {
+        // Keep the last rendered backdrop if loading fails.
+      }
+    }
+
+    function repaintFromCache() {
+      const cached = (backdrop as HTMLElement & { __walls?: ContributionWall[] }).__walls;
+      if (cached?.length) {
+        requestAnimationFrame(() => paintBackdrop(cached));
+      }
+    }
+
+    loadWalls();
+    window.addEventListener("load", repaintFromCache);
+
+    const panel = backdrop.closest<HTMLElement>(".grind-panel");
+    if (panel && "ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => repaintFromCache());
+      observer.observe(panel);
+    } else {
+      window.addEventListener("resize", repaintFromCache);
+    }
+  }
+
   initHero();
   initReveals();
   initCounters();
+  initContributionWall();
 
   // Recompute trigger positions once images/fonts settle.
   ready.then(() => ScrollTrigger.refresh());
@@ -2799,6 +2970,107 @@ const testimonials = [
     }
     to {
       transform: translateX(4rem);
+    }
+  }
+
+  .grind-panel {
+    box-shadow: 0 28px 90px rgba(5, 5, 5, 0.06);
+  }
+
+  .grind-vignette {
+    background:
+      radial-gradient(ellipse 52% 48% at 50% 46%, rgba(255, 250, 247, 0.72) 0%, rgba(255, 250, 247, 0.28) 58%, rgba(255, 250, 247, 0.06) 100%);
+  }
+
+  .contrib-wall-backdrop {
+    --tile-w: 257px;
+    --tile-h: 67px;
+    --cols: 4;
+    --page-w: 100%;
+    --page-count: 1;
+    overflow: hidden;
+  }
+
+  .contrib-wall-canvas {
+    display: flex;
+    height: 100%;
+    width: max-content;
+    will-change: transform;
+    animation: contrib-wall-scroll calc(var(--page-count) * 14s) linear infinite;
+  }
+
+  .contrib-wall-page {
+    flex: 0 0 var(--page-w);
+    width: var(--page-w);
+    height: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+
+  .contrib-wall-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--tile-w));
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    align-content: start;
+    justify-content: start;
+  }
+
+  .contrib-wall-tile {
+    display: block;
+    width: var(--tile-w);
+    height: var(--tile-h);
+    line-height: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .contrib-graph-svg {
+    display: block;
+    width: var(--tile-w) !important;
+    height: var(--tile-h) !important;
+    max-width: none;
+  }
+
+  @keyframes contrib-wall-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .grind-live-dot {
+    display: inline-block;
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 999px;
+    background: #ff7417;
+    box-shadow: 0 0 0 0 rgba(255, 116, 23, 0.45);
+    animation: grind-live-pulse 1.8s ease-out infinite;
+  }
+
+  @keyframes grind-live-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 116, 23, 0.45);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(255, 116, 23, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 116, 23, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .contrib-wall-canvas {
+      animation: none;
+    }
+
+    .grind-live-dot {
+      animation: none;
     }
   }
 

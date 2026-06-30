@@ -68,6 +68,14 @@ const BuilderProfileSchema = new mongoose.Schema(
       devpost: { type: String, default: null },
       twitter: { type: String, default: null },
     },
+    integrations: {
+      github: {
+        accessToken: { type: String, default: null, select: false },
+        username: { type: String, default: null },
+        scopes: [{ type: String }],
+        connectedAt: { type: Date, default: null },
+      },
+    },
     availability: {
       availableNow: { type: Boolean, default: false },
       hoursPerWeek: { type: Number, default: null },
