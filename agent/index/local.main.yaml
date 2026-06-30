@@ -4,6 +4,19 @@
 
 local:
   index:
+    - path: agent/design/devlabs-brand-guide.md
+      weight: 0.9
+      kind: design
+      description: |
+        Current DevLabs landing page brand guide and brand kit. Captures
+        positioning, visual vibe, color tokens, typography, imagery,
+        motion, UI motifs, voice, and CTA rules for public brand work.
+      rationale: |
+        Required reading before changing the homepage, creating adjacent
+        marketing pages, or extending founder/builder hiring surfaces so
+        agents preserve the current proof-backed hiring identity.
+      applies: landing-page, marketing, brand, founder-hiring, builder-pages
+
     - path: agent/design/acp-commands-design.md
       weight: 0.9
       kind: design

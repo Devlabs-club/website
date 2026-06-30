@@ -1,389 +1,231 @@
 ---
+export const prerender = true;
+
 import Layout from "../layouts/Layout.astro";
 import CompanyMarquee from "../components/CompanyMarquee.astro";
+
+const benefits = [
+  {
+    title: "Access proven builders",
+    detail:
+      "Meet Arizona and SF's most ambitious student engineers, designers, and product minds — observed shipping real work, not polished resumes.",
+    chips: ["Pre-vetted", "Shipped projects", "Hire-ready"],
+    icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  },
+  {
+    title: "Brand in the room",
+    detail:
+      "Put your brand in front of thousands of builders through our hackathons, hacker houses, demo days, social, and newsletter network.",
+    chips: ["2,000+ network", "Live events", "Demo days"],
+    icon: '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
+  },
+  {
+    title: "Fund what ships",
+    detail:
+      "Directly back the hardware, space, and prize pools builders need to turn wild ideas into real, working products.",
+    chips: ["$50k+ deployed", "Prize pools", "Hacker houses"],
+    icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "The energy was electric and I've never seen a crowd like this before.",
+    logo: "/sponsors/deepmind.png",
+    logoAlt: "Google DeepMind",
+    avatar: "/team/paige.png",
+    name: "Paige Bailey",
+    role: "Lead DevRel, Google DeepMind",
+  },
+  {
+    quote:
+      "I ended up hiring from the DevHouse. I'm super satisfied — this is the kind of talent you don't see in any hackathon.",
+    logo: "/sponsors/supermemory.png",
+    logoAlt: "Supermemory",
+    avatar: "/team/dhravya.png",
+    name: "Dhravya Shah",
+    role: "Founder, Supermemory",
+  },
+  {
+    quote: "This is one of the best hackathons we've sponsored.",
+    logo: "/sponsors/browser-use.png",
+    logoAlt: "Browser Use",
+    avatar: "/team/saurav.png",
+    name: "Saurav Panda",
+    role: "Founding Engineer, Browser Use",
+  },
+];
+
+const partnerStats = [
+  { value: "2,000+", label: "Builders in network" },
+  { value: "100", label: "Top builders / cohort" },
+  { value: "$50k+", label: "Deployed to builders" },
+  { value: "1 day", label: "Need to intro" },
+];
 ---
 
-<Layout title="Sponsor Devlabs">
-  <main class="relative min-h-screen">
-    <!-- Hero Section (uses global Layout background: texture + noise) -->
-    <section
-      class="relative  pt-32 pb-20 px-4 md:pt-48 md:pb-32 flex flex-col items-center"
-    >
-      <!-- Decorative stars only; no overlay so site background shows through -->
-      <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div
-          class="absolute top-[15%] left-[10%] w-[40vw] max-w-[500px] opacity-50"
-        >
-          <img
-            src="/star.svg"
-            alt=""
-            class="w-full h-auto animate-pulse-slow"
-          />
-        </div>
-        <div
-          class="absolute top-[20%] right-[5%] w-16 h-16 md:w-24 md:h-24 opacity-60"
-        >
-          <img src="/star.svg" alt="" class="w-full h-auto" />
-        </div>
-      </div>
-
-      <!-- Hero Content -->
-      <div
-        class="relative mt-20 z-10 w-full max-w-5xl mx-auto text-center flex flex-col items-center"
-      >
-        <h1 class="text-white mb-8 md:mb-12">
-          <span
-            class="block font-manrope text-xl md:text-3xl font-light tracking-wide text-white/80 mb-2"
-          >
-            empower the next wave of
-          </span>
-          <span
-            class="block font-serif italic text-6xl md:text-8xl lg:text-9xl text-white leading-[0.9]"
-          >
-            builders
-          </span>
-        </h1>
-
-        <p
-          class="max-w-2xl mx-auto text-lg md:text-xl text-white/70 leading-relaxed mb-10 font-manrope"
-        >
-          Join us in shaping the launchpad for the next 100 student founders.
-          Support student founders, hackers, and creators building the next big
-          thing.
-        </p>
-
-        <a
-          href="mailto:people@devlabs.club"
-          class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 md:px-12 md:py-5
-               rounded-full overflow-hidden
-               bg-white text-[#1a1a1a] font-semibold text-lg md:text-xl tracking-wide
-               shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)]
-               transition-all duration-400 ease-out
-               hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)]
-               hover:-translate-y-0.5"
-        >
-          <span class="relative z-10">Become a Partner</span>
-          <span
-            class="relative z-10 w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="w-full h-full"><path d="M5 12h14M12 5l7 7-7 7"></path></svg
-            >
-          </span>
+<Layout title="Sponsor DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
+  <main class="devlabs-paper min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+    <!-- Nav -->
+    <header class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
+      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
+        <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
+      </a>
+      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
+        <a href="/sponsor" class="text-[#ff7417]">Sponsor</a>
+        <a href="/events" class="transition-colors hover:text-[#ff7417]">Events</a>
+        <a href="/about" class="transition-colors hover:text-[#ff7417]">Our Story</a>
+        <a href="/clientform" class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black">
+          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
+          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
+          Hire now
         </a>
-      </div>
-    </section>
+      </nav>
+      <a href="/clientform" class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">Hire now</a>
+    </header>
 
-    <!-- Marquee Section (no solid bg; matches site background) -->
-    <section class="relative border-y border-white/5">
-      <div class="max-w-7xl mx-auto px-4 pt-8 pb-4 text-center">
-        <p
-          class="text-white/50 text-sm font-semibold tracking-[0.2em] uppercase font-manrope"
-        >
-          Trusted by Industry Leaders
+    <!-- Hero -->
+    <section class="ruler-section relative mx-auto w-full max-w-7xl px-6 pb-20 pt-16 sm:px-8 lg:px-10">
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="relative z-10 max-w-4xl">
+        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
+          partner with devlabs
         </p>
-      </div>
-      <CompanyMarquee className="py-6" showTitle={false} />
-    </section>
+        <h1 class="mt-6 text-[clamp(2.4rem,9vw,5.6rem)] font-black leading-[0.96] tracking-[-0.05em] text-black">
+          Back the builders who
+          <span class="text-[#ff7417]">actually ship</span>.
+        </h1>
+        <p class="mt-7 max-w-2xl text-[clamp(1.05rem,1.8vw,1.4rem)] font-medium leading-relaxed text-black/62">
+          Help us build the launchpad for the next 100 student founders. Sponsors
+          don't just get a logo on a banner — they get first access to proof-backed
+          builders before anyone else does.
+        </p>
 
-    <!-- Impact/Benefits Section -->
-    <section class="relative py-24 px-4 z-10">
-      <div class="max-w-7xl mx-auto">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <!-- Card 1 -->
-          <div
-            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+        <div class="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <a
+            href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry"
+            class="group inline-flex h-[3.35rem] items-center justify-center gap-3 rounded-full bg-[#ff7417] px-8 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(255,116,23,0.22)] transition hover:-translate-y-0.5 hover:bg-black"
           >
-            <div
-              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-                ></path><circle cx="9" cy="7" r="4"></circle><path
-                  d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path
-                  d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg
-              >
-            </div>
-            <h3
-              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
-            >
-              <span class="relative inline-block">
-                Access Top Talent
-                <span class="sponsor-benefit-underline" aria-hidden="true"
-                ></span>
-              </span>
-            </h3>
-            <p class="text-xl text-gray-300 leading-relaxed font-light">
-              Connect with Arizona's most ambitious student engineers,
-              designers, and product minds before they graduate.
-            </p>
-          </div>
-
-          <!-- Card 2 -->
-          <div
-            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
+            Become a partner
+            <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+          <a
+            href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
+            class="inline-flex h-[3.35rem] items-center justify-center gap-2 rounded-full border-2 border-black px-8 text-base font-extrabold text-black transition hover:bg-black hover:text-white"
           >
-            <div
-              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><circle cx="12" cy="12" r="10"></circle><line
-                  x1="2"
-                  y1="12"
-                  x2="22"
-                  y2="12"></line><path
-                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-                ></path></svg
-              >
-            </div>
-            <h3
-              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
-            >
-              <span class="relative inline-block">
-                Brand Visibility
-                <span class="sponsor-benefit-underline" aria-hidden="true"
-                ></span>
-              </span>
-            </h3>
-            <p class="text-xl text-gray-300 leading-relaxed font-light">
-              Showcase your brand to thousands of students through our events,
-              social media, and newsletter network.
-            </p>
-          </div>
-
-          <!-- Card 3 -->
-          <div
-            class="group relative p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm transition-all duration-300 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"
-          >
-            <div
-              class="mb-6 w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                ><line x1="12" y1="1" x2="12" y2="23"></line><path
-                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-                ></path></svg
-              >
-            </div>
-            <h3
-              class="sponsor-benefit-heading text-2xl md:text-3xl font-bold tracking-tight text-white mb-4"
-            >
-              <span class="relative inline-block">
-                Support Innovation
-                <span class="sponsor-benefit-underline" aria-hidden="true"
-                ></span>
-              </span>
-            </h3>
-            <p class="text-xl text-gray-300 leading-relaxed font-light">
-              Directly fund the resources, hardware, and space students need to
-              turn their wild ideas into reality.
-            </p>
-          </div>
+            Book a call
+          </a>
         </div>
+      </div>
+
+      <!-- Proof strip -->
+      <div class="relative z-10 mt-16 grid grid-cols-2 border border-black/12 bg-[#fffaf7] lg:grid-cols-4">
+        {partnerStats.map((stat, i) => (
+          <div class={`relative border-black/12 p-6 sm:p-8 ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b lg:border-b-0" : ""} ${i !== 3 ? "lg:border-r" : ""}`}>
+            <p class="text-[clamp(2rem,4vw,3rem)] font-black leading-none tracking-[-0.05em] text-black">{stat.value}</p>
+            <p class="mt-3 text-xs font-extrabold uppercase tracking-[0.16em] text-black/45">{stat.label}</p>
+          </div>
+        ))}
       </div>
     </section>
 
-    <!-- Social Proof / Testimonials Section (matches site dark theme) -->
-    <section class="relative py-24 px-4 overflow-hidden z-10" id="testimonials">
-      <div class="max-w-7xl mx-auto relative z-10">
-        <!-- Header -->
-        <div class="text-center mb-20">
-          <h2 class="text-4xl md:text-6xl text-white mb-6 font-serif italic">
-            Social proof? <span class="text-orange-400">Here.</span>
-          </h2>
-          <p
-            class="text-white/70 text-lg md:text-xl max-w-2xl mx-auto mb-10 font-manrope"
-          >
-            From industry giants to rising startups. Everyone loves the energy
-            at Devlabs.
-          </p>
+    <!-- Trusted by marquee -->
+    <section class="ruler-section relative bg-[#fbf6f3] py-12">
+      <p class="mb-2 text-center text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
+        trusted by industry leaders
+      </p>
+      <CompanyMarquee className="py-2" showTitle={false} />
+    </section>
 
-          <!-- Buttons -->
-          <div
-            class="flex flex-col sm:flex-row items-center justify-center gap-4"
-          >
-            <a
-              href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
-              class="group relative inline-flex items-center justify-center gap-3 px-8 py-4 md:px-10 md:py-4 rounded-full overflow-hidden bg-white text-[#1a1a1a] font-semibold text-lg tracking-wide shadow-[0_0_0_1px_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.2),0_0_40px_rgba(250,125,34,0.15)] transition-all duration-400 ease-out hover:scale-[1.04] hover:shadow-[0_0_0_1px_rgba(255,255,255,0.4),0_12px_48px_rgba(0,0,0,0.25),0_0_60px_rgba(250,125,34,0.25)] hover:-translate-y-0.5"
-            >
-              Book a call
-              <span
-                class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="w-full h-full"
-                  ><path d="M5 12h14M12 5l7 7-7 7"></path></svg
-                >
+    <!-- Why sponsor -->
+    <section class="relative mx-auto w-full max-w-7xl px-6 py-20 sm:px-8 lg:px-10">
+      <div class="max-w-3xl">
+        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">why sponsor</p>
+        <h2 class="mt-6 text-[clamp(2rem,6vw,3.6rem)] font-black leading-[0.98] tracking-[-0.05em] text-black">
+          Three reasons founders keep coming back.
+        </h2>
+      </div>
+
+      <div class="mt-12 grid grid-cols-1 border border-black/12 md:grid-cols-3">
+        {benefits.map((b, i) => (
+          <div class={`relative bg-[#fffaf7] p-8 ${i !== benefits.length - 1 ? "border-b border-black/12 md:border-b-0 md:border-r" : ""}`}>
+            <div class="grid h-12 w-12 place-items-center border border-[#ff7417]/40 bg-[#fff5ef] text-[#ff7417]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={b.icon}></svg>
+            </div>
+            <h3 class="mt-7 text-2xl font-black tracking-[-0.03em] text-black">{b.title}</h3>
+            <p class="mt-4 text-base leading-relaxed text-black/60">{b.detail}</p>
+            <div class="mt-6 flex flex-wrap gap-2">
+              {b.chips.map((chip) => (
+                <span class="border border-[#ff7417]/35 bg-[#fff5ef] px-2.5 py-1 text-xs font-semibold text-[#bf4f08]">{chip}</span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="relative mx-auto w-full max-w-7xl px-6 py-20 sm:px-8 lg:px-10">
+      <div class="max-w-3xl">
+        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">social proof</p>
+        <h2 class="mt-6 text-[clamp(2rem,6vw,3.6rem)] font-black leading-[0.98] tracking-[-0.05em] text-black">
+          From industry giants to rising startups.
+        </h2>
+      </div>
+
+      <div class="mt-12 grid gap-4 sm:gap-6 lg:grid-cols-3">
+        {testimonials.map((t) => (
+          <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-black/12 bg-[#fffaf7] p-7">
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
+            <div class="flex items-start justify-between gap-5">
+              <span class="inline-flex h-12 items-center">
+                <img src={t.logo} alt={t.logoAlt} loading="lazy" class="max-h-10 w-auto object-contain" />
               </span>
-            </a>
-            <a
-              href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry"
-              class="inline-flex items-center justify-center gap-2 text-white/60 hover:text-white transition-colors border-b border-white/20 hover:border-white pb-1 text-lg font-manrope"
-            >
-              Prefer writing instead? Email us.
-            </a>
-          </div>
-        </div>
-
-        <!-- Testimonials Grid -->
-        <div
-          class="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mt-16 px-4 md:px-0"
-        >
-          <!-- Card 1: Paige Bailey -->
-          <div
-            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform -rotate-2 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10"
-          >
-            <img
-              src="/sponsors/deepmind.png"
-              alt="Google DeepMind"
-              class="h-14 w-auto object-contain mx-auto"
-            />
-
-            <p
-              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
-            >
-              "The energy was electric and I've never seen a crowd like this
-              before."
-            </p>
-            <div
-              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
-            >
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
-                >
-                  <img
-                    src="/team/paige.png"
-                    alt="Paige Bailey"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div class="font-bold text-base leading-tight text-white">
-                    Paige Bailey
-                  </div>
-                  <div class="text-sm text-gray-400 leading-tight">
-                    Lead DevRel, Google DeepMind
-                  </div>
-                </div>
-              </div>
+              <span class="text-5xl font-black leading-none text-[#ff7417]/25">“</span>
             </div>
-          </div>
+            <blockquote class="mt-8 text-lg font-semibold leading-relaxed text-black/80">
+              {t.quote}
+            </blockquote>
+            <figcaption class="mt-8 flex items-center gap-4 border-t border-black/10 pt-5">
+              <img src={t.avatar} alt={t.name} loading="lazy" class="h-14 w-14 shrink-0 border border-[#ff7417]/45 object-cover" />
+              <span class="min-w-0">
+                <span class="block truncate text-sm font-black text-black">{t.name}</span>
+                <span class="block text-xs font-semibold leading-snug text-black/55">{t.role}</span>
+              </span>
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
 
-          <!-- Card 2: Dhravya Shah -->
-          <div
-            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform rotate-1 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10 md:-mt-8"
-          >
-            <p
-              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
-            >
-              "I ended up hiring from the Devhouse. I'm super satisfied and this
-              is the kind of talent you dont see in any hackathon."
-            </p>
-            <div
-              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
-            >
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
-                >
-                  <img
-                    src="/team/dhravya.png"
-                    alt="Dhravya Shah"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div class="font-bold text-base leading-tight text-white">
-                    Dhravya Shah
-                  </div>
-                  <div class="text-sm text-gray-400 leading-tight">
-                    Founder, Supermemory
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 3: Saurav Panda -->
-          <div
-            class="testimonial-card testimonial-card-paper group relative p-8 bg-white/5 backdrop-blur-sm transform rotate-3 hover:rotate-0 transition-all duration-300 hover:bg-white/10 hover:-translate-y-1 hover:z-10"
-          >
-            <div class="testimonial-card-texture" aria-hidden="true"></div>
-
-            <img
-              src="/sponsors/browser-use.png"
-              alt="Browser Use"
-              class="h-24 w-auto object-contain"
-            />
-
-            <p
-              class="text-lg md:text-xl leading-relaxed font-medium mb-8 mt-4 font-manrope text-white"
-            >
-              "This is one of the best hackathons we've sponsored."
-            </p>
-            <div
-              class="flex items-center justify-between gap-4 mt-auto flex-wrap"
-            >
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-12 h-12 rounded-full overflow-hidden border-2 border-white/20 shadow-sm flex-shrink-0 ring-2 ring-orange-500/30"
-                >
-                  <img
-                    src="/team/saurav.png"
-                    alt="Saurav Panda"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-                <div>
-                  <div class="font-bold text-base leading-tight text-white">
-                    Saurav Panda
-                  </div>
-                  <div class="text-sm text-gray-400 leading-tight">
-                    Founding Engineer, Browser Use
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+    <!-- Closing CTA (dark act) -->
+    <section class="relative bg-[#0d0a09] px-5 py-24 text-white sm:px-8 sm:py-32 lg:px-10">
+      <div class="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">let's build together</p>
+        <h2 class="mt-6 text-[clamp(2.25rem,9vw,4.5rem)] font-black leading-[0.98] text-white">
+          Fund the next 100 founders.
+        </h2>
+        <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/75">
+          Support student founders, hackers, and creators building the next big
+          thing — before the rest of the world notices.
+        </p>
+        <div class="mt-9 flex flex-col gap-4 sm:flex-row">
+          <a href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry" class="group inline-flex items-center justify-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] transition hover:bg-[#ff7417] hover:text-white">
+            Become a partner
+            <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+          <a href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry" class="inline-flex items-center justify-center rounded-full border border-white/25 px-7 py-3.5 text-base font-black text-white/80 transition hover:border-white hover:text-white">
+            Prefer email? Write us.
+          </a>
         </div>
       </div>
     </section>
@@ -391,94 +233,67 @@ import CompanyMarquee from "../components/CompanyMarquee.astro";
 </Layout>
 
 <style>
-  .font-manrope {
-    font-family: Manrope, sans-serif;
-  }
-
-  /* Benefit h3 underline + typography (matches events.astro) */
-  .sponsor-benefit-heading {
+  .devlabs-paper {
     font-family: Manrope, system-ui, sans-serif;
+    letter-spacing: 0;
   }
 
-  .sponsor-benefit-underline {
-    position: absolute;
-    bottom: 0.1em;
-    left: 0;
-    width: 100%;
-    height: 0.2em;
-    background-color: #f97316;
-    opacity: 0.8;
-    z-index: -1;
-    transform: rotate(-1deg);
-    transform-origin: left center;
-  }
-
-  .animate-pulse-slow {
-    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.6;
-    }
-    50% {
-      opacity: 0.3;
-    }
-  }
-
-  /* Jagged / torn paper edges for testimonial cards */
-  .testimonial-card-paper {
-    overflow: hidden;
-    clip-path: polygon(
-      0% 4%,
-      8% 0%,
-      16% 4%,
-      24% 0%,
-      32% 3%,
-      40% 0%,
-      48% 4%,
-      56% 0%,
-      64% 3%,
-      72% 0%,
-      80% 4%,
-      88% 0%,
-      100% 3%,
-      100% 96%,
-      92% 100%,
-      84% 96%,
-      76% 100%,
-      68% 97%,
-      60% 100%,
-      52% 96%,
-      44% 100%,
-      36% 97%,
-      28% 100%,
-      20% 96%,
-      12% 100%,
-      4% 96%,
-      0% 100%
-    );
-    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.25))
-      drop-shadow(0 0 0 1px rgba(255, 255, 255, 0.08));
-  }
-
-  /* Paper texture overlay inside card */
-  .testimonial-card-texture {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background-image: url("/texture.webp");
-    background-size: cover;
-    background-position: center;
-    opacity: 0.35;
-    mix-blend-mode: overlay;
-  }
-
-  /* Content above texture */
-  .testimonial-card > *:not(.testimonial-card-texture) {
+  .ruler-section {
     position: relative;
-    z-index: 1;
+  }
+
+  .ruler-section::before,
+  .ruler-section::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    z-index: 0;
+    width: 100vw;
+    height: 1px;
+    transform: translateX(-50%);
+    background: rgba(5, 5, 5, 0.1);
+    pointer-events: none;
+  }
+
+  .ruler-section::before {
+    top: 0;
+  }
+
+  .ruler-section::after {
+    bottom: 0;
+  }
+
+  .ruler-rails {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    z-index: 0;
+    width: min(calc(100% - 3rem), 80rem);
+    transform: translateX(-50%);
+    border-inline: 1px solid rgba(5, 5, 5, 0.08);
+    pointer-events: none;
+  }
+
+  .ruler-rails::before,
+  .ruler-rails::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: 1px;
+    background: rgba(5, 5, 5, 0.055);
+  }
+
+  .ruler-rails::before {
+    left: 25%;
+  }
+
+  .ruler-rails::after {
+    right: 25%;
+  }
+
+  @media (max-width: 640px) {
+    .ruler-rails {
+      display: none;
+    }
   }
 </style>

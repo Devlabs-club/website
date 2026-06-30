@@ -94,29 +94,6 @@ const beamSources = [
   { label: "References", icon: icons.message, x: 17, y: 93 },
 ];
 
-const steps = [
-  {
-    n: "01",
-    title: "Tell us who you need.",
-    detail: "Describe the role in plain language. The agent turns it into the signals that actually matter.",
-  },
-  {
-    n: "02",
-    title: "Review proof-backed matches.",
-    detail: "Get a shortlist ranked by shipped work, event signal, and stack fit — not keyword-stuffed resumes.",
-  },
-  {
-    n: "03",
-    title: "Start with a call or work trial.",
-    detail: "Skip the screening rounds. Talk to builders who already proved they can move.",
-  },
-  {
-    n: "04",
-    title: "Hire with confidence.",
-    detail: "You hired from evidence, not a polished PDF. The first hire ships in week one.",
-  },
-];
-
 const programs = [
   {
     name: "DevHacks",
@@ -241,8 +218,21 @@ const testimonials = [
          </span>
         <br class="sm:hidden" />
         who can<br />
-        actually <br class="sm:hidden" /><span class="font-extrabold">ship</span>
+        actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
       </h1>
+
+      <a
+        href="/clientform"
+        data-hero-cta
+        class="hero-start-cta group relative z-10 mt-8 inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+      >
+        <canvas
+          class="hero-start-cta-ripple absolute inset-0 h-full w-full"
+          data-ascii-ripple="compact"
+          aria-hidden="true"
+        ></canvas>
+        <span class="relative z-10">start now</span>
+      </a>
 
       <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
         <div class="relative min-h-[520px] overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[390px] lg:min-h-[475px]">
@@ -265,13 +255,13 @@ const testimonials = [
               Builder search
             </div>
 
-            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-3 sm:gap-4 sm:px-4" aria-label="Find me a cracked App dev with cool projects">
+            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-3 sm:gap-4 sm:px-4" aria-label="Find me a cracked App dev with expertise in stripe integration">
               <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="7"></circle>
                 <path d="m21 21-4.3-4.3"></path>
               </svg>
               <p class="min-w-0 flex-1 overflow-hidden text-[0.68rem] font-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)]">
-                <span class="hero-typewriter-text">Find me a cracked App dev with cool projects</span>
+                <span class="hero-typewriter-text">Find me a cracked App dev with expertise in stripe integration</span>
               </p>
               <a
                 href="/clientform"
@@ -775,19 +765,93 @@ const testimonials = [
       <div class="relative z-10 mx-auto w-full max-w-7xl">
         <div class="max-w-4xl">
           <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">how it works</p>
-          <h2 class="mt-6 max-w-3xl text-[clamp(2.3rem,11vw,5.8rem)] font-black leading-[0.94] text-black sm:leading-[0.92]">
+          <h2 class="mt-6 max-w-3xl text-[clamp(2.3rem,11vw,5.8rem)] font-black leading-[0.94] tracking-[-0.05em] text-black sm:leading-[0.92]">
             From hiring need to builder intro in days.
           </h2>
         </div>
 
-        <div data-fluid-panel class="mt-10 grid border border-black/10 sm:mt-16 md:grid-cols-2 lg:grid-cols-4">
-          {steps.map((step) => (
-            <article class="step-cell relative min-h-[15rem] border-b border-black/10 p-6 sm:min-h-[20rem] sm:p-8">
-              <span class="text-[clamp(3.4rem,5vw,4.6rem)] font-black leading-none tracking-[-0.06em] text-[#ff7417]">{step.n}</span>
-              <h3 class="mt-8 text-2xl font-black leading-tight tracking-[-0.035em]">{step.title}</h3>
-              <p class="mt-4 text-base font-medium leading-relaxed text-black/58">{step.detail}</p>
+        <div data-fluid-panel class="mt-10 sm:mt-16">
+          <div class="hiw-demo relative mx-auto w-full max-w-3xl overflow-hidden border border-black/10 bg-[#fffaf7] p-6 sm:p-9">
+            <span class="corner-square -left-2 -top-2"></span>
+            <span class="corner-square -right-2 -top-2"></span>
+            <span class="corner-square -bottom-2 -left-2"></span>
+            <span class="corner-square -bottom-2 -right-2"></span>
+
+            <!-- Stage 1 — founder types -->
+            <p class="hiw-label">Founder types</p>
+            <div class="hiw-input">
+              <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+              <span class="hiw-typed">Need AI engineer</span><span class="hiw-caret" aria-hidden="true"></span>
+            </div>
+
+            <div class="hiw-arrow" aria-hidden="true">↓</div>
+
+            <!-- Stage 2 — agent thinks -->
+            <p class="hiw-label">Agent thinks</p>
+            <ul class="hiw-log">
+              <li>Reading GitHub…</li>
+              <li>Reading Devpost…</li>
+              <li>Reading Hackathons…</li>
+              <li>Checking startup experience…</li>
+              <li>Looking at agent traces…</li>
+              <li>Ranking…</li>
+            </ul>
+
+            <div class="hiw-arrow" aria-hidden="true">↓</div>
+
+            <!-- Stage 3 — builder cards fly in -->
+            <p class="hiw-label">Evidence-ranked builders</p>
+            <div class="hiw-cards">
+              <article class="hiw-card hiw-card-1">
+                <div class="hiw-card-top">
+                  <span class="hiw-avatar">AV</span>
+                  <span class="hiw-score">92%</span>
+                </div>
+                <p class="hiw-card-name">Aarav V.</p>
+                <p class="hiw-card-role">AI agents · RAG</p>
+              </article>
+              <article class="hiw-card hiw-card-2">
+                <div class="hiw-card-top">
+                  <span class="hiw-avatar hiw-avatar-dark">NK</span>
+                  <span class="hiw-score">89%</span>
+                </div>
+                <p class="hiw-card-name">Niki K.</p>
+                <p class="hiw-card-role">LLM apps · evals</p>
+              </article>
+              <article class="hiw-card hiw-card-3">
+                <div class="hiw-card-top">
+                  <span class="hiw-avatar">RS</span>
+                  <span class="hiw-score">86%</span>
+                </div>
+                <p class="hiw-card-name">Rhea S.</p>
+                <p class="hiw-card-role">ML infra · agents</p>
+              </article>
+            </div>
+
+            <div class="hiw-arrow" aria-hidden="true">↓</div>
+
+            <!-- Stage 4 — one expands -->
+            <article class="hiw-expand">
+              <div class="hiw-expand-head">
+                <span class="hiw-avatar">AV</span>
+                <div class="min-w-0">
+                  <p class="hiw-card-name">Aarav V.</p>
+                  <p class="hiw-card-role">AI engineer · 92% match</p>
+                </div>
+                <span class="hiw-rec">Recommended</span>
+              </div>
+              <p class="hiw-expand-body">Shipped 17 AI projects. Built production RAG. Won DevHacks. Worked with Supermemory.</p>
+              <div class="hiw-chips">
+                <span>17 AI projects</span>
+                <span>Production RAG</span>
+                <span>DevHacks winner</span>
+                <span>Supermemory</span>
+              </div>
             </article>
-          ))}
+          </div>
         </div>
       </div>
     </section>
@@ -1282,6 +1346,7 @@ const testimonials = [
     if (!ctx) return () => {};
 
     const chars = " .:-=+*#%@";
+    const isCompact = canvas.dataset.asciiRipple === "compact";
     const fontFamily =
       "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
     const prefersReducedMotion = window.matchMedia(
@@ -1308,21 +1373,82 @@ const testimonials = [
       canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      fontSize = width < 720 ? 14 : 18;
+      fontSize = isCompact ? 9 : width < 720 ? 14 : 18;
       ctx.font = `${fontSize}px ${fontFamily}`;
-      charWidth = Math.max(8, ctx.measureText("@").width);
+      charWidth = Math.max(isCompact ? 5 : 8, ctx.measureText("@").width);
       columns = Math.ceil(width / charWidth);
       rows = Math.ceil(height / fontSize);
     }
 
+    function drawCompactRipple(now: number) {
+      const time = prefersReducedMotion.matches ? 0 : now * 0.0002;
+      const centerX = width * 0.5;
+      const centerY = height * 0.5;
+      const minRadius = 8;
+      const maxRadius = Math.min(width, height) * 0.58;
+      const ringCount = 5;
+      const ringChars = ["@", "#", "*", "+", "="];
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.font = `800 ${fontSize}px ${fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (let ring = 0; ring < ringCount; ring += 1) {
+        const progress = (time + ring / ringCount) % 1;
+        const easedRadius =
+          minRadius + Math.pow(progress, 0.76) * (maxRadius - minRadius);
+        const ringFade = Math.pow(1 - progress, 0.44);
+        const circumference = Math.max(1, Math.PI * 2 * easedRadius);
+        const pointCount = Math.max(24, Math.floor(circumference / 5.2));
+        const angleOffset = ring * 0.38 + time * 0.2;
+
+        for (let point = 0; point < pointCount; point += 1) {
+          const angle = (point / pointCount) * Math.PI * 2 + angleOffset;
+          const x = centerX + Math.cos(angle) * easedRadius;
+          const y = centerY + Math.sin(angle) * easedRadius;
+          const edgeFade =
+            clamp(x / width * 12, 0, 1) *
+            clamp((1 - x / width) * 12, 0, 1) *
+            clamp(y / height * 12, 0, 1) *
+            clamp((1 - y / height) * 12, 0, 1);
+          const sparkle =
+            0.82 + Math.sin(point * 1.7 + ring * 2.1 + time * 4) * 0.18;
+          const opacity = clamp((0.34 + ringFade * 0.5) * edgeFade * sparkle, 0, 0.9);
+          if (opacity < 0.04) continue;
+
+          const charIndex = Math.min(
+            ringChars.length - 1,
+            Math.floor(progress * ringChars.length),
+          );
+          ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+          ctx.fillText(ringChars[charIndex], x, y);
+        }
+      }
+
+      const corePulse = 0.35 + Math.sin(time * Math.PI * 2) * 0.18;
+      ctx.fillStyle = `rgba(255, 255, 255, ${corePulse})`;
+      ctx.fillText("+", centerX, centerY);
+    }
+
     function draw(now: number) {
+      if (isCompact) {
+        drawCompactRipple(now);
+        if (!prefersReducedMotion.matches) {
+          animationFrame = requestAnimationFrame(draw);
+        }
+        return;
+      }
+
       const time = prefersReducedMotion.matches ? 0 : now * 0.00018;
       const centerX = width * 0.5;
       const centerY = height * 0.5;
       const maxRadius = Math.hypot(width, height) * 0.66;
-      const ringCount = 16;
+      const ringCount = isCompact ? 7 : 16;
       const spacing = maxRadius / ringCount;
-      const thickness = Math.max(12, spacing * 0.085);
+      const thickness = isCompact
+        ? Math.max(3.5, spacing * 0.18)
+        : Math.max(12, spacing * 0.085);
 
       ctx.clearRect(0, 0, width, height);
       ctx.font = `${fontSize}px ${fontFamily}`;
@@ -1348,7 +1474,9 @@ const testimonials = [
             clamp((1 - x / width) * 6, 0, 1) *
             clamp((y / height) * 5, 0, 1) *
             clamp((1 - y / height) * 5, 0, 1);
-          const opacity = strength * (0.24 + distanceFade * 0.42) * edgeFade;
+          const opacity = isCompact
+            ? strength * (0.38 + distanceFade * 0.58) * edgeFade
+            : strength * (0.24 + distanceFade * 0.42) * edgeFade;
           if (opacity < 0.02) continue;
 
           const charIndex = clamp(
@@ -1500,12 +1628,14 @@ const testimonials = [
   function initHero() {
     const nav = document.querySelector<HTMLElement>("[data-nav]");
     const headline = document.querySelector<HTMLElement>("[data-hero-headline]");
+    const cta = document.querySelector<HTMLElement>("[data-hero-cta]");
     const card = document.querySelector<HTMLElement>("[data-hero-card]");
 
     if (reduce) return;
 
     // Hide synchronously so there's no flash before the timeline runs.
     if (nav) gsap.set(nav, { opacity: 0, y: -16 });
+    if (cta) gsap.set(cta, { opacity: 0, y: 22 });
     if (card) gsap.set(card, { opacity: 0, y: 40 });
     if (headline) gsap.set(headline, { opacity: 0 });
 
@@ -1528,6 +1658,7 @@ const testimonials = [
         }
       }
 
+      if (cta) tl.to(cta, { opacity: 1, y: 0, duration: 0.72 }, 0.42);
       if (card) tl.to(card, { opacity: 1, y: 0, duration: 0.95 }, 0.5);
     });
   }
@@ -1635,6 +1766,38 @@ const testimonials = [
       );
   }
 
+  .hero-start-cta::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, #ff7417 0%, #ff7417 24%, rgba(255, 116, 23, 0) 70%);
+    opacity: 0;
+    transition: opacity 220ms ease;
+    pointer-events: none;
+  }
+
+  .hero-start-cta-ripple {
+    inset: -3.5rem;
+    width: calc(100% + 7rem);
+    height: calc(100% + 7rem);
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 220ms ease;
+    pointer-events: none;
+  }
+
+  .hero-start-cta:hover .hero-start-cta-ripple,
+  .hero-start-cta:focus-visible .hero-start-cta-ripple {
+    opacity: 0.95;
+  }
+
+  .hero-start-cta:hover::after,
+  .hero-start-cta:focus-visible::after {
+    opacity: 1;
+  }
+
   [data-fluid-panel] {
     --fluid-y: 0px;
     --fluid-scale: 1;
@@ -1701,6 +1864,13 @@ const testimonials = [
 
     [data-hero-card] {
       margin-top: 2.5rem !important;
+    }
+
+    .hero-start-cta {
+      margin-top: 1.5rem !important;
+      min-width: 9.75rem !important;
+      height: 3.05rem !important;
+      padding-inline: 2rem !important;
     }
 
     [data-hero-card] > div {
@@ -1989,7 +2159,7 @@ const testimonials = [
   }
 
   .hero-builder-card {
-    --hero-search-cycle: 11s;
+    --hero-search-cycle: 7s;
     overflow: visible;
   }
 
@@ -2008,7 +2178,7 @@ const testimonials = [
     vertical-align: bottom;
     white-space: nowrap;
     border-right: 2px solid transparent;
-    animation: hero-typewriter var(--hero-search-cycle) steps(48, end) infinite;
+    animation: hero-typewriter var(--hero-search-cycle) steps(62, end) infinite;
   }
 
   .hero-loading-row {
@@ -2277,6 +2447,279 @@ const testimonials = [
     .hero-loading-row {
       display: none;
     }
+  }
+
+  /* ── How-it-works agent demo (loops like the hero search) ── */
+  .hiw-demo {
+    --hiw-cycle: 9s;
+    box-shadow: 0 24px 70px rgba(5, 5, 5, 0.06);
+  }
+
+  .hiw-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: rgba(5, 5, 5, 0.4);
+  }
+
+  .hiw-label:not(:first-child) {
+    margin-top: 0.4rem;
+  }
+
+  .hiw-input {
+    margin-top: 0.65rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border: 1px solid #050505;
+    background: #fff;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .hiw-typed {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: clamp(0.92rem, 1.6vw, 1.18rem);
+    font-weight: 600;
+    color: #050505;
+    animation: hiw-type var(--hiw-cycle) steps(16, end) infinite;
+  }
+
+  .hiw-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 1px;
+    background: #ff7417;
+    vertical-align: -0.15em;
+    animation: hiw-caret 0.66s step-end infinite;
+  }
+
+  .hiw-arrow {
+    display: flex;
+    justify-content: center;
+    margin: 0.5rem 0;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: rgba(255, 116, 23, 0.55);
+  }
+
+  .hiw-log {
+    margin-top: 0.6rem;
+    display: grid;
+    gap: 0.3rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.84rem;
+    color: rgba(5, 5, 5, 0.66);
+  }
+
+  .hiw-log li {
+    position: relative;
+    padding-left: 1.1rem;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: hiw-log-in var(--hiw-cycle) ease infinite;
+  }
+
+  .hiw-log li::before {
+    content: "›";
+    position: absolute;
+    left: 0;
+    color: #ff7417;
+    font-weight: 800;
+  }
+
+  .hiw-log li:nth-child(1) { animation-delay: 0s; }
+  .hiw-log li:nth-child(2) { animation-delay: 0.18s; }
+  .hiw-log li:nth-child(3) { animation-delay: 0.36s; }
+  .hiw-log li:nth-child(4) { animation-delay: 0.54s; }
+  .hiw-log li:nth-child(5) { animation-delay: 0.72s; }
+  .hiw-log li:nth-child(6) { animation-delay: 0.9s; }
+
+  .hiw-cards {
+    margin-top: 0.65rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+
+  .hiw-card {
+    border: 1px solid rgba(5, 5, 5, 0.14);
+    background: #fff;
+    padding: 0.8rem;
+    opacity: 0;
+  }
+
+  .hiw-card-1 { animation: hiw-card-left var(--hiw-cycle) cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+  .hiw-card-2 { animation: hiw-card-up var(--hiw-cycle) cubic-bezier(0.22, 1, 0.36, 1) infinite; animation-delay: 0.12s; }
+  .hiw-card-3 { animation: hiw-card-right var(--hiw-cycle) cubic-bezier(0.22, 1, 0.36, 1) infinite; animation-delay: 0.24s; }
+
+  .hiw-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .hiw-avatar {
+    display: grid;
+    place-items: center;
+    height: 2.3rem;
+    width: 2.3rem;
+    flex-shrink: 0;
+    background: #ff7417;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.78rem;
+  }
+
+  .hiw-avatar-dark {
+    background: #050505;
+  }
+
+  .hiw-score {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: #ff7417;
+  }
+
+  .hiw-card-name {
+    margin-top: 0.7rem;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #050505;
+  }
+
+  .hiw-card-role {
+    margin-top: 0.1rem;
+    font-size: 0.78rem;
+    color: rgba(5, 5, 5, 0.55);
+  }
+
+  .hiw-expand {
+    margin-top: 0.65rem;
+    border: 1px solid #050505;
+    background: #fff;
+    padding: 1rem;
+    opacity: 0;
+    box-shadow: 0 16px 34px rgba(5, 5, 5, 0.1);
+    animation: hiw-expand-in var(--hiw-cycle) ease infinite;
+  }
+
+  .hiw-expand-head {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .hiw-rec {
+    margin-left: auto;
+    border: 1px solid #ff7417;
+    background: #fff5ef;
+    color: #bf4f08;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 0.28rem 0.55rem;
+    animation: hiw-rec-pulse var(--hiw-cycle) ease infinite;
+  }
+
+  .hiw-expand-body {
+    margin-top: 0.8rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #050505;
+  }
+
+  .hiw-chips {
+    margin-top: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .hiw-chips span {
+    border: 1px solid rgba(255, 116, 23, 0.35);
+    background: #fff5ef;
+    color: #bf4f08;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.22rem 0.55rem;
+  }
+
+  @keyframes hiw-type {
+    0%, 2% { width: 0; }
+    16%, 90% { width: 16ch; }
+    95%, 100% { width: 0; }
+  }
+
+  @keyframes hiw-caret {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  @keyframes hiw-log-in {
+    0%, 16% { opacity: 0; transform: translateY(6px); }
+    22%, 90% { opacity: 1; transform: translateY(0); }
+    95%, 100% { opacity: 0; transform: translateY(6px); }
+  }
+
+  @keyframes hiw-card-left {
+    0%, 40% { opacity: 0; transform: translate(-46px, 8px) rotate(-5deg); }
+    50%, 90% { opacity: 1; transform: translate(0, 0) rotate(0); }
+    95%, 100% { opacity: 0; transform: translateY(8px); }
+  }
+
+  @keyframes hiw-card-up {
+    0%, 42% { opacity: 0; transform: translate(0, 44px) scale(0.96); }
+    52%, 90% { opacity: 1; transform: translate(0, 0) scale(1); }
+    95%, 100% { opacity: 0; transform: translateY(8px); }
+  }
+
+  @keyframes hiw-card-right {
+    0%, 44% { opacity: 0; transform: translate(46px, 8px) rotate(5deg); }
+    54%, 90% { opacity: 1; transform: translate(0, 0) rotate(0); }
+    95%, 100% { opacity: 0; transform: translateY(8px); }
+  }
+
+  @keyframes hiw-expand-in {
+    0%, 56% { opacity: 0; transform: translateY(12px) scale(0.985); }
+    66%, 90% { opacity: 1; transform: translateY(0) scale(1); }
+    95%, 100% { opacity: 0; transform: translateY(8px) scale(0.985); }
+  }
+
+  @keyframes hiw-rec-pulse {
+    0%, 64%, 100% { box-shadow: 0 0 0 0 rgba(255, 116, 23, 0); }
+    70% { box-shadow: 0 0 0 5px rgba(255, 116, 23, 0.16); }
+    80% { box-shadow: 0 0 0 0 rgba(255, 116, 23, 0); }
+  }
+
+  @media (max-width: 639px) {
+    .hiw-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hiw-typed { width: 16ch; animation: none; }
+    .hiw-caret { display: none; }
+    .hiw-log li,
+    .hiw-card-1,
+    .hiw-card-2,
+    .hiw-card-3,
+    .hiw-expand {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+    .hiw-rec { animation: none; }
   }
 
   .profile-marquee {
