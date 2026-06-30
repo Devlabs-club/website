@@ -75,11 +75,27 @@ export async function verifyOtp(token: string, rawPhone: string, code: string) {
   await pv.save();
 
   // Attach verified phone to the builder (resolve by token builderId, else by email).
-  let builder = claim.builderId
+  const builder = claim.builderId
     ? await BuilderProfile.findById(claim.builderId)
     : await BuilderProfile.findOne({ email: claim.email });
+
+  await greetVerifiedBuilder(builder, phone);
+
+  return { ok: true, status: 200, matchedBuilder: Boolean(builder) };
+}
+
+/**
+ * Post-verification handoff: attach the verified phone to the builder, open the
+ * iMessage conversation thread, and have the DevLabs agent text them first
+ * (Poke-style). Channel-agnostic — works whether the OTP itself was delivered
+ * over iMessage (legacy) or Twilio SMS. `builder` may be null (no match yet).
+ */
+export async function greetVerifiedBuilder(builder: any | null, phone: string) {
+  await connectDB();
+
   if (builder) {
     builder.phone = phone;
+    builder.phoneVerifiedAt = new Date();
     await builder.save();
   }
 
@@ -97,7 +113,7 @@ export async function verifyOtp(token: string, rawPhone: string, code: string) {
     { upsert: true }
   );
 
-  // Poke-style: the agent texts them first (we now have their number).
+  // The agent texts them first (we now have their number).
   const firstName = (builder?.name || '').split(' ')[0] || 'there';
   const welcome =
     `Hey ${firstName} 👋 it's DevLabs. You're verified. ` +
@@ -111,6 +127,4 @@ export async function verifyOtp(token: string, rawPhone: string, code: string) {
   } catch (err) {
     console.error('[otp] welcome send failed', err);
   }
-
-  return { ok: true, status: 200, matchedBuilder: Boolean(builder) };
 }

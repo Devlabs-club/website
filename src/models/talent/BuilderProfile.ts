@@ -18,6 +18,8 @@ const BuilderProfileSchema = new mongoose.Schema(
     avatarUrl: { type: String, default: null },
     email: { type: String, lowercase: true, trim: true, index: true },
     phone: { type: String, default: null },
+    /** Set when the builder confirms their phone via OTP. Gates the builder home / agent handoff. */
+    phoneVerifiedAt: { type: Date, default: null },
     location: { type: String, default: null },
     timezone: { type: String, default: null },
     universityOrCompany: { type: String, default: null },

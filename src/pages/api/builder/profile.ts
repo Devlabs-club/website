@@ -85,6 +85,8 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       email: user.email,
       avatarUrl: user.avatarUrl || null,
     },
+    phone: profile?.phone || null,
+    phoneVerified: Boolean(profile?.phoneVerifiedAt),
     profile: serializeProfile(profile, projects),
   });
 };
