@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@/components/auth_manager';
+import { AuthProvider, useAuth } from '@/components/auth_manager';
 import { useTalentRealtime } from '@/hooks/useTalentRealtime';
 import type { NotificationItem } from '@/components/founder/founderTypes';
 import { OsShell } from '@/components/os';
@@ -21,7 +21,7 @@ import type {
   TabKey,
 } from './types';
 
-export default function BuilderOSDashboard() {
+function BuilderOSDashboardInner() {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -328,5 +328,13 @@ export default function BuilderOSDashboard() {
         </div>
       </div>
     </OsShell>
+  );
+}
+
+export default function BuilderOSDashboard() {
+  return (
+    <AuthProvider>
+      <BuilderOSDashboardInner />
+    </AuthProvider>
   );
 }

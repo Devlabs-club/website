@@ -24,8 +24,8 @@ export function getTwilioVerifyConfig(runtime?: RuntimeEnv): TwilioVerifyConfig 
   const apiKeySecret = readEnv('TWILIO_API_KEY_SECRET', runtime);
   const serviceSid = readEnv('TWILIO_VERIFY_SERVICE_SID', runtime);
   if (!serviceSid) return null;
-  if (apiKeySid && apiKeySecret) return { username: apiKeySid, password: apiKeySecret, serviceSid };
   if (accountSid && authToken) return { username: accountSid, password: authToken, serviceSid };
+  if (apiKeySid && apiKeySecret) return { username: apiKeySid, password: apiKeySecret, serviceSid };
   return null;
 }
 

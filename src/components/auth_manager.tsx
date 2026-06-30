@@ -33,14 +33,14 @@ interface AuthProviderProps {
 const AUTH_CHECK_TIMEOUT_MS = 12_000;
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const cachedUser = typeof window !== 'undefined' ? readCachedAuthUser() : null;
-  const [user, setUser] = useState<User | null>(cachedUser);
+  const [user, setUser] = useState<User | null>(null);
   // Always revalidate before rendering route content — cached user is a hint only.
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const checkAuth = async () => {
     setAuthError(null);
+    const cachedUser = typeof window !== 'undefined' ? readCachedAuthUser() : null;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), AUTH_CHECK_TIMEOUT_MS);
 
