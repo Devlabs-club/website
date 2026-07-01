@@ -5,7 +5,8 @@ import { findUserById } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { startSmsVerification, checkSmsVerification, getTwilioVerifyConfig } from '@/lib/twilioVerify';
-import { greetVerifiedBuilder } from '@/lib/messaging/otp';
+import { createBuilderClaimForEmail, startClaimConversation, normalizeClaimPhone } from '@/lib/builderClaim';
+import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 
 export const prerender = false;
 
@@ -90,8 +91,37 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
       if (!approved) return json({ ok: false, error: 'wrong_code' }, 400);
 
-      // Verified: attach the phone and hand off to the iMessage agent.
-      await greetVerifiedBuilder(profile, phone);
+      // Verified. Wire the builder onto the same claim backbone the inbound
+      // iMessage webhook uses, then kick off the real agent conversation.
+      // (Without a claim, the builder's replies hit advanceClaimConversation's
+      // "No active claim found" 404 and the agent never responds.)
+      const claimPhone = normalizeClaimPhone(phone);
+      const builderEmail = profile.email || user.email;
+
+      let claim = await BuilderProfileClaim.findOne({
+        status: { $ne: 'expired' },
+        $or: [{ phone: claimPhone }, { builderId: profile._id }, { builderEmail }],
+      }).sort({ updatedAt: -1 });
+      if (!claim) {
+        claim = (await createBuilderClaimForEmail(builderEmail, runtime)).claim;
+      }
+
+      claim.builderId = claim.builderId || profile._id;
+      claim.builderEmail = claim.builderEmail || builderEmail;
+      claim.phone = claimPhone;
+      claim.phoneVerificationProvider = 'twilio_verify';
+      claim.phoneVerifiedAt = new Date();
+      claim.status = 'phone_verified';
+      await claim.save();
+
+      // Set the builder-home gate.
+      profile.phone = claimPhone;
+      profile.phoneVerifiedAt = new Date();
+      await profile.save();
+
+      // Kick off the iMessage builder agent (it sends the first texts).
+      await startClaimConversation(claim, runtime);
+
       return json({ ok: true });
     }
 
