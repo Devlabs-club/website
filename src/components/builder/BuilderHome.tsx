@@ -34,23 +34,25 @@ export const BuilderHome: React.FC = () => {
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [verified, setVerified] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/builder/profile', { credentials: 'include' });
-        if (res.status === 401) {
-          window.location.href = '/login';
-          return;
-        }
-        const json: ProfileResponse = await res.json();
-        setData(json);
-        setVerified(Boolean(json.phoneVerified));
-      } catch {
-        setData({ success: false, error: 'Could not load your profile.' });
-      } finally {
-        setLoading(false);
+  const loadProfile = async () => {
+    try {
+      const res = await fetch('/api/builder/profile', { credentials: 'include' });
+      if (res.status === 401) {
+        window.location.href = '/login';
+        return;
       }
-    })();
+      const json: ProfileResponse = await res.json();
+      setData(json);
+      setVerified(Boolean(json.phoneVerified));
+    } catch {
+      setData({ success: false, error: 'Could not load your profile.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadProfile();
   }, []);
 
   const profile: BuilderProfileView | null = data?.profile
@@ -79,13 +81,18 @@ export const BuilderHome: React.FC = () => {
           <div className="flex h-60 items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-        ) : !data?.success || !profile ? (
+        ) : !data?.success ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
-            {data?.error || 'No builder profile is linked to this account yet.'}
+            {data?.error || 'Could not load your profile.'}
           </div>
         ) : !verified ? (
           <div className="py-6">
-            <BuilderPhoneVerify defaultPhone={data.phone} onVerified={() => setVerified(true)} />
+            <BuilderPhoneVerify defaultPhone={data.phone} onVerified={loadProfile} />
+          </div>
+        ) : !profile ? (
+          <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">
+            DevLabs texted you in Messages. Reply there and your profile will appear here as the
+            agent builds it.
           </div>
         ) : (
           <>

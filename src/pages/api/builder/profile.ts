@@ -5,6 +5,7 @@ import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/
 import { findUserById } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
+import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 
 function json(body: unknown, status = 200) {
@@ -73,20 +74,25 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   const { user } = await resolveUser(request, locals);
   if (!user) return json({ success: false, error: 'Please log in to continue.' }, 401);
 
+  const userEmail = String(user.email || '').toLowerCase().trim();
   const profile = await BuilderProfile.findOne({
-    $or: [{ userId: user._id }, { email: user.email }],
+    $or: [{ userId: user._id }, { email: userEmail }],
   }).lean() as any;
   const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
+  const claim = await BuilderProfileClaim.findOne({
+    builderEmail: userEmail,
+    status: { $ne: 'expired' },
+  }).sort({ updatedAt: -1 }).lean() as any;
 
   return json({
     success: true,
     basics: {
       name: user.name,
-      email: user.email,
+      email: userEmail,
       avatarUrl: user.avatarUrl || null,
     },
-    phone: profile?.phone || null,
-    phoneVerified: Boolean(profile?.phoneVerifiedAt),
+    phone: profile?.phone || claim?.phone || user.phone || null,
+    phoneVerified: Boolean(profile?.phoneVerifiedAt || claim?.phoneVerifiedAt),
     profile: serializeProfile(profile, projects),
   });
 };

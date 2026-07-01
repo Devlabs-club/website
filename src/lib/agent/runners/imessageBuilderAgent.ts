@@ -271,12 +271,21 @@ async function resolveOrCreateBuilder(claim: any) {
   const byEmail = claim.builderEmail ? await BuilderProfile.findOne({ email: claim.builderEmail }) : null;
   if (byEmail) {
     claim.builderId = byEmail._id;
+    if (claim.phone && (!byEmail.phone || !byEmail.phoneVerifiedAt)) {
+      byEmail.phone = claim.phone;
+      byEmail.phoneVerifiedAt = claim.phoneVerifiedAt || new Date();
+      await byEmail.save();
+    }
     return { builder: byEmail, created: false };
   }
 
   const byPhone = claim.phone ? await BuilderProfile.findOne({ phone: claim.phone }) : null;
   if (byPhone) {
     claim.builderId = byPhone._id;
+    if (!byPhone.phoneVerifiedAt) {
+      byPhone.phoneVerifiedAt = claim.phoneVerifiedAt || new Date();
+      await byPhone.save();
+    }
     return { builder: byPhone, created: false };
   }
 
@@ -285,6 +294,7 @@ async function resolveOrCreateBuilder(claim: any) {
     name,
     email: claim.builderEmail || undefined,
     phone: claim.phone || undefined,
+    phoneVerifiedAt: claim.phoneVerifiedAt || new Date(),
     verificationStatus: 'builder_confirmed',
     visibilityStatus: 'matched_only',
   });

@@ -20,7 +20,7 @@ async function post(body: Record<string, unknown>) {
  */
 export const BuilderPhoneVerify: React.FC<{
   defaultPhone?: string | null;
-  onVerified: () => void;
+  onVerified: () => void | Promise<void>;
 }> = ({ defaultPhone, onVerified }) => {
   const [step, setStep] = useState<'phone' | 'code' | 'done'>('phone');
   const [phone, setPhone] = useState(defaultPhone || '');
@@ -40,9 +40,7 @@ export const BuilderPhoneVerify: React.FC<{
       setError(
         data.error === 'invalid_phone'
           ? "That doesn't look like a valid number."
-          : data.error === 'no_profile'
-            ? 'No builder profile is linked to this account yet.'
-            : 'Could not send the code. Try again.',
+          : 'Could not send the code. Try again.',
       );
     }
   };
@@ -151,9 +149,9 @@ export const BuilderPhoneVerify: React.FC<{
 
       {step === 'done' && (
         <div className="text-center">
-          <h2 className="text-xl font-semibold tracking-tight">You're verified ✅</h2>
+          <h2 className="text-xl font-semibold tracking-tight">You're verified</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            DevLabs just texted you in Messages — open it and say hi 👋
+            DevLabs just texted you in Messages. Open it and say hi.
           </p>
           <a
             href={`sms:${phone}`}

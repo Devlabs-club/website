@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
-import { findUserById } from '@/lib/adminMongo';
+import { findUserById, updateUserAccount } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { startSmsVerification, checkSmsVerification, getTwilioVerifyConfig } from '@/lib/twilioVerify';
@@ -60,10 +60,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const user = await findUserById(decoded.userId, runtime);
   if (!user) return json({ ok: false, error: 'not_authenticated' }, 401);
 
+  const userEmail = String(user.email || '').toLowerCase().trim();
+  if (!userEmail) return json({ ok: false, error: 'missing_email' }, 400);
+
+  // A brand-new builder may have no profile yet — that's fine. Verification
+  // starts a claim and the iMessage agent builds the profile from scratch.
   const profile = await BuilderProfile.findOne({
-    $or: [{ userId: user._id }, { email: user.email }],
+    $or: [{ userId: user._id }, { email: userEmail }],
   });
-  if (!profile) return json({ ok: false, error: 'no_profile' }, 404);
 
   const action = String(body.action || '');
   const phone = normalizePhone(String(body.phone || ''));
@@ -96,17 +100,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       // (Without a claim, the builder's replies hit advanceClaimConversation's
       // "No active claim found" 404 and the agent never responds.)
       const claimPhone = normalizeClaimPhone(phone);
-      const builderEmail = profile.email || user.email;
+      const builderEmail = String(profile?.email || userEmail).toLowerCase().trim();
 
+      const claimOr: Record<string, unknown>[] = [{ phone: claimPhone }, { builderEmail }];
+      if (profile) claimOr.push({ builderId: profile._id });
       let claim = await BuilderProfileClaim.findOne({
         status: { $ne: 'expired' },
-        $or: [{ phone: claimPhone }, { builderId: profile._id }, { builderEmail }],
+        $or: claimOr,
       }).sort({ updatedAt: -1 });
       if (!claim) {
         claim = (await createBuilderClaimForEmail(builderEmail, runtime)).claim;
       }
 
-      claim.builderId = claim.builderId || profile._id;
+      claim.builderId = claim.builderId || profile?._id || null;
       claim.builderEmail = claim.builderEmail || builderEmail;
       claim.phone = claimPhone;
       claim.phoneVerificationProvider = 'twilio_verify';
@@ -114,10 +120,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       claim.status = 'phone_verified';
       await claim.save();
 
-      // Set the builder-home gate.
-      profile.phone = claimPhone;
-      profile.phoneVerifiedAt = new Date();
-      await profile.save();
+      // If a profile already exists, set the builder-home gate on it. For a
+      // brand-new builder the agent creates the profile during the kickoff turn.
+      if (profile) {
+        profile.phone = claimPhone;
+        profile.phoneVerifiedAt = new Date();
+        await profile.save();
+      }
+
+      await updateUserAccount(String(user._id), { phone: claimPhone }, runtime);
 
       // Kick off the iMessage builder agent (it sends the first texts).
       await startClaimConversation(claim, runtime);
