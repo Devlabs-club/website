@@ -283,6 +283,19 @@ async function sendReplies(claim: any, replies: string[], runtime?: RuntimeEnv) 
       runtime
     );
     if (delivery.status === 'sent') anySent = true;
+    else {
+      const reason =
+        delivery.status === 'delivery_failed'
+          ? delivery.error
+          : 'iMessage delivery is not configured.';
+      claim.conversationFailures = claim.conversationFailures || [];
+      claim.conversationFailures.push(`outbound_delivery_failed: ${reason}`);
+      console.warn('[builder-claim] outbound delivery failed', {
+        claimId: String(claim._id),
+        status: delivery.status,
+        reason,
+      });
+    }
     lastDelivery = delivery;
     claim.messages.push({
       direction: 'outbound',
