@@ -36,6 +36,7 @@ export const BuilderPhoneVerify: React.FC<{
     uploadToken: string;
     command: string;
     publicUrl: string;
+    messageDelivery?: MessageDelivery | null;
   } | null>(null);
 
   const sendCode = async () => {
@@ -63,7 +64,7 @@ export const BuilderPhoneVerify: React.FC<{
     setBusy(false);
     if (status === 200 && data.ok) {
       if (data.agentWrapped) {
-        setAgentWrapped(data.agentWrapped);
+        setAgentWrapped({ ...data.agentWrapped, messageDelivery: data.messageDelivery || null });
         setStep('trace');
       } else {
         setStep('done');
@@ -88,6 +89,7 @@ export const BuilderPhoneVerify: React.FC<{
         uploadToken={agentWrapped.uploadToken}
         command={agentWrapped.command}
         publicUrl={agentWrapped.publicUrl}
+        messageDelivery={agentWrapped.messageDelivery}
         onComplete={onVerified}
       />
     );

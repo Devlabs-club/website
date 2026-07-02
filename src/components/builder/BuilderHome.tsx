@@ -4,6 +4,7 @@ import { AppTopBar } from '@/components/app/AppTopBar';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
 import BuilderPhoneVerify from './BuilderPhoneVerify';
 import AgentTraceSetup from './AgentTraceSetup';
+import type { MessageDelivery } from './AgentTraceSetup';
 
 type ProfileResponse = {
   success: boolean;
@@ -17,6 +18,7 @@ type ProfileResponse = {
     uploadToken: string;
     command: string;
     publicUrl: string;
+    messageDelivery?: MessageDelivery | null;
   } | null;
   profile?: BuilderProfileView | null;
 };
@@ -120,6 +122,7 @@ export const BuilderHome: React.FC = () => {
               uploadToken={data.agentWrapped.uploadToken}
               command={data.agentWrapped.command}
               publicUrl={data.agentWrapped.publicUrl}
+              messageDelivery={data.agentWrapped.messageDelivery}
               onComplete={async () => {
                 setTraceUploaded(true);
                 await loadProfile();

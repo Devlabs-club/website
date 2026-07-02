@@ -19,9 +19,9 @@ export async function sendBuilderClaimMessage(
   if (!webhookUrl) {
     const blueBubblesResult = await sendViaBlueBubbles(params, runtime);
     if (blueBubblesResult.status === 'sent') return blueBubblesResult;
-    if (blueBubblesResult.status === 'delivery_failed') return blueBubblesResult;
     const localResult = await sendViaLocalMacMessages(params);
     if (localResult.status === 'sent') return localResult;
+    if (blueBubblesResult.status === 'delivery_failed') return blueBubblesResult;
     console.warn('[builder-claim-message] delivery skipped: BlueBubbles or BUILDER_CLAIM_MESSAGE_WEBHOOK_URL is not configured');
     return { status: 'not_configured' };
   }

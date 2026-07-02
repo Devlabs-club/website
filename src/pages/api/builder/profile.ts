@@ -61,6 +61,23 @@ function serializeProfile(profile: any, projects: any[] = []) {
   };
 }
 
+function claimMessageDelivery(claim: any) {
+  if (!claim?.phoneVerifiedAt) return null;
+  const outboundSent = (claim.messages || []).some(
+    (message: any) => message.direction === 'outbound' && message.providerMessageId
+  );
+  if (claim.status === 'conversation_started' || claim.status === 'completed' || outboundSent) {
+    return { status: 'sent' as const };
+  }
+  if ((claim.conversationFailures || []).length > 0) {
+    return {
+      status: 'delivery_failed' as const,
+      error: 'The previous iMessage send attempt failed. You can retry it here.',
+    };
+  }
+  return null;
+}
+
 export const GET: APIRoute = async ({ request, locals, url }) => {
   await connectAdminDB();
 
@@ -109,6 +126,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
           uploadToken,
           command: buildAgentWrappedCommand(uploadToken),
           publicUrl: `/builder/wrapped/${wrappedBuilderId}`,
+          messageDelivery: claimMessageDelivery(claim),
         }
       : null,
     profile: serializeProfile(profile, projects),

@@ -165,7 +165,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await updateUserAccount(String(user._id), { phone: claimPhone }, runtime);
 
       // Kick off the iMessage builder agent (it sends the first texts).
-      await startClaimConversation(claim, runtime);
+      const conversationStart = await startClaimConversation(claim, runtime);
 
       const uploadToken = generateAgentWrappedUploadToken(
         { builderId: String(profile._id), email: builderEmail },
@@ -180,6 +180,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
           command: buildAgentWrappedCommand(uploadToken),
           publicUrl: `/builder/wrapped/${String(profile._id)}`,
         },
+        messageDelivery: conversationStart.delivery,
       });
     }
 

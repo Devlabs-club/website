@@ -1,11 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clipboard, Loader2, RefreshCw, Terminal } from 'lucide-react';
 
+export type MessageDelivery =
+  | { status: 'sent'; providerMessageId?: string | null }
+  | { status: 'not_configured' }
+  | { status: 'delivery_failed'; error: string };
+
 type AgentTraceSetupProps = {
   builderId: string;
   uploadToken: string;
   command: string;
   publicUrl: string;
+  messageDelivery?: MessageDelivery | null;
   onComplete: () => void | Promise<void>;
 };
 
@@ -24,10 +30,13 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
   uploadToken,
   command,
   publicUrl,
+  messageDelivery,
   onComplete,
 }) => {
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [startingMessage, setStartingMessage] = useState(false);
+  const [delivery, setDelivery] = useState<MessageDelivery | null>(messageDelivery || null);
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState('');
 
@@ -71,6 +80,27 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
     }
   };
 
+  const retryMessage = async () => {
+    setStartingMessage(true);
+    setError('');
+    try {
+      const res = await fetch('/api/builder/message/start', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await readJson(res);
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Could not start the iMessage agent.');
+      setDelivery(data.delivery || null);
+      if (data.delivery?.status !== 'sent') {
+        setError('The iMessage agent still could not send. Check iMessage/BlueBubbles configuration.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start the iMessage agent.');
+    } finally {
+      setStartingMessage(false);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
       <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#fa7d22]/25 bg-[#fa7d22]/10 text-[#fa7d22]">
@@ -84,6 +114,32 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
         Claude Code, Codex, Cursor, and exported session summaries, then uploads only safe aggregated
         metrics after you approve the preview.
       </p>
+
+      <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">iMessage agent</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {delivery?.status === 'sent'
+                ? 'The DevLabs agent texted you. Continue the profile conversation in Messages while traces run here.'
+                : delivery?.status === 'delivery_failed'
+                  ? `The agent did not send automatically: ${delivery.error}`
+                  : 'The agent has not been confirmed as sent yet.'}
+            </p>
+          </div>
+          {delivery?.status !== 'sent' && (
+            <button
+              type="button"
+              onClick={() => void retryMessage()}
+              disabled={startingMessage}
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              {startingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Start iMessage agent
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="mt-5 rounded-2xl border border-border bg-background p-3">
         <div className="mb-2 flex items-center justify-between gap-3">
