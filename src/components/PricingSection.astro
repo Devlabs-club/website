@@ -1,0 +1,485 @@
+---
+const plans = [
+  {
+    eyebrow: "GET STARTED",
+    title: "Explore the talent pool",
+    description: "Before you commit. No credit card required.",
+    price: "Forever free",
+    note: "",
+    included: [
+      "3 job roles per month",
+      "5 builder profiles per role",
+      "GitHub, LinkedIn & project portfolios",
+      "Agent traces from Claude Code, Codex & more",
+      "Builder outreach & introductions",
+    ],
+    cta: "Try for free",
+    // Product signup temporarily disabled — redirecting to booking call.
+    // href: "/auth/signup",
+    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    variant: "neutral",
+  },
+  {
+    eyebrow: "MOST POPULAR",
+    title: "Growth",
+    description:
+      "For startups actively hiring. More profiles, full signal, no gatekeeping.",
+    price: "$20/mo",
+    note: "Billed monthly - cancel anytime",
+    included: [
+      "5-7 job roles per month",
+      "20 builder profiles per role",
+      "GitHub, LinkedIn & project portfolios",
+      "Full agent traces - Claude Code, Codex & more",
+      "Builder outreach & introductions",
+    ],
+    cta: "Get started",
+    // Product signup temporarily disabled — redirecting to booking call.
+    // href: "/auth/signup",
+    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    variant: "featured",
+  },
+  {
+    eyebrow: "END-TO-END HIRING",
+    title: "Custom",
+    description:
+      "DevLabs manages the entire process - from search to signed offer.",
+    price: "$499 deposit",
+    note: "Success-based pricing on hire",
+    included: [
+      "Everything in Growth",
+      "Warm introductions to matched builders",
+      "End-to-end hiring support by DevLabs",
+      "Unlimited roles & profiles",
+      "Dedicated DevLabs point of contact",
+    ],
+    cta: "Book a call",
+    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    variant: "premium",
+  },
+];
+
+const customPricingSteps = [
+  ["Upfront deposit", "$499"],
+  ["On successful hire", "50% of first month's salary"],
+  ["Deposit on hire", "Credited back in full"],
+  ["If no hire", "Deposit is non-refundable"],
+];
+---
+
+<section id="pricing" class="pricing-section relative isolate overflow-visible bg-[#fbf6f3] px-5 pb-20 pt-20 text-black sm:px-8 sm:pb-28 sm:pt-28 lg:px-10">
+  <div class="pricing-side pricing-side-left" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <div class="pricing-side pricing-side-right" aria-hidden="true">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <div class="pricing-glow" aria-hidden="true"></div>
+
+  <div class="relative z-10 mx-auto max-w-[72rem]">
+    <div class="mx-auto max-w-[760px] text-center">
+      <div class="inline-flex items-center gap-2 border border-black/10 bg-[#fffaf7]/86 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#bf4f08] shadow-[0_12px_34px_rgba(5,5,5,0.04)]">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#ff7417]"></span>
+        DevLabs Pricing
+      </div>
+      <h2 class="mx-auto mt-6 max-w-[760px] text-[clamp(2.35rem,5.2vw,4.15rem)] font-extrabold leading-[1.03] tracking-[-0.045em] text-black">
+        Hire builders without the recruiting chaos.
+      </h2>
+      <p class="mx-auto mt-5 max-w-2xl text-[clamp(0.98rem,1.25vw,1.12rem)] font-medium leading-relaxed text-black/58">
+        Explore DevLabs' proof-backed talent pool, review real builder signals, and start conversations before you commit.
+      </p>
+      <div class="mx-auto mt-8 inline-flex border border-black/10 bg-[#fffaf7]/86 p-1 shadow-[0_12px_34px_rgba(5,5,5,0.04)]">
+        <span class="bg-[#181411] px-5 py-2 text-sm font-bold text-white">Monthly</span>
+        <span class="px-5 py-2 text-sm font-semibold text-black/42">Yearly</span>
+      </div>
+      <p class="mt-3 text-sm font-semibold text-black/34">Simple plans for startups hiring builders</p>
+    </div>
+
+    <div class="pricing-card-grid mx-auto mt-[4.5rem] grid max-w-[66rem] gap-4 lg:grid-cols-3 lg:items-stretch xl:gap-5">
+      {plans.map((plan) => {
+        const featured = plan.variant === "featured";
+        const premium = plan.variant === "premium";
+
+        return (
+          <article
+            class:list={[
+              "pricing-card relative flex min-h-[35rem] flex-col overflow-hidden border bg-[#fffaf7]/92 p-6 shadow-[0_18px_55px_rgba(5,5,5,0.055)] transition duration-300 hover:-translate-y-1 sm:p-7 lg:min-h-[36rem] lg:p-7",
+              featured
+                ? "pricing-card-featured border-[#ff7417] shadow-[0_20px_60px_rgba(255,116,23,0.14)] lg:-mt-3"
+                : "border-black/10",
+              premium ? "pricing-card-premium" : "",
+            ]}
+          >
+            {featured ? (
+              <div class="absolute inset-x-0 top-0 overflow-hidden">
+                <div class="flex h-10 items-center justify-center gap-2 bg-[#ff7417] px-4 text-xs font-bold uppercase tracking-[0.14em] text-white">
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M13.5 2.1c.28 2.48 1.15 4.07 2.6 4.78 1.5.74 2.63 1.68 3.39 2.83.76 1.14 1.14 2.44 1.14 3.89 0 2.18-.78 4.02-2.35 5.51-1.57 1.5-3.66 2.25-6.28 2.25-2.64 0-4.76-.74-6.36-2.22-1.6-1.48-2.4-3.35-2.4-5.62 0-1.63.45-3.13 1.36-4.49.9-1.36 2.2-2.54 3.89-3.55-.2 1.71.07 3.01.8 3.9.74.89 1.8 1.34 3.18 1.34-.65-1.02-.92-2.21-.82-3.57.1-1.36.72-3.04 1.85-5.05Z"></path>
+                  </svg>
+                  {plan.eyebrow}
+                </div>
+              </div>
+            ) : null}
+
+            <div class:list={["flex flex-1 flex-col", featured ? "pt-10" : ""]}>
+              <div class="min-h-[8rem]">
+                {!featured ? (
+                  <p class="text-xs font-bold uppercase tracking-[0.14em] text-black/36">
+                    {plan.eyebrow}
+                  </p>
+                ) : null}
+                <h3 class="mt-3 text-[clamp(1.55rem,2.15vw,2rem)] font-bold leading-[1.08] tracking-[-0.025em] text-black">
+                  {plan.title}
+                </h3>
+                <p class="mt-3 max-w-sm text-sm font-medium leading-relaxed text-black/54">
+                  {plan.description}
+                </p>
+              </div>
+
+              <div class="mt-6 border-y border-black/8 py-5">
+                <p class="text-[clamp(2rem,3vw,2.65rem)] font-bold leading-none tracking-[-0.045em] text-black">
+                  {plan.price}
+                </p>
+                {plan.note ? (
+                  <p class="mt-2 text-xs font-semibold text-black/42">{plan.note}</p>
+                ) : (
+                  <p class="mt-2 text-xs font-semibold text-black/42">Start with real builder signal</p>
+                )}
+              </div>
+
+              <div class="mt-6">
+                <p class="text-xs font-bold uppercase tracking-[0.14em] text-black/36">
+                  What's included
+                </p>
+                <ul class="mt-4 grid gap-3">
+                  {plan.included.map((item) => (
+                    <li class="flex gap-2.5 text-sm font-medium leading-relaxed text-black/64">
+                      <span class="mt-0.5 grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#fff1e8] text-[#bf4f08] ring-1 ring-[#ff7417]/20">
+                        <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M20 6 9 17l-5-5"></path>
+                        </svg>
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div class="mt-auto pt-7">
+                <a
+                  href={plan.href}
+                  class:list={[
+                    "group inline-flex h-11 w-full items-center justify-center gap-2.5 border px-5 text-sm font-extrabold transition hover:-translate-y-0.5",
+                    featured
+                      ? "border-[#ff7417] bg-[#ff7417] text-white shadow-[0_14px_34px_rgba(255,116,23,0.22)] hover:border-black hover:bg-black"
+                      : premium
+                        ? "border-[#181411] bg-[#181411] text-white hover:border-[#ff7417] hover:bg-[#ff7417]"
+                        : "border-black/10 bg-[#f3efeb] text-black hover:border-[#181411] hover:bg-[#181411] hover:text-white",
+                  ]}
+                >
+                  {plan.cta}
+                  <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14"></path>
+                    <path d="m12 5 7 7-7 7"></path>
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+
+    <div class="custom-pricing-panel mx-auto mt-5 max-w-[66rem] overflow-hidden border border-black/10 bg-[#181411] text-white shadow-[0_24px_70px_rgba(5,5,5,0.16)] lg:mt-6">
+      <div class="grid lg:grid-cols-[0.88fr_1.12fr]">
+        <div class="relative flex flex-col justify-between border-b border-white/10 p-6 sm:p-7 lg:border-b-0 lg:border-r lg:p-8">
+          <div>
+            <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-white/42">
+              Custom hiring ledger
+            </p>
+            <h3 class="mt-4 max-w-lg text-[clamp(1.75rem,3vw,2.75rem)] font-black leading-[0.96] tracking-[-0.045em] text-white">
+              We only win when you do.
+            </h3>
+            <p class="mt-5 max-w-lg text-sm font-medium leading-relaxed text-white/62">
+              The Custom plan is built around a single idea: DevLabs is accountable for the outcome, not just the search.
+            </p>
+          </div>
+          <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="group mt-7 inline-flex h-11 w-fit items-center gap-3 border border-[#ff7417] bg-[#ff7417] px-5 text-sm font-extrabold text-white transition hover:border-white hover:bg-white hover:text-[#181411]">
+            Book a call
+            <span class="transition group-hover:translate-x-1">-&gt;</span>
+          </a>
+        </div>
+
+        <div class="bg-[#fffaf7] text-black">
+          <div class="grid sm:grid-cols-2">
+            {customPricingSteps.map(([label, value], index) => (
+              <div class="custom-pricing-cell border-b border-black/10 p-5 sm:p-6">
+                <div class="flex items-center gap-3">
+                  <span class="grid h-7 w-7 shrink-0 place-items-center border border-[#ff7417]/35 bg-[#fff1e8] text-xs font-black text-[#bf4f08]">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-black/42">
+                    {label}
+                  </p>
+                </div>
+                <p class="mt-4 text-[clamp(1.35rem,2.3vw,2.05rem)] font-black leading-[1.03] tracking-[-0.04em] text-black">
+                  {value}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p class="border-t border-black/10 bg-[#fff1e8] p-5 text-sm font-semibold leading-relaxed text-black/60 sm:p-6">
+            The $499 deposit is credited toward your success fee if a hire is made. It covers our team's time in the search process.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .pricing-section {
+    margin-top: clamp(-14rem, -13vw, -9rem);
+    padding-top: clamp(16rem, 18vw, 22rem);
+    background-image:
+      linear-gradient(180deg, #fbf6f3 0%, rgba(251, 246, 243, 0.98) 18%, rgba(255, 250, 245, 0.98) 42%, #fffaf5 78%, #fbf6f3 100%),
+      radial-gradient(ellipse at 50% 27%, rgba(255, 255, 255, 0.82), transparent 42%),
+      radial-gradient(ellipse at 50% 57%, rgba(255, 116, 23, 0.065), transparent 58%);
+  }
+
+  .pricing-section::before {
+    content: "";
+    position: absolute;
+    inset: clamp(-12rem, -10vw, -7rem) 0 auto;
+    z-index: 0;
+    height: clamp(23rem, 27vw, 34rem);
+    background: linear-gradient(180deg, rgba(251, 246, 243, 0) 0%, rgba(251, 246, 243, 0.9) 34%, rgba(251, 246, 243, 0.62) 72%, rgba(251, 246, 243, 0) 100%);
+    pointer-events: none;
+  }
+
+  .pricing-section::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 0;
+    height: clamp(8rem, 12vw, 14rem);
+    background: linear-gradient(180deg, rgba(251, 246, 243, 0) 0%, #fbf6f3 100%);
+    pointer-events: none;
+  }
+
+  .pricing-glow {
+    position: absolute;
+    inset: 0 auto auto 50%;
+    width: min(58rem, 58vw);
+    height: 46rem;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.76) 48%, transparent 72%);
+    filter: blur(30px);
+    pointer-events: none;
+  }
+
+  .pricing-side {
+    position: absolute;
+    top: 50%;
+    z-index: 0;
+    width: min(34rem, 26vw);
+    height: min(82rem, calc(100% - 2rem));
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 1;
+    overflow: hidden;
+    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
+  }
+
+  .pricing-side-left {
+    left: max(1rem, calc(50% - 48rem));
+  }
+
+  .pricing-side-right {
+    right: max(1rem, calc(50% - 48rem));
+    transform: translateY(-50%) scaleX(-1);
+  }
+
+  .pricing-side::before {
+    content: "";
+    position: absolute;
+    left: -6rem;
+    top: 14rem;
+    width: 36rem;
+    height: 26rem;
+    border-radius: 999px;
+    background:
+      radial-gradient(ellipse at 28% 58%, rgba(255, 116, 23, 0.24), rgba(255, 196, 132, 0.17) 38%, transparent 74%),
+      radial-gradient(ellipse at 54% 54%, rgba(24, 20, 17, 0.07), rgba(255, 250, 247, 0.06) 44%, transparent 76%);
+    filter: blur(22px);
+  }
+
+  .pricing-side::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -3rem;
+    width: 30rem;
+    height: 38rem;
+    background: linear-gradient(90deg, rgba(255, 232, 214, 0.62), rgba(255, 250, 247, 0.36), transparent);
+    filter: blur(20px);
+  }
+
+  .pricing-side span {
+    position: absolute;
+    display: block;
+    top: 0;
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.66);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, rgba(255, 239, 228, 0.12) 18%, rgba(255, 239, 228, 0.52) 32%, rgba(255, 250, 247, 0.36) 68%, rgba(255, 255, 255, 0) 100%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 116, 23, 0.16), rgba(24, 20, 17, 0.035));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.72),
+      0 24px 90px rgba(255, 116, 23, 0.08);
+    backdrop-filter: blur(10px);
+    filter: blur(0.2px);
+  }
+
+  .pricing-side span:nth-child(1) {
+    left: -2.75rem;
+    top: -7rem;
+    width: 7.5rem;
+    height: 55rem;
+    opacity: 0.82;
+  }
+
+  .pricing-side span:nth-child(2) {
+    left: 3.5rem;
+    top: -4rem;
+    width: 7.25rem;
+    height: 50rem;
+    opacity: 0.72;
+  }
+
+  .pricing-side span:nth-child(3) {
+    left: 9.75rem;
+    top: -1.5rem;
+    width: 7rem;
+    height: 46rem;
+    opacity: 0.58;
+  }
+
+  .pricing-side span:nth-child(4) {
+    left: 15.75rem;
+    top: 2rem;
+    width: 6.75rem;
+    height: 42rem;
+    opacity: 0.45;
+  }
+
+  .pricing-side span:nth-child(5) {
+    left: 21.5rem;
+    top: 5rem;
+    width: 6rem;
+    height: 38rem;
+    opacity: 0.34;
+  }
+
+  .pricing-side span:nth-child(6) {
+    left: 26.75rem;
+    top: 8rem;
+    width: 5.5rem;
+    height: 34rem;
+    opacity: 0.24;
+  }
+
+  .pricing-side span:nth-child(7) {
+    left: 31.25rem;
+    top: 11rem;
+    width: 5rem;
+    height: 30rem;
+    opacity: 0.18;
+  }
+
+  .pricing-card {
+    min-width: 0;
+  }
+
+  .pricing-card-featured::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255, 116, 23, 0.13), transparent 42%),
+      linear-gradient(180deg, rgba(255, 247, 240, 0.9), rgba(255, 250, 247, 0.88));
+    pointer-events: none;
+  }
+
+  .pricing-card-premium::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(24, 20, 17, 0.035), transparent 42%);
+    pointer-events: none;
+  }
+
+  .pricing-card:hover {
+    border-color: rgba(255, 116, 23, 0.36);
+    box-shadow: 0 26px 80px rgba(5, 5, 5, 0.09);
+  }
+
+  .custom-pricing-cell:nth-child(odd) {
+    border-right: 1px solid rgba(5, 5, 5, 0.08);
+  }
+
+  @media (max-width: 1023px) {
+    .pricing-side {
+      opacity: 0.52;
+      width: 22rem;
+      height: min(62rem, calc(100% - 2rem));
+    }
+
+    .pricing-side-left {
+      left: -8rem;
+    }
+
+    .pricing-side-right {
+      right: -8rem;
+    }
+
+    .custom-pricing-cell:nth-child(odd) {
+      border-right: 0;
+    }
+  }
+
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .custom-pricing-cell:nth-child(odd) {
+      border-right: 1px solid rgba(5, 5, 5, 0.08);
+    }
+  }
+
+  @media (max-width: 639px) {
+    .pricing-section {
+      margin-top: -6rem;
+      padding-top: 11rem;
+    }
+
+    .pricing-side,
+    .pricing-glow {
+      display: none;
+    }
+  }
+</style>

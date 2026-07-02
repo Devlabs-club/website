@@ -2,6 +2,12 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import PricingSection from "../components/PricingSection.astro";
+
+// Primary CTA target. Temporarily pointing "Hire now" / "start now" at the
+// booking call instead of the product signup.
+// Original product redirect: "/auth/signup"
+const ctaHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 
 const navLinks = [
   { label: "Sponsor", href: "/sponsor" },
@@ -179,7 +185,7 @@ const testimonials = [
           </a>
         ))}
         <a
-          href="/auth/signup"
+          href={ctaHref}
           class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
         >
           <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
@@ -191,7 +197,7 @@ const testimonials = [
       </nav>
 
       <a
-        href="/auth/signup"
+        href={ctaHref}
         class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden"
       >
         Hire now
@@ -222,7 +228,7 @@ const testimonials = [
       </h1>
 
       <a
-        href="/auth/signup"
+        href={ctaHref}
         data-hero-cta
         class="hero-start-cta group relative z-10 mt-8 inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
       >
@@ -409,8 +415,6 @@ const testimonials = [
     </section>
 
     <section class="metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10">
-      <div class="ruler-rails" aria-hidden="true"></div>
-      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
         <!-- <div class="grid gap-10 border-x border-black/10 px-8 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
@@ -484,7 +488,7 @@ const testimonials = [
           </article>
         </div>
 
-        <div data-fluid-panel class="grid border-x border-b border-black/10 bg-[#fffaf7]/86 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
+        <div data-fluid-panel class="grid border-x border-black/10 bg-[#fffaf7]/86 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
           <div class="relative overflow-hidden border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
             <div class="absolute inset-y-0 left-0 w-1 bg-[#ff7417]"></div>
             <p class="max-w-4xl text-[clamp(1.8rem,3.4vw,3.5rem)] font-black leading-[1.02] tracking-[-0.045em] text-black">
@@ -515,13 +519,11 @@ const testimonials = [
       </div>
     </section>
 
-    <section class="agent-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
-      <div class="ruler-rails" aria-hidden="true"></div>
-      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+    <section class="agent-section pricing-flow-before ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div data-fluid-panel class="role-search-panel relative mt-0 min-h-[35rem] overflow-hidden border border-black/10 bg-[#fffaf7]/84 sm:min-h-[39rem] lg:min-h-[42rem]">
-          <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fffaf7] via-[#fffaf7]/82 to-transparent"></div>
+        <div data-fluid-panel class="role-search-panel relative my-16 min-h-[35rem] overflow-hidden sm:my-24 sm:min-h-[39rem] lg:my-28 lg:min-h-[42rem]">
+          <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fbf6f3] via-[#fbf6f3]/82 to-transparent"></div>
           <div class="profile-marquee profile-marquee-one absolute top-16 flex gap-6">
             {[
               ["Isha R.", "96% match", "Stripe Connect · SaaS billing"],
@@ -556,7 +558,7 @@ const testimonials = [
             ))}
           </div>
 
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#fffaf7_0%,#fffaf7_34%,rgba(255,250,247,0.88)_50%,rgba(255,250,247,0.3)_74%,#fffaf7_100%),linear-gradient(90deg,#fffaf7_0%,rgba(255,250,247,0.28)_20%,rgba(255,250,247,0.28)_80%,#fffaf7_100%)]"></div>
+          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#fbf6f3_0%,#fbf6f3_30%,rgba(251,246,243,0.82)_48%,rgba(251,246,243,0.22)_72%,transparent_100%),linear-gradient(90deg,#fbf6f3_0%,rgba(251,246,243,0.18)_22%,rgba(251,246,243,0.18)_78%,#fbf6f3_100%)]"></div>
 
           <div class="role-search-content relative z-10 mx-auto flex min-h-[35rem] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[39rem] sm:px-8 sm:py-20 lg:min-h-[42rem] lg:py-24">
             <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
@@ -758,13 +760,13 @@ const testimonials = [
     </section>
     */}
 
-    <section class="howitworks-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-24 pt-20 text-black sm:px-8 sm:pb-32 sm:pt-28 lg:px-10">
-      <div class="ruler-rails" aria-hidden="true"></div>
-      <div class="section-linework absolute inset-0" aria-hidden="true"></div>
+    <PricingSection />
+
+    <section class="howitworks-section pricing-flow-after ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-24 pt-4 text-black sm:px-8 sm:pb-32 sm:pt-6 lg:px-10">
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div class="grind-panel relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden border border-black/10 bg-[#fffaf7]/84">
-          <div class="grind-content relative z-20 flex min-h-[clamp(22rem,42vw,34rem)] flex-col items-center justify-center overflow-hidden px-4 py-14 text-center sm:px-8 sm:py-20">
+        <div class="grind-panel relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden rounded-[22px] border border-black/10 bg-[#fffaf7]/84 sm:rounded-[34px]">
+          <div class="grind-content relative z-20 flex min-h-[clamp(22rem,42vw,34rem)] flex-col items-center justify-center overflow-hidden rounded-[22px] px-4 py-14 text-center sm:rounded-[34px] sm:px-8 sm:py-20">
             <div class="contrib-wall-backdrop absolute inset-0 z-0 overflow-hidden" data-contrib-wall-backdrop aria-hidden="true"></div>
             <div class="grind-vignette pointer-events-none absolute inset-0 z-10" aria-hidden="true"></div>
             <div class="relative z-20 flex flex-col items-center justify-center">
@@ -970,7 +972,7 @@ const testimonials = [
               <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/82">
                 Tell us who you need and get a proof-backed shortlist of builders who have already shipped — ready to start this week.
               </p>
-              <a href="/auth/signup" class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
+              <a href={ctaHref} class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
                 Hire with proof
                 <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M5 12h14"></path>
@@ -2001,6 +2003,12 @@ const testimonials = [
 
   .ruler-section {
     position: relative;
+    background-image:
+      linear-gradient(to right, rgba(5, 5, 5, 0.032) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center top;
+    background-attachment: fixed;
   }
 
   .ruler-section::before,
@@ -2022,6 +2030,42 @@ const testimonials = [
 
   .ruler-section::after {
     bottom: 0;
+  }
+
+  .pricing-flow-after::before {
+    display: none;
+  }
+
+  .metrics-section::after,
+  .agent-section::before {
+    display: none;
+  }
+
+  .pricing-flow-before::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    right: auto;
+    bottom: clamp(-13rem, -11vw, -8rem);
+    z-index: 1;
+    display: block;
+    width: 100vw;
+    height: clamp(16rem, 18vw, 24rem);
+    transform: translateX(-50%);
+    background:
+      linear-gradient(180deg, rgba(251, 246, 243, 0) 0%, rgba(251, 246, 243, 0.94) 28%, rgba(251, 246, 243, 0.88) 56%, rgba(251, 246, 243, 0) 100%),
+      radial-gradient(ellipse at 12% 70%, rgba(255, 232, 214, 0.34), transparent 46%),
+      radial-gradient(ellipse at 88% 70%, rgba(255, 232, 214, 0.34), transparent 46%);
+    pointer-events: none;
+  }
+
+  .pricing-flow-before {
+    z-index: 2;
+    overflow: visible;
+  }
+
+  .pricing-flow-before .founder-agent-story {
+    z-index: 3;
   }
 
   .ruler-rails {
@@ -2778,6 +2822,21 @@ const testimonials = [
     .hiw-rec { animation: none; }
   }
 
+  .role-search-panel {
+    -webkit-mask-image: radial-gradient(
+      125% 125% at 50% 50%,
+      #000 58%,
+      rgba(0, 0, 0, 0.35) 84%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(
+      125% 125% at 50% 50%,
+      #000 58%,
+      rgba(0, 0, 0, 0.35) 84%,
+      transparent 100%
+    );
+  }
+
   .profile-marquee {
     left: 0;
     width: max-content;
@@ -2874,6 +2933,18 @@ const testimonials = [
     --rows: 7;
     overflow: hidden;
     padding: var(--wall-gap);
+    -webkit-mask-image: radial-gradient(
+      ellipse 76% 78% at 50% 50%,
+      #000 21%,
+      rgba(0, 0, 0, 0.42) 55%,
+      rgba(0, 0, 0, 0) 91%
+    );
+    mask-image: radial-gradient(
+      ellipse 76% 78% at 50% 50%,
+      #000 21%,
+      rgba(0, 0, 0, 0.42) 55%,
+      rgba(0, 0, 0, 0) 91%
+    );
   }
 
   :global(.contrib-wall-segment) {
