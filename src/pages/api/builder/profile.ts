@@ -7,6 +7,7 @@ import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
+import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -71,7 +72,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     return json({ success: Boolean(profile), profile: serializeProfile(profile, projects) });
   }
 
-  const { user } = await resolveUser(request, locals);
+  const { user, runtime } = await resolveUser(request, locals);
   if (!user) return json({ success: false, error: 'Please log in to continue.' }, 401);
 
   const userEmail = String(user.email || '').toLowerCase().trim();
@@ -83,6 +84,14 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     builderEmail: userEmail,
     status: { $ne: 'expired' },
   }).sort({ updatedAt: -1 }).lean() as any;
+  const wrappedBuilderId = profile?._id ? String(profile._id) : claim?.builderId ? String(claim.builderId) : null;
+  const wrappedEmail = String(profile?.email || claim?.builderEmail || userEmail).toLowerCase().trim();
+  const phoneVerified = Boolean(profile?.phoneVerifiedAt || claim?.phoneVerifiedAt);
+  const phoneVerificationPending = !phoneVerified && claim?.status === 'phone_pending' && Boolean(claim?.phone);
+  const uploadToken =
+    wrappedBuilderId && phoneVerified
+      ? generateAgentWrappedUploadToken({ builderId: wrappedBuilderId, email: wrappedEmail }, runtime)
+      : null;
 
   return json({
     success: true,
@@ -92,7 +101,16 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       avatarUrl: user.avatarUrl || null,
     },
     phone: profile?.phone || claim?.phone || user.phone || null,
-    phoneVerified: Boolean(profile?.phoneVerifiedAt || claim?.phoneVerifiedAt),
+    phoneVerified,
+    phoneVerificationPending,
+    agentWrapped: uploadToken
+      ? {
+          builderId: wrappedBuilderId,
+          uploadToken,
+          command: buildAgentWrappedCommand(uploadToken),
+          publicUrl: `/builder/wrapped/${wrappedBuilderId}`,
+        }
+      : null,
     profile: serializeProfile(profile, projects),
   });
 };

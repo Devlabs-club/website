@@ -7,6 +7,7 @@ import BuilderProfile from '@/models/talent/BuilderProfile';
 import { startSmsVerification, checkSmsVerification, getTwilioVerifyConfig } from '@/lib/twilioVerify';
 import { createBuilderClaimForEmail, startClaimConversation, normalizeClaimPhone } from '@/lib/builderClaim';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
+import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
 
 export const prerender = false;
 
@@ -65,7 +66,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // A brand-new builder may have no profile yet — that's fine. Verification
   // starts a claim and the iMessage agent builds the profile from scratch.
-  const profile = await BuilderProfile.findOne({
+  let profile = await BuilderProfile.findOne({
     $or: [{ userId: user._id }, { email: userEmail }],
   });
 
@@ -75,7 +76,29 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     if (action === 'start') {
-      await startSmsVerification(phone, runtime);
+      const verification = await startSmsVerification(phone, runtime);
+      const claimPhone = normalizeClaimPhone(phone);
+      const builderEmail = String(profile?.email || userEmail).toLowerCase().trim();
+      const claimOr: Record<string, unknown>[] = [{ builderEmail }];
+      if (profile) claimOr.push({ builderId: profile._id });
+      let claim = await BuilderProfileClaim.findOne({
+        status: { $ne: 'expired' },
+        $or: claimOr,
+      }).sort({ updatedAt: -1 });
+      if (!claim) {
+        claim = (await createBuilderClaimForEmail(builderEmail, runtime)).claim;
+      }
+
+      claim.builderId = claim.builderId || profile?._id || null;
+      claim.builderEmail = claim.builderEmail || builderEmail;
+      claim.phone = claimPhone;
+      claim.phoneVerificationProvider = 'twilio_verify';
+      claim.phoneVerificationSid = verification.sid;
+      claim.phoneVerificationStatus = verification.status;
+      claim.phoneVerificationAttempts = 0;
+      claim.phoneVerifiedAt = null;
+      claim.status = 'phone_pending';
+      await claim.save();
       return json({ ok: true });
     }
 
@@ -120,20 +143,44 @@ export const POST: APIRoute = async ({ request, locals }) => {
       claim.status = 'phone_verified';
       await claim.save();
 
-      // If a profile already exists, set the builder-home gate on it. For a
-      // brand-new builder the agent creates the profile during the kickoff turn.
-      if (profile) {
+      if (!profile) {
+        profile = await BuilderProfile.create({
+          userId: user._id,
+          name: user.name || userEmail.split('@')[0] || 'DevLabs Builder',
+          email: userEmail,
+          phone: claimPhone,
+          phoneVerifiedAt: new Date(),
+          visibilityStatus: 'matched_only',
+          verificationStatus: 'builder_confirmed',
+        });
+      } else {
         profile.phone = claimPhone;
         profile.phoneVerifiedAt = new Date();
         await profile.save();
       }
+
+      claim.builderId = claim.builderId || profile._id;
+      await claim.save();
 
       await updateUserAccount(String(user._id), { phone: claimPhone }, runtime);
 
       // Kick off the iMessage builder agent (it sends the first texts).
       await startClaimConversation(claim, runtime);
 
-      return json({ ok: true });
+      const uploadToken = generateAgentWrappedUploadToken(
+        { builderId: String(profile._id), email: builderEmail },
+        runtime
+      );
+
+      return json({
+        ok: true,
+        agentWrapped: {
+          builderId: String(profile._id),
+          uploadToken,
+          command: buildAgentWrappedCommand(uploadToken),
+          publicUrl: `/builder/wrapped/${String(profile._id)}`,
+        },
+      });
     }
 
     return json({ ok: false, error: 'bad_action' }, 400);

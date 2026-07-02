@@ -6,6 +6,7 @@ import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import { sendBuilderClaimMessage } from '@/lib/builderClaimMessaging';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import { checkSmsVerification, startSmsVerification } from '@/lib/twilioVerify';
+import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
 
 const CLAIM_TTL_DAYS = 14;
 const OTP_MAX_ATTEMPTS = 5;
@@ -109,13 +110,19 @@ export async function findClaimByRawToken(rawToken: string) {
   return claim;
 }
 
-export async function serializeClaim(claim: any) {
-  const builder = claim.builderId
+export async function serializeClaim(claim: any, runtime?: RuntimeEnv) {
+  const builder: any = claim.builderId
     ? await BuilderProfile.findById(claim.builderId).select('name headline email links verificationStatus').lean()
     : await BuilderProfile.findOne({ email: claim.builderEmail }).select('name headline email links verificationStatus').lean();
+  const builderId = claim.builderId ? String(claim.builderId) : builder?._id ? String(builder._id) : null;
+  const uploadToken =
+    builderId && claim.phoneVerifiedAt
+      ? generateAgentWrappedUploadToken({ builderId, email: claim.builderEmail }, runtime)
+      : null;
 
   return {
     id: String(claim._id),
+    builderId,
     builderEmail: claim.builderEmail,
     builderName: builder?.name || claim.metadata?.builderName || 'Builder',
     headline: builder?.headline || null,
@@ -123,6 +130,14 @@ export async function serializeClaim(claim: any) {
     phone: claim.phone || null,
     phoneVerifiedAt: claim.phoneVerifiedAt ? new Date(claim.phoneVerifiedAt).toISOString() : null,
     expiresAt: claim.expiresAt ? new Date(claim.expiresAt).toISOString() : null,
+    agentWrapped: uploadToken
+      ? {
+          builderId,
+          uploadToken,
+          command: buildAgentWrappedCommand(uploadToken),
+          publicUrl: `/builder/wrapped/${builderId}`,
+        }
+      : null,
   };
 }
 
@@ -204,9 +219,30 @@ export async function verifyClaimPhone(rawToken: string, codeInput: string, runt
           ...(user?._id ? { userId: user._id } : {}),
           phone: claim.phone,
           email: claim.builderEmail,
+          phoneVerifiedAt: claim.phoneVerifiedAt,
         },
       }
     );
+  } else {
+    const existing = await BuilderProfile.findOne({ email: claim.builderEmail });
+    if (existing) {
+      existing.phone = claim.phone;
+      existing.phoneVerifiedAt = claim.phoneVerifiedAt;
+      if (user?._id) existing.userId = user._id;
+      await existing.save();
+      claim.builderId = existing._id;
+    } else {
+      const created = await BuilderProfile.create({
+        ...(user?._id ? { userId: user._id } : {}),
+        name: claim.metadata?.builderName || claim.builderEmail.split('@')[0] || 'DevLabs Builder',
+        email: claim.builderEmail,
+        phone: claim.phone,
+        phoneVerifiedAt: claim.phoneVerifiedAt,
+        visibilityStatus: 'matched_only',
+        verificationStatus: 'builder_confirmed',
+      });
+      claim.builderId = created._id;
+    }
   }
 
   await claim.save();

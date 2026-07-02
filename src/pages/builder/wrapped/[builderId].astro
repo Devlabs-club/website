@@ -1,0 +1,10 @@
+---
+import AppLayout from "../../../layouts/AppLayout.astro";
+import AgentWrappedPage from "../../../components/builder/AgentWrappedPage";
+
+const builderId = Astro.params.builderId || "";
+---
+
+<AppLayout title="Agent Wrapped · DevLabs" description="DevLabs Agent Wrapped proof-of-work card.">
+  <AgentWrappedPage builderId={builderId} client:load />
+</AppLayout>

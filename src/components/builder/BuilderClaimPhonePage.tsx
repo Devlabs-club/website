@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import { CheckCircle2, Loader2, MessageCircle, ShieldCheck } from "lucide-react";
+import AgentTraceSetup from "./AgentTraceSetup";
 
 type ClaimView = {
+  builderId?: string | null;
   builderEmail: string;
   builderName: string;
   headline?: string | null;
   status: string;
   phone?: string | null;
+  agentWrapped?: {
+    builderId: string;
+    uploadToken: string;
+    command: string;
+    publicUrl: string;
+  } | null;
 };
 
-type Step = "loading" | "phone" | "code" | "messages" | "error";
+type Step = "loading" | "phone" | "code" | "traces" | "messages" | "error";
 
 const inputClass =
   "h-12 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40";
@@ -46,7 +54,7 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
         const data = await readJsonResponse(res);
         if (!res.ok || !data.success) throw new Error(data.error || "Claim link is invalid.");
         setClaim(data.claim);
-        if (isMessageStepStatus(data.claim.status)) setStep("messages");
+        if (isMessageStepStatus(data.claim.status)) setStep(data.claim.agentWrapped ? "traces" : "messages");
         else setStep(data.claim.phone ? "code" : "phone");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Claim link is invalid.");
@@ -98,12 +106,12 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
       setClaim(data.claim);
       setNotice(
         data.delivery?.status === "not_configured"
-          ? "Phone verified. Message delivery is not configured yet, so DevLabs could not start the Messages interview automatically."
+          ? "Phone verified. Run Agent Wrapped locally to unlock your profile."
           : data.delivery?.status === "delivery_failed"
-            ? `Phone verified. DevLabs could not start the Messages interview automatically: ${data.delivery.error}`
-          : "Phone verified. DevLabs sent you a message to continue the claim."
+            ? `Phone verified. Run Agent Wrapped locally to unlock your profile. Messages delivery also reported: ${data.delivery.error}`
+          : "Phone verified. Run Agent Wrapped locally to unlock your profile."
       );
-      setStep("messages");
+      setStep(data.claim?.agentWrapped ? "traces" : "messages");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify the code.");
     } finally {
@@ -135,6 +143,23 @@ export const BuilderClaimPhonePage: React.FC<{ token: string }> = ({ token }) =>
       setBusy(false);
     }
   };
+
+  if (step === "traces" && claim?.agentWrapped) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <AppTopBar />
+        <main className="mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-2xl items-center px-4 py-10">
+          <AgentTraceSetup
+            builderId={claim.agentWrapped.builderId}
+            uploadToken={claim.agentWrapped.uploadToken}
+            command={claim.agentWrapped.command}
+            publicUrl={claim.agentWrapped.publicUrl}
+            onComplete={() => setStep("messages")}
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { AppTopBar } from '@/components/app/AppTopBar';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
 import BuilderPhoneVerify from './BuilderPhoneVerify';
+import AgentTraceSetup from './AgentTraceSetup';
 
 type ProfileResponse = {
   success: boolean;
@@ -10,6 +11,13 @@ type ProfileResponse = {
   basics?: { name?: string; email?: string | null; avatarUrl?: string | null };
   phone?: string | null;
   phoneVerified?: boolean;
+  phoneVerificationPending?: boolean;
+  agentWrapped?: {
+    builderId: string;
+    uploadToken: string;
+    command: string;
+    publicUrl: string;
+  } | null;
   profile?: BuilderProfileView | null;
 };
 
@@ -33,6 +41,7 @@ export const BuilderHome: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [verified, setVerified] = useState(false);
+  const [traceUploaded, setTraceUploaded] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -44,6 +53,17 @@ export const BuilderHome: React.FC = () => {
       const json: ProfileResponse = await res.json();
       setData(json);
       setVerified(Boolean(json.phoneVerified));
+      if (json.phoneVerified && json.agentWrapped?.builderId && json.agentWrapped?.uploadToken) {
+        const params = new URLSearchParams({
+          builderId: json.agentWrapped.builderId,
+          token: json.agentWrapped.uploadToken,
+        });
+        const statusRes = await fetch(`/api/builder/wrapped/status?${params.toString()}`, { credentials: 'include' });
+        const status = await statusRes.json().catch(() => ({}));
+        setTraceUploaded(Boolean(status.ok && status.uploaded));
+      } else {
+        setTraceUploaded(false);
+      }
     } catch {
       setData({ success: false, error: 'Could not load your profile.' });
     } finally {
@@ -87,7 +107,24 @@ export const BuilderHome: React.FC = () => {
           </div>
         ) : !verified ? (
           <div className="py-6">
-            <BuilderPhoneVerify defaultPhone={data.phone} onVerified={loadProfile} />
+            <BuilderPhoneVerify
+              defaultPhone={data.phone}
+              phoneVerificationPending={Boolean(data.phoneVerificationPending)}
+              onVerified={loadProfile}
+            />
+          </div>
+        ) : data.agentWrapped && !traceUploaded ? (
+          <div className="py-6">
+            <AgentTraceSetup
+              builderId={data.agentWrapped.builderId}
+              uploadToken={data.agentWrapped.uploadToken}
+              command={data.agentWrapped.command}
+              publicUrl={data.agentWrapped.publicUrl}
+              onComplete={async () => {
+                setTraceUploaded(true);
+                await loadProfile();
+              }}
+            />
           </div>
         ) : !profile ? (
           <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">

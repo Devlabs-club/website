@@ -12,12 +12,13 @@ function json(body: unknown, status = 200) {
 
 export const POST: APIRoute = async ({ params, locals }) => {
   const token = params.token || '';
+  const runtime = runtimeEnvFromLocals(locals);
   await connectAdminDB();
-  const result = await requestClaimConversationStart(token, runtimeEnvFromLocals(locals));
+  const result = await requestClaimConversationStart(token, runtime);
   if ('error' in result) return json({ success: false, error: result.error }, result.status);
   return json({
     success: true,
-    claim: await serializeClaim(result.claim),
+    claim: await serializeClaim(result.claim, runtime),
     delivery: result.delivery,
   });
 };

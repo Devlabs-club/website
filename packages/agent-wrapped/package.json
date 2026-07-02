@@ -1,0 +1,22 @@
+{
+  "name": "devlabs-talent",
+  "version": "0.1.0",
+  "description": "Generate safe DevLabs Agent Wrapped reports from builder-level AI agent usage.",
+  "type": "module",
+  "bin": {
+    "agent-wrapped": "bin/agent-wrapped.js",
+    "devlabs-agent-wrapped": "bin/agent-wrapped.js",
+    "devlabs-talent": "bin/agent-wrapped.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "analyze": "node ./bin/agent-wrapped.js analyze"
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import AgentTraceSetup from './AgentTraceSetup';
 
 const ORANGE = '#fa7d22';
 
@@ -20,13 +21,22 @@ async function post(body: Record<string, unknown>) {
  */
 export const BuilderPhoneVerify: React.FC<{
   defaultPhone?: string | null;
+  phoneVerificationPending?: boolean;
   onVerified: () => void | Promise<void>;
-}> = ({ defaultPhone, onVerified }) => {
-  const [step, setStep] = useState<'phone' | 'code' | 'done'>('phone');
+}> = ({ defaultPhone, phoneVerificationPending = false, onVerified }) => {
+  const [step, setStep] = useState<'phone' | 'code' | 'trace' | 'done'>(
+    phoneVerificationPending && defaultPhone ? 'code' : 'phone'
+  );
   const [phone, setPhone] = useState(defaultPhone || '');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [agentWrapped, setAgentWrapped] = useState<{
+    builderId: string;
+    uploadToken: string;
+    command: string;
+    publicUrl: string;
+  } | null>(null);
 
   const sendCode = async () => {
     setError(null);
@@ -52,7 +62,12 @@ export const BuilderPhoneVerify: React.FC<{
     const { status, data } = await post({ action: 'confirm', phone: phone.trim(), code: code.trim() });
     setBusy(false);
     if (status === 200 && data.ok) {
-      setStep('done');
+      if (data.agentWrapped) {
+        setAgentWrapped(data.agentWrapped);
+        setStep('trace');
+      } else {
+        setStep('done');
+      }
     } else {
       setError(
         data.error === 'wrong_code'
@@ -65,6 +80,18 @@ export const BuilderPhoneVerify: React.FC<{
       );
     }
   };
+
+  if (step === 'trace' && agentWrapped) {
+    return (
+      <AgentTraceSetup
+        builderId={agentWrapped.builderId}
+        uploadToken={agentWrapped.uploadToken}
+        command={agentWrapped.command}
+        publicUrl={agentWrapped.publicUrl}
+        onComplete={onVerified}
+      />
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border border-border bg-card p-6 sm:p-8">
