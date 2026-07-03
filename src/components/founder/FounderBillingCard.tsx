@@ -180,36 +180,36 @@ export const FounderBillingCard: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="w-full rounded-2xl border border-border bg-card p-6">
-        <div className="flex h-24 items-center justify-center text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin" />
+      <section className="founder-dark-panel w-full rounded-2xl p-6">
+        <div className="flex h-24 items-center justify-center text-white/45">
+          <Loader2 className="h-5 w-5 animate-spin text-[#fa7d22]" />
         </div>
       </section>
     );
   }
 
   return (
-    <section className="w-full rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <section className="founder-dark-panel w-full rounded-2xl p-5 sm:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+          <h2 className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-white/38">
             <CreditCard className="h-4 w-4" /> Plan &amp; billing
           </h2>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-lg font-semibold capitalize text-foreground">{currentPlan}</span>
+            <span className="text-lg font-bold capitalize text-white">{currentPlan}</span>
             {statusLabel && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-xs font-bold text-white/48">
                 {statusLabel}
               </span>
             )}
             {summary?.billingInterval && currentPlan === "growth" && (
-              <span className="text-xs text-muted-foreground">· billed {summary.billingInterval}</span>
+              <span className="text-xs text-white/45">* billed {summary.billingInterval}</span>
             )}
           </div>
           {summary?.cancelAtPeriodEnd && renewsOn ? (
             <p className="mt-1 text-xs text-amber-600">Cancels on {renewsOn}</p>
           ) : renewsOn && currentPlan === "growth" ? (
-            <p className="mt-1 text-xs text-muted-foreground">Renews {renewsOn}</p>
+            <p className="mt-1 text-xs text-white/45">Renews {renewsOn}</p>
           ) : null}
         </div>
         {summary?.canManageBilling && (
@@ -217,7 +217,7 @@ export const FounderBillingCard: React.FC = () => {
             type="button"
             onClick={() => void openPortal()}
             disabled={busyAction === "portal"}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-border px-3 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm font-bold text-white transition-colors hover:bg-white/[0.09] disabled:opacity-50"
           >
             {busyAction === "portal" && <Loader2 className="h-4 w-4 animate-spin" />}
             Manage billing
@@ -228,15 +228,15 @@ export const FounderBillingCard: React.FC = () => {
       {/* Roles usage for metered plans */}
       {summary && summary.usage.roleLimit != null && (
         <div className="mt-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs font-semibold text-white/45">
             <span>Roles this month</span>
             <span className="tabular-nums">
               {summary.usage.rolesUsed} / {summary.usage.roleLimit}
             </span>
           </div>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-primary transition-all"
+              className="h-full rounded-full bg-[#fa7d22] transition-all"
               style={{ width: `${usagePct ?? 0}%` }}
             />
           </div>
@@ -248,7 +248,7 @@ export const FounderBillingCard: React.FC = () => {
           className={`mt-4 rounded-xl border px-3 py-2 text-sm ${
             banner.tone === "success"
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
-              : "border-border bg-muted/50 text-muted-foreground"
+              : "border-white/10 bg-white/[0.04] text-white/55"
           }`}
         >
           {banner.text}
@@ -267,37 +267,37 @@ export const FounderBillingCard: React.FC = () => {
             <div
               key={plan.id}
               className={`flex flex-col rounded-xl border p-4 transition-colors ${
-                isCurrent ? "border-primary bg-primary/5" : "border-border"
+                isCurrent ? "border-[#fa7d22]/35 bg-[#fa7d22]/10" : "border-white/10 bg-white/[0.03]"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">{plan.name}</span>
+                <span className="text-sm font-bold text-white">{plan.name}</span>
                 {isCurrent && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[0.65rem] font-semibold text-primary-foreground">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#fa7d22] px-2 py-0.5 text-[0.65rem] font-bold text-black">
                     <Check className="h-3 w-3" /> Current
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-lg font-semibold text-foreground">{price}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{plan.tagline}</p>
+              <p className="mt-1 text-lg font-bold text-white">{price}</p>
+              <p className="mt-0.5 text-xs leading-5 text-white/45">{plan.tagline}</p>
               <ul className="mt-3 space-y-1.5">
                 {plan.highlights.map((h) => (
-                  <li key={h} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
+                  <li key={h} className="flex items-start gap-1.5 text-xs text-white/52">
+                    <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#fa7d22]" />
                     <span>{h}</span>
                   </li>
                 ))}
               </ul>
 
               {plan.id === "growth" && !isCurrent && (
-                <div className="mt-3 inline-flex rounded-lg border border-border p-0.5 text-xs">
+                <div className="mt-3 inline-flex rounded-lg border border-white/10 p-0.5 text-xs">
                   {(["monthly", "yearly"] as Interval[]).map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setSelectedInterval(opt)}
                       className={`rounded-md px-2 py-1 font-medium capitalize transition-colors ${
-                        selectedInterval === opt ? "bg-foreground text-background" : "text-muted-foreground"
+                        selectedInterval === opt ? "bg-white text-black" : "text-white/45"
                       }`}
                     >
                       {opt === "yearly" ? "Yearly · save 17%" : "Monthly"}
@@ -312,14 +312,14 @@ export const FounderBillingCard: React.FC = () => {
         })}
       </div>
 
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+      {error && <p className="mt-3 text-sm font-medium text-red-300">{error}</p>}
     </section>
   );
 
   function renderPlanAction(planId: PlanId, isCurrent: boolean) {
     if (isCurrent) {
       return (
-        <p className="text-center text-xs font-medium text-muted-foreground">You&apos;re on this plan</p>
+        <p className="text-center text-xs font-medium text-white/45">You&apos;re on this plan</p>
       );
     }
 
@@ -334,7 +334,7 @@ export const FounderBillingCard: React.FC = () => {
           type="button"
           onClick={() => void openPortal()}
           disabled={busyAction === "portal"}
-          className="w-full rounded-xl border border-border py-2 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+          className="w-full rounded-xl border border-white/10 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06] disabled:opacity-50"
         >
           {busyAction === "portal" ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Cancel / downgrade"}
         </button>
@@ -347,7 +347,7 @@ export const FounderBillingCard: React.FC = () => {
           type="button"
           onClick={() => void openPortal()}
           disabled={busyAction === "portal"}
-          className="w-full rounded-xl border border-border py-2 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+          className="w-full rounded-xl border border-white/10 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/[0.06] disabled:opacity-50"
         >
           {busyAction === "portal" ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Change plan"}
         </button>
@@ -365,8 +365,8 @@ export const FounderBillingCard: React.FC = () => {
         disabled={busyAction === key}
         className={`inline-flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 ${
           isDowngrade
-            ? "border border-border text-foreground hover:bg-muted"
-            : "bg-primary text-primary-foreground"
+            ? "border border-white/10 text-white hover:bg-white/[0.06]"
+            : "bg-[#fa7d22] text-black hover:bg-[#ff9b4e]"
         }`}
       >
         {busyAction === key ? (
