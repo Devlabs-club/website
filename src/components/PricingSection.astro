@@ -1,6 +1,16 @@
 ---
+const founderHomePath = "/founder/home";
+const checkoutTarget = (plan: "growth" | "custom", interval?: "monthly" | "yearly") => {
+  const params = new URLSearchParams({ checkout_plan: plan });
+  if (interval) params.set("checkout_interval", interval);
+  return `${founderHomePath}?${params.toString()}`;
+};
+const authTarget = (target: string) =>
+  `/auth/signup?redirect=${encodeURIComponent(`/auth/select-role?redirect=${encodeURIComponent(target)}`)}`;
+
 const plans = [
   {
+    id: "free",
     eyebrow: "GET STARTED",
     title: "Explore the talent pool",
     description: "Before you commit. No credit card required.",
@@ -18,12 +28,11 @@ const plans = [
       "Builder outreach & introductions",
     ],
     cta: "Try for free",
-    // Product signup temporarily disabled — redirecting to booking call.
-    // href: "/auth/signup",
-    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    href: authTarget(founderHomePath),
     variant: "neutral",
   },
   {
+    id: "growth",
     eyebrow: "MOST POPULAR",
     title: "Growth",
     description:
@@ -41,12 +50,12 @@ const plans = [
       "Builder outreach & introductions",
     ],
     cta: "Get started",
-    // Product signup temporarily disabled — redirecting to booking call.
-    // href: "/auth/signup",
-    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    checkoutPlan: "growth",
+    href: authTarget(checkoutTarget("growth", "monthly")),
     variant: "featured",
   },
   {
+    id: "custom",
     eyebrow: "END-TO-END HIRING",
     title: "Custom",
     description:
@@ -60,8 +69,9 @@ const plans = [
       "Unlimited roles & profiles",
       "Dedicated DevLabs point of contact",
     ],
-    cta: "Book a call",
-    href: "https://cal.com/geekydan/15min?overlayCalendar=true",
+    cta: "Start with deposit",
+    checkoutPlan: "custom",
+    href: authTarget(checkoutTarget("custom")),
     variant: "premium",
   },
 ];
@@ -224,6 +234,9 @@ const customPricingSteps = [
               <div class="mt-auto pt-7">
                 <a
                   href={plan.href}
+                  data-pricing-checkout={plan.checkoutPlan}
+                  data-auth-target-monthly={plan.checkoutPlan === "growth" ? authTarget(checkoutTarget("growth", "monthly")) : plan.href}
+                  data-auth-target-yearly={plan.checkoutPlan === "growth" ? authTarget(checkoutTarget("growth", "yearly")) : plan.href}
                   class:list={[
                     "group inline-flex h-11 w-full items-center justify-center gap-2.5 border px-5 text-sm font-extrabold transition hover:-translate-y-0.5",
                     featured
@@ -258,8 +271,12 @@ const customPricingSteps = [
               The Custom plan is built around a single idea: DevLabs is accountable for the outcome, not just the search.
             </p>
           </div>
-          <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="group mt-7 inline-flex h-11 w-fit items-center gap-3 border border-[#ff7417] bg-[#ff7417] px-5 text-sm font-extrabold text-white transition hover:border-white hover:bg-white hover:text-[#181411]">
-            Book a call
+          <a
+            href={authTarget(checkoutTarget("custom"))}
+            data-pricing-checkout="custom"
+            class="group mt-7 inline-flex h-11 w-fit items-center gap-3 border border-[#ff7417] bg-[#ff7417] px-5 text-sm font-extrabold text-white transition hover:border-white hover:bg-white hover:text-[#181411]"
+          >
+            Start with deposit
             <span class="transition group-hover:translate-x-1">-&gt;</span>
           </a>
         </div>
@@ -292,6 +309,55 @@ const customPricingSteps = [
 </section>
 
 <script>
+  let activeBillingMode = "monthly";
+
+  function checkoutFallback(plan: string, interval: string) {
+    const target = new URL("/founder/home", window.location.origin);
+    target.searchParams.set("checkout_plan", plan);
+    if (plan === "growth") target.searchParams.set("checkout_interval", interval === "yearly" ? "yearly" : "monthly");
+
+    const roleTarget = `/auth/select-role?redirect=${encodeURIComponent(`${target.pathname}${target.search}`)}`;
+    return `/auth/signup?redirect=${encodeURIComponent(roleTarget)}`;
+  }
+
+  async function startPricingCheckout(link: HTMLAnchorElement) {
+    const plan = link.dataset.pricingCheckout;
+    if (plan !== "growth" && plan !== "custom") return false;
+
+    const interval = plan === "growth" && activeBillingMode === "yearly" ? "yearly" : "monthly";
+    const fallback =
+      interval === "yearly"
+        ? link.dataset.authTargetYearly || checkoutFallback(plan, interval)
+        : link.dataset.authTargetMonthly || link.href || checkoutFallback(plan, interval);
+
+    try {
+      link.setAttribute("aria-busy", "true");
+      link.classList.add("pointer-events-none", "opacity-75");
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ plan, interval }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 401 || response.status === 403) {
+        window.location.href = fallback;
+        return true;
+      }
+      if (!response.ok || !data.success || !data.url) {
+        throw new Error(data.error || "Could not start checkout.");
+      }
+      window.location.href = data.url;
+      return true;
+    } catch {
+      window.location.href = fallback;
+      return true;
+    } finally {
+      link.removeAttribute("aria-busy");
+      link.classList.remove("pointer-events-none", "opacity-75");
+    }
+  }
+
   function initPricingBillingToggle() {
     const buttons = Array.from(
       document.querySelectorAll<HTMLButtonElement>("[data-billing-toggle]"),
@@ -299,6 +365,7 @@ const customPricingSteps = [
     if (!buttons.length) return;
 
     function apply(mode: string) {
+      activeBillingMode = mode === "yearly" ? "yearly" : "monthly";
       buttons.forEach((btn) => {
         const active = btn.dataset.billingToggle === mode;
         btn.classList.toggle("bg-[#181411]", active);
@@ -330,6 +397,13 @@ const customPricingSteps = [
           el.classList.toggle("hidden", mode !== "yearly");
           el.classList.toggle("inline-flex", mode === "yearly");
         });
+
+      document
+        .querySelectorAll<HTMLAnchorElement>("[data-pricing-checkout='growth']")
+        .forEach((link) => {
+          const href = mode === "yearly" ? link.dataset.authTargetYearly : link.dataset.authTargetMonthly;
+          if (href) link.href = href;
+        });
     }
 
     buttons.forEach((btn) =>
@@ -343,6 +417,22 @@ const customPricingSteps = [
 
   initPricingBillingToggle();
   document.addEventListener("astro:page-load", initPricingBillingToggle);
+
+  function initPricingCheckoutLinks() {
+    document
+      .querySelectorAll<HTMLAnchorElement>("[data-pricing-checkout]")
+      .forEach((link) => {
+        if (link.dataset.checkoutBound === "true") return;
+        link.dataset.checkoutBound = "true";
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          void startPricingCheckout(link);
+        });
+      });
+  }
+
+  initPricingCheckoutLinks();
+  document.addEventListener("astro:page-load", initPricingCheckoutLinks);
 </script>
 
 <style>

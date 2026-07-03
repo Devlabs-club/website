@@ -121,6 +121,42 @@ export type FullCandidate = {
   trialProject: TrialProjectDraft | null;
   callCompletedAt?: string | null;
   introRequestStatus?: string | null;
+  visibilityMode?: 'teaser' | 'full';
+  traceAccess?: 'teaser' | 'full';
+  introAccess?: 'locked' | 'enabled';
+  outreachAccess?: 'locked' | 'enabled';
+  lifecycleAccess?: 'locked' | 'enabled';
+  teasers?: {
+    agentTrace?: {
+      locked: boolean;
+      label: string;
+      sourceBadges: string[];
+      visibleInsight: string;
+      quantifiedSignals?: string[];
+      redacted: string[];
+    };
+    introDraft?: {
+      locked: boolean;
+      label: string;
+      visibleHook: string;
+      redactedBody: string;
+    };
+    pipeline?: {
+      locked: boolean;
+      label: string;
+      steps: Array<{ key: string; label: string; locked: boolean }>;
+    };
+    interviewQuestions?: {
+      locked: boolean;
+      label: string;
+      visiblePreview: string;
+    };
+    trialProject?: {
+      locked: boolean;
+      label: string;
+      visiblePreview: string;
+    };
+  };
 };
 
 export type PipelineEntry = {
@@ -161,9 +197,43 @@ export type PublicShortlist = {
   unlockedAt?: string | null;
   totalMatches: number;
   strongMatchCount: number;
+  visibilityMode?: 'teaser' | 'full';
+  profileLimitApplied?: number | null;
+  traceAccess?: 'teaser' | 'full';
+  introAccess?: 'locked' | 'enabled';
+  upgradeRequiredFor?: string[];
+  teaserMetadata?: Record<string, unknown>;
   previewGeneratedAt?: string;
   candidates: AnonymousCandidate[];
   fullCandidates?: FullCandidate[] | null;
+};
+
+export type FounderBillingState = {
+  entitlements: {
+    plan: 'free' | 'growth' | 'custom';
+    status: string;
+    billingInterval: 'monthly' | 'yearly' | null;
+    roleLimitPerMonth: number | null;
+    profileLimitPerRole: number | null;
+    visibilityMode: 'teaser' | 'full';
+    traceAccess: 'teaser' | 'full';
+    introAccess: 'locked' | 'enabled';
+    outreachAccess: 'locked' | 'enabled';
+    lifecycleAccess: 'locked' | 'enabled';
+    managedHiring: boolean;
+    unlimitedRoles: boolean;
+    unlimitedProfiles: boolean;
+  };
+  account: {
+    plan: string;
+    status: string;
+    billingInterval: string | null;
+  };
+  usage: {
+    periodKey: string;
+    rolesUsed: number;
+    roleLimit: number | null;
+  };
 };
 
 export type Opportunity = {

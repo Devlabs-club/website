@@ -6,11 +6,20 @@ import JobPosting from '@/models/founder/JobPosting';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import IntroRequest from '@/models/talent/IntroRequest';
 import { notifyBuilderIntroReceived } from '@/lib/talent/introFlow';
+import { canUseLifecycle, entitlementErrorResponse, getFounderEntitlements, recordUsageEvent } from '@/lib/billing/entitlements';
 
 /** Founder invites a recommended builder to a role (creates an intro request). */
 export const POST: APIRoute = async ({ request, locals }) => {
   const identity = await resolveFounderIdentity(request, locals);
   if ('error' in identity) return errorJson(identity.error, identity.status);
+  const { entitlements } = await getFounderEntitlements(identity);
+  const denied = canUseLifecycle(entitlements);
+  if (denied) {
+    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(denied) }), {
+      status: denied.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const jobId = String(body.jobId || '');
@@ -60,6 +69,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
       introRequestId: String(intro._id),
     }).catch((err) => console.error('[founder/invite] notify failed', err));
   }
+
+  await recordUsageEvent({
+    identity,
+    eventType: 'intro_requested',
+    opportunityId: jobId,
+    builderId,
+    planAtEvent: entitlements.plan,
+    metadata: { source: 'founder_invite_api' },
+  });
 
   return okJson({ introId: String(intro._id), status: intro.status });
 };

@@ -61,6 +61,7 @@ export default defineConfig({
         },
       }),
   vite: {
+    cacheDir: process.env.NODE_ENV === "production" ? "node_modules/.vite-prod" : "node_modules/.vite-dev",
     server: {
       // Prevent the browser from caching stale Vite module URLs between dev refreshes.
       headers: {

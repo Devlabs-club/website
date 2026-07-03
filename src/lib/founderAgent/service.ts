@@ -27,6 +27,16 @@ import { countUnreadForFounder, getNotificationsForFounder } from '@/lib/talent/
 import { shapeJobForTalentPool } from '@/lib/founderAgent/jobShaping';
 import { retrieveSemanticBuilderCandidates, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
+import {
+  applyCandidateLimit,
+  canCreateRole,
+  currentPeriodKey,
+  entitlementErrorResponse,
+  entitlementSnapshot,
+  getFounderEntitlements,
+  getFounderUsage,
+  recordUsageEvent,
+} from '@/lib/billing/entitlements';
 
 const User: any = mongoose.models.User;
 
@@ -34,6 +44,8 @@ export type FounderIdentity = {
   founderId: string;
   email: string;
   founderName: string;
+  accountType?: string | null;
+  onboardingStatus?: string | null;
 };
 
 type ChatToolCall = {
@@ -379,7 +391,14 @@ function errorJson(error: string, status = 400) {
   });
 }
 
-export { okJson, errorJson };
+function billingErrorJson(result: ReturnType<typeof entitlementErrorResponse>, status = 402) {
+  return new Response(JSON.stringify({ success: false, ...result }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+export { okJson, errorJson, billingErrorJson };
 
 export async function resolveFounderIdentity(request: Request, locals?: App.Locals): Promise<FounderIdentity | { error: string; status: number }> {
   const runtime = runtimeEnvFromLocals(locals as App.Locals);
@@ -396,7 +415,9 @@ export async function resolveFounderIdentity(request: Request, locals?: App.Loca
   const email = decoded.email.toLowerCase().trim();
   let founderName = email.split('@')[0];
   let role = decoded.role;
-  const user = await User.findById(decoded.userId).select('name role email').lean();
+  const user = await User.findById(decoded.userId)
+    .select('name role email accountType onboardingStatus')
+    .lean();
   if (user?.name) founderName = user.name;
   if (user?.role) role = String(user.role);
 
@@ -408,6 +429,8 @@ export async function resolveFounderIdentity(request: Request, locals?: App.Loca
     founderId: decoded.userId ? String(decoded.userId) : email,
     email,
     founderName,
+    accountType: user?.accountType ?? null,
+    onboardingStatus: user?.onboardingStatus ?? null,
   };
 }
 
@@ -926,8 +949,10 @@ async function runSearchForJob(
   options: { force?: boolean } = {}
 ) {
   const startedAt = Date.now();
+  const { entitlements } = await getFounderEntitlements(identity);
   const oppPlain = typeof job.toObject === 'function' ? job.toObject() : job;
   const jobId = String(oppPlain._id || job._id || '');
+  const candidateResultLimit = entitlements.profileLimitPerRole ?? 50;
   logFounderAgent('search_talent:start', {
     founderId: identity.founderId,
     founderEmail: identity.email,
@@ -1237,15 +1262,24 @@ async function runSearchForJob(
           generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 900 })
       : undefined,
     semanticScores,
-    limit: 12,
+    limit: candidateResultLimit,
   });
+  const limitedCandidates = applyCandidateLimit(result.candidates, entitlements);
+  const limitedResult = {
+    ...result,
+    candidates: limitedCandidates,
+    searchQuality: {
+      ...result.searchQuality,
+      strongCandidates: limitedCandidates.filter((candidate) => candidate.matchLabel === 'Strong Match').length,
+    },
+  };
   logFounderAgent('search_talent:discovery:done', {
     jobId,
     retrievalMode,
-    candidateCount: result.candidates.length,
-    strongCount: result.searchQuality.strongCandidates,
+    candidateCount: limitedResult.candidates.length,
+    strongCount: limitedResult.searchQuality.strongCandidates,
     totalScanned: result.totalScanned,
-    topCandidates: result.candidates.slice(0, 5).map((candidate) => ({
+    topCandidates: limitedResult.candidates.slice(0, 5).map((candidate) => ({
       builderId: candidate.builderId,
       name: candidate.builder?.name,
       matchScore: Math.round(candidate.overallFit * 100),
@@ -1258,28 +1292,45 @@ async function runSearchForJob(
     })),
   });
 
-  logFounderAgent('search_talent:persist:start', { jobId, candidateCount: result.candidates.length });
+  logFounderAgent('search_talent:persist:start', { jobId, candidateCount: limitedResult.candidates.length });
   const { shortlistDoc } = await persistDiscoveryCandidates({
-    result,
+    result: limitedResult,
     opportunityId: String(job._id),
     founderEmail: identity.email,
+    entitlements,
   });
 
   job.status = 'shortlisted';
   job.lastSearchAt = new Date();
+  job.entitlementSnapshot = entitlementSnapshot(entitlements);
+  job.profileLimitApplied = entitlements.profileLimitPerRole;
+  job.managedByDevLabs = entitlements.managedHiring;
   await job.save();
+  await recordUsageEvent({
+    identity,
+    eventType: 'search_run',
+    opportunityId: String(job._id),
+    planAtEvent: entitlements.plan,
+    quantity: limitedResult.candidates.length,
+    metadata: {
+      searchMode,
+      retrievalMode,
+      scannedBuilders: result.totalScanned,
+      uncappedCandidateCount: result.candidates.length,
+    },
+  });
 
   const publicShortlist = toPublicShortlist(shortlistDoc);
   logFounderAgent('search_talent:done', {
     jobId,
-    totalFound: result.candidates.length,
-    strongCount: result.searchQuality.strongCandidates,
+    totalFound: limitedResult.candidates.length,
+    strongCount: limitedResult.searchQuality.strongCandidates,
     durationMs: Date.now() - startedAt,
   });
   return {
     skipped: false,
-    totalFound: result.candidates.length,
-    strongCount: result.searchQuality.strongCandidates,
+    totalFound: limitedResult.candidates.length,
+    strongCount: limitedResult.searchQuality.strongCandidates,
     retrievalMode,
     scannedBuilders: result.totalScanned,
     shortlist: publicShortlist,
@@ -1288,6 +1339,17 @@ async function runSearchForJob(
 }
 
 async function toolCreateJob(identity: FounderIdentity, session: any, args: Record<string, unknown>, userText: string, company: any) {
+  const roleAccess = await canCreateRole(identity);
+  if (!roleAccess.ok) {
+    return {
+      error: roleAccess.message,
+      code: roleAccess.code,
+      upgradeTarget: roleAccess.upgradeTarget,
+      entitlements: entitlementSnapshot(roleAccess.entitlements),
+      usage: roleAccess.usage,
+    };
+  }
+  const { entitlements } = roleAccess;
   const title = cleanString(args.title) || cleanString(args.roleTitle);
   let description = cleanString(args.description) || cleanString(args.builderWillDo);
   const skills = cleanList(args.skillsNeeded);
@@ -1429,7 +1491,20 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     locationPreference: cleanString(args.workMode) || cleanString(args.location),
     niceToHaveSkills: shaped.niceToHaveSkills,
     poolFitMetadata: shaped.poolFitMetadata,
+    billingPeriodKey: currentPeriodKey(),
+    planAtCreation: entitlements.plan,
+    entitlementSnapshot: entitlementSnapshot(entitlements),
+    profileLimitApplied: entitlements.profileLimitPerRole,
+    managedByDevLabs: entitlements.managedHiring,
     status: 'draft',
+  });
+
+  await recordUsageEvent({
+    identity,
+    eventType: 'role_created',
+    opportunityId: String(job._id),
+    planAtEvent: entitlements.plan,
+    metadata: { source: 'founder_agent_chat' },
   });
 
   session.jobId = job._id;
@@ -2037,7 +2112,7 @@ export async function getFounderAgentChatState(identity: FounderIdentity, params
 
 export async function getFounderJobs(identity: FounderIdentity) {
   await connectAdminDB();
-  const [jobs, sessions, company] = await Promise.all([
+  const [jobs, sessions, company, billing, usage] = await Promise.all([
     JobPosting.find({ founderEmail: identity.email, status: { $nin: ['closed'] } })
       .sort({ updatedAt: -1 })
       .limit(50)
@@ -2047,11 +2122,22 @@ export async function getFounderJobs(identity: FounderIdentity) {
       .limit(50)
       .lean(),
     getCompany(identity),
+    getFounderEntitlements(identity),
+    getFounderUsage(identity),
   ]);
   return {
     jobs: jobs.map(serializeJob),
     sessions: sessions.map(serializeSession),
     company: serializeCompany(company),
+    billing: {
+      entitlements: entitlementSnapshot(billing.entitlements),
+      account: {
+        plan: billing.entitlements.plan,
+        status: billing.entitlements.status,
+        billingInterval: billing.entitlements.billingInterval,
+      },
+      usage,
+    },
   };
 }
 
@@ -2114,11 +2200,13 @@ export async function getFounderDashboard(identity: FounderIdentity) {
     };
   });
 
-  const [pipeline, notifications, unreadNotificationCount, company] = await Promise.all([
+  const [pipeline, notifications, unreadNotificationCount, company, billing, usage] = await Promise.all([
     buildFounderPipeline(identity.email, { Opportunity: JobPosting, Shortlist, MatchRecord, BuilderProfile, IntroRequest, CallSchedule }),
     getNotificationsForFounder(identity.email),
     countUnreadForFounder(identity.email),
     getCompany(identity),
+    getFounderEntitlements(identity),
+    getFounderUsage(identity),
   ]);
 
   return {
@@ -2128,5 +2216,14 @@ export async function getFounderDashboard(identity: FounderIdentity) {
     notifications,
     unreadNotificationCount,
     company: serializeCompany(company),
+    billing: {
+      entitlements: entitlementSnapshot(billing.entitlements),
+      account: {
+        plan: billing.entitlements.plan,
+        status: billing.entitlements.status,
+        billingInterval: billing.entitlements.billingInterval,
+      },
+      usage,
+    },
   };
 }

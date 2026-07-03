@@ -24,6 +24,15 @@ function authCookieFlags(): string {
   return `HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${secure}`;
 }
 
+function destinationForRole(accountType: string | undefined, redirectUrl: string) {
+  // /auth/select-role safely re-routes based on the user's role and preserves any
+  // nested redirect (e.g. the pricing checkout target), so always honor it.
+  if (redirectUrl.startsWith('/auth/select-role')) return redirectUrl;
+  if (accountType === 'founder') return redirectUrl.startsWith('/founder/') ? redirectUrl : '/founder/home';
+  if (accountType === 'builder') return redirectUrl.startsWith('/builder/') ? redirectUrl : '/builder/home';
+  return redirectUrl;
+}
+
 export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
   const runtime = runtimeEnvFromLocals(locals);
 
@@ -104,12 +113,7 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
     // Founders/builders go straight to their home; users who haven't picked a role yet
     // honor the post-auth redirect (e.g. the onboarding "connect LinkedIn" next step),
     // falling back to role selection.
-    const destination =
-      user.accountType === 'founder'
-        ? '/founder/home'
-        : user.accountType === 'builder'
-          ? '/builder/home'
-          : redirectUrl;
+    const destination = destinationForRole(user.accountType, redirectUrl);
 
     const headers = new Headers();
     headers.set('Location', destination);

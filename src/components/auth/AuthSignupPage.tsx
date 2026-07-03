@@ -13,7 +13,20 @@ const OrDivider = () => (
   </div>
 );
 
-export const AuthSignupPage: React.FC = () => {
+type AuthSignupPageProps = {
+  redirect?: string;
+};
+
+function authSwitchHref(path: "/auth/login" | "/auth/signup", initialRedirect?: string) {
+  const redirect =
+    initialRedirect ||
+    (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : "");
+  if (!redirect) return path;
+  const params = new URLSearchParams({ redirect });
+  return `${path}?${params.toString()}`;
+}
+
+export const AuthSignupPage: React.FC<AuthSignupPageProps> = ({ redirect }) => {
   return (
     <AuthProvider>
       <AuthShell>
@@ -32,7 +45,7 @@ export const AuthSignupPage: React.FC = () => {
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
           Already have an account?{" "}
-          <a href="/auth/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <a href={authSwitchHref("/auth/login", redirect)} className="font-medium text-foreground underline-offset-4 hover:underline">
             Log in
           </a>
         </p>

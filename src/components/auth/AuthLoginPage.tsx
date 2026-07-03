@@ -13,6 +13,19 @@ const OrDivider = () => (
   </div>
 );
 
+type AuthLoginPageProps = {
+  redirect?: string;
+};
+
+function authSwitchHref(path: "/auth/login" | "/auth/signup", initialRedirect?: string) {
+  const redirect =
+    initialRedirect ||
+    (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("redirect") : "");
+  if (!redirect) return path;
+  const params = new URLSearchParams({ redirect });
+  return `${path}?${params.toString()}`;
+}
+
 function oauthErrorMessage(): string | null {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);
@@ -32,7 +45,7 @@ function oauthErrorMessage(): string | null {
   return messages[error] || "Sign-in failed. Please try again.";
 }
 
-export const AuthLoginPage: React.FC = () => {
+export const AuthLoginPage: React.FC<AuthLoginPageProps> = ({ redirect }) => {
   const oauthError = oauthErrorMessage();
 
   return (
@@ -57,7 +70,7 @@ export const AuthLoginPage: React.FC = () => {
 
         <p className="mt-8 text-center text-xs text-muted-foreground">
           New to DevLabs?{" "}
-          <a href="/auth/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <a href={authSwitchHref("/auth/signup", redirect)} className="font-medium text-foreground underline-offset-4 hover:underline">
             Sign up
           </a>
         </p>

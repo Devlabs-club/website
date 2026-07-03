@@ -9,7 +9,7 @@ import MomentumUpdate from '@/models/talent/MomentumUpdate';
 import { computeProfileCompletion, computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality, evaluateDeterministicQuality } from '@/lib/talent/profileQuality';
 import mongoose from 'mongoose';
-import { getOpenRouterChatModel, hasOpenRouterConfig } from '@/lib/openrouter';
+import { generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig } from '@/lib/openrouter';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { runtimeEnvFromLocals, type RuntimeEnv } from '@/lib/workosEnv';
 import {
@@ -76,6 +76,14 @@ import {
 } from '@/lib/talent/messageFlow';
 import { sendTalentEmail, dashboardDeepLink } from '@/lib/talent/talentEmail';
 import { handleJobAction, runFounderAgentChat } from '@/lib/founderAgent/service';
+import {
+  canUseLifecycle,
+  entitlementErrorResponse,
+  entitlementSnapshot,
+  getFounderEntitlements,
+  recordUsageEvent,
+} from '@/lib/billing/entitlements';
+import HiringLedger from '@/models/billing/HiringLedger';
 
 function ok(data: unknown) {
   return new Response(JSON.stringify({ success: true, ...((data as object) || {}) }), {
@@ -89,6 +97,83 @@ function bad(error: string, status = 400) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function billingBad(result: NonNullable<ReturnType<typeof canUseLifecycle>>) {
+  return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(result) }), {
+    status: result.status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function founderBillingIdentity(resolved: { decoded?: any; email: string }) {
+  return {
+    founderId: String(resolved.decoded?.userId || resolved.email),
+    email: resolved.email,
+  };
+}
+
+async function requireLifecycleAccess(resolved: { decoded?: any; email: string }) {
+  const identity = founderBillingIdentity(resolved);
+  const { entitlements } = await getFounderEntitlements(identity);
+  const denied = canUseLifecycle(entitlements);
+  return denied ? { ok: false as const, denied } : { ok: true as const, identity, entitlements };
+}
+
+function introHookFromCandidate(builderName: string, proof?: string | null) {
+  const first = String(builderName || 'there').split(' ')[0];
+  const cleanProof = String(proof || 'your proof-of-work stood out')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[.!?]$/, '');
+  return `Hey ${first}, ${cleanProof}.`;
+}
+
+async function generateLockedIntroTeaser(params: {
+  builderName: string;
+  roleTitle?: string | null;
+  company?: string | null;
+  proof?: string | null;
+  topSkills?: string[];
+}) {
+  const fallback = {
+    label: 'Open intro draft',
+    visibleHook: introHookFromCandidate(params.builderName, params.proof),
+    redactedBody: 'Role fit, specific ask, and follow-up stay locked.',
+  };
+  if (!hasOpenRouterConfig()) return fallback;
+  try {
+    const reply = await generateOpenRouterReply({
+      responseFormat: 'json_object',
+      temperature: 0.35,
+      maxTokens: 220,
+      systemPrompt: `Write one locked intro teaser line for a founder reaching out to a builder.
+Tone: direct, specific, builder-native, proof-backed. No hype and no sales copy.
+Use only supplied facts. Do not invent details.
+Return JSON only: {"label":"...","visibleHook":"...","redactedBody":"..."}.`,
+      userPrompt: JSON.stringify({
+        builderName: params.builderName,
+        roleTitle: params.roleTitle || null,
+        company: params.company || null,
+        proof: params.proof || null,
+        topSkills: params.topSkills || [],
+        rules: [
+          'label must be under 32 characters',
+          'visibleHook must be one line under 140 characters and should make the founder want to unlock the full draft',
+          'redactedBody must be under 110 characters and describe what stays locked without sales language',
+        ],
+      }),
+    });
+    const parsed = JSON.parse(reply);
+    const hook = String(parsed.visibleHook || '').replace(/\s+/g, ' ').trim();
+    return {
+      label: String(parsed.label || fallback.label).replace(/\s+/g, ' ').trim().slice(0, 40) || fallback.label,
+      visibleHook: hook ? hook.slice(0, 160) : fallback.visibleHook,
+      redactedBody: String(parsed.redactedBody || fallback.redactedBody).replace(/\s+/g, ' ').trim().slice(0, 130) || fallback.redactedBody,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 async function updateBuilderScores(builder: any) {
@@ -700,6 +785,24 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
         shortlistCandidate?.topSkills?.length > 0
           ? shortlistCandidate.topSkills
           : (topProject?.techStack || []).slice(0, 3);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) {
+        const introTeaser = await generateLockedIntroTeaser({
+          builderName: builder.name,
+          roleTitle: opportunity.roleTitle,
+          company: opportunity.company,
+          proof: shortlistCandidate?.proofSummary || shortlistCandidate?.whyTheyMatch || match?.reasoning,
+          topSkills,
+        });
+        return ok({
+          locked: true,
+          code: lifecycle.denied.code,
+          upgradeTarget: lifecycle.denied.upgradeTarget,
+          entitlements: entitlementSnapshot(lifecycle.denied.entitlements),
+          suggestedMessage: introTeaser.visibleHook,
+          teaser: introTeaser,
+        });
+      }
 
       const suggestedMessage = buildSuggestedIntroMessage({
         founderName,
@@ -717,6 +820,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email, founderName } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -777,6 +882,13 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       }
 
       await seedThreadFromIntro(intro);
+      await recordUsageEvent({
+        identity: lifecycle.identity,
+        eventType: 'intro_requested',
+        opportunityId,
+        builderId,
+        planAtEvent: lifecycle.entitlements.plan,
+      });
 
       return ok({
         message: 'Intro request sent. The candidate will appear in your pipeline.',
@@ -793,6 +905,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -826,6 +940,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
       if (!opportunityId || !mongoose.Types.ObjectId.isValid(opportunityId)) {
@@ -869,6 +985,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(
         payload?.opportunityId || payload?.searchId || ''
@@ -940,6 +1058,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(payload?.opportunityId || payload?.searchId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -973,6 +1093,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { email } = resolved;
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
 
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
@@ -1206,6 +1328,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'schedule_call') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       const slot = payload?.slot || payload?.proposedSlot;
@@ -1253,6 +1377,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'confirm_call_schedule') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const callScheduleId = String(payload?.callScheduleId || '').trim();
       if (!callScheduleId) return bad('callScheduleId is required');
       const result = await confirmCallScheduleByFounder({
@@ -1266,6 +1392,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'complete_call') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
@@ -1305,6 +1433,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'send_trial_project') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       const deadlineDate = String(payload?.deadlineDate || payload?.deadline || '').trim();
@@ -1353,6 +1483,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'review_trial_submission') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       const decision = String(payload?.decision || '').trim() as 'approve' | 'reject';
@@ -1377,6 +1509,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'hire_builder') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
@@ -1388,6 +1522,32 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
         skipTrial: payload?.skipTrial === true,
       });
       if ('error' in result && result.error) return bad(result.error, result.status || 400);
+      await recordUsageEvent({
+        identity: lifecycle.identity,
+        eventType: 'hire_marked',
+        opportunityId,
+        builderId,
+        planAtEvent: lifecycle.entitlements.plan,
+      });
+      await HiringLedger.findOneAndUpdate(
+        { opportunityId, builderId },
+        {
+          $setOnInsert: {
+            founderId: lifecycle.identity.founderId,
+            founderEmail: lifecycle.identity.email,
+            opportunityId,
+            builderId,
+            planAtHire: lifecycle.entitlements.plan,
+            depositAmountCents: 49900,
+          },
+          $set: {
+            hireStatus: 'hired',
+            hiredAt: new Date(),
+            depositStatus: lifecycle.entitlements.plan === 'custom' ? 'credited' : 'not_required',
+          },
+        },
+        { upsert: true, new: true }
+      );
       return ok({
         message: 'Builder hired.',
         matchStatus: result.matchStatus,
@@ -1398,6 +1558,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'reject_builder') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
+      const lifecycle = await requireLifecycleAccess(resolved);
+      if (!lifecycle.ok) return billingBad(lifecycle.denied);
       const opportunityId = String(payload?.opportunityId || '').trim();
       const builderId = String(payload?.builderId || '').trim();
       if (!opportunityId || !builderId) return bad('opportunityId and builderId are required');
@@ -1450,6 +1612,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
 
       const founderResolved = await resolveAuthedFounder(request, runtime);
       if (!('error' in founderResolved)) {
+        const lifecycle = await requireLifecycleAccess(founderResolved);
+        if (!lifecycle.ok) return billingBad(lifecycle.denied);
         const result = await sendThreadMessage({
           threadId,
           senderType: 'founder',

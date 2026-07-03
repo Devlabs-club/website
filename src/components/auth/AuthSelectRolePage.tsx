@@ -5,6 +5,15 @@ import { Briefcase, Hammer, Loader2 } from "lucide-react";
 
 type Choice = "founder" | "builder";
 
+function postRoleRedirect(accountType: Choice): string | null {
+  if (typeof window === "undefined") return null;
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  if (!redirect || !redirect.startsWith("/")) return null;
+  if (accountType === "founder" && redirect.startsWith("/founder/")) return redirect;
+  if (accountType === "builder" && redirect.startsWith("/builder/")) return redirect;
+  return null;
+}
+
 const RoleCard: React.FC<{
   title: string;
   description: string;
@@ -39,8 +48,8 @@ const SelectRoleInner: React.FC = () => {
 
   // Returning users who already chose a role skip this screen.
   useEffect(() => {
-    if (!loading && user?.accountType === "founder") window.location.href = "/founder/home";
-    else if (!loading && user?.accountType === "builder") window.location.href = "/builder/home";
+    if (!loading && user?.accountType === "founder") window.location.href = postRoleRedirect("founder") || "/founder/home";
+    else if (!loading && user?.accountType === "builder") window.location.href = postRoleRedirect("builder") || "/builder/home";
   }, [loading, user]);
 
   const choose = async (accountType: Choice) => {
@@ -56,7 +65,7 @@ const SelectRoleInner: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        window.location.href = data.next;
+        window.location.href = postRoleRedirect(accountType) || data.next;
       } else {
         setError(data.message || "Something went wrong.");
         setBusy(false);

@@ -28,6 +28,16 @@ const OpportunitySchema = new mongoose.Schema(
     deliverables: [{ type: String }],
     fundingStage: { type: String, default: null },
     skippedFields: [{ type: String }],
+    billingPeriodKey: { type: String, default: null, index: true },
+    planAtCreation: {
+      type: String,
+      enum: ['free', 'growth', 'custom', null],
+      default: null,
+      index: true,
+    },
+    entitlementSnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
+    profileLimitApplied: { type: Number, default: null },
+    managedByDevLabs: { type: Boolean, default: false },
     status: {
       type: String,
       enum: ['draft', 'preview', 'paid', 'matching', 'shortlisted', 'interviewing', 'hired', 'closed'],

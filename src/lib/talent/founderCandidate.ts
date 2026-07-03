@@ -1,4 +1,5 @@
 import { mapTrialProjectFromMatch, normalizeTrialProject, trialProjectToSummary } from '@/lib/talent/founderTrialProject';
+import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 
 export type VerificationLabel =
   | 'Builder Claimed'
@@ -82,6 +83,248 @@ export function buildSuggestedTrialProject(opportunity: any): string {
   return 'Define a small paid sprint (5–10 hrs) with a concrete deliverable before a longer engagement.';
 }
 
+function firstSentence(value: unknown, fallback: string) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return fallback;
+  const match = text.match(/^(.{24,180}?[.!?])\s/);
+  return (match?.[1] || text.slice(0, 150)).trim();
+}
+
+function compactText(value: unknown, max = 220) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return text.length > max ? `${text.slice(0, max - 3).trimEnd()}...` : text;
+}
+
+function parseJsonObject(value: string): Record<string, any> | null {
+  try {
+    return JSON.parse(value);
+  } catch {
+    const match = value.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try {
+      return JSON.parse(match[0]);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function listStrings(value: unknown, maxItems: number, maxChars: number) {
+  return (Array.isArray(value) ? value : [])
+    .map((item) => compactText(item, maxChars))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function safeString(value: unknown, fallback: string, maxChars: number) {
+  return compactText(value, maxChars) || fallback;
+}
+
+function fallbackTeasers(base: any, builder: any, projects: any[], shortlistCandidate: any) {
+  const verifiedCount = projects.filter((p) => ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(p.verificationStatus)).length;
+  const insight = firstSentence(
+    base.whyTheyMatch || shortlistCandidate?.proofSummary,
+    `${Math.round(base.matchScore || 0)}% match across ${projects.length || 1} proof source${(projects.length || 1) === 1 ? '' : 's'}.`
+  );
+  return {
+    agentTrace: {
+      locked: true,
+      label: 'Unlock full trace',
+      sourceBadges: [
+        ...(builder.links?.github ? ['GitHub'] : []),
+        ...(builder.links?.linkedin ? ['LinkedIn'] : []),
+        ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
+        ...(projects.some((p) => p.links?.github) ? ['Repo evidence'] : []),
+      ].slice(0, 5),
+      visibleInsight: insight,
+      quantifiedSignals: [
+        `${Math.round(base.matchScore || 0)}% match`,
+        `${projects.length} project${projects.length === 1 ? '' : 's'} reviewed`,
+        `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
+      ],
+      redacted: ['Evidence chain', 'Comparison notes', 'Confidence breakdown'],
+    },
+    introDraft: {
+      locked: true,
+      label: 'Open intro draft',
+      visibleHook: firstSentence(`Hey ${String(builder.name || 'there').split(' ')[0]}, ${insight}`, insight),
+      redactedBody: 'Role fit, specific ask, and follow-up stay locked.',
+    },
+    pipeline: {
+      locked: true,
+      label: 'Continue with this builder',
+      steps: [
+        { key: 'intro', label: 'Intro', locked: true },
+        { key: 'call', label: 'Call', locked: true },
+        { key: 'trial', label: 'Trial', locked: true },
+        { key: 'hire', label: 'Hire', locked: true },
+      ],
+    },
+    interviewQuestions: {
+      locked: true,
+      label: 'Unlock interview questions',
+      visiblePreview: firstSentence(base.suggestedInterviewQuestions?.[0], 'Ask them to walk through the strongest proof source.'),
+    },
+    trialProject: {
+      locked: true,
+      label: 'Unlock trial scope',
+      visiblePreview: firstSentence(base.suggestedTrialProject, 'Use a tight trial to verify shipping pace.'),
+    },
+  };
+}
+
+async function buildLlmTeasers(params: {
+  base: any;
+  builder: any;
+  projects: any[];
+  match: any;
+  shortlistCandidate: any;
+  opportunity: any;
+}) {
+  const { base, builder, projects, match, shortlistCandidate, opportunity } = params;
+  const fallback = fallbackTeasers(base, builder, projects, shortlistCandidate);
+  if (!hasOpenRouterConfig()) return fallback;
+
+  const compactProjects = projects.slice(0, 4).map((project) => ({
+    name: project.projectName,
+    techStack: (project.techStack || []).slice(0, 6),
+    verificationStatus: project.verificationStatus || null,
+    contribution: compactText(project.builderContribution, 220),
+    description: compactText(project.description || project.problemSolved, 180),
+    sources: [
+      project.links?.github ? 'GitHub' : null,
+      project.links?.demo ? 'Demo' : null,
+      project.links?.devpost ? 'Devpost' : null,
+    ].filter(Boolean),
+  }));
+
+  try {
+    const reply = await generateOpenRouterReply({
+      responseFormat: 'json_object',
+      temperature: 0.35,
+      maxTokens: 650,
+      systemPrompt: `You write premium locked-feature teasers for DevLabs founder hiring.
+Generate concise, high-signal teaser copy from real builder evidence.
+Tone: direct, sharp, proof-backed, builder-native. No hype, no generic sales copy, no filler.
+The founder should quickly infer whether the builder is worth pursuing.
+Quantify where possible using only supplied numbers. Do not invent companies, commits, scores, schools, or links.
+Do not reveal full trace reasoning, full intro draft, full interview list, full trial scope, private links, or hidden evidence.
+Return only JSON matching the requested shape.`,
+      userPrompt: JSON.stringify({
+        requestedShape: {
+          agentTrace: {
+            label: 'short action label',
+            sourceBadges: ['2-5 evidence/source badges from supplied data'],
+            visibleInsight: 'one sentence, <= 140 chars, with quantified signal when available',
+            quantifiedSignals: ['2-4 short metrics, <= 42 chars each'],
+            redacted: ['2-4 short names of locked details'],
+          },
+          introDraft: {
+            label: 'short action label',
+            visibleHook: 'one founder-to-builder opening line, <= 140 chars',
+            redactedBody: 'one sentence explaining what is locked, <= 110 chars',
+          },
+          pipeline: {
+            label: 'short action label',
+            steps: [
+              { key: 'intro', label: 'short founder-action label' },
+              { key: 'call', label: 'short founder-action label' },
+              { key: 'trial', label: 'short founder-action label' },
+              { key: 'hire', label: 'short founder-action label' },
+            ],
+          },
+          interviewQuestions: {
+            label: 'short action label',
+            visiblePreview: 'one tailored interview question, <= 150 chars',
+          },
+          trialProject: {
+            label: 'short action label',
+            visiblePreview: 'one tailored paid-trial teaser, <= 150 chars',
+          },
+        },
+        role: {
+          title: opportunity?.roleTitle || opportunity?.title || null,
+          company: opportunity?.company || null,
+          description: compactText(opportunity?.description || opportunity?.builderWillDo, 260),
+          skillsNeeded: (opportunity?.skillsNeeded || []).slice(0, 8),
+        },
+        builder: {
+          name: builder.name,
+          headline: builder.headline || null,
+          matchScore: base.matchScore,
+          matchLabel: base.matchLabel,
+          profileStrength: base.profileStrength,
+          proofStrengthLabel: base.proofStrengthLabel,
+          founderClarityLabel: base.founderClarityLabel,
+          topSkills: (base.topSkills || []).slice(0, 8),
+          availability: base.availability,
+          sourceAvailability: {
+            github: Boolean(builder.links?.github),
+            linkedin: Boolean(builder.links?.linkedin),
+            portfolio: Boolean(builder.links?.portfolio || builder.links?.personalWebsite),
+            resume: Boolean(builder.links?.resume),
+          },
+        },
+        matchEvidence: {
+          reasoning: compactText(match?.reasoning || shortlistCandidate?.whyTheyMatch, 260),
+          proofSummary: compactText(shortlistCandidate?.proofSummary, 220),
+          riskCount: Array.isArray(match?.riskFlags) ? match.riskFlags.length : 0,
+          requirementFindings: (match?.requirementFindings || shortlistCandidate?.requirementFindings || [])
+            .slice(0, 4)
+            .map((r: any) => ({
+              text: compactText(r?.text, 120),
+              met: r?.met || null,
+              evidence: compactText(r?.evidence, 160),
+            })),
+        },
+        projects: compactProjects,
+      }),
+    });
+    const parsed = parseJsonObject(reply);
+    if (!parsed) return fallback;
+
+    const steps = Array.isArray(parsed.pipeline?.steps) ? parsed.pipeline.steps : [];
+    return {
+      agentTrace: {
+        locked: true,
+        label: safeString(parsed.agentTrace?.label, fallback.agentTrace.label, 32),
+        sourceBadges: listStrings(parsed.agentTrace?.sourceBadges, 5, 24),
+        visibleInsight: safeString(parsed.agentTrace?.visibleInsight, fallback.agentTrace.visibleInsight, 160),
+        quantifiedSignals: listStrings(parsed.agentTrace?.quantifiedSignals, 4, 48),
+        redacted: listStrings(parsed.agentTrace?.redacted, 4, 48),
+      },
+      introDraft: {
+        locked: true,
+        label: safeString(parsed.introDraft?.label, fallback.introDraft.label, 32),
+        visibleHook: safeString(parsed.introDraft?.visibleHook, fallback.introDraft.visibleHook, 160),
+        redactedBody: safeString(parsed.introDraft?.redactedBody, fallback.introDraft.redactedBody, 130),
+      },
+      pipeline: {
+        locked: true,
+        label: safeString(parsed.pipeline?.label, fallback.pipeline.label, 32),
+        steps: ['intro', 'call', 'trial', 'hire'].map((key, index) => ({
+          key,
+          label: safeString(steps[index]?.label, fallback.pipeline.steps[index].label, 42),
+          locked: true,
+        })),
+      },
+      interviewQuestions: {
+        locked: true,
+        label: safeString(parsed.interviewQuestions?.label, fallback.interviewQuestions.label, 36),
+        visiblePreview: safeString(parsed.interviewQuestions?.visiblePreview, fallback.interviewQuestions.visiblePreview, 170),
+      },
+      trialProject: {
+        locked: true,
+        label: safeString(parsed.trialProject?.label, fallback.trialProject.label, 36),
+        visiblePreview: safeString(parsed.trialProject?.visiblePreview, fallback.trialProject.visiblePreview, 170),
+      },
+    };
+  } catch (error) {
+    console.warn('[founderCandidate] LLM teaser generation failed', error instanceof Error ? error.message : error);
+    return fallback;
+  }
+}
+
 function pickBuilderLinks(builder: any) {
   const links = builder?.links || {};
   return {
@@ -111,7 +354,7 @@ function mapProjectForFounder(project: any) {
   };
 }
 
-export function buildFullCandidateCard(params: {
+export async function buildFullCandidateCard(params: {
   builder: any;
   projects: any[];
   match: any;
@@ -120,6 +363,7 @@ export function buildFullCandidateCard(params: {
   hidden?: boolean;
 }) {
   const { builder, projects, match, shortlistCandidate, opportunity, hidden } = params;
+  const teaserMode = opportunity?.visibilityMode === 'teaser' || opportunity?.traceAccess === 'teaser' || opportunity?.introAccess === 'locked';
   const availability = builder.availability || {};
   const sortedProjects = [...projects].sort((a, b) => {
     const rank = (s: string) =>
@@ -138,7 +382,7 @@ export function buildFullCandidateCard(params: {
     }
   }
 
-  return {
+  const base = {
     builderId: String(builder._id),
     matchRecordId: match?._id ? String(match._id) : shortlistCandidate?.matchRecordId
       ? String(shortlistCandidate.matchRecordId)
@@ -186,6 +430,24 @@ export function buildFullCandidateCard(params: {
       ? new Date(match.callCompletedAt).toISOString()
       : null,
   };
+
+  if (!teaserMode) return { ...base, visibilityMode: 'full' };
+  const teasers = await buildLlmTeasers({ base, builder, projects, match, shortlistCandidate, opportunity });
+
+  return {
+    ...base,
+    visibilityMode: 'teaser',
+    traceAccess: 'teaser',
+    introAccess: 'locked',
+    outreachAccess: 'locked',
+    lifecycleAccess: 'locked',
+    whyTheyMatch: firstSentence(base.whyTheyMatch, shortlistCandidate?.proofSummary || 'Strong role signal found.'),
+    riskFlags: [],
+    suggestedInterviewQuestions: [],
+    suggestedTrialProject: '',
+    trialProject: null,
+    teasers,
+  };
 }
 
 export function mapTrialProjectForClient(match: any) {
@@ -200,7 +462,7 @@ export function suggestedTrialFromDraft(
   return buildSuggestedTrialProject(opportunity);
 }
 
-export type AdminCandidate = ReturnType<typeof buildFullCandidateCard> & {
+export type AdminCandidate = Awaited<ReturnType<typeof buildFullCandidateCard>> & {
   email: string | null;
   universityOrCompany: string | null;
   signalScores: Record<string, unknown> | null;
@@ -275,8 +537,8 @@ export async function buildFullCandidatesForShortlist(
   }
   const matchByBuilder = new Map(matches.map((m: any) => [String(m.builderId), m]));
 
-  return candidateEntries
-    .map((sc: any) => {
+  const cards = await Promise.all(candidateEntries
+    .map(async (sc: any) => {
       const builderId = String(sc.builderId);
       const builder = builderById.get(builderId);
       if (!builder) return null;
@@ -285,9 +547,15 @@ export async function buildFullCandidatesForShortlist(
         projects: projectsByBuilder.get(builderId) || [],
         match: matchByBuilder.get(builderId),
         shortlistCandidate: sc,
-        opportunity,
+        opportunity: {
+          ...opportunity,
+          visibilityMode: shortlist.visibilityMode || 'full',
+          traceAccess: shortlist.traceAccess || 'full',
+          introAccess: shortlist.introAccess || 'enabled',
+        },
         hidden: hiddenSet.has(builderId),
       });
-    })
-    .filter(Boolean);
+    }));
+
+  return cards.filter(Boolean);
 }

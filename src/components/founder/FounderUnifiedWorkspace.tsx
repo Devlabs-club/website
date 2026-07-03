@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Opportunity, PublicShortlist, FullCandidate, FounderPipeline, PipelineEntry, NotificationItem } from './founderTypes';
+import type { Opportunity, PublicShortlist, FullCandidate, FounderPipeline, PipelineEntry, NotificationItem, FounderBillingState } from './founderTypes';
 import FounderKanbanBoard from './FounderKanbanBoard';
 import NotificationCenter from '../talent/NotificationCenter';
 import MessagesPanel from '../talent/MessagesPanel';
@@ -28,6 +28,7 @@ interface FounderUnifiedWorkspaceProps {
   logout: () => void;
   notifications?: NotificationItem[];
   unreadNotificationCount?: number;
+  billing?: FounderBillingState | null;
   onPipelineScheduleCall: (entry: PipelineEntry) => void;
   onPipelineCompleteCall: (opportunityId: string, builderId: string) => void;
   onPipelineHire: (entry: PipelineEntry, skipTrial?: boolean) => void;
@@ -74,6 +75,7 @@ export default function FounderUnifiedWorkspace({
   logout,
   notifications = [],
   unreadNotificationCount = 0,
+  billing,
   onPipelineScheduleCall,
   onPipelineCompleteCall,
   onPipelineHire,
@@ -90,6 +92,43 @@ export default function FounderUnifiedWorkspace({
   const { user } = useAuth();
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [workspaceView, setWorkspaceView] = useState<'cockpit' | 'messages'>('cockpit');
+  const [billingBusy, setBillingBusy] = useState<string | null>(null);
+
+  const openCheckout = async (plan: 'growth' | 'custom', interval: 'monthly' | 'yearly' = 'monthly') => {
+    setBillingBusy(`${plan}:${interval}`);
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ plan, interval }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.url) throw new Error(data.error || 'Checkout failed');
+      window.location.href = data.url;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Checkout failed');
+    } finally {
+      setBillingBusy(null);
+    }
+  };
+
+  const openBillingPortal = async () => {
+    setBillingBusy('portal');
+    try {
+      const response = await fetch('/api/billing/portal', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success || !data.url) throw new Error(data.error || 'Billing portal unavailable');
+      window.location.href = data.url;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Billing portal unavailable');
+    } finally {
+      setBillingBusy(null);
+    }
+  };
 
   // Retrieve logo from local storage
   const logoData = useMemo(() => {
@@ -285,22 +324,61 @@ export default function FounderUnifiedWorkspace({
         <div className="space-y-6 animate-fade-in">
           <div>
             <h2 className="text-2xl font-bold">Billing</h2>
-            <p className="text-white/60 text-sm mt-1">Simple transparent pricing for hiring tech talent.</p>
+            <p className="text-white/60 text-sm mt-1">Current plan: {billing?.entitlements.plan || 'free'}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Monthly role usage</p>
+                <p className="text-xs text-white/45 mt-1">
+                  {billing?.usage.rolesUsed ?? 0}
+                  {billing?.usage.roleLimit === null ? ' / unlimited' : ` / ${billing?.usage.roleLimit ?? 3}`} roles this month
+                </p>
+              </div>
+              <div className="text-xs text-white/45">
+                {billing?.entitlements.profileLimitPerRole === null
+                  ? 'Unlimited profiles per role'
+                  : `${billing?.entitlements.profileLimitPerRole ?? 5} profiles per role`}
+              </div>
+            </div>
+            {billing?.usage.roleLimit ? (
+              <div className="mt-4 h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-[#fa7d22]"
+                  style={{ width: `${Math.min(100, ((billing.usage.rolesUsed || 0) / billing.usage.roleLimit) * 100)}%` }}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { name: 'Free Preview', price: '$0', detail: 'Anonymous matches, candidate statistics.' },
               {
-                name: 'Shortlist Unlock',
-                price: '$499 / role',
-                detail: 'Reveal names, Github proof links, and initiate intros.',
+                id: 'free',
+                name: 'Explore',
+                price: 'Free',
+                detail: '3 roles/month, 5 profiles/role, proof links, and premium teasers.',
+                features: ['GitHub, LinkedIn, portfolios', 'Trace previews', 'Intro draft hook'],
+              },
+              {
+                id: 'growth',
+                name: 'Growth',
+                price: '$20/mo',
+                detail: '5 roles/month, 20 profiles/role, full traces, intros, calls, trials, and hiring.',
+                features: ['Full agent traces', 'Builder outreach', 'Hiring pipeline'],
                 highlight: true,
               },
-              { name: 'Hiring Sprint', price: '$2,000 / search', detail: 'Focused 30-day sourcing and partner-led vetting.' },
-              { name: 'Talent Partner', price: '$3,000 / month', detail: 'Continuous hiring support and custom pipeline creation.' },
+              {
+                id: 'custom',
+                name: 'Custom',
+                price: '$499 deposit',
+                detail: 'Unlimited roles and profiles with DevLabs managing the search to signed offer.',
+                features: ['Unlimited searches', 'Warm introductions', 'Success-based hiring'],
+              },
             ].map((plan) => (
               <div
-                key={plan.name}
+                key={plan.id}
                 className={`rounded-3xl border p-6 flex flex-col justify-between ${
                   plan.highlight
                     ? 'border-[#fa7d22]/30 bg-gradient-to-b from-[#fa7d22]/10 to-transparent'
@@ -311,14 +389,58 @@ export default function FounderUnifiedWorkspace({
                   <h3 className="font-bold text-white text-lg">{plan.name}</h3>
                   <p className="text-3xl font-extrabold text-white mt-2">{plan.price}</p>
                   <p className="text-xs text-white/50 mt-4 leading-relaxed">{plan.detail}</p>
+                  <div className="mt-5 space-y-2">
+                    {plan.features.map((feature) => (
+                      <p key={feature} className="text-xs text-white/65">{feature}</p>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  disabled
-                  className="mt-6 w-full py-2.5 rounded-xl border border-white/10 text-white/40 text-xs font-semibold cursor-not-allowed bg-white/[0.02]"
-                >
-                  Coming soon
-                </button>
+                {plan.id === billing?.entitlements.plan ? (
+                  <button
+                    type="button"
+                    onClick={billing?.entitlements.plan === 'growth' ? openBillingPortal : undefined}
+                    disabled={billing?.entitlements.plan !== 'growth' || billingBusy === 'portal'}
+                    className="mt-6 w-full py-2.5 rounded-xl border border-white/10 text-white/55 text-xs font-semibold bg-white/[0.02] disabled:cursor-default"
+                  >
+                    {billing?.entitlements.plan === 'growth' ? 'Manage billing' : 'Current plan'}
+                  </button>
+                ) : plan.id === 'growth' ? (
+                  <div className="mt-6 grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      disabled={Boolean(billingBusy)}
+                      onClick={() => openCheckout('growth', 'monthly')}
+                      className="py-2.5 rounded-xl bg-[#fa7d22] text-black text-xs font-bold disabled:opacity-50"
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      type="button"
+                      disabled={Boolean(billingBusy)}
+                      onClick={() => openCheckout('growth', 'yearly')}
+                      className="py-2.5 rounded-xl border border-[#fa7d22]/40 text-[#ffb580] text-xs font-bold disabled:opacity-50"
+                    >
+                      Yearly
+                    </button>
+                  </div>
+                ) : plan.id === 'custom' ? (
+                  <button
+                    type="button"
+                    disabled={Boolean(billingBusy)}
+                    onClick={() => openCheckout('custom')}
+                    className="mt-6 w-full py-2.5 rounded-xl border border-white/15 text-white/75 text-xs font-semibold hover:bg-white/5 disabled:opacity-50"
+                  >
+                    Start with deposit
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-6 w-full py-2.5 rounded-xl border border-white/10 text-white/40 text-xs font-semibold cursor-not-allowed bg-white/[0.02]"
+                  >
+                    Current baseline
+                  </button>
+                )}
               </div>
             ))}
           </div>

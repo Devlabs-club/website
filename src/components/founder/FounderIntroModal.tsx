@@ -25,6 +25,7 @@ export default function FounderIntroModal({
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,6 +44,7 @@ export default function FounderIntroModal({
         });
         const data = await response.json();
         if (!response.ok || !data.success) throw new Error(data.error || 'Failed to load message');
+        if (data.locked) setLocked(true);
         if (!cancelled) setMessage(data.suggestedMessage || '');
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load suggestion');
@@ -105,10 +107,17 @@ export default function FounderIntroModal({
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={8}
+            disabled={locked}
             className="w-full rounded-xl bg-white/5 border border-white/15 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#fa7d22]/50 resize-none"
             placeholder="Write your intro message…"
           />
         )}
+
+        {locked ? (
+          <div className="rounded-xl border border-[#fa7d22]/25 bg-[#fa7d22]/10 px-4 py-3">
+            <p className="text-sm text-white/75">Full intro draft and sending unlock with Growth.</p>
+          </div>
+        ) : null}
 
         {error ? <p className="text-sm text-amber-300">{error}</p> : null}
 
@@ -116,8 +125,8 @@ export default function FounderIntroModal({
           <OsButton variant="glass" onClick={onClose} className="flex-1">
             Cancel
           </OsButton>
-          <OsButton variant="shimmer" onClick={handleSend} disabled={loading || sending || message.trim().length < 20} className="flex-1">
-            {sending ? 'Sending…' : 'Send intro request'}
+          <OsButton variant="shimmer" onClick={handleSend} disabled={loading || sending || locked || message.trim().length < 20} className="flex-1">
+            {locked ? 'Open intro draft' : sending ? 'Sending…' : 'Send intro request'}
           </OsButton>
         </DialogFooter>
       </DialogContent>

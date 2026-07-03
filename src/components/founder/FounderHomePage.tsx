@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import FounderContextIntroModals from "@/components/founder/FounderContextIntroModals";
+import FounderBillingCard from "@/components/founder/FounderBillingCard";
 import { ArrowRight, ChevronLeft, ChevronRight, Loader2, LogOut, Paperclip, Plus } from "lucide-react";
 
 type Role = {
@@ -101,6 +102,7 @@ const HeroBubble: React.FC = () => (
 
 const FounderHomeInner: React.FC = () => {
   const { user, loading, logout } = useAuth();
+  const checkoutStartedRef = useRef(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [mode, setMode] = useState<"list" | "questions">("questions");
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -121,10 +123,51 @@ const FounderHomeInner: React.FC = () => {
   }, [loading, user]);
 
   useEffect(() => {
-    if (!loading && !user) window.location.href = "/auth/login?redirect=/founder/home";
-    if (!loading && user && user.accountType !== "founder" && user.role !== "founder") {
-      window.location.href = "/auth/select-role";
+    if (!loading && !user) {
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
     }
+    if (!loading && user && user.accountType !== "founder" && user.role !== "founder") {
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/auth/select-role?redirect=${encodeURIComponent(redirect)}`;
+    }
+  }, [loading, user]);
+
+  useEffect(() => {
+    if (checkoutStartedRef.current || loading || !user) return;
+    if (user.accountType !== "founder" && user.role !== "founder") return;
+    const params = new URLSearchParams(window.location.search);
+    const plan = params.get("checkout_plan");
+    if (plan !== "growth" && plan !== "custom") return;
+
+    checkoutStartedRef.current = true;
+    const interval = params.get("checkout_interval") === "yearly" ? "yearly" : "monthly";
+    setBusy(true);
+    setError("");
+
+    void (async () => {
+      try {
+        const res = await fetch("/api/billing/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ plan, interval }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success || !data.url) {
+          throw new Error(data.error || "Could not start checkout.");
+        }
+        window.location.href = data.url;
+      } catch (error) {
+        // Drop the checkout params so a refresh doesn't re-trigger the failed attempt.
+        const url = new URL(window.location.href);
+        url.searchParams.delete("checkout_plan");
+        url.searchParams.delete("checkout_interval");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+        setError(error instanceof Error ? error.message : "Could not start checkout.");
+        setBusy(false);
+      }
+    })();
   }, [loading, user]);
 
   useEffect(() => {
@@ -390,6 +433,12 @@ const FounderHomeInner: React.FC = () => {
 
             {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
           </section>
+        )}
+
+        {!pageLoading && (
+          <div className="mt-8 w-full">
+            <FounderBillingCard />
+          </div>
         )}
       </main>
     </div>

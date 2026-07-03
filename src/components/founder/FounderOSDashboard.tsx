@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth_manager';
 import FounderCandidateDrawer from './FounderCandidateDrawer';
 import FounderIntroModal from './FounderIntroModal';
@@ -7,6 +7,7 @@ import type {
   FullCandidate,
   PublicShortlist,
   FounderPipeline,
+  FounderBillingState,
 } from './founderTypes';
 import FounderRoleIntakeChat from './FounderRoleIntakeChat';
 import FounderRoleBriefEditor from './FounderRoleBriefEditor';
@@ -55,6 +56,7 @@ export default function FounderOSDashboard() {
   const [pipeline, setPipeline] = useState<FounderPipeline | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [billing, setBilling] = useState<FounderBillingState | null>(null);
   
   const [callModal, setCallModal] = useState<{
     opportunityId: string;
@@ -79,6 +81,7 @@ export default function FounderOSDashboard() {
   const [showIntakeChat, setShowIntakeChat] = useState(false);
   const [showBriefEditor, setShowBriefEditor] = useState(false);
   const [showBilling, setShowBilling] = useState(false);
+  const checkoutReconciledRef = useRef(false);
 
   // Busy/Loading States
   const [searchesLoading, setSearchesLoading] = useState(true);
@@ -115,6 +118,7 @@ export default function FounderOSDashboard() {
       setShortlists(Array.isArray(data.shortlists) ? data.shortlists : []);
       setPipeline(data.pipeline || null);
       setNotifications(Array.isArray(data.notifications) ? data.notifications : []);
+      setBilling(data.billing || null);
       setUnreadNotificationCount(
         typeof data.unreadNotificationCount === 'number' ? data.unreadNotificationCount : 0
       );
@@ -136,6 +140,36 @@ export default function FounderOSDashboard() {
 
   useEffect(() => {
     loadSearches();
+  }, [loadSearches]);
+
+  useEffect(() => {
+    if (checkoutReconciledRef.current || typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const sessionId = url.searchParams.get('session_id');
+    if (url.searchParams.get('billing') !== 'success' || !sessionId) return;
+
+    checkoutReconciledRef.current = true;
+    void (async () => {
+      try {
+        const response = await fetch('/api/billing/reconcile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ sessionId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Billing checkout completed, but plan sync is still pending.');
+        }
+        await loadSearches();
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : 'Billing checkout sync failed');
+      } finally {
+        url.searchParams.delete('session_id');
+        url.searchParams.set('billing', 'synced');
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+      }
+    })();
   }, [loadSearches]);
 
   const startNewSearch = () => {
@@ -435,6 +469,7 @@ export default function FounderOSDashboard() {
             logout={logout}
             notifications={notifications}
             unreadNotificationCount={unreadNotificationCount}
+            billing={billing}
             onPipelineScheduleCall={(entry) => openScheduleCall(entry, entry.callScheduleStatus === 'pending_founder')}
             onPipelineCompleteCall={completeCall}
             onPipelineHire={(entry, skipTrial) =>

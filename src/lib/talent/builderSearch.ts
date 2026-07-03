@@ -702,6 +702,12 @@ export function toPublicShortlist(shortlist: any) {
     unlockedAt: plain.unlockedAt || null,
     totalMatches: plain.totalMatches ?? 0,
     strongMatchCount: plain.strongMatchCount ?? 0,
+    visibilityMode: plain.visibilityMode || 'full',
+    profileLimitApplied: plain.profileLimitApplied ?? null,
+    traceAccess: plain.traceAccess || 'full',
+    introAccess: plain.introAccess || 'enabled',
+    upgradeRequiredFor: plain.upgradeRequiredFor || [],
+    teaserMetadata: plain.teaserMetadata || {},
     previewGeneratedAt: plain.previewGeneratedAt,
     candidates: (plain.candidates || []).map((c: any) => ({
       anonymousLabel: c.anonymousLabel,

@@ -3,6 +3,13 @@ import { connectAdminDB } from '@/lib/mongodb';
 import { resolveFounderIdentity, getFounderJobs, okJson, errorJson } from '@/lib/founderAgent/service';
 import CompanyProfile from '@/models/founder/CompanyProfile';
 import JobPosting from '@/models/founder/JobPosting';
+import {
+  canCreateRole,
+  currentPeriodKey,
+  entitlementErrorResponse,
+  entitlementSnapshot,
+  recordUsageEvent,
+} from '@/lib/billing/entitlements';
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -24,6 +31,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
 export const POST: APIRoute = async ({ request, locals }) => {
   const identity = await resolveFounderIdentity(request, locals);
   if ('error' in identity) return errorJson(identity.error, identity.status);
+
+  const roleAccess = await canCreateRole(identity);
+  if (!roleAccess.ok) {
+    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(roleAccess) }), {
+      status: roleAccess.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const roleTitle = str(body.role) || str(body.roleTitle) || 'Builder role';
@@ -55,7 +70,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     equityConfirmed: false,
     visa: 'Yes',
     visaConfirmed: false,
+    billingPeriodKey: currentPeriodKey(),
+    planAtCreation: roleAccess.entitlements.plan,
+    entitlementSnapshot: entitlementSnapshot(roleAccess.entitlements),
+    profileLimitApplied: roleAccess.entitlements.profileLimitPerRole,
+    managedByDevLabs: roleAccess.entitlements.managedHiring,
     status: 'draft',
+  });
+
+  await recordUsageEvent({
+    identity,
+    eventType: 'role_created',
+    opportunityId: String(job._id),
+    planAtEvent: roleAccess.entitlements.plan,
+    metadata: { source: 'quick_role_intake' },
   });
 
   return okJson({ jobId: String(job._id), next: `/founder/roles/${String(job._id)}` });

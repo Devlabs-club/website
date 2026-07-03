@@ -2,6 +2,7 @@ import MatchRecord from '@/models/talent/MatchRecord';
 import Shortlist from '@/models/talent/Shortlist';
 import type { DiscoveryResult } from '@/lib/talent/discovery/index';
 import { buildMatchEvidenceFromExplanation } from '@/lib/talent/matchEvidence';
+import { entitlementSnapshot, type FounderEntitlements } from '@/lib/billing/entitlements';
 
 function logFounderSearchPersist(event: string, meta: Record<string, unknown> = {}) {
   console.info(`[founder-search-persist] ${event}`, meta);
@@ -12,8 +13,9 @@ export async function persistDiscoveryCandidates(params: {
   opportunityId: string;
   founderEmail: string;
   unlockShortlist?: boolean;
+  entitlements?: FounderEntitlements;
 }) {
-  const { result, opportunityId, founderEmail, unlockShortlist = true } = params;
+  const { result, opportunityId, founderEmail, unlockShortlist = true, entitlements } = params;
   const startedAt = Date.now();
   const candidatePayloads = result.candidates.map((candidate) => ({
     builderId: candidate.builderId,
@@ -88,6 +90,19 @@ export async function persistDiscoveryCandidates(params: {
         founderEmail,
         totalMatches: candidatesWithIds.length,
         strongMatchCount: candidatesWithIds.filter((c) => c.matchLabel === 'Strong Match').length,
+        visibilityMode: entitlements?.visibilityMode || 'full',
+        profileLimitApplied: entitlements?.profileLimitPerRole ?? null,
+        traceAccess: entitlements?.traceAccess || 'full',
+        introAccess: entitlements?.introAccess || 'enabled',
+        upgradeRequiredFor: entitlements?.lifecycleAccess === 'locked'
+          ? ['agent_traces', 'intro_requests', 'messages', 'calls', 'trials', 'hiring']
+          : [],
+        teaserMetadata: entitlements
+          ? {
+              entitlements: entitlementSnapshot(entitlements),
+              sourceBadges: ['Claude Code', 'Codex', 'GitHub', 'Portfolio', 'LinkedIn'],
+            }
+          : {},
         candidates: candidatesWithIds,
         previewGeneratedAt: new Date(),
         ...(unlockShortlist ? { unlocked: true, unlockedAt: new Date() } : {}),

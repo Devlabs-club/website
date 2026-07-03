@@ -171,6 +171,7 @@ export default function FounderCandidateDrawer({
   const showConfirmTime = canConfirmCallTime(pipelineEntry as any);
   const postMeeting = canShowPostMeetingActions(pipelineEntry as any, candidate);
   const showReviewTrial = candidate.trialProject?.status === 'submitted';
+  const lockedLifecycle = candidate.lifecycleAccess === 'locked' || candidate.introAccess === 'locked';
   void callClockTick;
 
   const handleFeedbackSubmit = async (reasonCategory: string, reasonText: string) => {
@@ -266,6 +267,48 @@ export default function FounderCandidateDrawer({
             <p className="text-sm text-white/80 leading-relaxed">{candidate.whyTheyMatch}</p>
           </section>
 
+          {candidate.teasers?.agentTrace ? (
+            <section className="rounded-2xl border border-[#fa7d22]/20 bg-[#fa7d22]/[0.06] p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <h3 className="text-xs uppercase tracking-wider text-[#ffb580]">Agent trace preview</h3>
+                <span className="text-[10px] text-white/35">{candidate.teasers.agentTrace.label}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {candidate.teasers.agentTrace.sourceBadges.map((badge) => (
+                  <span key={badge} className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] text-white/60">
+                    {badge}
+                  </span>
+                ))}
+              </div>
+              <p className="text-sm text-white/82 leading-relaxed">{candidate.teasers.agentTrace.visibleInsight}</p>
+              {candidate.teasers.agentTrace.quantifiedSignals?.length ? (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {candidate.teasers.agentTrace.quantifiedSignals.map((signal) => (
+                    <span key={signal} className="rounded-md border border-[#fa7d22]/20 bg-[#fa7d22]/10 px-2 py-1 text-[10px] text-[#ffb580]">
+                      {signal}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-3 space-y-1">
+                {candidate.teasers.agentTrace.redacted.slice(0, 3).map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-xs text-white/35">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                    <span className="blur-[2px] select-none">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {candidate.teasers?.introDraft ? (
+            <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Intro draft preview</h3>
+              <p className="text-sm text-white/80">{candidate.teasers.introDraft.visibleHook}</p>
+              <p className="mt-2 text-xs text-white/35 blur-[2px] select-none">{candidate.teasers.introDraft.redactedBody}</p>
+            </section>
+          ) : null}
+
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Proof-of-work</h3>
             <div className="space-y-4">
@@ -352,12 +395,33 @@ export default function FounderCandidateDrawer({
 
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Suggested interview questions</h3>
-            <ul className="text-sm text-white/75 space-y-2 list-disc list-inside">
-              {candidate.suggestedInterviewQuestions.map((q) => (
-                <li key={q}>{q}</li>
-              ))}
-            </ul>
+            {candidate.teasers?.interviewQuestions ? (
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                <p className="text-sm text-white/75">{candidate.teasers.interviewQuestions.visiblePreview}</p>
+                <p className="mt-2 text-xs text-white/35">{candidate.teasers.interviewQuestions.label}</p>
+              </div>
+            ) : (
+              <ul className="text-sm text-white/75 space-y-2 list-disc list-inside">
+                {candidate.suggestedInterviewQuestions.map((q) => (
+                  <li key={q}>{q}</li>
+                ))}
+              </ul>
+            )}
           </section>
+
+          {candidate.teasers?.pipeline ? (
+            <section>
+              <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Next steps</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {candidate.teasers.pipeline.steps.map((step) => (
+                  <div key={step.key} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <p className="text-xs text-white/70">{step.label}</p>
+                    <p className="mt-1 text-[10px] text-white/30">Locked</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           {postMeeting ? (
             <FounderTrialProjectCard
@@ -371,7 +435,7 @@ export default function FounderCandidateDrawer({
         </div>
 
         <div className="sticky bottom-0 border-t border-white/10 bg-[#0c0d0f]/95 backdrop-blur px-6 py-4 flex flex-wrap gap-2">
-          {scheduleMeet.show && !scheduleMeet.disabled ? (
+          {scheduleMeet.show && !scheduleMeet.disabled && !lockedLifecycle ? (
             <button
               type="button"
               disabled={actionBusy}
@@ -390,7 +454,7 @@ export default function FounderCandidateDrawer({
               {scheduleMeet.label}
             </button>
           ) : null}
-          {showConfirmTime ? (
+          {showConfirmTime && !lockedLifecycle ? (
             <button
               type="button"
               disabled={actionBusy}
@@ -400,7 +464,7 @@ export default function FounderCandidateDrawer({
               Confirm proposed time
             </button>
           ) : null}
-          {postMeeting && matchStatus !== 'hired' ? (
+          {postMeeting && matchStatus !== 'hired' && !lockedLifecycle ? (
             <>
               <button
                 type="button"
@@ -425,15 +489,15 @@ export default function FounderCandidateDrawer({
           {introButton.show ? (
             <button
               type="button"
-              disabled={actionBusy || introButton.disabled}
+              disabled={actionBusy || introButton.disabled || lockedLifecycle}
               onClick={onRequestIntro}
               className="flex-1 min-w-[140px] px-4 py-2.5 rounded-xl border border-[#fa7d22]/40 text-[#ffb580] text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {introButton.label}
+              {lockedLifecycle ? 'Open intro draft' : introButton.label}
             </button>
           ) : null}
           {/* Save / Reject feedback buttons */}
-          {(onSave || onReject) && candidate.matchStatus !== 'hired' ? (
+          {(onSave || onReject) && candidate.matchStatus !== 'hired' && !lockedLifecycle ? (
             <div className="w-full flex gap-2 pt-1 border-t border-white/[0.06]">
               {onSave ? (
                 <button
