@@ -95,7 +95,7 @@ const customPricingSteps = [
   </div>
   <div class="pricing-glow" aria-hidden="true"></div>
 
-  <div class="relative z-10 mx-auto max-w-[72rem]">
+  <div class="pricing-scale relative z-10 mx-auto max-w-[72rem]">
     <div class="mx-auto max-w-[760px] text-center">
       <div class="inline-flex items-center gap-2 border border-black/10 bg-[#fffaf7]/86 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#bf4f08] shadow-[0_12px_34px_rgba(5,5,5,0.04)]">
         <span class="h-1.5 w-1.5 rounded-full bg-[#ff7417]"></span>
@@ -114,7 +114,7 @@ const customPricingSteps = [
       <p class="mt-3 text-sm font-semibold text-black/34">Simple plans for startups hiring builders</p>
     </div>
 
-    <div class="pricing-card-grid mx-auto mt-[4.5rem] grid max-w-[66rem] gap-4 lg:grid-cols-3 lg:items-stretch xl:gap-5">
+    <div class="pricing-card-grid mx-auto mt-[4.5rem] grid max-w-[70rem] gap-6 lg:grid-cols-3 lg:items-stretch xl:gap-8">
       {plans.map((plan) => {
         const featured = plan.variant === "featured";
         const premium = plan.variant === "premium";
@@ -228,9 +228,7 @@ const customPricingSteps = [
                     "group inline-flex h-11 w-full items-center justify-center gap-2.5 border px-5 text-sm font-extrabold transition hover:-translate-y-0.5",
                     featured
                       ? "border-[#ff7417] bg-[#ff7417] text-white shadow-[0_14px_34px_rgba(255,116,23,0.22)] hover:border-black hover:bg-black"
-                      : premium
-                        ? "border-[#181411] bg-[#181411] text-white hover:border-[#ff7417] hover:bg-[#ff7417]"
-                        : "border-black/10 bg-[#f3efeb] text-black hover:border-[#181411] hover:bg-[#181411] hover:text-white",
+                      : "border-black/10 bg-[#f3efeb] text-black hover:border-[#181411] hover:bg-[#181411] hover:text-white",
                   ]}
                 >
                   {plan.cta}
@@ -246,7 +244,7 @@ const customPricingSteps = [
       })}
     </div>
 
-    <div class="custom-pricing-panel mx-auto mt-5 max-w-[66rem] overflow-hidden border border-black/10 bg-[#181411] text-white shadow-[0_24px_70px_rgba(5,5,5,0.16)] lg:mt-6">
+    <div class="custom-pricing-panel mx-auto mt-11 max-w-[70rem] overflow-hidden border border-black/10 bg-[#181411] text-white shadow-[0_24px_70px_rgba(5,5,5,0.16)] lg:mt-16">
       <div class="grid lg:grid-cols-[0.88fr_1.12fr]">
         <div class="relative flex flex-col justify-between border-b border-white/10 p-6 sm:p-7 lg:border-b-0 lg:border-r lg:p-8">
           <div>
@@ -507,6 +505,10 @@ const customPricingSteps = [
     width: 5rem;
     height: 30rem;
     opacity: 0.18;
+  }
+
+  .pricing-scale {
+    zoom: 0.8;
   }
 
   .pricing-card {
