@@ -86,6 +86,145 @@
 }
 
 @layer components {
+  .dashboard-canvas {
+    background:
+      radial-gradient(circle at 12% 10%, rgb(250 125 34 / 0.09), transparent 28rem),
+      radial-gradient(circle at 88% 4%, rgb(17 24 39 / 0.045), transparent 24rem),
+      linear-gradient(135deg, #f7f3ef 0%, #fbfaf7 48%, #f3eee8 100%);
+  }
+
+  .dashboard-shell-card {
+    border: 1px solid rgb(26 20 15 / 0.08);
+    background: rgb(255 255 255 / 0.76);
+    box-shadow:
+      0 24px 70px rgb(33 24 16 / 0.10),
+      0 1px 0 rgb(255 255 255 / 0.9) inset;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .dashboard-panel {
+    border: 1px solid rgb(26 20 15 / 0.09);
+    background: rgb(255 255 255 / 0.9);
+    box-shadow:
+      0 16px 44px rgb(33 24 16 / 0.08),
+      0 1px 0 rgb(255 255 255 / 0.95) inset;
+  }
+
+  .dashboard-inset {
+    border: 1px solid rgb(26 20 15 / 0.08);
+    background: rgb(250 248 245 / 0.86);
+  }
+
+  .dashboard-orange-button {
+    background: #fa7d22;
+    color: #14110f;
+    box-shadow: 0 10px 24px rgb(250 125 34 / 0.22);
+  }
+
+  .dashboard-orange-button:hover {
+    background: #ff8f3d;
+  }
+
+  .founder-dark-canvas {
+    background:
+      radial-gradient(circle at 56% 20%, rgb(250 125 34 / 0.06), transparent 34rem),
+      radial-gradient(circle at 82% 90%, rgb(255 255 255 / 0.035), transparent 28rem),
+      #111111;
+    color: rgb(245 245 245);
+  }
+
+  .founder-dark-dots {
+    background-image:
+      radial-gradient(circle, rgb(255 255 255 / 0.11) 1px, transparent 1px),
+      radial-gradient(circle, rgb(250 125 34 / 0.16) 1px, transparent 1px);
+    background-position:
+      0 0,
+      12px 12px;
+    background-size:
+      24px 24px,
+      24px 24px;
+  }
+
+  .founder-dark-panel {
+    border: 1px solid rgb(255 255 255 / 0.09);
+    background: rgb(18 18 18 / 0.92);
+    box-shadow:
+      0 18px 54px rgb(0 0 0 / 0.26),
+      0 1px 0 rgb(255 255 255 / 0.04) inset;
+  }
+
+  .founder-dark-row {
+    border: 1px solid rgb(255 255 255 / 0.08);
+    background: rgb(255 255 255 / 0.025);
+  }
+
+  .founder-ascii-mark {
+    color: rgb(250 125 34 / 0.44);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0;
+    line-height: 1.08;
+    white-space: pre;
+    user-select: none;
+  }
+
+  .founder-role-dark {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .founder-role-dark::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.13;
+    background-image:
+      radial-gradient(circle, rgb(255 255 255 / 0.18) 1px, transparent 1px),
+      radial-gradient(circle, rgb(250 125 34 / 0.20) 1px, transparent 1px);
+    background-position:
+      0 0,
+      12px 12px;
+    background-size:
+      24px 24px,
+      24px 24px;
+  }
+
+  .founder-role-dark .bg-card {
+    background-color: rgb(18 18 18 / 0.94) !important;
+  }
+
+  .founder-role-dark .bg-background {
+    background-color: rgb(255 255 255 / 0.04) !important;
+  }
+
+  .founder-role-dark .bg-muted,
+  .founder-role-dark .bg-muted\/30,
+  .founder-role-dark .bg-muted\/50,
+  .founder-role-dark .bg-muted\/60 {
+    background-color: rgb(255 255 255 / 0.07) !important;
+  }
+
+  .founder-role-dark .border-border {
+    border-color: rgb(255 255 255 / 0.10) !important;
+  }
+
+  .founder-role-dark .text-foreground {
+    color: rgb(245 245 245) !important;
+  }
+
+  .founder-role-dark .text-muted-foreground {
+    color: rgb(255 255 255 / 0.46) !important;
+  }
+
+  .founder-role-dark .bg-primary {
+    background-color: #fa7d22 !important;
+  }
+
+  .founder-role-dark .text-primary-foreground {
+    color: #050505 !important;
+  }
+
   .app-surface-overlay {
     background-color: hsl(var(--surface-base) / 0.55);
   }

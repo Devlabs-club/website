@@ -1,9 +1,19 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
-import { AppTopBar } from "@/components/app/AppTopBar";
 import FounderContextIntroModals from "@/components/founder/FounderContextIntroModals";
 import FounderBillingCard from "@/components/founder/FounderBillingCard";
-import { ArrowRight, ChevronLeft, ChevronRight, Loader2, LogOut, Paperclip, Plus } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Paperclip,
+  Plus,
+  Search,
+  Settings,
+  UsersRound,
+} from "lucide-react";
 
 type Role = {
   id: string;
@@ -83,21 +93,68 @@ const questions: Question[] = [
   },
 ];
 
-/** Friendly gradient avatar with two eyes, matching the home hero. */
-const HeroBubble: React.FC = () => (
-  <div className="relative mx-auto h-16 w-16">
-    <div
-      className="h-16 w-16 rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
-      style={{
-        background:
-          "radial-gradient(120% 120% at 30% 25%, #c9b8ff 0%, #ffb3d9 38%, #aee3ff 68%, #b6f5c9 100%)",
-      }}
-    />
-    <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 gap-1.5">
-      <span className="h-1.5 w-1.5 rounded-full bg-slate-700/80" />
-      <span className="h-1.5 w-1.5 rounded-full bg-slate-700/80" />
+const FounderRail: React.FC<{ onLogout: () => void; initial: string }> = ({ onLogout, initial }) => (
+  <aside className="flex min-h-screen w-20 shrink-0 flex-col items-center border-r border-white/10 bg-[#1b1b1b] py-6">
+    <a href="/dashboard" aria-label="DevLabs dashboard" className="mb-9">
+      <img src="/logo.png" alt="" className="h-8 w-8 object-contain" />
+    </a>
+    <nav className="flex flex-1 flex-col items-center gap-4" aria-label="Founder navigation">
+      <a
+        href="/founder/home"
+        className="grid h-12 w-12 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]"
+        title="Sourcing"
+      >
+        <UsersRound className="h-5 w-5" />
+      </a>
+      <button
+        type="button"
+        className="grid h-11 w-11 place-items-center rounded-xl text-white/45 transition hover:bg-white/[0.05] hover:text-white/75"
+        title="Search"
+      >
+        <Search className="h-5 w-5" />
+      </button>
+    </nav>
+    <div className="flex flex-col items-center gap-4">
+      <button
+        type="button"
+        className="relative grid h-11 w-11 place-items-center rounded-xl text-white/45 transition hover:bg-white/[0.05] hover:text-white/75"
+        title="Notifications"
+      >
+        <Bell className="h-5 w-5" />
+        <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#fa7d22]" />
+      </button>
+      <button
+        type="button"
+        className="grid h-11 w-11 place-items-center rounded-xl text-white/45 transition hover:bg-white/[0.05] hover:text-white/75"
+        title="Settings"
+      >
+        <Settings className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="grid h-10 w-10 place-items-center rounded-full bg-white/[0.06] text-xs font-bold text-white/50 transition hover:bg-white/[0.1] hover:text-white"
+        title="Sign out"
+      >
+        {initial}
+      </button>
     </div>
-  </div>
+  </aside>
+);
+
+const FounderAsciiBlock: React.FC<{ className?: string }> = ({ className = "" }) => (
+  <pre className={`founder-ascii-mark pointer-events-none text-[10px] ${className}`} aria-hidden="true">
+{`        .  .  .  .  .
+   +-------------------+
+   |  DL SIGNAL MAP    |
+   |  +----+     +--+  |
+   |  |role|-----|fit| |
+   |  +----+     +--+  |
+   |     \\  proof  /   |
+   |      +------+     |
+   +-------------------+
+        *  *  *  *`}
+  </pre>
 );
 
 const FounderHomeInner: React.FC = () => {
@@ -273,172 +330,172 @@ const FounderHomeInner: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="founder-dark-canvas flex min-h-screen">
       {showIntro && <FounderContextIntroModals onFinish={() => setShowIntro(false)} />}
-      <AppTopBar
-        right={
+      <FounderRail onLogout={() => void logout()} initial={firstName.slice(0, 1).toUpperCase()} />
+
+      <main className="relative min-w-0 flex-1 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 founder-dark-dots opacity-[0.18]" />
+        <FounderAsciiBlock className="absolute right-8 top-24 hidden opacity-45 lg:block" />
+
+        <header className="relative z-10 flex h-16 items-center justify-between border-b border-white/10 px-6 sm:px-8">
+          <h1 className="text-lg font-bold tracking-tight text-white">Sourcing</h1>
           <button
             type="button"
-            onClick={() => void logout()}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            onClick={startNewRole}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80 transition hover:text-[#fa7d22]"
           >
-            <LogOut className="h-4 w-4" />
-            Sign out
+            <Plus className="h-3.5 w-3.5" />
+            New Search
           </button>
-        }
-      />
-      <main className="mx-auto flex w-full max-w-2xl flex-col items-center px-4 py-16 sm:px-6">
-        <section className="mb-8 text-center">
-          <HeroBubble />
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight">Hey! {firstName}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">How can we help you, today?</p>
-        </section>
+        </header>
 
         {pageLoading ? (
-          <div className="flex h-40 items-center justify-center text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
+          <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-[#fa7d22]" />
+          </section>
         ) : mode === "list" ? (
-          <section className="w-full space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold text-muted-foreground">Your open roles</h2>
-              <button
-                type="button"
-                onClick={startNewRole}
-                className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-sm font-medium transition-colors hover:bg-muted"
-              >
-                <Plus className="h-4 w-4" /> New role
-              </button>
+          <section className="relative z-10 mx-auto w-full max-w-[1220px] px-6 py-8 sm:px-8">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Roles Created</h2>
+                <div className="mt-6 inline-flex overflow-hidden rounded-md bg-white text-sm font-semibold text-black">
+                  <button type="button" className="bg-white px-6 py-2">Active</button>
+                  <button type="button" className="bg-[#f0f0f0] px-6 py-2 text-black/70">Paused</button>
+                </div>
+              </div>
+              <FounderAsciiBlock className="hidden text-[8px] opacity-25 md:block" />
             </div>
-            <div className="space-y-2.5">
+
+            <div className="divide-y divide-white/10 border-y border-white/10">
               {roles.map((role) => (
                 <a
                   key={role.id}
                   href={`/founder/roles/${role.id}`}
-                  className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/50"
+                  className="group grid gap-4 px-0 py-6 transition hover:bg-white/[0.025] md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:px-6"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-semibold">{role.title || role.roleTitle || "Untitled role"}</p>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                      {(role.skillsNeeded || []).slice(0, 4).join(", ") || "Draft role"}
-                      {role.status ? ` · ${role.status}` : ""}
+                    <p className="truncate text-lg font-semibold text-white">{role.title || role.roleTitle || "Untitled role"}</p>
+                    <p className="mt-1 truncate text-xs text-white/42">
+                      Internship * 6 Months * $300-500 * Hybrid
                     </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {["12 Recommended", "3 Contacted", "2 Accepted", "1 Trial", "0 Hired"].map((label) => (
+                        <span key={label} className="rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-1 text-[10px] text-white/48">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <p className="text-xs text-white/34 md:justify-self-end">10:00 am * 12 June 2026</p>
+                  <span className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-white/[0.11] px-4 text-xs font-semibold text-white transition group-hover:bg-[#fa7d22] group-hover:text-black">
+                    View <ArrowRight className="h-3.5 w-3.5" />
+                  </span>
                 </a>
               ))}
             </div>
+
+            <div className="mt-8">
+              <FounderBillingCard />
+            </div>
           </section>
         ) : (
-          <section className="w-full rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div
-              className={`transition-all duration-200 ease-out ${
-                fading ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100"
-              }`}
-            >
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-base font-semibold">{current.title}</h2>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-5 py-10">
+            <div className="w-full max-w-[580px]">
+              <div className="mb-10 text-center">
+                <h2 className="text-5xl font-extrabold tracking-tight text-white sm:text-6xl">Hey! {firstName}</h2>
+                <p className="mt-4 text-sm font-medium text-white/52">{current.title}</p>
+              </div>
+
+              <div
+                className={`founder-dark-panel overflow-hidden rounded-2xl transition-all duration-200 ease-out ${
+                  fading ? "translate-y-1 opacity-0" : "translate-y-0 opacity-100"
+                }`}
+              >
+                <div className="divide-y divide-white/10">
+                  {current.options.map((option, index) => {
+                    const selected = answers[current.key] === current.format(option);
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void commit(option)}
+                        className={`flex w-full items-center gap-5 px-6 py-4 text-left text-sm transition-colors hover:bg-white/[0.06] disabled:opacity-50 ${
+                          selected ? "bg-white/[0.07] text-white" : "text-white/82"
+                        }`}
+                      >
+                        <span className="w-4 text-center text-white/38">{index + 1}</span>
+                        <span className="font-medium">{option}</span>
+                      </button>
+                    );
+                  })}
+
+                  <div className="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center">
+                    {!customOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomOpen(true);
+                          setError("");
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left text-sm font-medium text-white/42 transition-colors hover:text-white/75"
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        Something else...
+                      </button>
+                    ) : (
+                      <input
+                        value={customValue}
+                        onChange={(e) => setCustomValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") void commit(customValue);
+                        }}
+                        placeholder={current.placeholder}
+                        autoFocus
+                        disabled={busy}
+                        className="h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm font-medium text-white outline-none transition-colors placeholder:text-white/28 focus:border-[#fa7d22]/60"
+                      />
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => void commit(customOpen ? customValue : answers[current.key] || current.options[0])}
+                      disabled={busy || (customOpen && !customValue.trim())}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-white px-5 text-sm font-bold text-black transition hover:bg-[#fa7d22] disabled:opacity-50"
+                    >
+                      {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {step === questions.length - 1 ? "Finish" : "Continue"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between px-1 text-xs text-white/34">
                 <button
                   type="button"
                   onClick={goBack}
                   disabled={step === 0}
-                  className="rounded-md p-0.5 transition-colors hover:bg-muted disabled:opacity-30"
-                  aria-label="Previous question"
+                  className="inline-flex items-center gap-1 transition hover:text-white disabled:opacity-30"
                 >
                   <ChevronLeft className="h-4 w-4" />
+                  Back
                 </button>
-                <span className="tabular-nums">
-                  {step + 1} of {questions.length}
-                </span>
+                <span className="tabular-nums">{step + 1} of {questions.length}</span>
                 <button
                   type="button"
                   onClick={goForward}
                   disabled={step >= questions.length - 1 || !answers[current.key]}
-                  className="rounded-md p-0.5 transition-colors hover:bg-muted disabled:opacity-30"
-                  aria-label="Next question"
+                  className="inline-flex items-center gap-1 transition hover:text-white disabled:opacity-30"
                 >
+                  Next
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
-            </div>
 
-            <div className="divide-y divide-border">
-              {current.options.map((option, index) => {
-                const selected = answers[current.key] === current.format(option);
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void commit(option)}
-                    className={`flex w-full items-center gap-3 py-3 text-left text-sm transition-colors hover:text-foreground disabled:opacity-50 ${
-                      selected ? "text-foreground" : "text-muted-foreground"
-                    }`}
-                  >
-                    <span
-                      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-medium ${
-                        selected ? "bg-foreground text-background" : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="text-foreground">{option}</span>
-                  </button>
-                );
-              })}
-
-              <div className="py-3">
-                {!customOpen ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomOpen(true);
-                      setError("");
-                    }}
-                    className="flex w-full items-center gap-3 text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                      <Paperclip className="h-3.5 w-3.5" />
-                    </span>
-                    Something else
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={customValue}
-                      onChange={(e) => setCustomValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") void commit(customValue);
-                      }}
-                      placeholder={current.placeholder}
-                      autoFocus
-                      disabled={busy}
-                      className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void commit(customValue)}
-                      disabled={busy || !customValue.trim()}
-                      className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-                    >
-                      {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                      {step === questions.length - 1 ? "Finish" : "Next"}
-                    </button>
-                  </div>
-                )}
-              </div>
+              {error && <p className="mt-4 text-center text-sm font-medium text-red-300">{error}</p>}
             </div>
-            </div>
-
-            {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
           </section>
-        )}
-
-        {!pageLoading && (
-          <div className="mt-8 w-full">
-            <FounderBillingCard />
-          </div>
         )}
       </main>
     </div>

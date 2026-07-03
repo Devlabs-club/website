@@ -102,24 +102,24 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#fa7d22]/25 bg-[#fa7d22]/10 text-[#fa7d22]">
+    <div className="mx-auto w-full max-w-2xl rounded-[22px] border border-[#1a140f]/10 bg-[#fbfaf7] p-6 shadow-[0_16px_42px_rgba(33,24,16,0.07)] sm:p-8">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#fa7d22]/25 bg-[#fff7ef] text-[#fa7d22]">
         {uploaded ? <CheckCircle2 className="h-5 w-5" /> : <Terminal className="h-5 w-5" />}
       </div>
 
-      <p className="mt-5 text-sm font-semibold text-[#fa7d22]">DevLabs Agent Wrapped</p>
-      <h2 className="mt-2 text-2xl font-semibold tracking-tight">Run agent traces</h2>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#fa7d22]">DevLabs Agent Wrapped</p>
+      <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#14110f]">Run agent traces</h2>
+      <p className="mt-2 text-sm leading-6 text-[#746b62]">
         Turn your real AI-building workflow into verified proof-of-work. This runs locally across
         Claude Code, Codex, Cursor, and exported session summaries, then uploads only safe aggregated
         metrics after you approve the preview.
       </p>
 
-      <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+      <div className="mt-5 rounded-2xl border border-[#1a140f]/10 bg-white p-4 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-foreground">iMessage agent</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm font-bold text-[#14110f]">iMessage agent</p>
+            <p className="mt-1 text-sm leading-6 text-[#746b62]">
               {delivery?.status === 'sent'
                 ? 'The DevLabs agent texted you. Continue the profile conversation in Messages while traces run here.'
                 : delivery?.status === 'delivery_failed'
@@ -132,7 +132,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
               type="button"
               onClick={() => void retryMessage()}
               disabled={startingMessage}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1a140f]/10 bg-[#fbfaf7] px-4 text-sm font-bold text-[#14110f] hover:bg-[#fff7ef] disabled:opacity-50"
             >
               {startingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Start iMessage agent
@@ -141,13 +141,13 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-border bg-background p-3">
+      <div className="mt-5 rounded-2xl border border-[#1a140f]/10 bg-white p-3 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Copy and run locally</span>
+          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#9b9188]">Copy and run locally</span>
           <button
             type="button"
             onClick={copyCommand}
-            className="inline-flex h-8 items-center gap-2 rounded-lg border border-border px-3 text-xs font-semibold text-foreground hover:bg-muted"
+            className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#1a140f]/10 bg-[#fbfaf7] px-3 text-xs font-bold text-[#14110f] hover:bg-[#fff7ef]"
           >
             <Clipboard className="h-3.5 w-3.5" />
             {copied ? 'Copied' : 'Copy'}
@@ -158,14 +158,14 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
         </pre>
       </div>
 
-      <div className="mt-5 grid gap-3 text-sm text-muted-foreground sm:grid-cols-2">
-        <div className="rounded-xl border border-border bg-background p-3">
-          <p className="font-semibold text-foreground">Will upload</p>
-          <p className="mt-1">Language patterns, frameworks, build surfaces, validation habits, agent maturity, and safe evidence summaries.</p>
+      <div className="mt-5 grid gap-3 text-sm text-[#746b62] sm:grid-cols-2">
+        <div className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
+          <p className="font-bold text-[#14110f]">Will upload</p>
+          <p className="mt-1 leading-6">Language patterns, frameworks, build surfaces, validation habits, agent maturity, and safe evidence summaries.</p>
         </div>
-        <div className="rounded-xl border border-border bg-background p-3">
-          <p className="font-semibold text-foreground">Will not upload</p>
-          <p className="mt-1">Raw prompts, conversations, source code, secrets, environment variables, full paths, or private filenames.</p>
+        <div className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
+          <p className="font-bold text-[#14110f]">Will not upload</p>
+          <p className="mt-1 leading-6">Raw prompts, conversations, source code, secrets, environment variables, full paths, or private filenames.</p>
         </div>
       </div>
 
@@ -174,24 +174,24 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
           type="button"
           onClick={() => void checkStatus(false)}
           disabled={checking}
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#fa7d22] px-4 text-sm font-semibold text-black disabled:opacity-50"
+          className="dashboard-orange-button inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors disabled:opacity-50"
         >
           {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
           Check status
         </button>
         <a
           href={publicUrl}
-          className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted"
+          className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[#1a140f]/10 bg-white px-4 text-sm font-bold text-[#14110f] hover:bg-[#fff7ef]"
         >
           Preview public card
         </a>
       </div>
 
-      {error ? <p className="mt-4 text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm font-medium text-red-600">{error}</p> : null}
       {uploaded ? (
-        <p className="mt-4 text-sm text-emerald-500">Agent Wrapped report uploaded. Continuing...</p>
+        <p className="mt-4 text-sm font-semibold text-emerald-600">Agent Wrapped report uploaded. Continuing...</p>
       ) : (
-        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+        <p className="mt-4 text-xs leading-5 text-[#746b62]">
           This step is required before your profile is unlocked because Agent Wrapped should be based on builder-level AI agent usage, not one selected project.
         </p>
       )}

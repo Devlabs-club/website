@@ -32,6 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const checkoutPlan = String(body.plan || '').trim();
   const interval = String(body.interval || '').trim();
+  const requestedReturnPath = typeof body.returnPath === 'string' ? body.returnPath.trim() : '';
 
   const priceId =
     checkoutPlan === 'growth' && interval === 'yearly'
@@ -62,6 +63,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
   let customerId = account.stripeCustomerId;
+  if (customerId) {
+    try {
+      await stripe.customers.retrieve(customerId);
+    } catch (error: any) {
+      if (error?.code === 'resource_missing' || error?.raw?.code === 'resource_missing') {
+        customerId = null;
+        account.stripeCustomerId = null;
+        await account.save();
+      } else {
+        throw error;
+      }
+    }
+  }
+
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: identity.email,
@@ -78,13 +93,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // After paying, resume onboarding at the exact step the founder left off
   // (start of the flow if they haven't begun) rather than a blank dashboard.
   const resumePath = onboardingResumePath('founder', identity.onboardingStatus);
+  const returnPath =
+    requestedReturnPath.startsWith('/') && !requestedReturnPath.startsWith('//')
+      ? requestedReturnPath
+      : resumePath;
   const session = await stripe.checkout.sessions.create({
     mode,
     customer: customerId,
     line_items: [{ price: priceId, quantity: 1 }],
     allow_promotion_codes: checkoutPlan === 'growth',
-    success_url: `${origin}${resumePath}?billing=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}${resumePath}?billing=cancelled`,
+    success_url: `${origin}${returnPath}${returnPath.includes('?') ? '&' : '?'}billing=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}${returnPath}${returnPath.includes('?') ? '&' : '?'}billing=cancelled`,
     metadata: {
       founderId: identity.founderId,
       founderEmail: identity.email,

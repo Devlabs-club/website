@@ -44,7 +44,7 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
       aria-label="Toggle theme"
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-foreground/70 transition-colors hover:bg-muted hover:text-foreground",
+        "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1a140f]/10 bg-white text-[#403832]/70 shadow-[0_8px_20px_rgba(33,24,16,0.06)] transition-colors hover:bg-[#fff7ef] hover:text-[#14110f]",
         className
       )}
     >

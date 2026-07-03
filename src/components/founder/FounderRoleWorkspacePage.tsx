@@ -39,6 +39,14 @@ type Recommendation = {
   introRequested?: boolean;
 };
 
+type BillingSummary = {
+  success?: boolean;
+  error?: string;
+  entitlements?: {
+    lifecycleAccess?: 'locked' | 'enabled';
+  };
+};
+
 const inputClass =
   "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40";
 const textareaClass =
@@ -71,6 +79,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const [profile, setProfile] = useState<BuilderProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [pendingAgentFollowup, setPendingAgentFollowup] = useState("");
+  const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -269,25 +278,72 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     }
   };
 
+  const startGrowthCheckout = async () => {
+    const res = await fetch("/api/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        plan: "growth",
+        interval: "monthly",
+        returnPath: `${window.location.pathname}${window.location.search}`,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success && data.url) {
+      window.location.href = data.url;
+      return true;
+    }
+    setError(data.error || "Could not start checkout. Check Stripe price IDs in your local .env.");
+    return false;
+  };
+
+  const hasLifecycleAccess = async () => {
+    const res = await fetch("/api/billing/summary", { credentials: "include" });
+    const data = (await res.json().catch(() => ({}))) as BillingSummary;
+    if (!res.ok || !data.success) {
+      setError(data.error || "Could not check billing status.");
+      return false;
+    }
+    return data.entitlements?.lifecycleAccess === "enabled";
+  };
+
   const invite = async (builderId: string) => {
+    if (inviteBusy) return;
+    setInviteBusy(builderId);
+    setError("");
+    if (!(await hasLifecycleAccess())) {
+      await startGrowthCheckout();
+      setInviteBusy(null);
+      return;
+    }
+
     const res = await fetch("/api/founder/invite", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       body: JSON.stringify({ jobId: roleId, builderId }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (data.success) {
       setRecommendations((prev) =>
         prev.map((rec) => (rec.builderId === builderId ? { ...rec, introRequested: true } : rec))
       );
+    } else if (res.status === 402 && data.upgradeTarget === "growth") {
+      await startGrowthCheckout();
+    } else {
+      setError(data.error || "Could not invite this builder.");
     }
+    setInviteBusy(null);
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <AppTopBar right={<a href="/founder/home" className="text-sm text-muted-foreground hover:text-foreground">Home</a>} />
-      <main className="mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8">
+    <div className="founder-dark-canvas founder-role-dark min-h-screen text-foreground">
+      <AppTopBar
+        variant="dark"
+        right={<a href="/founder/home" className="text-sm font-semibold text-white/55 hover:text-white">Home</a>}
+      />
+      <main className="relative z-10 mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8">
         <a href="/founder/home" className="mb-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Back
         </a>
@@ -483,9 +539,11 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                         <button
                           type="button"
                           onClick={() => void invite(profile.id)}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                          disabled={inviteBusy === profile.id}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
                         >
-                          <UserPlus className="h-4 w-4" /> Invite {profile.name?.split(" ")[0] || "builder"}
+                          {inviteBusy === profile.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                          Invite {profile.name?.split(" ")[0] || "builder"}
                         </button>
                       </div>
                     </div>
@@ -530,11 +588,11 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                             <button
                               type="button"
                               onClick={() => void invite(rec.builderId)}
-                              disabled={rec.introRequested}
+                              disabled={rec.introRequested || inviteBusy === rec.builderId}
                               className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
                             >
-                              <UserPlus className="h-3.5 w-3.5" />
-                              {rec.introRequested ? "Invited" : "Invite"}
+                              {inviteBusy === rec.builderId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+                              {rec.introRequested ? "Invited" : inviteBusy === rec.builderId ? "Checking" : "Invite"}
                             </button>
                           </div>
                         </div>
