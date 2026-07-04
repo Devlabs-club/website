@@ -394,6 +394,7 @@ export async function buildFullCandidateCard(params: {
     name: builder.name,
     headline: builder.headline || null,
     bio: builder.bio || null,
+    avatarUrl: builder.avatarUrl || null,
     location: builder.location || null,
     availability: {
       availableNow: Boolean(availability.availableNow),

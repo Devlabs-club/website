@@ -38,6 +38,7 @@ function serializeJob(job: any) {
     niceToHaveSkills: job.niceToHaveSkills || [],
     responsibilities: job.responsibilities || job.deliverables || [],
     status: job.status,
+    createdAt: job.createdAt ? new Date(job.createdAt).toISOString() : null,
   };
 }
 
