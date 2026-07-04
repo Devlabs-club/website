@@ -134,7 +134,7 @@ export async function serializeClaim(claim: any, runtime?: RuntimeEnv) {
       ? {
           builderId,
           uploadToken,
-          command: buildAgentWrappedCommand(uploadToken),
+          command: buildAgentWrappedCommand(uploadToken, runtime),
           publicUrl: `/builder/wrapped/${builderId}`,
         }
       : null,
@@ -429,6 +429,14 @@ export async function advanceClaimConversation(
     userText: body,
     history,
     resume: params.resumeText ? { text: params.resumeText } : null,
+    activeContext: claim.activeContext?.kind
+      ? {
+          kind: claim.activeContext.kind,
+          opportunityId: claim.activeContext.opportunityId ? String(claim.activeContext.opportunityId) : null,
+          introRequestId: claim.activeContext.introRequestId ? String(claim.activeContext.introRequestId) : null,
+          threadId: claim.activeContext.threadId ? String(claim.activeContext.threadId) : null,
+        }
+      : null,
     runtime,
   });
 
@@ -466,6 +474,8 @@ export async function notifyBuilderOfIntro(
     company: string;
     roleTitle: string;
     schedulingLink?: string | null;
+    opportunityId?: string | null;
+    introRequestId?: string | null;
   },
   runtime?: RuntimeEnv
 ): Promise<boolean> {
@@ -475,6 +485,16 @@ export async function notifyBuilderOfIntro(
     phoneVerifiedAt: { $ne: null },
   }).sort({ updatedAt: -1 });
   if (!claim) return false;
+
+  if (params.opportunityId) {
+    claim.activeContext = {
+      kind: 'intro',
+      opportunityId: params.opportunityId,
+      introRequestId: params.introRequestId || null,
+      threadId: null,
+      setAt: new Date(),
+    };
+  }
 
   const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
   const result = await runImessageBuilderAgentTurn({
@@ -491,6 +511,143 @@ export async function notifyBuilderOfIntro(
 
   claim.builderId = result.builderId;
   await sendReplies(claim, result.replies, runtime);
+  await claim.save();
+  return true;
+}
+
+/**
+ * Text the builder that a founder just sent them a real trial project — same
+ * agent-generated, personalized notification pattern as `notifyBuilderOfIntro`.
+ * Best-effort: only fires when we have a verified phone for them.
+ */
+export async function notifyBuilderOfTrial(
+  params: {
+    builderId: string;
+    builderEmail: string;
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    trialTitle: string;
+    deliverables?: string[];
+    deadlineAt?: string | null;
+    opportunityId?: string | null;
+  },
+  runtime?: RuntimeEnv
+): Promise<boolean> {
+  const claim = await BuilderProfileClaim.findOne({
+    $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+    phone: { $ne: null },
+    phoneVerifiedAt: { $ne: null },
+  }).sort({ updatedAt: -1 });
+  if (!claim) return false;
+
+  if (params.opportunityId) {
+    claim.activeContext = {
+      kind: 'trial',
+      opportunityId: params.opportunityId,
+      introRequestId: null,
+      threadId: null,
+      setAt: new Date(),
+    };
+  }
+
+  const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+  const result = await runImessageBuilderAgentTurn({
+    claim,
+    history: buildAgentHistory(claim),
+    trialAssigned: {
+      founderName: params.founderName,
+      company: params.company,
+      roleTitle: params.roleTitle,
+      trialTitle: params.trialTitle,
+      deliverables: params.deliverables,
+      deadlineAt: params.deadlineAt ?? null,
+    },
+    runtime,
+  });
+
+  claim.builderId = result.builderId;
+  await sendReplies(claim, result.replies, runtime);
+  await claim.save();
+  return true;
+}
+
+/**
+ * Text the builder that a founder just hired them — same agent-generated,
+ * personalized notification pattern as `notifyBuilderOfIntro`.
+ * Best-effort: only fires when we have a verified phone for them.
+ */
+export async function notifyBuilderOfHire(
+  params: {
+    builderId: string;
+    builderEmail: string;
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    note?: string | null;
+  },
+  runtime?: RuntimeEnv
+): Promise<boolean> {
+  const claim = await BuilderProfileClaim.findOne({
+    $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+    phone: { $ne: null },
+    phoneVerifiedAt: { $ne: null },
+  }).sort({ updatedAt: -1 });
+  if (!claim) return false;
+
+  const { runImessageBuilderAgentTurn } = await import('@/lib/agent/runners/imessageBuilderAgent');
+  const result = await runImessageBuilderAgentTurn({
+    claim,
+    history: buildAgentHistory(claim),
+    hired: {
+      founderName: params.founderName,
+      company: params.company,
+      roleTitle: params.roleTitle,
+      note: params.note ?? null,
+    },
+    runtime,
+  });
+
+  claim.builderId = result.builderId;
+  await sendReplies(claim, result.replies, runtime);
+  await claim.save();
+  return true;
+}
+
+/**
+ * Relay a founder's dashboard message to the builder over iMessage without
+ * rewriting it through the agent. The second bubble is the founder's exact text.
+ */
+export async function relayFounderMessageOverImessage(
+  params: {
+    builderId: string;
+    builderEmail: string;
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    opportunityId: string;
+    threadId: string;
+    body: string;
+  },
+  runtime?: RuntimeEnv
+): Promise<boolean> {
+  const claim = await BuilderProfileClaim.findOne({
+    $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+    phone: { $ne: null },
+    phoneVerifiedAt: { $ne: null },
+  }).sort({ updatedAt: -1 });
+  if (!claim) return false;
+
+  claim.activeContext = {
+    kind: 'thread',
+    opportunityId: params.opportunityId,
+    introRequestId: null,
+    threadId: params.threadId,
+    setAt: new Date(),
+  };
+
+  const leadIn = `hey - ${params.founderName || 'a founder'} from ${params.company || 'DevLabs'} just messaged you about ${params.roleTitle || 'the role'}:`;
+  await sendReplies(claim, [leadIn, params.body], runtime);
   await claim.save();
   return true;
 }

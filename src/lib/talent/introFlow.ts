@@ -27,6 +27,7 @@ async function pingBuilderInterestOverImessage(params: {
   roleTitle: string;
   company: string;
   introRequestId: string;
+  opportunityId?: string;
   schedulingLink?: string | null;
 }) {
   try {
@@ -38,6 +39,8 @@ async function pingBuilderInterestOverImessage(params: {
       company: params.company,
       roleTitle: params.roleTitle,
       schedulingLink: params.schedulingLink ?? null,
+      opportunityId: params.opportunityId ?? null,
+      introRequestId: params.introRequestId,
     });
   } catch (err) {
     console.error('[introFlow] iMessage interest ping failed', err);
@@ -52,6 +55,7 @@ export async function notifyBuilderIntroReceived(params: {
   roleTitle: string;
   company: string;
   introRequestId: string;
+  opportunityId?: string;
 }) {
   // Resolve the founder's Cal.com/Calendly link so the builder can book the
   // interview straight from the iMessage ping. Best-effort — missing it just
@@ -217,4 +221,47 @@ export async function respondToIntro(params: {
   }
 
   return { intro, match, opportunity, builder };
+}
+
+/**
+ * Notify the founder that a builder is showing casual interest in an intro request
+ * — short of a formal accept, just "they're warm, worth reaching out." Idempotent:
+ * only the first signal notifies; later casual signals on the same intro no-op.
+ * A later formal accept still fires its own separate `intro_accepted` notification.
+ */
+export async function notifyFounderOfBuilderInterest(params: {
+  introRequestId: string;
+  builderId: string;
+  note?: string;
+}) {
+  const intro = await IntroRequest.findOne({
+    _id: params.introRequestId,
+    builderId: params.builderId,
+  });
+  if (!intro) return { error: 'Intro request not found', status: 404 as const };
+
+  if (intro.founderNotifiedOfInterestAt) return { intro, notified: false };
+
+  intro.founderNotifiedOfInterestAt = new Date();
+  await intro.save();
+
+  const [builder, opportunity] = await Promise.all([
+    BuilderProfile.findById(intro.builderId).select('name').lean(),
+    Opportunity.findById(intro.opportunityId).lean(),
+  ]);
+  const builderName = builder?.name || 'Builder';
+  const roleTitle = opportunity?.roleTitle || 'your role';
+
+  await createNotification({
+    recipientType: 'founder',
+    recipientEmail: intro.founderEmail,
+    type: 'intro_interested',
+    title: 'Builder is interested',
+    body: `${builderName} showed interest in ${roleTitle} — worth reaching out.`,
+    link: founderDashboardLink({ builderId: String(intro.builderId), opportunityId: String(intro.opportunityId) }),
+    entityType: 'IntroRequest',
+    entityId: String(intro._id),
+  });
+
+  return { intro, notified: true };
 }

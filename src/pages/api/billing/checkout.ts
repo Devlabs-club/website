@@ -93,9 +93,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // After paying, resume onboarding at the exact step the founder left off
   // (start of the flow if they haven't begun) rather than a blank dashboard.
   const resumePath = onboardingResumePath('founder', identity.onboardingStatus);
+  let referrerPath = '';
+  const referrer = request.headers.get('referer');
+  if (referrer) {
+    try {
+      const referrerUrl = new URL(referrer);
+      if (`${referrerUrl.protocol}//${referrerUrl.host}` === origin) {
+        ['billing', 'session_id'].forEach((key) => referrerUrl.searchParams.delete(key));
+        referrerPath = `${referrerUrl.pathname}${referrerUrl.search}`;
+      }
+    } catch {
+      referrerPath = '';
+    }
+  }
   const returnPath =
     requestedReturnPath.startsWith('/') && !requestedReturnPath.startsWith('//')
       ? requestedReturnPath
+      : referrerPath
+        ? referrerPath
       : resumePath;
   const session = await stripe.checkout.sessions.create({
     mode,

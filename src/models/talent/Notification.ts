@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 export const NOTIFICATION_TYPES = [
   'intro_received',
   'intro_viewed',
+  'intro_interested',
   'intro_accepted',
   'intro_declined',
   'call_scheduled',

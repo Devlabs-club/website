@@ -269,10 +269,35 @@ export default function FounderCandidateDrawer({
 
           {candidate.teasers?.agentTrace ? (
             <section className="rounded-2xl border border-[#fa7d22]/20 bg-[#fa7d22]/[0.06] p-4">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <h3 className="text-xs uppercase tracking-wider text-[#ffb580]">Agent trace preview</h3>
-                <span className="text-[10px] text-white/35">{candidate.teasers.agentTrace.label}</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <h3 className="text-xs uppercase tracking-wider text-[#ffb580]">
+                  {candidate.teasers.agentTrace.hasAgentWrapped ? 'Agent Wrapped' : 'Agent trace preview'}
+                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  {candidate.teasers.agentTrace.hasAgentWrapped ? (
+                    <span className="rounded-full bg-[#fa7d22]/15 px-2 py-0.5 text-[10px] font-semibold text-[#ffb580]">Uploaded</span>
+                  ) : null}
+                  {typeof candidate.teasers.agentTrace.wrappedScore === 'number' ? (
+                    <span className="text-[10px] font-semibold text-[#ffb580]">
+                      Founder fit {candidate.teasers.agentTrace.wrappedScore}/100
+                    </span>
+                  ) : null}
+                  <span className="text-[10px] text-white/35">{candidate.teasers.agentTrace.label}</span>
+                </div>
               </div>
+              {candidate.teasers.agentTrace.archetype ? (
+                <p className="mb-2 text-sm font-semibold text-white">{candidate.teasers.agentTrace.archetype}</p>
+              ) : null}
+              {candidate.teasers.agentTrace.bestFitRoles?.length ? (
+                <p className="mb-2 text-xs text-white/55">
+                  Best fit: {candidate.teasers.agentTrace.bestFitRoles.join(' · ')}
+                </p>
+              ) : null}
+              {candidate.teasers.agentTrace.projectHighlight ? (
+                <p className="mb-3 text-xs font-medium italic text-[#ffb580]/90 leading-relaxed">
+                  {candidate.teasers.agentTrace.projectHighlight}
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {candidate.teasers.agentTrace.sourceBadges.map((badge) => (
                   <span key={badge} className="rounded-md border border-white/10 bg-black/20 px-2 py-1 text-[10px] text-white/60">
@@ -290,6 +315,7 @@ export default function FounderCandidateDrawer({
                   ))}
                 </div>
               ) : null}
+              {candidate.teasers.agentTrace.locked && candidate.teasers.agentTrace.redacted.length > 0 ? (
               <div className="mt-3 space-y-1">
                 {candidate.teasers.agentTrace.redacted.slice(0, 3).map((item) => (
                   <div key={item} className="flex items-center gap-2 text-xs text-white/35">
@@ -298,6 +324,7 @@ export default function FounderCandidateDrawer({
                   </div>
                 ))}
               </div>
+              ) : null}
             </section>
           ) : null}
 

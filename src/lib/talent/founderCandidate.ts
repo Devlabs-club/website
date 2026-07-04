@@ -1,6 +1,22 @@
 import { mapTrialProjectFromMatch, normalizeTrialProject, trialProjectToSummary } from '@/lib/talent/founderTrialProject';
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
+import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
+import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 
+export type AgentTraceTeaserPayload = {
+  locked: boolean;
+  label: string;
+  sourceBadges: string[];
+  visibleInsight: string;
+  quantifiedSignals?: string[];
+  redacted: string[];
+  hasAgentWrapped?: boolean;
+  archetype?: string | null;
+  wrappedScore?: number | null;
+  bestFitRoles?: string[];
+  /** Optional punchy project + tech one-liner — only when proof is genuinely strong. */
+  projectHighlight?: string | null;
+};
 export type VerificationLabel =
   | 'Builder Claimed'
   | 'DevLabs Verified'
@@ -95,6 +111,15 @@ function compactText(value: unknown, max = 220) {
   return text.length > max ? `${text.slice(0, max - 3).trimEnd()}...` : text;
 }
 
+function truncateAtWord(text: string, max: number) {
+  const normalized = String(text || '').replace(/\s+/g, ' ').trim();
+  if (normalized.length <= max) return normalized;
+  const slice = normalized.slice(0, max - 1);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > max * 0.55 ? slice.slice(0, lastSpace) : slice;
+  return `${cut.trimEnd()}…`;
+}
+
 function parseJsonObject(value: string): Record<string, any> | null {
   try {
     return JSON.parse(value);
@@ -120,30 +145,207 @@ function safeString(value: unknown, fallback: string, maxChars: number) {
   return compactText(value, maxChars) || fallback;
 }
 
-function fallbackTeasers(base: any, builder: any, projects: any[], shortlistCandidate: any) {
+const HIGHLIGHT_VERIFIED = new Set(['admin_verified', 'founder_verified', 'peer_confirmed', 'builder_confirmed']);
+const MIN_PROJECT_HIGHLIGHT_SCORE = 5;
+
+function projectHighlightScore(project: any) {
+  let score = 0;
+  if (project?.links?.github || project?.links?.demo || project?.links?.devpost) score += 2;
+  const contribution = String(project?.builderContribution || '').trim();
+  if (contribution.length >= 40) score += 3;
+  else if (contribution.length >= 20) score += 1;
+  if (/^(?:Architected|Built|Shipped|Implemented)\b/i.test(contribution)) score += 1;
+  const description = String(project?.description || project?.problemSolved || '').trim();
+  if (description.length >= 50) score += 1;
+  const stack = Array.isArray(project?.techStack) ? project.techStack.filter(Boolean) : [];
+  if (stack.length >= 3) score += 2;
+  else if (stack.length >= 1) score += 1;
+  if (HIGHLIGHT_VERIFIED.has(String(project?.verificationStatus || ''))) score += 1;
+  return score;
+}
+
+function pickBestHighlightProject(projects: any[]) {
+  const ranked = [...projects]
+    .map((project) => ({
+      project,
+      score: projectHighlightScore(project),
+      contributionLen: String(project?.builderContribution || '').length,
+      stackLen: Array.isArray(project?.techStack) ? project.techStack.length : 0,
+    }))
+    .filter((entry) => entry.score >= MIN_PROJECT_HIGHLIGHT_SCORE)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.contributionLen !== a.contributionLen) return b.contributionLen - a.contributionLen;
+      return b.stackLen - a.stackLen;
+    });
+  return ranked[0]?.project || null;
+}
+
+function formatTechSlice(techStack: string[]) {
+  const picked = techStack.map((item) => String(item).trim()).filter(Boolean).slice(0, 4);
+  if (!picked.length) return '';
+  if (picked.length === 1) return picked[0];
+  if (picked.length === 2) return `${picked[0]} and ${picked[1]}`;
+  return `${picked.slice(0, -1).join(', ')}, and ${picked[picked.length - 1]}`;
+}
+
+function buildDeterministicProjectHighlight(project: any): string | null {
+  if (projectHighlightScore(project) < MIN_PROJECT_HIGHLIGHT_SCORE) return null;
+  const name = String(project.projectName || '').trim();
+  const techPhrase = formatTechSlice(Array.isArray(project.techStack) ? project.techStack : []);
+  if (!name || !techPhrase) return null;
+
+  const contribution = String(project.builderContribution || '').replace(/\s+/g, ' ').trim();
+  const problem = String(project.problemSolved || project.description || '').replace(/\s+/g, ' ').trim();
+
+  if (problem.length >= 30) {
+    const problemSlice = truncateAtWord(problem.replace(/\.$/, ''), 85);
+    return truncateAtWord(`${name} — ${problemSlice}, using ${techPhrase}.`, 140);
+  }
+
+  if (contribution.length >= 40) {
+    const lead = truncateAtWord(contribution, 90);
+    return truncateAtWord(`${lead} (${name}, ${techPhrase}).`, 140);
+  }
+
+  return truncateAtWord(`Built ${name} with ${techPhrase}.`, 140);
+}
+
+function isGroundedProjectHighlight(highlight: string, project: any) {
+  const lower = highlight.toLowerCase();
+  const name = String(project.projectName || '').trim().toLowerCase();
+  if (name.length >= 3 && lower.includes(name)) return true;
+  const nameToken = name.split(/[\s/_-]+/).find((part) => part.length >= 4);
+  if (nameToken && lower.includes(nameToken)) return true;
+  const stack = (project.techStack || []).map((item: string) => String(item).trim().toLowerCase());
+  const matchedTech = stack.filter((item: string) => item.length >= 3 && lower.includes(item));
+  return matchedTech.length >= 2;
+}
+
+function attachProjectHighlight(
+  trace: AgentTraceTeaserPayload,
+  projects: any[],
+  llmHighlight?: unknown
+): AgentTraceTeaserPayload {
+  const best = pickBestHighlightProject(projects);
+  if (!best) return trace;
+
+  const llm = typeof llmHighlight === 'string' ? llmHighlight.trim() : '';
+  const deterministic = buildDeterministicProjectHighlight(best);
+  const highlight =
+    llm.length >= 20 && isGroundedProjectHighlight(llm, best)
+      ? truncateAtWord(llm, 140)
+      : deterministic;
+  if (!highlight) return trace;
+  return { ...trace, projectHighlight: highlight };
+}
+
+function buildAgentTraceFromWrapped(
+  agentWrapped: { report?: AgentWrappedReport } | null | undefined,
+  base: any,
+  builder: any,
+  projects: any[],
+  shortlistCandidate: any,
+  locked: boolean
+): AgentTraceTeaserPayload | null {
+  const report = agentWrapped?.report;
+  if (!report) return null;
+
+  const agents = Array.isArray(report.sourceCoverage?.agents) ? report.sourceCoverage.agents : [];
+  const profileBadges = [
+    ...(builder.links?.github ? ['GitHub'] : []),
+    ...(builder.links?.linkedin ? ['LinkedIn'] : []),
+    ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
+  ];
+  const sourceBadges = [...new Set(['Agent Wrapped', ...agents, ...profileBadges])].slice(0, 6);
+
+  const visibleInsight = firstSentence(
+    report.founderRead?.summary,
+    report.evidenceHighlights?.[0],
+    `${report.archetype || 'Builder'} — verified agent usage with ${agents.length || 'multiple'} agent source${agents.length === 1 ? '' : 's'}.`
+  );
+
+  const quantifiedSignals = [
+    typeof report.score === 'number' ? `Founder fit ${report.score}/100` : null,
+    report.validation?.buildTestLoops ? `${report.validation.buildTestLoops} build/test loops` : null,
+    report.agentMaturity?.verificationScore != null
+      ? `Verification ${Math.round(report.agentMaturity.verificationScore / 10)}/10`
+      : null,
+    agents.length ? `${agents.length} agent tool${agents.length === 1 ? '' : 's'}` : null,
+    `${Math.round(base.matchScore || 0)}% role match`,
+  ]
+    .filter(Boolean)
+    .slice(0, 4) as string[];
+
+  return {
+    locked,
+    label: report.archetype || 'Agent Wrapped uploaded',
+    sourceBadges,
+    visibleInsight,
+    quantifiedSignals,
+    redacted: locked
+      ? ['Session transcripts', 'Raw prompts', 'Full evidence chain', 'Agent session details']
+      : [],
+    hasAgentWrapped: true,
+    archetype: report.archetype || null,
+    wrappedScore: typeof report.score === 'number' ? report.score : null,
+    bestFitRoles: (report.founderRead?.bestFitRoles || []).slice(0, 3),
+  };
+}
+
+function mergeAgentTraceTeaser(
+  primary: AgentTraceTeaserPayload,
+  wrapped: AgentTraceTeaserPayload | null
+): AgentTraceTeaserPayload {
+  if (!wrapped) return primary;
+  return {
+    ...primary,
+    label: wrapped.label,
+    sourceBadges: [...new Set([...wrapped.sourceBadges, ...primary.sourceBadges])].slice(0, 6),
+    visibleInsight: wrapped.visibleInsight,
+    quantifiedSignals: wrapped.quantifiedSignals?.length ? wrapped.quantifiedSignals : primary.quantifiedSignals,
+    hasAgentWrapped: true,
+    archetype: wrapped.archetype,
+    wrappedScore: wrapped.wrappedScore,
+    bestFitRoles: wrapped.bestFitRoles?.length ? wrapped.bestFitRoles : primary.bestFitRoles,
+    projectHighlight: primary.projectHighlight || wrapped.projectHighlight || null,
+  };
+}
+
+function fallbackTeasers(
+  base: any,
+  builder: any,
+  projects: any[],
+  shortlistCandidate: any,
+  agentWrapped?: { report?: AgentWrappedReport } | null,
+  traceLocked = true
+) {
   const verifiedCount = projects.filter((p) => ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(p.verificationStatus)).length;
   const insight = firstSentence(
     base.whyTheyMatch || shortlistCandidate?.proofSummary,
     `${Math.round(base.matchScore || 0)}% match across ${projects.length || 1} proof source${(projects.length || 1) === 1 ? '' : 's'}.`
   );
+  const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+  const profileTrace: AgentTraceTeaserPayload = {
+    locked: traceLocked,
+    label: wrappedTrace ? 'Profile evidence' : 'Unlock full trace',
+    sourceBadges: [
+      ...(builder.links?.github ? ['GitHub'] : []),
+      ...(builder.links?.linkedin ? ['LinkedIn'] : []),
+      ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
+      ...(projects.some((p) => p.links?.github) ? ['Repo evidence'] : []),
+    ].slice(0, 5),
+    visibleInsight: insight,
+    quantifiedSignals: [
+      `${Math.round(base.matchScore || 0)}% match`,
+      `${projects.length} project${projects.length === 1 ? '' : 's'} reviewed`,
+      `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
+    ],
+    redacted: traceLocked ? ['Evidence chain', 'Comparison notes', 'Confidence breakdown'] : [],
+  };
+
   return {
-    agentTrace: {
-      locked: true,
-      label: 'Unlock full trace',
-      sourceBadges: [
-        ...(builder.links?.github ? ['GitHub'] : []),
-        ...(builder.links?.linkedin ? ['LinkedIn'] : []),
-        ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
-        ...(projects.some((p) => p.links?.github) ? ['Repo evidence'] : []),
-      ].slice(0, 5),
-      visibleInsight: insight,
-      quantifiedSignals: [
-        `${Math.round(base.matchScore || 0)}% match`,
-        `${projects.length} project${projects.length === 1 ? '' : 's'} reviewed`,
-        `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
-      ],
-      redacted: ['Evidence chain', 'Comparison notes', 'Confidence breakdown'],
-    },
+    agentTrace: attachProjectHighlight(mergeAgentTraceTeaser(profileTrace, wrappedTrace), projects),
     introDraft: {
       locked: true,
       label: 'Open intro draft',
@@ -180,9 +382,12 @@ async function buildLlmTeasers(params: {
   match: any;
   shortlistCandidate: any;
   opportunity: any;
+  agentWrapped?: { report?: AgentWrappedReport } | null;
+  traceLocked?: boolean;
 }) {
-  const { base, builder, projects, match, shortlistCandidate, opportunity } = params;
-  const fallback = fallbackTeasers(base, builder, projects, shortlistCandidate);
+  const { base, builder, projects, match, shortlistCandidate, opportunity, agentWrapped, traceLocked = true } = params;
+  const fallback = fallbackTeasers(base, builder, projects, shortlistCandidate, agentWrapped, traceLocked);
+  const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
   if (!hasOpenRouterConfig()) return fallback;
 
   const compactProjects = projects.slice(0, 4).map((project) => ({
@@ -209,6 +414,8 @@ Tone: direct, sharp, proof-backed, builder-native. No hype, no generic sales cop
 The founder should quickly infer whether the builder is worth pursuing.
 Quantify where possible using only supplied numbers. Do not invent companies, commits, scores, schools, or links.
 Do not reveal full trace reasoning, full intro draft, full interview list, full trial scope, private links, or hidden evidence.
+When agentWrapped.uploaded is true, the agentTrace teaser MUST foreground the uploaded Agent Wrapped report (archetype, agent tools, founder-fit score, validation loops) — not just GitHub/profile evidence.
+For projectHighlight: return null unless a supplied project has strong proof (repo/demo link, substantive contribution or description, meaningful tech stack). When included, write one impressive <= 120 char line naming the real project and technologies from that project only — never invent projects, features, companies, or stacks. Skip it entirely if nothing genuinely stands out.
 Return only JSON matching the requested shape.`,
       userPrompt: JSON.stringify({
         requestedShape: {
@@ -216,6 +423,7 @@ Return only JSON matching the requested shape.`,
             label: 'short action label',
             sourceBadges: ['2-5 evidence/source badges from supplied data'],
             visibleInsight: 'one sentence, <= 140 chars, with quantified signal when available',
+            projectHighlight: 'optional string or null — one punchy project+tech line only when genuinely impressive; null otherwise',
             quantifiedSignals: ['2-4 short metrics, <= 42 chars each'],
             redacted: ['2-4 short names of locked details'],
           },
@@ -278,21 +486,40 @@ Return only JSON matching the requested shape.`,
             })),
         },
         projects: compactProjects,
+        agentWrapped: agentWrapped?.report
+          ? {
+              uploaded: true,
+              archetype: agentWrapped.report.archetype,
+              score: agentWrapped.report.score,
+              confidence: agentWrapped.report.confidence,
+              agents: agentWrapped.report.sourceCoverage?.agents || [],
+              founderReadSummary: compactText(agentWrapped.report.founderRead?.summary, 220),
+              bestFitRoles: (agentWrapped.report.founderRead?.bestFitRoles || []).slice(0, 3),
+              evidenceHighlights: (agentWrapped.report.evidenceHighlights || []).slice(0, 3),
+              validation: agentWrapped.report.validation,
+              agentMaturity: agentWrapped.report.agentMaturity,
+            }
+          : { uploaded: false },
       }),
     });
     const parsed = parseJsonObject(reply);
     if (!parsed) return fallback;
 
     const steps = Array.isArray(parsed.pipeline?.steps) ? parsed.pipeline.steps : [];
+    const llmTrace: AgentTraceTeaserPayload = {
+      locked: traceLocked,
+      label: safeString(parsed.agentTrace?.label, fallback.agentTrace.label, 32),
+      sourceBadges: listStrings(parsed.agentTrace?.sourceBadges, 6, 24),
+      visibleInsight: safeString(parsed.agentTrace?.visibleInsight, fallback.agentTrace.visibleInsight, 160),
+      quantifiedSignals: listStrings(parsed.agentTrace?.quantifiedSignals, 4, 48),
+      redacted: traceLocked ? listStrings(parsed.agentTrace?.redacted, 4, 48) : [],
+    };
     return {
-      agentTrace: {
-        locked: true,
-        label: safeString(parsed.agentTrace?.label, fallback.agentTrace.label, 32),
-        sourceBadges: listStrings(parsed.agentTrace?.sourceBadges, 5, 24),
-        visibleInsight: safeString(parsed.agentTrace?.visibleInsight, fallback.agentTrace.visibleInsight, 160),
-        quantifiedSignals: listStrings(parsed.agentTrace?.quantifiedSignals, 4, 48),
-        redacted: listStrings(parsed.agentTrace?.redacted, 4, 48),
-      },
+      agentTrace: attachProjectHighlight(
+        mergeAgentTraceTeaser(llmTrace, wrappedTrace),
+        projects,
+        parsed.agentTrace?.projectHighlight
+      ),
       introDraft: {
         locked: true,
         label: safeString(parsed.introDraft?.label, fallback.introDraft.label, 32),
@@ -361,9 +588,11 @@ export async function buildFullCandidateCard(params: {
   shortlistCandidate: any;
   opportunity: any;
   hidden?: boolean;
+  agentWrapped?: { report?: AgentWrappedReport } | null;
 }) {
-  const { builder, projects, match, shortlistCandidate, opportunity, hidden } = params;
+  const { builder, projects, match, shortlistCandidate, opportunity, hidden, agentWrapped } = params;
   const teaserMode = opportunity?.visibilityMode === 'teaser' || opportunity?.traceAccess === 'teaser' || opportunity?.introAccess === 'locked';
+  const traceLocked = opportunity?.traceAccess !== 'full';
   const availability = builder.availability || {};
   const sortedProjects = [...projects].sort((a, b) => {
     const rank = (s: string) =>
@@ -394,6 +623,7 @@ export async function buildFullCandidateCard(params: {
     name: builder.name,
     headline: builder.headline || null,
     bio: builder.bio || null,
+    avatarUrl: builder.avatarUrl || null,
     location: builder.location || null,
     availability: {
       availableNow: Boolean(availability.availableNow),
@@ -431,8 +661,25 @@ export async function buildFullCandidateCard(params: {
       : null,
   };
 
-  if (!teaserMode) return { ...base, visibilityMode: 'full' };
-  const teasers = await buildLlmTeasers({ base, builder, projects, match, shortlistCandidate, opportunity });
+  if (!teaserMode) {
+    const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+    return {
+      ...base,
+      visibilityMode: 'full',
+      traceAccess: opportunity?.traceAccess || 'full',
+      ...(wrappedTrace ? { teasers: { agentTrace: wrappedTrace } } : {}),
+    };
+  }
+  const teasers = await buildLlmTeasers({
+    base,
+    builder,
+    projects,
+    match,
+    shortlistCandidate,
+    opportunity,
+    agentWrapped,
+    traceLocked,
+  });
 
   return {
     ...base,
@@ -537,11 +784,23 @@ export async function buildFullCandidatesForShortlist(
   }
   const matchByBuilder = new Map(matches.map((m: any) => [String(m.builderId), m]));
 
+  const wrappedDocs = builderIds.length
+    ? await AgentWrappedReportModel.find({ builderId: { $in: builderIds } })
+        .sort({ createdAt: -1 })
+        .lean()
+    : [];
+  const wrappedByBuilder = new Map<string, any>();
+  for (const doc of wrappedDocs) {
+    const key = String(doc.builderId);
+    if (!wrappedByBuilder.has(key)) wrappedByBuilder.set(key, doc);
+  }
+
   const cards = await Promise.all(candidateEntries
     .map(async (sc: any) => {
       const builderId = String(sc.builderId);
       const builder = builderById.get(builderId);
       if (!builder) return null;
+      const wrappedDoc = wrappedByBuilder.get(builderId);
       return buildFullCandidateCard({
         builder,
         projects: projectsByBuilder.get(builderId) || [],
@@ -554,6 +813,7 @@ export async function buildFullCandidatesForShortlist(
           introAccess: shortlist.introAccess || 'enabled',
         },
         hidden: hiddenSet.has(builderId),
+        agentWrapped: wrappedDoc?.report ? { report: wrappedDoc.report as AgentWrappedReport } : null,
       });
     }));
 

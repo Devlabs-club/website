@@ -1,5 +1,6 @@
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { applyProfileDraft, refreshBuilderScores, upsertEnrichedProjects } from './apply';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { enrichFromDevpost } from './devpostEnricher';
 import { enrichFromGithub } from './githubEnricher';
 import { enrichFromLinkedIn } from './linkedinEnricher';
@@ -69,6 +70,9 @@ export async function enrichBuilderProfile(params: {
     }
 
     await builder.save();
+    // Keep the talent search index fresh as enrichment sources land so founder
+    // searches don't miss builders whose profile is still being built.
+    await upsertTalentSearchIndexForBuilder(builder._id);
   }
 
   if (!params.dryRun) {

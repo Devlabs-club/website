@@ -159,15 +159,6 @@
     background: rgb(255 255 255 / 0.025);
   }
 
-  .founder-ascii-mark {
-    color: rgb(250 125 34 / 0.44);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    letter-spacing: 0;
-    line-height: 1.08;
-    white-space: pre;
-    user-select: none;
-  }
-
   .founder-role-dark {
     position: relative;
     overflow: hidden;

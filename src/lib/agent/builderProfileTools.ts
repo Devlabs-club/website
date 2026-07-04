@@ -48,7 +48,7 @@ export async function updateBuilderScores(builder: any) {
     console.error('[builderProfileTools] quality eval failed:', err);
   }
   await builder.save();
-  void upsertTalentSearchIndexForBuilder(builder._id);
+  await upsertTalentSearchIndexForBuilder(builder._id);
   return completion;
 }
 

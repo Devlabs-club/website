@@ -12,11 +12,14 @@ const MessageSchema = new mongoose.Schema(
     senderEmail: { type: String, default: null },
     body: { type: String, required: true },
     readAt: { type: Date, default: null },
+    founderUnreadEmailSentAt: { type: Date, default: null },
+    founderUnreadEmailLastError: { type: String, default: null },
   },
   { timestamps: true }
 );
 
 MessageSchema.index({ threadId: 1, createdAt: 1 });
+MessageSchema.index({ senderType: 1, readAt: 1, founderUnreadEmailSentAt: 1, createdAt: 1 });
 
 export default (mongoose.models.Message as mongoose.Model<any>) ||
   mongoose.model('Message', MessageSchema);

@@ -4,8 +4,10 @@ import { connectAdminDB } from '@/lib/mongodb';
 import { resolveFounderIdentity, okJson, errorJson } from '@/lib/founderAgent/service';
 import JobPosting from '@/models/founder/JobPosting';
 import BuilderProfile from '@/models/talent/BuilderProfile';
+import FounderProfile from '@/models/talent/FounderProfile';
 import IntroRequest from '@/models/talent/IntroRequest';
 import { notifyBuilderIntroReceived } from '@/lib/talent/introFlow';
+import { seedThreadFromIntro } from '@/lib/talent/messageFlow';
 import { canUseLifecycle, entitlementErrorResponse, getFounderEntitlements, recordUsageEvent } from '@/lib/billing/entitlements';
 
 /** Founder invites a recommended builder to a role (creates an intro request). */
@@ -15,10 +17,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { entitlements } = await getFounderEntitlements(identity);
   const denied = canUseLifecycle(entitlements);
   if (denied) {
-    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(denied) }), {
-      status: denied.status,
+    const blocked = denied as any;
+    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(blocked) }), {
+      status: blocked.status,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  await connectAdminDB();
+  const founderProfile = await FounderProfile.findOne({ founderEmail: identity.email })
+    .select('schedulingLink')
+    .lean();
+  if (!(founderProfile as any)?.schedulingLink) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'SCHEDULING_LINK_REQUIRED',
+        error: 'Add your Cal.com or Calendly link before inviting builders.',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
@@ -27,8 +45,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!mongoose.Types.ObjectId.isValid(jobId) || !mongoose.Types.ObjectId.isValid(builderId)) {
     return errorJson('Valid jobId and builderId are required.', 400);
   }
-
-  await connectAdminDB();
 
   const [job, builder] = await Promise.all([
     JobPosting.findOne({ _id: jobId, founderEmail: identity.email }).lean(),
@@ -67,8 +83,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       roleTitle,
       company,
       introRequestId: String(intro._id),
+      opportunityId: jobId,
     }).catch((err) => console.error('[founder/invite] notify failed', err));
   }
+
+  await seedThreadFromIntro(intro);
 
   await recordUsageEvent({
     identity,

@@ -10,6 +10,47 @@ import {
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 import { mapTrialProjectFromMatch, normalizeTrialProject } from '@/lib/talent/founderTrialProject';
 
+/**
+ * Text the builder that a trial was sent (best-effort, non-blocking on the
+ * in-app notification which stays the source of truth) — same pattern as
+ * introFlow.ts's pingBuilderInterestOverImessage.
+ */
+async function pingBuilderTrialOverImessage(params: {
+  builderId: string;
+  builderEmail: string;
+  founderName: string;
+  company: string;
+  roleTitle: string;
+  trialTitle: string;
+  deliverables?: string[];
+  deadlineAt?: string | null;
+  opportunityId?: string | null;
+}) {
+  try {
+    const { notifyBuilderOfTrial } = await import('@/lib/builderClaim');
+    await notifyBuilderOfTrial(params);
+  } catch (err) {
+    console.error('[trialFlow] iMessage trial ping failed', err);
+  }
+}
+
+/** Text the builder that they were hired (best-effort, non-blocking). */
+async function pingBuilderHireOverImessage(params: {
+  builderId: string;
+  builderEmail: string;
+  founderName: string;
+  company: string;
+  roleTitle: string;
+  note?: string | null;
+}) {
+  try {
+    const { notifyBuilderOfHire } = await import('@/lib/builderClaim');
+    await notifyBuilderOfHire(params);
+  } catch (err) {
+    console.error('[trialFlow] iMessage hire ping failed', err);
+  }
+}
+
 async function loadFounderMatch(params: {
   opportunityId: string;
   builderId: string;
@@ -81,6 +122,18 @@ export async function sendTrialProjectToBuilder(params: {
     link: builderDashboardLink('trials', { matchId: String(match._id) }),
     entityType: 'MatchRecord',
     entityId: String(match._id),
+  });
+
+  void pingBuilderTrialOverImessage({
+    builderId: String(builder._id),
+    builderEmail: builder.email,
+    founderName: opportunity.founderName || opportunity.founderEmail?.split('@')[0] || 'A founder',
+    company: opportunity.company || 'the startup',
+    roleTitle: opportunity.roleTitle || 'the role',
+    trialTitle: draft.title,
+    deliverables: draft.deliverables,
+    deadlineAt: params.deadlineAt.toISOString(),
+    opportunityId: params.opportunityId,
   });
 
   return {
@@ -266,6 +319,15 @@ export async function hireBuilder(params: {
     link: builderDashboardLink('matches'),
     entityType: 'MatchRecord',
     entityId: String(match._id),
+  });
+
+  void pingBuilderHireOverImessage({
+    builderId: String(builder._id),
+    builderEmail: builder.email,
+    founderName: opportunity.founderName || opportunity.founderEmail?.split('@')[0] || 'A founder',
+    company: opportunity.company,
+    roleTitle: opportunity.roleTitle,
+    note: params.note?.trim() || null,
   });
 
   return {
