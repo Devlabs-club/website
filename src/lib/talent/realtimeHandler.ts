@@ -58,13 +58,13 @@ export const getTalentRealtime: APIRoute = async ({ request, url, locals }) => {
           });
         }
 
-        const collections = ['matchrecords', 'introrequests', 'callschedules', 'notifications'];
+        const collections = ['matchrecords', 'introrequests', 'callschedules', 'notifications', 'messages', 'messagethreads'];
         changeStreams = collections.map((name) =>
           db.collection(name).watch(pipeline, { fullDocument: 'updateLookup' })
         );
 
         for (const cs of changeStreams) {
-          cs.on('change', (change) => {
+          cs.on('change', (change: any) => {
             send({
               type: 'change',
               collection: change.ns?.coll,

@@ -14,6 +14,7 @@ export type CreateNotificationParams = {
   link?: string;
   entityType?: 'IntroRequest' | 'CallSchedule' | 'MatchRecord' | 'Opportunity';
   entityId?: string | null;
+  sendEmail?: boolean;
 };
 
 function serializeNotification(doc: any) {
@@ -43,18 +44,20 @@ export async function createNotification(params: CreateNotificationParams) {
     entityId: params.entityId || null,
   });
 
-  const tabFromLink = params.link?.includes('tab=')
-    ? params.link.split('tab=')[1]?.split('&')[0]
-    : params.recipientType === 'builder'
-      ? 'home'
-      : 'messages';
-  await sendTalentEmail({
-    to: params.recipientEmail,
-    subject: params.title,
-    body: `${params.body} View this on your builder dashboard.`,
-    ctaLabel: 'Open dashboard',
-    ctaUrl: dashboardDeepLink(tabFromLink || 'home'),
-  });
+  if (params.sendEmail !== false) {
+    const tabFromLink = params.link?.includes('tab=')
+      ? params.link.split('tab=')[1]?.split('&')[0]
+      : params.recipientType === 'builder'
+        ? 'home'
+        : 'messages';
+    await sendTalentEmail({
+      to: params.recipientEmail,
+      subject: params.title,
+      body: `${params.body} View this on your builder dashboard.`,
+      ctaLabel: 'Open dashboard',
+      ctaUrl: dashboardDeepLink(tabFromLink || 'home'),
+    });
+  }
 
   return serializeNotification(doc);
 }

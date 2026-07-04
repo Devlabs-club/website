@@ -68,6 +68,7 @@ import {
 } from '@/lib/talent/trialFlow';
 import {
   getBuilderThreads,
+  countUnreadFounderMessages,
   getFounderThreads,
   getOrCreateThread,
   getThreadMessages,
@@ -1576,8 +1577,11 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     if (action === 'get_founder_threads') {
       const resolved = await resolveAuthedFounder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
-      const threads = await getFounderThreads(resolved.email);
-      return ok({ threads });
+      const [threads, unreadCount] = await Promise.all([
+        getFounderThreads(resolved.email),
+        countUnreadFounderMessages(resolved.email),
+      ]);
+      return ok({ threads, unreadCount });
     }
 
     if (action === 'get_builder_threads') {

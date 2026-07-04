@@ -7,6 +7,7 @@ import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
 import IntroRequest from '@/models/talent/IntroRequest';
 import { notifyBuilderIntroReceived } from '@/lib/talent/introFlow';
+import { seedThreadFromIntro } from '@/lib/talent/messageFlow';
 import { canUseLifecycle, entitlementErrorResponse, getFounderEntitlements, recordUsageEvent } from '@/lib/billing/entitlements';
 
 /** Founder invites a recommended builder to a role (creates an intro request). */
@@ -16,8 +17,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const { entitlements } = await getFounderEntitlements(identity);
   const denied = canUseLifecycle(entitlements);
   if (denied) {
-    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(denied) }), {
-      status: denied.status,
+    const blocked = denied as any;
+    return new Response(JSON.stringify({ success: false, ...entitlementErrorResponse(blocked) }), {
+      status: blocked.status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -84,6 +86,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       opportunityId: jobId,
     }).catch((err) => console.error('[founder/invite] notify failed', err));
   }
+
+  await seedThreadFromIntro(intro);
 
   await recordUsageEvent({
     identity,

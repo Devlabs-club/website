@@ -135,9 +135,13 @@ export const FounderBillingCard: React.FC = () => {
     setError("");
     setBusyAction(`checkout:${plan}`);
     try {
+      const returnUrl = new URL(window.location.href);
+      ["billing", "session_id"].forEach((key) => returnUrl.searchParams.delete(key));
+      const returnPath = `${returnUrl.pathname}${returnUrl.search}`;
       const { data } = await postJson("/api/billing/checkout", {
         plan,
         interval: chosenInterval || selectedInterval,
+        returnPath,
       });
       if (data.success && data.url) {
         window.location.href = data.url;

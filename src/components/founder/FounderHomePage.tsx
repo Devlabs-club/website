@@ -91,21 +91,6 @@ const questions: Question[] = [
   },
 ];
 
-const FounderAsciiBlock: React.FC<{ className?: string }> = ({ className = "" }) => (
-  <pre className={`founder-ascii-mark pointer-events-none text-[10px] ${className}`} aria-hidden="true">
-{`        .  .  .  .  .
-   +-------------------+
-   |  DL SIGNAL MAP    |
-   |  +----+     +--+  |
-   |  |role|-----|fit| |
-   |  +----+     +--+  |
-   |     \\  proof  /   |
-   |      +------+     |
-   +-------------------+
-        *  *  *  *`}
-  </pre>
-);
-
 const FounderHomeInner: React.FC = () => {
   const { user, loading, logout } = useAuth();
   const checkoutStartedRef = useRef(false);
@@ -301,8 +286,6 @@ const FounderHomeInner: React.FC = () => {
       <FounderRail onLogout={() => void logout()} initial={firstName.slice(0, 1).toUpperCase()} />
 
       <main className="relative min-w-0 flex-1 overflow-hidden">
-        <FounderAsciiBlock className="absolute right-8 top-24 hidden text-black/10 opacity-60 lg:block" />
-
         <header className="relative z-10 flex h-16 items-center border-b border-[#ece7e1] px-6 sm:px-8">
           <h1 className="text-lg font-bold tracking-tight text-black">Sourcing</h1>
         </header>

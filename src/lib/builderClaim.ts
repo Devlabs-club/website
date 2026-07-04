@@ -613,3 +613,41 @@ export async function notifyBuilderOfHire(
   await claim.save();
   return true;
 }
+
+/**
+ * Relay a founder's dashboard message to the builder over iMessage without
+ * rewriting it through the agent. The second bubble is the founder's exact text.
+ */
+export async function relayFounderMessageOverImessage(
+  params: {
+    builderId: string;
+    builderEmail: string;
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    opportunityId: string;
+    threadId: string;
+    body: string;
+  },
+  runtime?: RuntimeEnv
+): Promise<boolean> {
+  const claim = await BuilderProfileClaim.findOne({
+    $or: [{ builderId: params.builderId }, { builderEmail: params.builderEmail.toLowerCase() }],
+    phone: { $ne: null },
+    phoneVerifiedAt: { $ne: null },
+  }).sort({ updatedAt: -1 });
+  if (!claim) return false;
+
+  claim.activeContext = {
+    kind: 'thread',
+    opportunityId: params.opportunityId,
+    introRequestId: null,
+    threadId: params.threadId,
+    setAt: new Date(),
+  };
+
+  const leadIn = `hey - ${params.founderName || 'a founder'} from ${params.company || 'DevLabs'} just messaged you about ${params.roleTitle || 'the role'}:`;
+  await sendReplies(claim, [leadIn, params.body], runtime);
+  await claim.save();
+  return true;
+}
