@@ -203,16 +203,18 @@ function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): Enrich
 }
 
 async function enrichFromRemoteCdp(builder: any, normalizedUrl: string): Promise<SourceEnrichmentResult | null> {
-  const args = builder?._id
-    ? ['--builderId', String(builder._id), '--wait-ms', '12000']
-    : [
-        '--linkedin-url',
-        normalizedUrl,
-        '--name',
-        String(builder?.name || builder?.email || 'Builder'),
-        '--wait-ms',
-        '12000',
-      ];
+  // Remote scraper reads from its own Mongo when given --builderId. Local/dev builders
+  // won't exist there, so always pass the LinkedIn URL directly.
+  const args = [
+    '--linkedin-url',
+    normalizedUrl,
+    '--name',
+    String(builder?.name || builder?.email || 'Builder'),
+    '--wait-ms',
+    '12000',
+  ];
+  const email = String(builder?.email || '').trim().toLowerCase();
+  if (email) args.push('--email', email);
 
   const result = await runRemoteLinkedInScraperScript('enrich-builder-linkedin-cdp.mjs', args);
   if (!result) return null;

@@ -34,6 +34,16 @@ export function verifyAgentWrappedUploadToken(
   }
 }
 
-export function buildAgentWrappedCommand(token: string) {
-  return `npx devlabs-talent@latest analyze --token ${token}`;
+export function agentWrappedApiRoot(runtime?: RuntimeEnv) {
+  return (
+    readEnv('WEBSITE_ROOT', runtime) ||
+    readEnv('PUBLIC_URL', runtime) ||
+    'https://www.devlabs.club'
+  ).replace(/\/$/, '');
+}
+
+/** CLI command shown in the builder dashboard. Includes --api so uploads hit the same host that minted the token. */
+export function buildAgentWrappedCommand(token: string, runtime?: RuntimeEnv) {
+  const apiRoot = agentWrappedApiRoot(runtime);
+  return `npx devlabs-talent@latest analyze --token ${token} --api ${apiRoot} --public-url ${apiRoot}`;
 }

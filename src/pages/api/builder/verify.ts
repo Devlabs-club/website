@@ -177,7 +177,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         agentWrapped: {
           builderId: String(profile._id),
           uploadToken,
-          command: buildAgentWrappedCommand(uploadToken),
+          command: buildAgentWrappedCommand(uploadToken, runtime),
           publicUrl: `/builder/wrapped/${String(profile._id)}`,
         },
         messageDelivery: conversationStart.delivery,

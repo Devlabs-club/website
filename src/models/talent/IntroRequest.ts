@@ -23,6 +23,9 @@ const IntroRequestSchema = new mongoose.Schema(
     respondedAt: { type: Date, default: null },
     builderResponseNote: { type: String, default: null },
     builderDeclineReason: { type: String, default: null },
+    // Set the first time the builder signals casual interest (short of a formal
+    // accept) — guards the founder "they're warm" notification to fire only once.
+    founderNotifiedOfInterestAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

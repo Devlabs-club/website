@@ -12,8 +12,22 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, '');
 }
 
+/** Some env files typo the Railway host as rich-scraper instead of enrich-scraper. */
+function resolveScraperUrl(runtime?: RuntimeEnv) {
+  const configured = readEnv('LINKEDIN_SCRAPER_URL', runtime);
+  if (!configured) return DEFAULT_LINKEDIN_SCRAPER_URL;
+  const normalized = normalizeBaseUrl(configured);
+  if (normalized.includes('rich-scraper-production.up.railway.app')) {
+    console.warn(
+      '[linkedin-scraper] LINKEDIN_SCRAPER_URL points at rich-scraper-production; using enrich-scraper-production instead.'
+    );
+    return DEFAULT_LINKEDIN_SCRAPER_URL;
+  }
+  return normalized;
+}
+
 export function getRemoteLinkedInScraperConfig(runtime?: RuntimeEnv) {
-  const url = readEnv('LINKEDIN_SCRAPER_URL', runtime) || DEFAULT_LINKEDIN_SCRAPER_URL;
+  const url = resolveScraperUrl(runtime);
   const secret = readEnv('LINKEDIN_SCRAPER_SECRET', runtime);
   if (!url || !secret) return null;
   return { url: normalizeBaseUrl(url), secret };

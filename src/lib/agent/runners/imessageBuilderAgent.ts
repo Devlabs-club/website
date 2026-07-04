@@ -25,6 +25,13 @@ import { extractResumeFields, applyResumeToBuilder } from '@/lib/talent/builderR
 import { enrichBuilderProfile, type EnrichmentSource } from '@/lib/talent/builderEnrichment';
 import { deepResearchBuilder } from '@/lib/talent/builderDeepResearch';
 import { extractUrls, classifyLink, processGenericLink } from '@/lib/talent/builderLinkProcessor';
+import IntroRequest from '@/models/talent/IntroRequest';
+import MatchRecord from '@/models/talent/MatchRecord';
+import MessageThread from '@/models/talent/MessageThread';
+import Opportunity from '@/models/talent/Opportunity';
+import { submitTrialByBuilder } from '@/lib/talent/trialFlow';
+import { respondToIntro, notifyFounderOfBuilderInterest } from '@/lib/talent/introFlow';
+import { sendThreadMessage } from '@/lib/talent/messageFlow';
 
 /** Run a promise with a hard timeout so a slow scrape can't hang the iMessage turn. */
 async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
@@ -230,6 +237,54 @@ const BASE_TOOLS: ToolDefinition[] = [
       parameters: { type: 'object', properties: {} },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'submit_trial_by_text',
+      description: "Submit the builder's completed trial project (a video walkthrough link + GitHub repo link) when they tell you it's done over text. Only call this when the builder has an OPEN trial (see OPEN ITEMS) and has given you both a video link and a GitHub link this conversation. If they only give one, ask for the other before calling.",
+      parameters: {
+        type: 'object',
+        properties: {
+          opportunityId: { type: 'string', description: "Omit to use the builder's current open trial from OPEN ITEMS/active context." },
+          videoUrl: { type: 'string', description: 'Walkthrough video link (Loom, Google Drive, YouTube, etc).' },
+          githubUrl: { type: 'string', description: 'GitHub repo URL for the trial submission.' },
+          notes: { type: 'string' },
+        },
+        required: ['videoUrl', 'githubUrl'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'respond_to_intro',
+      description: "Record the builder's response to an open intro request from a founder. Use 'interested' the MOMENT they show any positive signal at all — even casual ('sounds good', 'yeah tell me more', 'sure I'd talk to them') — this just notifies the founder they're warm, it is NOT a commitment and you can call it once and keep talking normally after. Use 'accept' only for a clear, explicit yes to actually connect/schedule. Use 'decline' for a clear no.",
+      parameters: {
+        type: 'object',
+        properties: {
+          introRequestId: { type: 'string', description: "Omit to use the builder's current open/pending intro from OPEN ITEMS/active context." },
+          response: { type: 'string', enum: ['interested', 'accept', 'decline'] },
+          note: { type: 'string' },
+        },
+        required: ['response'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reply_to_founder_message',
+      description: "Send the builder's reply back to the founder on the DevLabs message thread. Call this when the builder is clearly replying to a founder's direct message (see OPEN ITEMS / active context) rather than talking about their profile.",
+      parameters: {
+        type: 'object',
+        properties: {
+          threadId: { type: 'string', description: 'Omit to use the current active thread from active context.' },
+          body: { type: 'string', description: "The builder's reply text, verbatim." },
+        },
+        required: ['body'],
+      },
+    },
+  },
 ];
 
 // Tools that schedule slow background work — only offered on a normal (non-follow-up) turn.
@@ -395,6 +450,32 @@ export async function runImessageBuilderAgentTurn(params: {
     roleTitle: string;
     schedulingLink?: string | null;
   };
+  /** A founder just sent a real trial project — one-shot notification, same shape as `intro`. */
+  trialAssigned?: {
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    trialTitle: string;
+    deliverables?: string[];
+    deadlineAt?: string | null;
+  };
+  /** A founder just hired this builder — one-shot notification, same shape as `intro`. */
+  hired?: {
+    founderName: string;
+    company: string;
+    roleTitle: string;
+    note?: string | null;
+  };
+  /**
+   * Last thing we proactively pinged the builder about — the default target when
+   * their reply doesn't explicitly name an opportunity/thread. See BuilderProfileClaim.activeContext.
+   */
+  activeContext?: {
+    kind: 'intro' | 'trial' | 'thread' | null;
+    opportunityId?: string | null;
+    introRequestId?: string | null;
+    threadId?: string | null;
+  } | null;
   /** Follow-up turn: execute previously scheduled scrape/research, then react to it. */
   mode?: 'normal' | 'followup';
   followUpJob?: FollowUpJob;
@@ -455,6 +536,52 @@ export async function runImessageBuilderAgentTurn(params: {
   const memoryText = await recallBuilderMemoryText(memRef);
   const freshBuilder = (await reloadBuilder(builderId)) || builder;
   const snapshot = buildProfileSnapshot(freshBuilder, await getProjects(builderId));
+
+  // OPEN ITEMS: everything currently live for this builder, so the agent can resolve
+  // an ambiguous reply to the right opportunity/thread without asking every time.
+  const [openIntros, openTrialMatches, openThreads] = await Promise.all([
+    IntroRequest.find({ builderId, status: 'requested' }).select('_id opportunityId founderName').lean(),
+    MatchRecord.find({ builderId, 'trialProject.status': { $in: ['sent', 'in_progress', 'rejected'] } })
+      .select('opportunityId trialProject')
+      .lean(),
+    MessageThread.find({ builderId }).select('_id opportunityId founderName lastMessagePreview').lean(),
+  ]);
+  const openOppIds = [
+    ...openIntros.map((i: any) => i.opportunityId),
+    ...openTrialMatches.map((m: any) => m.opportunityId),
+    ...openThreads.map((t: any) => t.opportunityId),
+  ];
+  const openOpportunities = openOppIds.length
+    ? await Opportunity.find({ _id: { $in: openOppIds } }).select('roleTitle company').lean()
+    : [];
+  const oppById = new Map(openOpportunities.map((o: any) => [String(o._id), o]));
+
+  const openItemLines: string[] = [];
+  for (const i of openIntros as any[]) {
+    const opp = oppById.get(String(i.opportunityId));
+    openItemLines.push(`- Pending intro from ${i.founderName || 'a founder'} for ${opp?.roleTitle || 'a role'} at ${opp?.company || ''} (introRequestId: ${i._id})`);
+  }
+  for (const m of openTrialMatches as any[]) {
+    const opp = oppById.get(String(m.opportunityId));
+    openItemLines.push(`- Open trial "${m.trialProject?.title || 'trial'}" for ${opp?.roleTitle || 'a role'} at ${opp?.company || ''} (opportunityId: ${m.opportunityId})`);
+  }
+  for (const t of openThreads as any[]) {
+    const opp = oppById.get(String(t.opportunityId));
+    openItemLines.push(
+      `- Open conversation with ${t.founderName || 'a founder'} about ${opp?.roleTitle || 'a role'} at ${opp?.company || ''} (threadId: ${t._id})${t.lastMessagePreview ? ` — last: "${t.lastMessagePreview}"` : ''}`
+    );
+  }
+  const openItemsNote = openItemLines.length ? `\nOPEN ITEMS FOR THIS BUILDER:\n${openItemLines.join('\n')}` : '';
+
+  const activeContext = params.activeContext || null;
+  const activeContextNote = activeContext?.kind
+    ? `\nACTIVE CONTEXT (default target if the reply is a clear continuation and doesn't name a company/role): kind=${activeContext.kind}${activeContext.opportunityId ? ` opportunityId=${activeContext.opportunityId}` : ''}${activeContext.introRequestId ? ` introRequestId=${activeContext.introRequestId}` : ''}${activeContext.threadId ? ` threadId=${activeContext.threadId}` : ''}. If OPEN ITEMS shows more than one live thing and the reply is ambiguous, ask a quick clarifying question instead of guessing.`
+    : '';
+
+  // Fallbacks the new tools use server-side when the model omits an explicit ID.
+  const fallbackOpportunityId = activeContext?.opportunityId || (openTrialMatches[0] ? String((openTrialMatches[0] as any).opportunityId) : null);
+  const fallbackIntroRequestId = activeContext?.introRequestId || (openIntros[0] ? String((openIntros[0] as any)._id) : null);
+  const fallbackThreadId = activeContext?.threadId || (openThreads[0] ? String((openThreads[0] as any)._id) : null);
 
   async function runTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
     const b = (await reloadBuilder(builderId)) || builder;
@@ -543,6 +670,56 @@ export async function runImessageBuilderAgentTurn(params: {
         return { success: true, profileLink, message: 'Profile locked in and visible to founders.' };
       }
 
+      case 'submit_trial_by_text': {
+        const opportunityId = (typeof args.opportunityId === 'string' && args.opportunityId) || fallbackOpportunityId;
+        if (!opportunityId) return { success: false, error: 'No open trial found for this builder.' };
+        const videoUrl = typeof args.videoUrl === 'string' ? args.videoUrl : '';
+        const githubUrl = typeof args.githubUrl === 'string' ? args.githubUrl : '';
+        if (!videoUrl || !githubUrl) return { success: false, error: 'Need both a video link and a GitHub link.' };
+        const res = await submitTrialByBuilder({
+          opportunityId,
+          builderId,
+          videoUrl,
+          githubUrl,
+          notes: typeof args.notes === 'string' ? args.notes : undefined,
+        });
+        if ('error' in res && res.error) return { success: false, error: res.error };
+        return { success: true, trialProject: (res as any).trialProject };
+      }
+
+      case 'respond_to_intro': {
+        const introRequestId = (typeof args.introRequestId === 'string' && args.introRequestId) || fallbackIntroRequestId;
+        if (!introRequestId) return { success: false, error: 'No open intro request found for this builder.' };
+        const response = args.response as 'interested' | 'accept' | 'decline';
+        if (response === 'interested') {
+          const res = await notifyFounderOfBuilderInterest({
+            introRequestId,
+            builderId,
+            note: typeof args.note === 'string' ? args.note : undefined,
+          });
+          if ('error' in res && res.error) return { success: false, error: res.error };
+          return { success: true, notified: (res as any).notified };
+        }
+        const res = await respondToIntro({
+          introRequestId,
+          builderId,
+          response,
+          note: typeof args.note === 'string' ? args.note : undefined,
+        });
+        if ('error' in res && res.error) return { success: false, error: res.error };
+        return { success: true, status: (res as any).intro?.status };
+      }
+
+      case 'reply_to_founder_message': {
+        const threadId = (typeof args.threadId === 'string' && args.threadId) || fallbackThreadId;
+        if (!threadId) return { success: false, error: 'No open founder conversation found.' };
+        const body = typeof args.body === 'string' ? args.body : '';
+        if (!body.trim()) return { success: false, error: 'No reply text given.' };
+        const res = await sendThreadMessage({ threadId, senderType: 'builder', senderEmail: claim.builderEmail, body });
+        if ('error' in res && res.error) return { success: false, error: res.error };
+        return { success: true };
+      }
+
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -552,7 +729,7 @@ export async function runImessageBuilderAgentTurn(params: {
   const hasContribProject = (snapshot.projects || []).some((p: any) => p.contribution);
   const hasAvailability = snapshot.availability?.hoursPerWeek != null || snapshot.availability?.availableNow;
   const founderReady = (snapshot.profileScore ?? 0) >= 80 && hasContribProject && hasAvailability;
-  const founderReadyNote = founderReady && !isFollowup && !params.intro
+  const founderReadyNote = founderReady && !isFollowup && !params.intro && !params.trialAssigned && !params.hired
     ? `\n[system: this profile is founder-ready (profileScore ${snapshot.profileScore}). Proactively call finalize_profile and send_profile_link, tell them it's locked in and you'll ping them here when a founder wants an interview, and STOP manufacturing gaps to ask about — but stay available for their questions.]`
     : '';
 
@@ -563,6 +740,8 @@ export async function runImessageBuilderAgentTurn(params: {
     memoryText ? `\nMEMORY (already told you — never re-ask):\n${memoryText}` : '',
     `\nCURRENT PROFILE SNAPSHOT (may be stale; call get_builder_profile to confirm):\n${JSON.stringify(snapshot)}`,
     founderReadyNote,
+    openItemsNote,
+    activeContextNote,
   ].join('\n');
 
   const kickoffNote = params.kickoff
@@ -579,8 +758,19 @@ Founder: ${params.intro.founderName} at ${params.intro.company}. Role: ${params.
 Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each). It MUST be personalized to THIS builder using MEMORY + their profile snapshot above — open with something specific you genuinely know about their work (a project, a win, a skill they're known for) so it reads like a person who follows them, never a mass alert. Then tell them THIS founder at THIS company wants to talk about THIS role and why they'd be a fit given what you know. ${params.intro.schedulingLink ? "Hand them the booking link so they can grab an interview slot themselves — work it in naturally, don't say 'here is a link'." : "Tell them to reply here and you'll set up a time."} Close by asking if they're interested. Never a template, never job-board language, no buzzwords, no emojis.]`
     : '';
 
-  // Intro/follow-up turns don't need the scheduling tools (no scraping/finalizing here).
-  const tools = isFollowup || params.intro ? BASE_TOOLS : [...BASE_TOOLS, ...SCHEDULING_TOOLS];
+  const trialAssignedTurnNote = params.trialAssigned
+    ? `[system: a founder just sent this builder a real trial project — this is their shot. Founder: ${params.trialAssigned.founderName} at ${params.trialAssigned.company}. Role: ${params.trialAssigned.roleTitle}. Trial: ${params.trialAssigned.trialTitle}.${params.trialAssigned.deliverables?.length ? `\nDeliverables: ${params.trialAssigned.deliverables.join('; ')}` : ''}${params.trialAssigned.deadlineAt ? `\nDeadline: ${params.trialAssigned.deadlineAt}` : ''}
+Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), personalized to THIS builder using MEMORY + profile snapshot above. Hype the moment, name the actual deliverables (not generic "a trial"), tell them to just text you the GitHub link and a walkthrough video (Loom/Drive/YouTube) here when it's done, and mention the deadline if given. Never a template, no buzzwords, no emojis.]`
+    : '';
+
+  const hiredTurnNote = params.hired
+    ? `[system: THE BIGGEST MOMENT — a founder just hired this builder. Founder: ${params.hired.founderName} at ${params.hired.company}. Role: ${params.hired.roleTitle}.${params.hired.note ? `\nFounder's note: ${params.hired.note}` : ''}
+Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), personalized to THIS builder using MEMORY + profile snapshot above. Celebrate specifically — reference real work of theirs, not generic hype. Work in the founder's note if given (paraphrase it naturally, don't paste it verbatim). Close by saying the founder will be in touch on next steps. Never a template, no buzzwords, no emojis.]`
+    : '';
+
+  // Intro/trial/hire/follow-up turns are one-shot notifications — no scheduling tools.
+  const isNotifyTurn = Boolean(params.intro || params.trialAssigned || params.hired);
+  const tools = isFollowup || isNotifyTurn ? BASE_TOOLS : [...BASE_TOOLS, ...SCHEDULING_TOOLS];
 
   const messages: AgentMessage[] = [
     { role: 'system', content: systemContext },
@@ -590,7 +780,9 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each). 
     ...(kickoffNote ? [{ role: 'system' as const, content: kickoffNote }] : []),
     ...(followupTurnNote ? [{ role: 'system' as const, content: followupTurnNote }] : []),
     ...(introTurnNote ? [{ role: 'system' as const, content: introTurnNote }] : []),
-    ...(params.kickoff || isFollowup || params.intro ? [] : [{ role: 'user' as const, content: userText }]),
+    ...(trialAssignedTurnNote ? [{ role: 'system' as const, content: trialAssignedTurnNote }] : []),
+    ...(hiredTurnNote ? [{ role: 'system' as const, content: hiredTurnNote }] : []),
+    ...(params.kickoff || isFollowup || isNotifyTurn ? [] : [{ role: 'user' as const, content: userText }]),
   ];
 
   let agentResponse = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.6, maxTokens: 450 });
@@ -628,6 +820,14 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each). 
       const i = params.intro;
       replies = [`${first} — ${i.founderName} at ${i.company} just asked to talk to you about ${i.roleTitle}.`];
       replies.push(i.schedulingLink ? `grab a time that works for you: ${i.schedulingLink}` : `want me to line up a time? reply here.`);
+    } else if (params.trialAssigned) {
+      const t = params.trialAssigned;
+      replies = [`${first} — ${t.founderName} at ${t.company} just sent you a trial project: ${t.trialTitle}.`];
+      replies.push(t.deadlineAt ? `due ${t.deadlineAt} — text me the GitHub link and a walkthrough video here when it's ready.` : `text me the GitHub link and a walkthrough video here when it's ready.`);
+    } else if (params.hired) {
+      const h = params.hired;
+      replies = [`${first} — congrats, ${h.founderName} at ${h.company} just hired you for ${h.roleTitle}.`];
+      replies.push(`they'll be in touch on next steps.`);
     } else if (finalizeCalled) {
       replies = [`okay cool — we've got your profile locked in.`, `i'll text you right here when a founder wants to hire you. peek anytime: ${profileLink}`];
     } else if (params.kickoff) {

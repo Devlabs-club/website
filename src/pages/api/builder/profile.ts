@@ -124,7 +124,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
       ? {
           builderId: wrappedBuilderId,
           uploadToken,
-          command: buildAgentWrappedCommand(uploadToken),
+          command: buildAgentWrappedCommand(uploadToken, runtime),
           publicUrl: `/builder/wrapped/${wrappedBuilderId}`,
           messageDelivery: claimMessageDelivery(claim),
         }

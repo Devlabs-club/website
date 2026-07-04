@@ -134,6 +134,11 @@ export type FullCandidate = {
       visibleInsight: string;
       quantifiedSignals?: string[];
       redacted: string[];
+      hasAgentWrapped?: boolean;
+      archetype?: string | null;
+      wrappedScore?: number | null;
+      bestFitRoles?: string[];
+      projectHighlight?: string | null;
     };
     introDraft?: {
       locked: boolean;

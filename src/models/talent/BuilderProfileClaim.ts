@@ -39,6 +39,15 @@ const BuilderProfileClaimSchema = new mongoose.Schema(
     conversationQuestionIndex: { type: Number, default: 0 },
     conversationFailures: [{ type: String }],
     messages: [ClaimMessageSchema],
+    // Last thing we proactively pinged the builder about (intro/trial/founder message) —
+    // the default target when their next reply doesn't name a company/role explicitly.
+    activeContext: {
+      kind: { type: String, enum: ['intro', 'trial', 'thread', null], default: null },
+      opportunityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Opportunity', default: null },
+      introRequestId: { type: mongoose.Schema.Types.ObjectId, ref: 'IntroRequest', default: null },
+      threadId: { type: mongoose.Schema.Types.ObjectId, ref: 'MessageThread', default: null },
+      setAt: { type: Date, default: null },
+    },
     expiresAt: { type: Date, required: true, index: true },
     completedAt: { type: Date, default: null },
     lastMessageAt: { type: Date, default: null },
