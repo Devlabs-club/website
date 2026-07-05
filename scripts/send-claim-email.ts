@@ -12,7 +12,7 @@ import { createClaimToken } from '../src/lib/messaging/claimToken';
 const to = process.env.CLAIM_TO || 'dhanush.kalaiselvan@gmail.com';
 const firstName = process.env.CLAIM_FIRST_NAME || 'Dhanush';
 const from = process.env.CLAIM_FROM || 'people@devlabs.club';
-const websiteRoot = process.env.WEBSITE_ROOT_PUBLIC || 'https://devlabs.club';
+const websiteRoot = process.env.WEBSITE_ROOT_PUBLIC || 'https://www.devlabs.club';
 
 // Signed token ties the verify link to this recipient's email (and builderId if known).
 const token = createClaimToken({ email: to, name: firstName, builderId: process.env.CLAIM_BUILDER_ID });
@@ -27,7 +27,18 @@ async function main() {
   }
   sgMail.setApiKey(key);
   try {
-    const [res] = await sgMail.send({ to, from: { email: from, name: 'DevLabs' }, subject, html, text });
+    const [res] = await sgMail.send({
+      to,
+      from: { email: from, name: 'DevLabs' },
+      subject,
+      html,
+      text,
+      // SendGrid click tracking rewrites links to url####.devlabs.club — that subdomain
+      // must have DNS configured or links 404 with NXDOMAIN. Disable for signed claim URLs.
+      trackingSettings: {
+        clickTracking: { enable: false, enableText: false },
+      },
+    });
     console.log(`Sent → ${to} | status ${res.statusCode} | msgId ${res.headers['x-message-id'] || 'n/a'}`);
   } catch (err: any) {
     console.error('SendGrid error:', err?.code, JSON.stringify(err?.response?.body?.errors || err?.message, null, 2));

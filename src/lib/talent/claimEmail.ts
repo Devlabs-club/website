@@ -9,7 +9,7 @@ export function buildClaimEmail(params: {
   websiteRoot?: string;
 }) {
   const { firstName, token } = params;
-  const root = (params.websiteRoot || process.env.WEBSITE_ROOT || 'https://devlabs.club').replace(/\/$/, '');
+  const root = (params.websiteRoot || process.env.WEBSITE_ROOT || 'https://www.devlabs.club').replace(/\/$/, '');
   const contactUrl = `${root}/builder/start?t=${encodeURIComponent(token)}`;
 
   const proof =
