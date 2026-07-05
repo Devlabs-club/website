@@ -21,6 +21,8 @@ import {
   extractAndStoreFacts,
   type MemoryRef,
 } from '@/lib/talent/builderAgentMemory';
+import { formatDossierForAgent } from '@/lib/talent/builderDossier';
+import { appendSessionMemory, formatSessionMemoryBlock } from '@/lib/talent/builderSessionMemory';
 import { extractResumeFields, applyResumeToBuilder } from '@/lib/talent/builderResumeExtract';
 import { enrichBuilderProfile, type EnrichmentSource } from '@/lib/talent/builderEnrichment';
 import { deepResearchBuilder } from '@/lib/talent/builderDeepResearch';
@@ -71,7 +73,7 @@ SEND MULTIPLE SHORT TEXTS, never one wall of text:
 - e.g. bubble 1: react to what they said. bubble 2: the one question. Keep each bubble to a sentence or two.
 
 WHAT YOU'RE DOING:
-The builder already verified their phone (linked to their email + DevLabs profile) — identity is settled, don't re-verify. Your job: fill the gaps and make their proof-of-work clear to founders.
+The builder verified by texting you from their phone (linked to their email + DevLabs profile) — identity is settled, don't re-verify. Your job: fill the gaps and make their proof-of-work clear to founders.
 
 HOW YOU THINK (reason, don't run a script):
 - Each turn, look at the SNAPSHOT (its missingFields + what's thin) and ask: what's the ONE highest-impact thing that makes this profile more convincing to a founder right now? Do that. Infer and write everything you reasonably can from the data you have; ask only what you genuinely can't derive.
@@ -537,6 +539,8 @@ export async function runImessageBuilderAgentTurn(params: {
   }
 
   const memoryText = await recallBuilderMemoryText(memRef);
+  const sessionMemory = formatSessionMemoryBlock(claim);
+  const dossierText = formatDossierForAgent(claim.metadata?.dossier);
   const freshBuilder = (await reloadBuilder(builderId)) || builder;
   const snapshot = buildProfileSnapshot(freshBuilder, await getProjects(builderId));
 
@@ -739,7 +743,9 @@ export async function runImessageBuilderAgentTurn(params: {
   const systemContext = [
     AGENT_PERSONA,
     `\n${BUILDER_DATA_SCHEMA}`,
-    created ? '\nThis builder had no profile yet — you just started a fresh one. Build it up from zero, one easy question at a time.' : '',
+    created ? '\nThis builder had no profile yet — you just started a fresh one. Use the DOSSIER below; propose drafts, don\'t interrogate.' : '',
+    dossierText ? `\n${dossierText}` : '',
+    sessionMemory ? `\n${sessionMemory}` : '',
     memoryText ? `\nMEMORY (already told you — never re-ask):\n${memoryText}` : '',
     `\nCURRENT PROFILE SNAPSHOT (may be stale; call get_builder_profile to confirm):\n${JSON.stringify(snapshot)}`,
     founderReadyNote,
@@ -748,7 +754,7 @@ export async function runImessageBuilderAgentTurn(params: {
   ].join('\n');
 
   const kickoffNote = params.kickoff
-    ? "[system: the builder just verified their phone. Open the conversation in 1-2 short bubbles: greet them by first name, say you're here to get their DevLabs profile founder-ready, and ask the single most important missing thing.]"
+    ? "[system: the builder just verified by texting hi from their phone. You ALREADY ran dossier research — open in 1-3 SHORT bubbles (blank line between each). LEAD with the most specific surprising proof point from the DOSSIER (never say you scraped/researched). Then ONE confirmation question (yes/no style). NEVER open by asking for GitHub/LinkedIn if the dossier already has links. Draft headline/bio if present and ask 'this look right?']"
     : '';
 
   const followupTurnNote = isFollowup
@@ -841,7 +847,11 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
     } else if (finalizeCalled) {
       replies = [`okay cool — we've got your profile locked in.`, `i'll text you right here when a founder wants to hire you. peek anytime: ${profileLink}`];
     } else if (params.kickoff) {
-      replies = [`hey ${first}, devlabs here.`, `let's get your builder profile founder-ready — what's your github?`];
+      const dossier = claim.metadata?.dossier;
+      const opener = dossier?.suggestedOpeners?.[0] || dossier?.proofPoints?.[0];
+      replies = opener
+        ? [String(opener)]
+        : [`hey ${first}, devlabs here.`, `already pulled your public work — this look right?`];
     } else if (isFollowup) {
       replies = [`ok, took a look — got what i needed.`];
     } else {
@@ -857,6 +867,7 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
   if (!params.kickoff && !isFollowup && userText) {
     try {
       await extractAndStoreFacts(memRef, userText, memoryText);
+      appendSessionMemory(claim, userText.slice(0, 280));
     } catch (err) {
       console.warn('[imessageBuilderAgent] fact capture failed', err);
     }

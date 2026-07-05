@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, MessageSquareText, ShieldCheck, Sparkles, TerminalSquare } from 'lucide-react';
 import { AppTopBar } from '@/components/app/AppTopBar';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
-import BuilderPhoneVerify from './BuilderPhoneVerify';
+import BuilderImessageHandoff from './BuilderImessageHandoff';
 import AgentTraceSetup from './AgentTraceSetup';
 import type { MessageDelivery } from './AgentTraceSetup';
 
@@ -34,10 +34,8 @@ async function logout() {
 }
 
 /**
- * Builder home. The dashboard is now a single surface: the builder's profile —
- * "what founders see" — gated behind phone verification. On first visit the
- * builder verifies their number, which hands them off to the DevLabs iMessage
- * agent; everything else happens in Messages.
+ * Builder home — profile preview gated behind iMessage verification.
+ * No OTP: builder opens Messages with a pre-filled "hi devlabs:TOKEN" text.
  */
 export const BuilderHome: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -75,6 +73,11 @@ export const BuilderHome: React.FC = () => {
 
   useEffect(() => {
     void loadProfile();
+  }, []);
+
+  const fetchHandoff = useCallback(async () => {
+    const res = await fetch('/api/builder/imessage-handoff', { credentials: 'include' });
+    return res.json();
   }, []);
 
   const profile: BuilderProfileView | null = data?.profile
@@ -186,10 +189,12 @@ export const BuilderHome: React.FC = () => {
           </div>
         ) : !verified ? (
           <div className="mx-auto max-w-xl py-6">
-            <BuilderPhoneVerify
-              defaultPhone={data.phone}
-              phoneVerificationPending={Boolean(data.phoneVerificationPending)}
+            <BuilderImessageHandoff
+              fetchHandoff={fetchHandoff}
+              title="Verify in Messages"
+              subtitle="Open iMessage and send the pre-filled message. That verifies your number and starts your profile with the DevLabs agent — no codes."
               onVerified={loadProfile}
+              pollVerified
             />
           </div>
         ) : data.agentWrapped && !traceUploaded ? (

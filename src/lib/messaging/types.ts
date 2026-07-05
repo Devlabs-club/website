@@ -1,9 +1,6 @@
 /**
  * Transport-agnostic messaging layer for the Builder Agent.
- *
- * The agent core never imports a specific vendor. Swap BlueBubbles → Spectrum-TS
- * (or add SMS/WhatsApp fallback) by implementing this interface and changing one
- * line in the gateway factory.
+ * Production provider: AgentPhone (SMS/MMS/iMessage).
  */
 
 export type NormalizedInbound = {

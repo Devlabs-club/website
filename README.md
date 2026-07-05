@@ -42,8 +42,7 @@ values in Vercel; do not commit secret values.
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_VERIFY_SERVICE_SID`
-- `BLUEBUBBLES_SERVER_URL`
-- `BLUEBUBBLES_PASSWORD`
+- `AGENTPHONE_API_KEY`, `AGENTPHONE_FROM_NUMBER`, `AGENTPHONE_WEBHOOK_SECRET`
 - `EXA_API_KEY`
 - `OPENROUTER_API_KEY`
 
@@ -98,7 +97,7 @@ Quick integration checks:
   `{ "success": true, ... }`.
 - `GET https://enrich-scraper-production.up.railway.app/health` should return
   `{ "ok": true, "cdp": true }`.
-- BlueBubbles `/api/v1/server/info`, Twilio Verify service lookup, Exa search,
+- AgentPhone `/v1/messages`, Exa search,
   and OpenRouter chat completion should all return HTTP 200 with valid
   credentials.
 

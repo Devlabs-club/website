@@ -1,0 +1,11 @@
+---
+// Email-invite landing: opens iMessage with pre-filled verification message.
+import AppLayout from '../../layouts/AppLayout.astro';
+import BuilderEmailStart from '../../components/builder/BuilderEmailStart.astro';
+
+const signedToken = Astro.url.searchParams.get('t') || '';
+---
+
+<AppLayout title="Talk to DevLabs · Messages">
+  <BuilderEmailStart signedToken={signedToken} />
+</AppLayout>

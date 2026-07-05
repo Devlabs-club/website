@@ -1,20 +1,16 @@
 /**
- * Builder profile-claim email. Proof-first, low-pressure framing (see
- * docs/prd-builder-imessage-claim.md): "we already built your profile — save our
- * contact and text us to confirm it." No dashboard, no forms.
+ * Builder profile-claim email. Proof-first framing — open iMessage to verify (no OTP).
  */
 export function buildClaimEmail(params: {
   firstName: string;
-  /** Signed claim token (createClaimToken) tying this link to the emailed builder. */
+  /** Signed verify token (createClaimToken from claimToken.ts). */
   token: string;
-  /** Optional pre-pulled proof facts to personalize (production pulls from BuilderProfile). */
   proofFacts?: string[];
   websiteRoot?: string;
 }) {
   const { firstName, token } = params;
   const root = (params.websiteRoot || process.env.WEBSITE_ROOT || 'https://devlabs.club').replace(/\/$/, '');
-  // Single CTA → verify page: confirm phone via OTP, then the agent texts them.
-  const contactUrl = `${root}/verify?t=${encodeURIComponent(token)}`;
+  const contactUrl = `${root}/builder/start?t=${encodeURIComponent(token)}`;
 
   const proof =
     params.proofFacts && params.proofFacts.length
@@ -34,13 +30,13 @@ export function buildClaimEmail(params: {
     </p>
     <ul style="line-height:1.6;color:#333;margin:0 0 16px;padding-left:20px;">${proofList}</ul>
     <p style="line-height:1.6;color:#333;margin:0 0 20px;">
-      It's <strong>currently private</strong> — founders can't see it yet. Confirm it's right and we'll make it founder-readable. Takes about 90 seconds, all over text. No dashboard, no forms.
+      It's <strong>currently private</strong> — founders can't see it yet. Tap below, open Messages, and send the pre-filled text. That verifies you and we'll finish your profile over text. ~90 seconds. No dashboard, no codes.
     </p>
     <p style="margin:0 0 24px;">
-      <a href="${contactUrl}" style="display:inline-block;background:#fa7d22;color:#000;padding:14px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">Talk to us</a>
+      <a href="${contactUrl}" style="display:inline-block;background:#fa7d22;color:#000;padding:14px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;">Open Messages</a>
     </p>
     <p style="line-height:1.6;color:#555;font-size:14px;margin:0 0 4px;">
-      That's it. We only reach out when a founder actually wants to talk to you — no spam, no nudges.
+      We only reach out when a founder actually wants to talk to you — no spam, no nudges.
     </p>
     <p style="margin-top:28px;font-size:12px;color:#aaa;">DevLabs · Reply STOP to opt out anytime.</p>
   </div>`;
@@ -49,12 +45,11 @@ export function buildClaimEmail(params: {
 
 We pulled: ${proof.join(', ')}.
 
-It's currently private — founders can't see it yet. Confirm it's right and we'll make it founder-readable. ~90 seconds, all over text. No dashboard, no forms.
+It's currently private. Open Messages and send the pre-filled text to verify and finish your profile (~90 sec, all over text).
 
-Talk to us → ${contactUrl}
-(save our contact, then send your first message — we'll take it from there)
+Open Messages → ${contactUrl}
 
-We only reach out when a founder actually wants to talk to you. Reply STOP to opt out.`;
+We only reach out when a founder wants to talk. Reply STOP to opt out.`;
 
   return { subject, html, text };
 }

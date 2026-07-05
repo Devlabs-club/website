@@ -1,0 +1,84 @@
+---
+const { signedToken } = Astro.props;
+---
+<section class="start-wrap">
+  <img class="avatar" src="https://dhanush.wtf/media/b8cgzfegb9r.png" alt="DevLabs" width="72" height="72" />
+  <h1>Talk to us in Messages</h1>
+  <p class="sub" id="sub">Tap below to open iMessage. Send the pre-filled message — that verifies you and starts your profile.</p>
+  <a class="btn hide" id="open-msgs" href="#">Open Messages</a>
+  <p class="msg hide" id="done">You're verified. Check Messages — the agent is on it.</p>
+  <p class="err hide" id="err"></p>
+  <p class="preview hide" id="preview"></p>
+  <p class="note">
+    By tapping Open Messages and sending the pre-filled text, you agree to receive SMS/iMessage from
+    DevLabs about your profile and founder intros. Reply STOP to unsubscribe.
+  </p>
+  <p class="note">
+    <a href="/contact/devlabs.vcf" download>Save the DevLabs contact</a> first.
+    We only reach out when a founder wants to talk.
+  </p>
+</section>
+
+<style>
+  .start-wrap {
+    max-width: 400px; margin: 0 auto; padding: 48px 24px; text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .avatar { border-radius: 22px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0 0 8px; }
+  .sub { color: #666; font-size: 15px; line-height: 1.5; margin: 0 0 24px; }
+  .btn {
+    display: block; padding: 16px; background: #fa7d22; color: #000;
+    font-weight: 700; font-size: 17px; border-radius: 14px; text-decoration: none;
+  }
+  .note { color: #999; font-size: 13px; margin-top: 24px; line-height: 1.5; }
+  .note a { color: #fa7d22; font-weight: 600; }
+  .preview { font-family: ui-monospace, monospace; font-size: 12px; color: #888;
+    background: #f4f4f4; padding: 12px; border-radius: 10px; margin-top: 16px; word-break: break-all; }
+  .err { color: #c0392b; font-size: 14px; margin-top: 12px; }
+  .msg { color: #1a8a4a; font-size: 15px; margin-top: 16px; }
+  .hide { display: none; }
+</style>
+
+<script define:vars={{ signedToken }}>
+  const errEl = document.getElementById('err');
+  const btn = document.getElementById('open-msgs');
+  const preview = document.getElementById('preview');
+  const done = document.getElementById('done');
+
+  if (!signedToken) {
+    errEl.textContent = 'This link is invalid or expired.';
+    errEl.classList.remove('hide');
+  } else {
+    fetch(`/api/builder/claim/handoff?t=${encodeURIComponent(signedToken)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success) {
+          errEl.textContent = 'This link is invalid or expired.';
+          errEl.classList.remove('hide');
+          return;
+        }
+        if (data.phoneVerified) {
+          done.classList.remove('hide');
+          btn.classList.add('hide');
+          return;
+        }
+        const url = data.imessageUrl || data.smsUrl;
+        if (url) {
+          btn.href = url;
+          btn.classList.remove('hide');
+        } else {
+          errEl.textContent = 'Messages handoff is not configured yet.';
+          errEl.classList.remove('hide');
+        }
+        if (data.messageBody) {
+          preview.textContent = data.messageBody;
+          preview.classList.remove('hide');
+        }
+      })
+      .catch(() => {
+        errEl.textContent = 'Could not load. Try again.';
+        errEl.classList.remove('hide');
+      });
+  }
+</script>
