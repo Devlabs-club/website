@@ -456,7 +456,10 @@ export async function runImessageBuilderAgentTurn(params: {
     company: string;
     roleTitle: string;
     trialTitle: string;
+    goal?: string | null;
     deliverables?: string[];
+    successCriteria?: string[];
+    timeline?: string | null;
     deadlineAt?: string | null;
   };
   /** A founder just hired this builder — one-shot notification, same shape as `intro`. */
@@ -759,8 +762,8 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each). 
     : '';
 
   const trialAssignedTurnNote = params.trialAssigned
-    ? `[system: a founder just sent this builder a real trial project — this is their shot. Founder: ${params.trialAssigned.founderName} at ${params.trialAssigned.company}. Role: ${params.trialAssigned.roleTitle}. Trial: ${params.trialAssigned.trialTitle}.${params.trialAssigned.deliverables?.length ? `\nDeliverables: ${params.trialAssigned.deliverables.join('; ')}` : ''}${params.trialAssigned.deadlineAt ? `\nDeadline: ${params.trialAssigned.deadlineAt}` : ''}
-Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), personalized to THIS builder using MEMORY + profile snapshot above. Hype the moment, name the actual deliverables (not generic "a trial"), tell them to just text you the GitHub link and a walkthrough video (Loom/Drive/YouTube) here when it's done, and mention the deadline if given. Never a template, no buzzwords, no emojis.]`
+    ? `[system: a founder just sent this builder a real trial project — this is their shot. Founder: ${params.trialAssigned.founderName} at ${params.trialAssigned.company}. Role: ${params.trialAssigned.roleTitle}. Trial: ${params.trialAssigned.trialTitle}.${params.trialAssigned.goal ? `\nGoal: ${params.trialAssigned.goal}` : ''}${params.trialAssigned.deliverables?.length ? `\nDeliverables: ${params.trialAssigned.deliverables.join('; ')}` : ''}${params.trialAssigned.successCriteria?.length ? `\nSuccess criteria (what "done" looks like to the founder): ${params.trialAssigned.successCriteria.join('; ')}` : ''}${params.trialAssigned.timeline ? `\nTimeline: ${params.trialAssigned.timeline}` : ''}${params.trialAssigned.deadlineAt ? `\nDeadline: ${params.trialAssigned.deadlineAt}` : ''}
+Write the notification YOURSELF, personalized to THIS builder using MEMORY + profile snapshot above. This is a real brief, not a teaser — the builder must be able to start building from your text ALONE without opening a dashboard, so relay the FULL project: the goal, EVERY deliverable, the success criteria, and the deadline. Use a few short bubbles: (1) hype the moment + name the founder/company/role and trial title, (2) the goal in one line, (3) the deliverables as a short list (one per line, e.g. "• ..."), (4) the success criteria / what "done" means, (5) the deadline + tell them to just text you the GitHub link and a walkthrough video (Loom/Drive/YouTube) here when it's done. Keep each bubble tight, but do NOT drop any deliverable or criterion. Never a template, no buzzwords, no emojis.]`
     : '';
 
   const hiredTurnNote = params.hired
@@ -785,7 +788,11 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
     ...(params.kickoff || isFollowup || isNotifyTurn ? [] : [{ role: 'user' as const, content: userText }]),
   ];
 
-  let agentResponse = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.6, maxTokens: 450 });
+  // Trial notifications relay a full project brief (goal + deliverables +
+  // success criteria) across several bubbles, so they need more room than a
+  // normal conversational turn.
+  const notifyMaxTokens = params.trialAssigned ? 800 : 450;
+  let agentResponse = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.6, maxTokens: notifyMaxTokens });
   let iterations = 0;
   const MAX_ITERATIONS = 6;
 
@@ -809,7 +816,7 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
   // If the model came back empty, retry once before any fallback — we'd much
   // rather send a real generated message than a canned one.
   if (!replies.length) {
-    const retry = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.7, maxTokens: 450 });
+    const retry = await generateOpenRouterAgentTurn({ messages, tools, temperature: 0.7, maxTokens: notifyMaxTokens });
     replies = splitIntoBubbles(retry.content || '');
   }
   // Last-resort safety net only (model returned nothing twice). Still contextual —
@@ -823,7 +830,10 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
     } else if (params.trialAssigned) {
       const t = params.trialAssigned;
       replies = [`${first} — ${t.founderName} at ${t.company} just sent you a trial project: ${t.trialTitle}.`];
-      replies.push(t.deadlineAt ? `due ${t.deadlineAt} — text me the GitHub link and a walkthrough video here when it's ready.` : `text me the GitHub link and a walkthrough video here when it's ready.`);
+      if (t.goal) replies.push(`Goal: ${t.goal}`);
+      if (t.deliverables?.length) replies.push(`What to build:\n${t.deliverables.map((d) => `• ${d}`).join('\n')}`);
+      if (t.successCriteria?.length) replies.push(`Done means:\n${t.successCriteria.map((s) => `• ${s}`).join('\n')}`);
+      replies.push(t.deadlineAt ? `Due ${t.deadlineAt}. Text me the GitHub link and a walkthrough video here when it's ready.` : `Text me the GitHub link and a walkthrough video here when it's ready.`);
     } else if (params.hired) {
       const h = params.hired;
       replies = [`${first} — congrats, ${h.founderName} at ${h.company} just hired you for ${h.roleTitle}.`];

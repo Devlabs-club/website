@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   ChevronDown,
   ExternalLink,
+  Eye,
   FileText,
   Github,
   Globe,
@@ -127,6 +128,7 @@ type BillingSummary = {
   error?: string;
   entitlements?: {
     lifecycleAccess?: 'locked' | 'enabled';
+    traceAccess?: 'teaser' | 'full';
   };
 };
 
@@ -242,6 +244,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const [profileRec, setProfileRec] = useState<Recommendation | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [traceRec, setTraceRec] = useState<Recommendation | null>(null);
   const [pendingAgentFollowup, setPendingAgentFollowup] = useState("");
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
@@ -482,6 +485,29 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       return false;
     }
     return data.entitlements?.lifecycleAccess === "enabled";
+  };
+
+  const canViewAgentTrace = async () => {
+    const res = await fetch("/api/billing/summary", { credentials: "include" });
+    const data = (await res.json().catch(() => ({}))) as BillingSummary;
+    if (!res.ok || !data.success) {
+      setError(data.error || "Could not check billing status.");
+      return false;
+    }
+    return data.entitlements?.traceAccess === "full";
+  };
+
+  const openAgentTrace = async (rec: Recommendation) => {
+    if (!rec.teasers?.agentTrace) return;
+    if (rec.teasers.agentTrace.locked || !(await canViewAgentTrace())) {
+      setUpgradeModal({
+        open: true,
+        upgradeTarget: "growth",
+        reason: "Unlock Growth to view full Agent Traces for matched builders.",
+      });
+      return;
+    }
+    setTraceRec(rec);
   };
 
   /** Shared caller for every pipeline action (trial, hire, schedule, reject) — all live behind this one action endpoint. */
@@ -780,10 +806,14 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
             </div>
           ) : (
             <>
-              {profileRec?.teasers?.agentTrace ? (
-                <AgentTraceTeaserSection teaser={profileRec.teasers.agentTrace} />
-              ) : null}
-              <BuilderProfileView profile={profile} />
+              <BuilderProfileView
+                profile={profile}
+                afterLinks={
+                  profileRec?.teasers?.agentTrace ? (
+                    <AgentTraceTeaserSection teaser={profileRec.teasers.agentTrace} />
+                  ) : null
+                }
+              />
               <div className="mt-8 flex justify-end">
                 <button
                   type="button"
@@ -797,6 +827,50 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
               </div>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const traceDialog = traceRec?.teasers?.agentTrace ? (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 sm:p-8" onClick={() => setTraceRec(null)}>
+      <div
+        className="flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_24px_70px_rgba(16,24,40,0.15)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4 border-b border-[#ece7e1] p-5">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#c56a12]">
+              {traceRec.teasers.agentTrace.hasAgentWrapped ? "Agent Wrapped Trace" : "Agent Trace"}
+            </p>
+            <h2 className="mt-1 truncate text-xl font-semibold text-black">{traceRec.name}</h2>
+            <p className="mt-1 line-clamp-2 text-sm text-black/55">{traceRec.headline || traceRec.whyTheyMatch}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTraceRec(null)}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/40 hover:bg-[#fdfaf7] hover:text-black"
+            aria-label="Close agent trace"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-5">
+          <AgentTraceTeaserSection teaser={traceRec.teasers.agentTrace} />
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="border-t border-[#ece7e1] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Match</p>
+              <p className="mt-1 text-lg font-semibold text-black">{Math.round(traceRec.matchScore || 0)}%</p>
+            </div>
+            <div className="border-t border-[#ece7e1] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Proof</p>
+              <p className="mt-1 truncate text-sm font-medium text-black">{traceRec.proofStrengthLabel || "Profile proof"}</p>
+            </div>
+            <div className="border-t border-[#ece7e1] pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Next step</p>
+              <p className="mt-1 truncate text-sm font-medium text-black">{traceRec.introRequested ? "Intro requested" : "Ready to invite"}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1117,6 +1191,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                       rec={rec}
                       inviteBusy={inviteBusy}
                       onOpenProfile={() => void openProfile(rec)}
+                      onOpenTrace={() => void openAgentTrace(rec)}
                       onInvite={() => void invite(rec.builderId)}
                       onReject={() => void rejectCandidate(rec.builderId)}
                     />
@@ -1128,6 +1203,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         </main>
 
         {profileDialog}
+        {traceDialog}
         {upgradeModalEl}
         {schedulingLinkModal}
       </div>
@@ -1291,6 +1367,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                       rec={rec}
                       inviteBusy={inviteBusy}
                       onOpenProfile={() => void openProfile(rec)}
+                      onOpenTrace={() => void openAgentTrace(rec)}
                       onInvite={() => void invite(rec.builderId)}
                       onReject={() => void rejectCandidate(rec.builderId)}
                     />
@@ -1440,6 +1517,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       </main>
 
       {profileDialog}
+      {traceDialog}
       {upgradeModalEl}
       {schedulingLinkModal}
       {pipelineDialog}
@@ -1472,7 +1550,7 @@ const AgentTraceTeaserSection: React.FC<{ teaser: AgentTraceTeaser; compact?: bo
   <section className={`rounded-2xl border border-[#ec9149]/25 bg-[#fff7ef] ${compact ? "p-3" : "p-4 mb-6"}`}>
     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
       <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#c56a12]">
-        {teaser.hasAgentWrapped ? "Agent Wrapped" : "Agent trace preview"}
+        {teaser.hasAgentWrapped ? "Agent Wrapped" : teaser.locked ? "Agent trace preview" : "Agent trace"}
       </h3>
       <div className="flex flex-wrap items-center gap-2">
         {teaser.hasAgentWrapped ? (
@@ -1565,127 +1643,175 @@ const PipelineTable: React.FC<{
   );
 };
 
+function proofPoints(rec: Recommendation) {
+  const fromReason = String(rec.whyTheyMatch || "")
+    .split(";")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const fromTrace = rec.teasers?.agentTrace?.projectHighlight ? [rec.teasers.agentTrace.projectHighlight] : [];
+  return [...fromReason, ...fromTrace].slice(0, 3);
+}
+
+function strongestProject(rec: Recommendation) {
+  const traceName = rec.teasers?.agentTrace?.projectHighlight?.split("—")[0]?.trim();
+  if (traceName) {
+    const match = rec.projects?.find((project) => project.projectName === traceName);
+    if (match) return match;
+  }
+  return rec.projects?.[0] || null;
+}
+
 const RecommendationCard: React.FC<{
   rec: Recommendation;
   inviteBusy: string | null;
   onOpenProfile: () => void;
+  onOpenTrace: () => void;
   onInvite: () => void;
   onReject: () => void;
-}> = ({ rec, inviteBusy, onOpenProfile, onInvite, onReject }) => {
+}> = ({ rec, inviteBusy, onOpenProfile, onOpenTrace, onInvite, onReject }) => {
   const links = rec.links || {};
   const verified = Boolean(rec.builderVerificationLabel && rec.builderVerificationLabel !== "Unverified");
   const experiences = rec.experiences || [];
   const projects = rec.projects || [];
-  const visibleExperiences = experiences.slice(0, 2);
-  const visibleProjects = projects.slice(0, 2);
+  const points = proofPoints(rec);
+  const primaryProject = strongestProject(rec);
+  const visibleSkills = (rec.topSkills || []).slice(0, 5);
+  const hasTrace = Boolean(rec.teasers?.agentTrace);
+  const traceLocked = Boolean(rec.teasers?.agentTrace?.locked);
+  const proofLabel = rec.proofStrengthLabel || (projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"}` : "Profile proof");
+  const currentExperience = experiences.find((experience) => experience.isCurrent) || experiences[0];
+  const projectHref = primaryProject?.links?.demo || primaryProject?.links?.github || primaryProject?.links?.devpost || null;
+
   return (
     <article className="rounded-2xl border border-[#ece7e1] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)]">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 gap-3">
-          <Avatar name={rec.name} avatarUrl={rec.avatarUrl} className="h-10 w-10" />
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button type="button" onClick={onOpenProfile} className="text-sm font-semibold text-black hover:underline">
-                {rec.name}
-              </button>
-              {verified && <BadgeCheck className="h-3.5 w-3.5 text-[#ec9149]" />}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
+        <div className="min-w-0">
+          <div className="flex min-w-0 gap-3">
+            <Avatar name={rec.name} avatarUrl={rec.avatarUrl} className="h-11 w-11 shrink-0" />
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button type="button" onClick={onOpenProfile} className="text-base font-semibold text-black hover:underline">
+                  {rec.name}
+                </button>
+                {verified && <BadgeCheck className="h-4 w-4 text-[#ec9149]" />}
+                {rec.matchLabel ? (
+                  <span className="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#c56a12]">
+                    {rec.matchLabel}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-0.5 line-clamp-1 text-sm text-black/55">{rec.headline || rec.bio}</p>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-black/40">
+                {rec.location ? <span>{rec.location}</span> : null}
+                {currentExperience?.company ? (
+                  <span>
+                    {currentExperience.company}
+                    {currentExperience.isCurrent ? " · Present" : ""}
+                  </span>
+                ) : null}
+                <span>{proofLabel}</span>
+              </div>
             </div>
-            <p className="truncate text-xs text-black/55">{rec.headline || rec.bio}</p>
-            {rec.location && <p className="text-[11px] text-black/40">{rec.location}</p>}
+          </div>
+
+          {points.length ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              {points.map((point, index) => (
+                <div key={`${point}-${index}`} className="border-l border-[#ec9149]/25 pl-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-black/35">
+                    {index === 0 ? "Why matched" : index === 1 ? "Proof signal" : "Founder signal"}
+                  </p>
+                  <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-black/70">{point}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {primaryProject ? (
+              projectHref ? (
+                <a
+                  href={projectHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60 hover:bg-[#f3ede4]"
+                >
+                  <span className="truncate">Project: {primaryProject.projectName}</span>
+                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+                </a>
+              ) : (
+                <span className="inline-flex max-w-full rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60">
+                  <span className="truncate">Project: {primaryProject.projectName}</span>
+                </span>
+              )
+            ) : null}
+            {projects.length > 1 ? (
+              <span className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/40">
+                +{projects.length - 1} more projects
+              </span>
+            ) : null}
+            {visibleSkills.map((skill) => (
+              <span key={skill} className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/55">
+                {skill}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <span className="rounded-full bg-[#f3ede4] px-2 py-0.5 text-[11px] font-semibold text-black/55">
-            {Math.round(rec.matchScore || 0)}% match
-          </span>
-          <div className="flex items-center gap-1.5">
+
+        <div className="flex flex-col gap-3 rounded-xl border border-[#ece7e1] bg-[#fffcfa] p-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Fit score</p>
+            <div className="mt-1 flex items-end gap-1">
+              <span className="text-3xl font-semibold text-black">{Math.round(rec.matchScore || 0)}</span>
+              <span className="pb-1 text-sm font-medium text-black/45">%</span>
+            </div>
+          </div>
+
+          {hasTrace ? (
+            <button
+              type="button"
+              onClick={onOpenTrace}
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#ec9149]/30 bg-[#fff7ef] px-3 text-xs font-semibold text-[#c56a12] hover:bg-[#ffead8]"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              {traceLocked ? "Unlock trace" : "View trace"}
+            </button>
+          ) : null}
+
+          <div className="flex flex-wrap gap-1.5">
             {links.linkedin && (
-              <a href={links.linkedin} target="_blank" rel="noreferrer" className="text-black/40 hover:text-black">
+              <a href={links.linkedin} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} LinkedIn`}>
                 <Linkedin className="h-3.5 w-3.5" />
               </a>
             )}
             {links.github && (
-              <a href={links.github} target="_blank" rel="noreferrer" className="text-black/40 hover:text-black">
+              <a href={links.github} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} GitHub`}>
                 <Github className="h-3.5 w-3.5" />
               </a>
             )}
             {links.portfolio && (
-              <a href={links.portfolio} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-black/55 hover:text-black">
-                <Globe className="h-3 w-3" /> Portfolio
+              <a href={links.portfolio} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} portfolio`}>
+                <Globe className="h-3.5 w-3.5" />
               </a>
             )}
             {links.resume && (
-              <a href={links.resume} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-black/55 hover:text-black">
-                <FileText className="h-3 w-3" /> Resume
+              <a href={links.resume} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} resume`}>
+                <FileText className="h-3.5 w-3.5" />
               </a>
             )}
           </div>
         </div>
       </div>
 
-      {rec.whyTheyMatch && (
-        <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-black/65">{rec.whyTheyMatch}</p>
-      )}
-
-      {rec.teasers?.agentTrace ? (
-        <div className="mt-3">
-          <AgentTraceTeaserSection teaser={rec.teasers.agentTrace} compact />
-        </div>
-      ) : null}
-
-      {(visibleExperiences.length > 0 || visibleProjects.length > 0 || (rec.topSkills || []).length > 0) && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {visibleExperiences.map((exp, index) => (
-            <span key={`exp-${index}`} className="rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] text-black/60">
-              {exp.company}
-              {exp.isCurrent ? " · Present" : ""}
-            </span>
-          ))}
-          {experiences.length > visibleExperiences.length && (
-            <span className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/40">
-              +{experiences.length - visibleExperiences.length} more
-            </span>
-          )}
-          {visibleProjects.map((project) => {
-            const href = project.links?.demo || project.links?.github || project.links?.devpost;
-            return href ? (
-              <a
-                key={project._id}
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] text-black/60 hover:bg-[#f3ede4]"
-              >
-                {project.projectName} <ExternalLink className="h-2.5 w-2.5" />
-              </a>
-            ) : (
-              <span key={project._id} className="rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] text-black/60">
-                {project.projectName}
-              </span>
-            );
-          })}
-          {projects.length > visibleProjects.length && (
-            <span className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/40">
-              +{projects.length - visibleProjects.length} more
-            </span>
-          )}
-          {(rec.topSkills || []).slice(0, 5).map((skill) => (
-            <span key={skill} className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/55">
-              {skill}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 flex items-center justify-between border-t border-[#ece7e1] pt-3">
-        <button type="button" onClick={onOpenProfile} className="inline-flex h-8 items-center rounded-lg bg-[#f3ede4] px-2.5 text-xs font-medium text-black hover:bg-[#ece3d5]">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7e1] pt-3">
+        <button type="button" onClick={onOpenProfile} className="inline-flex h-9 items-center rounded-lg bg-[#f3ede4] px-3 text-sm font-medium text-black hover:bg-[#ece3d5]">
           View full profile
         </button>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onReject}
-            className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] px-2.5 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
+            className="inline-flex h-9 items-center rounded-lg border border-[#ece7e1] px-3 text-sm font-semibold text-black hover:bg-[#fdfaf7]"
           >
             Reject
           </button>
@@ -1693,7 +1819,7 @@ const RecommendationCard: React.FC<{
             type="button"
             onClick={onInvite}
             disabled={rec.introRequested || inviteBusy === rec.builderId}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-[#ec9149] px-2.5 text-xs font-semibold text-white hover:bg-[#dd7f36] disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-[#ec9149] px-3 text-sm font-semibold text-white hover:bg-[#dd7f36] disabled:opacity-50"
           >
             {inviteBusy === rec.builderId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
             {rec.introRequested ? "Invited" : inviteBusy === rec.builderId ? "Checking" : "Invite"}

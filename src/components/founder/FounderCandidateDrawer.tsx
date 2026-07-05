@@ -271,7 +271,11 @@ export default function FounderCandidateDrawer({
             <section className="rounded-2xl border border-[#fa7d22]/20 bg-[#fa7d22]/[0.06] p-4">
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <h3 className="text-xs uppercase tracking-wider text-[#ffb580]">
-                  {candidate.teasers.agentTrace.hasAgentWrapped ? 'Agent Wrapped' : 'Agent trace preview'}
+                  {candidate.teasers.agentTrace.hasAgentWrapped
+                    ? 'Agent Wrapped'
+                    : candidate.teasers.agentTrace.locked
+                      ? 'Agent trace preview'
+                      : 'Agent trace'}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
                   {candidate.teasers.agentTrace.hasAgentWrapped ? (

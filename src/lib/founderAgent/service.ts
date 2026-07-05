@@ -2169,6 +2169,10 @@ export async function getFounderDashboard(identity: FounderIdentity) {
   const opportunityIds = opportunities.map((o: any) => o._id);
   const shortlistDocs = await Shortlist.find({ opportunityId: { $in: opportunityIds } }).lean();
   const oppById = new Map(opportunities.map((o: any) => [String(o._id), o]));
+  const [billing, usage] = await Promise.all([
+    getFounderEntitlements(identity),
+    getFounderUsage(identity),
+  ]);
 
   const shortlists = await Promise.all(
     shortlistDocs.map(async (sl: any) => {
@@ -2179,6 +2183,8 @@ export async function getFounderDashboard(identity: FounderIdentity) {
         BuilderProfile,
         ProjectRecord,
         MatchRecord,
+      }, {
+        entitlements: billing.entitlements,
       });
       return { ...pub, fullCandidates: fullCandidates.filter((c: any) => !c.hidden) };
     })
@@ -2200,13 +2206,11 @@ export async function getFounderDashboard(identity: FounderIdentity) {
     };
   });
 
-  const [pipeline, notifications, unreadNotificationCount, company, billing, usage] = await Promise.all([
+  const [pipeline, notifications, unreadNotificationCount, company] = await Promise.all([
     buildFounderPipeline(identity.email, { Opportunity: JobPosting, Shortlist, MatchRecord, BuilderProfile, IntroRequest, CallSchedule }),
     getNotificationsForFounder(identity.email),
     countUnreadForFounder(identity.email),
     getCompany(identity),
-    getFounderEntitlements(identity),
-    getFounderUsage(identity),
   ]);
 
   return {

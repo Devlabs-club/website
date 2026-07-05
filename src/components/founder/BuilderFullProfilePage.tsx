@@ -24,7 +24,7 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 /** Presentational builder profile body, reused by the full page and the founder workspace pane. */
-export const BuilderProfileView: React.FC<{ profile: BuilderProfile }> = ({ profile }) => (
+export const BuilderProfileView: React.FC<{ profile: BuilderProfile; afterLinks?: React.ReactNode }> = ({ profile, afterLinks }) => (
   <div>
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 items-start gap-4">
@@ -51,6 +51,8 @@ export const BuilderProfileView: React.FC<{ profile: BuilderProfile }> = ({ prof
         )}
       </div>
     </div>
+
+    {afterLinks ? <div className="mt-8">{afterLinks}</div> : null}
 
     <Section title="Skills">
       <div className="flex flex-wrap gap-2">

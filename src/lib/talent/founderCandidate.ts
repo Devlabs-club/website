@@ -2,6 +2,7 @@ import { mapTrialProjectFromMatch, normalizeTrialProject, trialProjectToSummary 
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
+import type { FounderEntitlements } from '@/lib/billing/entitlements';
 
 export type AgentTraceTeaserPayload = {
   locked: boolean;
@@ -141,6 +142,19 @@ function listStrings(value: unknown, maxItems: number, maxChars: number) {
     .slice(0, maxItems);
 }
 
+function uniqueStrings(items: unknown[], maxItems: number, maxChars: number) {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of items) {
+    const text = compactText(item, maxChars);
+    if (!text || seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    out.push(text);
+    if (out.length >= maxItems) break;
+  }
+  return out;
+}
+
 function safeString(value: unknown, fallback: string, maxChars: number) {
   return compactText(value, maxChars) || fallback;
 }
@@ -240,6 +254,68 @@ function attachProjectHighlight(
   return { ...trace, projectHighlight: highlight };
 }
 
+function buildProjectEvidenceLines(projects: any[]) {
+  return projects
+    .filter(Boolean)
+    .sort((a, b) => projectHighlightScore(b) - projectHighlightScore(a))
+    .flatMap((project) => {
+      const name = String(project?.projectName || '').trim();
+      const stack = formatTechSlice(Array.isArray(project?.techStack) ? project.techStack : []);
+      const contribution = String(project?.builderContribution || '').replace(/\s+/g, ' ').trim();
+      const description = String(project?.problemSolved || project?.description || '').replace(/\s+/g, ' ').trim();
+      const verification = verificationLabelForStatus(project?.verificationStatus, 'project');
+      return [
+        name && stack ? `${name} uses ${stack}` : null,
+        contribution ? `${name || 'Project'} contribution: ${truncateAtWord(contribution, 96)}` : null,
+        description ? `${name || 'Project'} proof: ${truncateAtWord(description, 96)}` : null,
+        name && verification !== 'Unverified' ? `${name} proof level: ${verification}` : null,
+      ];
+    });
+}
+
+function buildLockedTraceDetails(params: {
+  report?: AgentWrappedReport | null;
+  projects: any[];
+  base: any;
+  builder: any;
+  match?: any;
+  shortlistCandidate?: any;
+}) {
+  const { report, projects, base, builder, match, shortlistCandidate } = params;
+  const roleFit = compactText(match?.reasoning || shortlistCandidate?.whyTheyMatch || base?.whyTheyMatch, 120);
+  const proofSummary = compactText(shortlistCandidate?.proofSummary, 100);
+  const findings = (match?.requirementFindings || shortlistCandidate?.requirementFindings || [])
+    .map((finding: any) => {
+      const text = compactText(finding?.text, 62);
+      const evidence = compactText(finding?.evidence, 86);
+      return text && evidence ? `${text}: ${evidence}` : evidence || text;
+    });
+
+  const reportLines = report
+    ? [
+        ...(report.evidenceHighlights || []).map((item) => `Agent evidence: ${truncateAtWord(item, 110)}`),
+        ...(report.founderRead?.strengths || []).map((item) => `Strength: ${truncateAtWord(item, 100)}`),
+        ...(report.founderRead?.riskFlags || []).map((item) => `Risk to validate: ${truncateAtWord(item, 96)}`),
+        ...(report.founderRead?.bestFitRoles || []).map((item) => `Best-fit role signal: ${truncateAtWord(item, 82)}`),
+        report.validation?.buildTestLoops ? `${report.validation.buildTestLoops} build/test loops found in agent usage` : null,
+        report.validation?.errorRecoveryLoops ? `${report.validation.errorRecoveryLoops} error-recovery loops found` : null,
+        report.agentMaturity?.blindAcceptanceRisk
+          ? `Blind-acceptance risk: ${report.agentMaturity.blindAcceptanceRisk}`
+          : null,
+      ]
+    : [];
+
+  const profileLines = [
+    roleFit ? `Role-fit reasoning: ${roleFit}` : null,
+    proofSummary ? `Proof summary: ${proofSummary}` : null,
+    ...findings,
+    ...buildProjectEvidenceLines(projects),
+    builder?.availability?.hoursPerWeek ? `Availability: ${builder.availability.hoursPerWeek} hrs/week` : null,
+  ];
+
+  return uniqueStrings([...reportLines, ...profileLines], 4, 120);
+}
+
 function buildAgentTraceFromWrapped(
   agentWrapped: { report?: AgentWrappedReport } | null | undefined,
   base: any,
@@ -284,7 +360,7 @@ function buildAgentTraceFromWrapped(
     visibleInsight,
     quantifiedSignals,
     redacted: locked
-      ? ['Session transcripts', 'Raw prompts', 'Full evidence chain', 'Agent session details']
+      ? buildLockedTraceDetails({ report, projects, base, builder, shortlistCandidate })
       : [],
     hasAgentWrapped: true,
     archetype: report.archetype || null,
@@ -328,7 +404,7 @@ function fallbackTeasers(
   const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
   const profileTrace: AgentTraceTeaserPayload = {
     locked: traceLocked,
-    label: wrappedTrace ? 'Profile evidence' : 'Unlock full trace',
+    label: wrappedTrace ? 'Profile evidence' : traceLocked ? 'Unlock full trace' : 'Profile trace',
     sourceBadges: [
       ...(builder.links?.github ? ['GitHub'] : []),
       ...(builder.links?.linkedin ? ['LinkedIn'] : []),
@@ -341,7 +417,9 @@ function fallbackTeasers(
       `${projects.length} project${projects.length === 1 ? '' : 's'} reviewed`,
       `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
     ],
-    redacted: traceLocked ? ['Evidence chain', 'Comparison notes', 'Confidence breakdown'] : [],
+    redacted: traceLocked
+      ? buildLockedTraceDetails({ report: agentWrapped?.report, projects, base, builder, shortlistCandidate })
+      : [],
   };
 
   return {
@@ -512,7 +590,16 @@ Return only JSON matching the requested shape.`,
       sourceBadges: listStrings(parsed.agentTrace?.sourceBadges, 6, 24),
       visibleInsight: safeString(parsed.agentTrace?.visibleInsight, fallback.agentTrace.visibleInsight, 160),
       quantifiedSignals: listStrings(parsed.agentTrace?.quantifiedSignals, 4, 48),
-      redacted: traceLocked ? listStrings(parsed.agentTrace?.redacted, 4, 48) : [],
+      redacted: traceLocked
+        ? buildLockedTraceDetails({
+            report: agentWrapped?.report,
+            projects,
+            base,
+            builder,
+            match,
+            shortlistCandidate,
+          })
+        : [],
     };
     return {
       agentTrace: attachProjectHighlight(
@@ -663,11 +750,19 @@ export async function buildFullCandidateCard(params: {
 
   if (!teaserMode) {
     const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+    const agentTrace = wrappedTrace || fallbackTeasers(
+      base,
+      builder,
+      projects,
+      shortlistCandidate,
+      agentWrapped,
+      false
+    ).agentTrace;
     return {
       ...base,
       visibilityMode: 'full',
       traceAccess: opportunity?.traceAccess || 'full',
-      ...(wrappedTrace ? { teasers: { agentTrace: wrappedTrace } } : {}),
+      ...(agentTrace ? { teasers: { agentTrace } } : {}),
     };
   }
   const teasers = await buildLlmTeasers({
@@ -760,7 +855,13 @@ export async function buildFullCandidatesForShortlist(
     BuilderProfile: any;
     ProjectRecord: any;
     MatchRecord: any;
-  }
+  },
+  options: {
+    entitlements?: Pick<
+      FounderEntitlements,
+      'visibilityMode' | 'traceAccess' | 'introAccess' | 'outreachAccess' | 'lifecycleAccess'
+    >;
+  } = {}
 ) {
   const hiddenSet = new Set((shortlist.hiddenBuilderIds || []).map(String));
   const candidateEntries = shortlist.candidates || [];
@@ -783,6 +884,7 @@ export async function buildFullCandidatesForShortlist(
     projectsByBuilder.get(key)!.push(p);
   }
   const matchByBuilder = new Map(matches.map((m: any) => [String(m.builderId), m]));
+  const entitlementAccess = options?.entitlements;
 
   const wrappedDocs = builderIds.length
     ? await AgentWrappedReportModel.find({ builderId: { $in: builderIds } })
@@ -808,9 +910,11 @@ export async function buildFullCandidatesForShortlist(
         shortlistCandidate: sc,
         opportunity: {
           ...opportunity,
-          visibilityMode: shortlist.visibilityMode || 'full',
-          traceAccess: shortlist.traceAccess || 'full',
-          introAccess: shortlist.introAccess || 'enabled',
+          visibilityMode: entitlementAccess?.visibilityMode || shortlist.visibilityMode || 'full',
+          traceAccess: entitlementAccess?.traceAccess || shortlist.traceAccess || 'full',
+          introAccess: entitlementAccess?.introAccess || shortlist.introAccess || 'enabled',
+          outreachAccess: entitlementAccess?.outreachAccess,
+          lifecycleAccess: entitlementAccess?.lifecycleAccess,
         },
         hidden: hiddenSet.has(builderId),
         agentWrapped: wrappedDoc?.report ? { report: wrappedDoc.report as AgentWrappedReport } : null,

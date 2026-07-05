@@ -8,6 +8,7 @@ import BuilderProfile from '@/models/talent/BuilderProfile';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import MatchRecord from '@/models/talent/MatchRecord';
 import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
+import { getFounderEntitlements } from '@/lib/billing/entitlements';
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -47,13 +48,15 @@ async function loadJob(identity: { email: string }, id: string) {
   return JobPosting.findOne({ _id: id, founderEmail: identity.email });
 }
 
-async function loadRecommendations(job: any) {
+async function loadRecommendations(job: any, entitlements: Awaited<ReturnType<typeof getFounderEntitlements>>['entitlements']) {
   const shortlist = await Shortlist.findOne({ opportunityId: String(job._id) }).lean();
   if (!shortlist) return [];
   const candidates = await buildFullCandidatesForShortlist(shortlist, job, {
     BuilderProfile,
     ProjectRecord,
     MatchRecord,
+  }, {
+    entitlements,
   });
   return candidates.filter((c: any) => !c.hidden);
 }
@@ -66,7 +69,8 @@ export const GET: APIRoute = async ({ request, locals, params }) => {
   const job = await loadJob(identity, params.id!);
   if (!job) return errorJson('Role not found.', 404);
 
-  const recommendations = await loadRecommendations(job);
+  const { entitlements } = await getFounderEntitlements(identity);
+  const recommendations = await loadRecommendations(job, entitlements);
   return okJson({ job: serializeJob(job), recommendations });
 };
 

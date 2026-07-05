@@ -22,7 +22,10 @@ async function pingBuilderTrialOverImessage(params: {
   company: string;
   roleTitle: string;
   trialTitle: string;
+  goal?: string | null;
   deliverables?: string[];
+  successCriteria?: string[];
+  timeline?: string | null;
   deadlineAt?: string | null;
   opportunityId?: string | null;
 }) {
@@ -131,8 +134,16 @@ export async function sendTrialProjectToBuilder(params: {
     company: opportunity.company || 'the startup',
     roleTitle: opportunity.roleTitle || 'the role',
     trialTitle: draft.title,
+    goal: draft.goal,
     deliverables: draft.deliverables,
-    deadlineAt: params.deadlineAt.toISOString(),
+    successCriteria: draft.successCriteria,
+    timeline: draft.timeline,
+    deadlineAt: params.deadlineAt.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
     opportunityId: params.opportunityId,
   });
 

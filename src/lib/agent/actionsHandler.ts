@@ -965,6 +965,8 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
         BuilderProfile,
         ProjectRecord,
         MatchRecord,
+      }, {
+        entitlements: lifecycle.entitlements,
       });
 
       const opportunityDoc = await Opportunity.findById(opportunityId);

@@ -528,7 +528,10 @@ export async function notifyBuilderOfTrial(
     company: string;
     roleTitle: string;
     trialTitle: string;
+    goal?: string | null;
     deliverables?: string[];
+    successCriteria?: string[];
+    timeline?: string | null;
     deadlineAt?: string | null;
     opportunityId?: string | null;
   },
@@ -560,7 +563,10 @@ export async function notifyBuilderOfTrial(
       company: params.company,
       roleTitle: params.roleTitle,
       trialTitle: params.trialTitle,
+      goal: params.goal ?? null,
       deliverables: params.deliverables,
+      successCriteria: params.successCriteria,
+      timeline: params.timeline ?? null,
       deadlineAt: params.deadlineAt ?? null,
     },
     runtime,
