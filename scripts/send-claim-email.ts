@@ -15,7 +15,7 @@ const from = process.env.CLAIM_FROM || 'people@devlabs.club';
 const websiteRoot = process.env.WEBSITE_ROOT_PUBLIC || 'https://devlabs.club';
 
 // Signed token ties the verify link to this recipient's email (and builderId if known).
-const token = createClaimToken({ email: to, builderId: process.env.CLAIM_BUILDER_ID });
+const token = createClaimToken({ email: to, name: firstName, builderId: process.env.CLAIM_BUILDER_ID });
 const { subject, html, text } = buildClaimEmail({ firstName, token, websiteRoot });
 
 async function main() {

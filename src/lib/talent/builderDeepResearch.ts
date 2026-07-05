@@ -89,6 +89,11 @@ export async function deepResearchBuilder(params: {
   if (!results.length) return EMPTY;
 
   const citations = results.map((r) => r.url).filter(Boolean).slice(0, 6);
+
+  const { urlsToMarkdown } = await import('@/lib/talent/urlToMarkdown');
+  const pages = await urlsToMarkdown(citations.slice(0, 4), 5000);
+  const pageText = pages.map((p) => `[${p.url}]\n${p.markdown}`).join('\n\n').slice(0, 16000);
+
   const excerpts = results
     .map((r, i) => `[${i + 1}] ${r.title || r.url}\nURL: ${r.url}\n${r.highlights.join(' … ')}`)
     .join('\n\n')
@@ -110,7 +115,7 @@ Return STRICT JSON:
   "discoveredLinks": { "twitter": string|null, "personalWebsite": string|null, "devpost": string|null },
   "suggestedQuestions": string[]           // 3-5 sharp follow-ups that would most strengthen the profile; ask only what's NOT already known/found
 }`,
-      userPrompt: `Identity fingerprint:\n${fingerprint}\n\nSearch results:\n${excerpts}`,
+      userPrompt: `Identity fingerprint:\n${fingerprint}\n\nSearch excerpts:\n${excerpts}\n\nFull page content (markdown):\n${pageText || '(none)'}`,
       temperature: 0.1,
       maxTokens: 1100,
       responseFormat: 'json_object',
