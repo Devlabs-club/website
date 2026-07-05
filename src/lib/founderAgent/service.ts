@@ -2110,6 +2110,22 @@ export async function getFounderAgentChatState(identity: FounderIdentity, params
   };
 }
 
+/**
+ * Bucket a per-status match count map into the pipeline stages shown on the
+ * founder home role tiles. Statuses are cumulative — a hired builder was also
+ * contacted and accepted — so later stages roll up into the earlier ones.
+ */
+function pipelineCountsFromStatusMap(statusCounts: Record<string, number>) {
+  const sum = (keys: string[]) => keys.reduce((total, key) => total + (statusCounts[key] || 0), 0);
+  return {
+    recommended: sum(['generated', 'approved', 'intro_requested', 'builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
+    contacted: sum(['intro_requested', 'builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
+    accepted: sum(['builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
+    trial: sum(['trial']),
+    hired: sum(['hired']),
+  };
+}
+
 export async function getFounderJobs(identity: FounderIdentity) {
   await connectAdminDB();
   const [jobs, sessions, company, billing, usage] = await Promise.all([
@@ -2125,8 +2141,28 @@ export async function getFounderJobs(identity: FounderIdentity) {
     getFounderEntitlements(identity),
     getFounderUsage(identity),
   ]);
+
+  // Real pipeline counts per role, aggregated from the match records.
+  const jobIds = jobs.map((job: any) => job._id);
+  const matchCounts = jobIds.length
+    ? await MatchRecord.aggregate([
+        { $match: { opportunityId: { $in: jobIds } } },
+        { $group: { _id: { opportunityId: '$opportunityId', status: '$status' }, count: { $sum: 1 } } },
+      ])
+    : [];
+  const statusByJob = new Map<string, Record<string, number>>();
+  for (const row of matchCounts) {
+    const jobId = String(row._id.opportunityId);
+    const map = statusByJob.get(jobId) || {};
+    map[row._id.status] = row.count;
+    statusByJob.set(jobId, map);
+  }
+
   return {
-    jobs: jobs.map(serializeJob),
+    jobs: jobs.map((job: any) => ({
+      ...serializeJob(job),
+      pipeline: pipelineCountsFromStatusMap(statusByJob.get(String(job._id)) || {}),
+    })),
     sessions: sessions.map(serializeSession),
     company: serializeCompany(company),
     billing: {

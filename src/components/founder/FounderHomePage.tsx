@@ -20,6 +20,23 @@ type Role = {
   status?: string;
   skillsNeeded?: string[];
   updatedAt?: string;
+  createdAt?: string;
+  jobType?: string | null;
+  workType?: string | null;
+  seniority?: string | null;
+  timeline?: string | null;
+  salary?: string | null;
+  budget?: string | null;
+  workMode?: string | null;
+  location?: string | null;
+  locationPreference?: string | null;
+  pipeline?: {
+    recommended: number;
+    contacted: number;
+    accepted: number;
+    trial: number;
+    hired: number;
+  };
 };
 
 type Question = {
@@ -315,31 +332,61 @@ const FounderHomeInner: React.FC = () => {
             </div>
 
             <div className="divide-y divide-[#ece7e1] border-y border-[#ece7e1]">
-              {roles.map((role) => (
-                <a
-                  key={role.id}
-                  href={`/founder/roles/${role.id}`}
-                  className="group grid gap-4 px-0 py-6 transition hover:bg-[#fdfaf7] md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:px-6"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-lg font-semibold text-black">{role.title || role.roleTitle || "Untitled role"}</p>
-                    <p className="mt-1 truncate text-xs text-black/42">
-                      Internship * 6 Months * $300-500 * Hybrid
-                    </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {["12 Recommended", "3 Contacted", "2 Accepted", "1 Trial", "0 Hired"].map((label) => (
-                        <span key={label} className="rounded-lg border border-[#ece7e1] bg-[#f3ede4] px-2.5 py-1 text-[10px] text-black/50">
-                          {label}
-                        </span>
-                      ))}
+              {roles.map((role) => {
+                const meta = [
+                  role.jobType || role.workType || role.seniority,
+                  role.timeline,
+                  role.salary || role.budget,
+                  role.workMode || role.location || role.locationPreference,
+                ]
+                  .map((value) => (value ? String(value).trim() : ""))
+                  .filter(Boolean)
+                  .join("  ·  ");
+                const pipeline = role.pipeline;
+                const stats = pipeline
+                  ? [
+                      `${pipeline.recommended} Recommended`,
+                      `${pipeline.contacted} Contacted`,
+                      `${pipeline.accepted} Accepted`,
+                      `${pipeline.trial} Trial`,
+                      `${pipeline.hired} Hired`,
+                    ]
+                  : [];
+                const created = role.createdAt || role.updatedAt;
+                const createdLabel = created
+                  ? (() => {
+                      const d = new Date(created);
+                      return Number.isNaN(d.getTime())
+                        ? ""
+                        : `${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}  ·  ${d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}`;
+                    })()
+                  : "";
+                return (
+                  <a
+                    key={role.id}
+                    href={`/founder/roles/${role.id}`}
+                    className="group grid gap-4 px-0 py-6 transition hover:bg-[#fdfaf7] md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:px-6"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-semibold text-black">{role.title || role.roleTitle || "Untitled role"}</p>
+                      {meta && <p className="mt-1 truncate text-xs text-black/42">{meta}</p>}
+                      {stats.length > 0 && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {stats.map((label) => (
+                            <span key={label} className="rounded-lg border border-[#ece7e1] bg-[#f3ede4] px-2.5 py-1 text-[10px] text-black/50">
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <p className="text-xs text-black/34 md:justify-self-end">10:00 am * 12 June 2026</p>
-                  <span className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-[#f3ede4] px-4 text-xs font-semibold text-black transition group-hover:bg-[#ec9149] group-hover:text-white">
-                    View <ArrowRight className="h-3.5 w-3.5" />
-                  </span>
-                </a>
-              ))}
+                    {createdLabel && <p className="text-xs text-black/34 md:justify-self-end">{createdLabel}</p>}
+                    <span className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-[#f3ede4] px-4 text-xs font-semibold text-black transition group-hover:bg-[#ec9149] group-hover:text-white">
+                      View <ArrowRight className="h-3.5 w-3.5" />
+                    </span>
+                  </a>
+                );
+              })}
             </div>
           </section>
         ) : (
