@@ -38,6 +38,115 @@ function makeReportId(builderId) {
   return `agent-usage-${builderId}-${Date.now()}`;
 }
 
+const IDENTITY_DEFS = [
+  {
+    name: 'Shipper',
+    tagline: 'Ships fast, ships often.',
+    score: (m) => 0.25 * m.frontend + 0.25 * m.backend + 0.25 * m.verificationScore + 0.25 * m.testDisciplineScore,
+  },
+  {
+    name: 'Debugger',
+    tagline: "Turns red terminals green.",
+    score: (m) => 0.6 * m.iterationScore + 0.4 * Math.min(100, m.errorRecoveryLoops * 8),
+  },
+  {
+    name: 'Perfectionist',
+    tagline: "One more pass before it ships.",
+    score: (m) => 0.5 * m.testDisciplineScore + 0.3 * m.verificationScore + 0.2 * Math.max(0, 100 - m.iterationScore),
+  },
+  {
+    name: 'Architect',
+    tagline: 'Plans before it prompts.',
+    score: (m) => 0.55 * m.planningScore + 0.45 * m.contextScore,
+  },
+  {
+    name: 'Systems Builder',
+    tagline: 'At home in infra and data.',
+    score: (m) => 0.5 * m.infra + 0.5 * m.database,
+  },
+  {
+    name: 'Full-Stack Operator',
+    tagline: 'Equally dangerous on both ends.',
+    score: (m) => Math.min(m.frontend, m.backend),
+  },
+  {
+    name: 'Polyglot',
+    tagline: 'Fluent across the stack.',
+    score: (m) => Math.min(100, m.languageCount * 14 + m.frameworkCount * 6),
+  },
+  {
+    name: 'Grinder',
+    tagline: 'Long sessions, no quit.',
+    score: (m) => Math.min(100, m.totalHours * 2 + m.longestSessionMinutes / 3),
+  },
+  {
+    name: 'Multi-Agent Power User',
+    tagline: 'Runs a whole agent squad.',
+    score: (m) => (m.agentCount >= 3 ? 92 : m.agentCount === 2 ? 65 : m.agentCount === 1 ? 30 : 12),
+  },
+];
+
+function computeIdentities(metrics) {
+  return IDENTITY_DEFS.map((def) => ({ name: def.name, tagline: def.tagline, score: clamp(def.score(metrics)) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+function computeTimeInvested(samples) {
+  const ranges = samples.map((sample) => sample.timeRange).filter(Boolean);
+  if (!ranges.length) {
+    return { totalHours: 0, longestSessionMinutes: 0, estimated: true };
+  }
+  const durationsMinutes = ranges.map((range) => Math.max(1, (range.endMs - range.startMs) / 60_000));
+  const totalMinutes = durationsMinutes.reduce((sum, value) => sum + value, 0);
+  return {
+    totalHours: Math.round((totalMinutes / 60) * 10) / 10,
+    longestSessionMinutes: Math.round(Math.max(...durationsMinutes)),
+    estimated: ranges.length < samples.length,
+  };
+}
+
+function computeAgentSplit(samples, agents) {
+  const perAgentMinutes = new Map();
+  const perAgentSessions = new Map();
+  const perAgentTimedSessions = new Map();
+  for (const sample of samples) {
+    perAgentSessions.set(sample.agent, (perAgentSessions.get(sample.agent) || 0) + 1);
+    if (sample.timeRange) {
+      const minutes = Math.max(1, (sample.timeRange.endMs - sample.timeRange.startMs) / 60_000);
+      perAgentMinutes.set(sample.agent, (perAgentMinutes.get(sample.agent) || 0) + minutes);
+      perAgentTimedSessions.set(sample.agent, (perAgentTimedSessions.get(sample.agent) || 0) + 1);
+    }
+  }
+  const totalMinutes = [...perAgentMinutes.values()].reduce((sum, value) => sum + value, 0);
+  const totalTimedSessions = [...perAgentTimedSessions.values()].reduce((sum, value) => sum + value, 0);
+  const useTime = totalMinutes > 0;
+  // Agents whose files carry no timestamps (e.g. Cursor's rule/config text) would otherwise
+  // vanish from a time-weighted split; backfill them at the observed average minutes/session
+  // so every agent with real usage still shows up proportionally.
+  const avgMinutesPerSession = totalTimedSessions > 0 ? totalMinutes / totalTimedSessions : 0;
+  const totalSessions = samples.length || 1;
+
+  const estimatedMinutes = (agent) => perAgentMinutes.get(agent) || (perAgentSessions.get(agent) || 0) * avgMinutesPerSession;
+  const estimatedTotalMinutes = useTime ? agents.reduce((sum, agent) => sum + estimatedMinutes(agent), 0) : 0;
+
+  const split = agents.map((agent) => ({
+    agent,
+    sessions: perAgentSessions.get(agent) || 0,
+    percent: useTime
+      ? Math.round((estimatedMinutes(agent) / (estimatedTotalMinutes || 1)) * 100)
+      : Math.round(((perAgentSessions.get(agent) || 0) / totalSessions) * 100),
+  }));
+
+  // Rounding can drift the total off 100; nudge the largest share to absorb it.
+  const drift = 100 - split.reduce((sum, item) => sum + item.percent, 0);
+  if (drift !== 0 && split.length) {
+    const largest = [...split].sort((a, b) => b.percent - a.percent)[0];
+    largest.percent += drift;
+  }
+  return split.sort((a, b) => b.percent - a.percent);
+}
+
 export function generateReport({ builderId, builderName, samples, publicRoot }) {
   const allText = samples.map((sample) => sample.text).join('\n').toLowerCase();
   const agents = [...new Set(samples.map((sample) => sample.agent))];
@@ -81,6 +190,35 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
   const testDisciplineScore = clamp(25 + verification * 2.4 + tests * 1.2);
   const score = clamp((planningScore + contextScore + iterationScore + verificationScore + testDisciplineScore) / 5);
 
+  const buildSurface = {
+    frontend: clamp(frontend * 4),
+    backend: clamp(backend * 4),
+    database: clamp(database * 5),
+    infra: clamp(infra * 5),
+    tests: clamp(tests * 4),
+    docs: clamp(docs * 5),
+  };
+  const errorRecoveryLoops = Math.max(0, Math.round(errors / 4));
+  const timeInvested = computeTimeInvested(samples);
+  const agentSplit = computeAgentSplit(samples, agents);
+  const identities = computeIdentities({
+    frontend: buildSurface.frontend,
+    backend: buildSurface.backend,
+    infra: buildSurface.infra,
+    database: buildSurface.database,
+    verificationScore,
+    testDisciplineScore,
+    planningScore,
+    contextScore,
+    iterationScore,
+    errorRecoveryLoops,
+    languageCount: languageHits.length,
+    frameworkCount: frameworks.length,
+    totalHours: timeInvested.totalHours,
+    longestSessionMinutes: timeInvested.longestSessionMinutes,
+    agentCount: agents.length,
+  });
+
   return {
     builderId,
     reportId: makeReportId(builderId),
@@ -120,17 +258,10 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
         }))
       : [{ name: 'TypeScript', percent: 100, sessions: 0, evidence: 'session_summary' }],
     frameworks,
-    buildSurface: {
-      frontend: clamp(frontend * 4),
-      backend: clamp(backend * 4),
-      database: clamp(database * 5),
-      infra: clamp(infra * 5),
-      tests: clamp(tests * 4),
-      docs: clamp(docs * 5),
-    },
+    buildSurface,
     validation: {
       buildTestLoops: Math.max(0, Math.round(verification / 3)),
-      errorRecoveryLoops: Math.max(0, Math.round(errors / 4)),
+      errorRecoveryLoops,
       successfulReruns: Math.max(0, Math.round(verification / 5)),
       testDisciplineScore,
     },
@@ -162,5 +293,8 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
       publicUrl: `${publicRoot.replace(/\/$/, '')}/builder/wrapped/${builderId}`,
     },
     createdAt: new Date().toISOString(),
+    timeInvested,
+    agentSplit,
+    identities,
   };
 }

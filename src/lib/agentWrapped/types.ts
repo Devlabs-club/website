@@ -69,6 +69,21 @@ export type AgentWrappedReport = {
     imageUrl?: string;
   };
   createdAt: string;
+  timeInvested?: {
+    totalHours: number;
+    longestSessionMinutes: number;
+    estimated?: boolean;
+  };
+  agentSplit?: {
+    agent: string;
+    percent: number;
+    sessions?: number;
+  }[];
+  identities?: {
+    name: string;
+    tagline: string;
+    score: number;
+  }[];
 };
 
 export type UploadAgentWrappedReportRequest = {

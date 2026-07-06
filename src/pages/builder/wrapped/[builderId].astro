@@ -6,5 +6,11 @@ const builderId = Astro.params.builderId || "";
 ---
 
 <AppLayout title="Agent Wrapped · DevLabs" description="DevLabs Agent Wrapped proof-of-work card.">
+  <Fragment slot="head">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spinnaker&display=swap"
+      rel="stylesheet"
+    />
+  </Fragment>
   <AgentWrappedPage builderId={builderId} client:load />
 </AppLayout>

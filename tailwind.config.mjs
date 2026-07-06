@@ -10,6 +10,7 @@ export default {
     extend: {
       fontFamily: {
         seasons: ['"the-seasons"', 'sans-serif'],
+        spinnaker: ['Spinnaker', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

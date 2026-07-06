@@ -76,9 +76,62 @@ function redactSecrets(text) {
     .replace(/[A-Za-z]:\\Users\\[^\\\s]+\\[^\s]+/g, '[LOCAL_PATH]');
 }
 
+const TIMESTAMP_PATTERN = /"timestamp"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?)"/g;
+const TAIL_SAMPLE_BYTES = 8_000;
+const MAX_PLAUSIBLE_SESSION_HOURS = 12;
+
+function firstAndLastTimestamp(text) {
+  const matches = [...text.matchAll(TIMESTAMP_PATTERN)];
+  if (!matches.length) return null;
+  const times = matches.map((match) => Date.parse(match[1])).filter((value) => !Number.isNaN(value));
+  if (!times.length) return null;
+  return { startMs: Math.min(...times), endMs: Math.max(...times) };
+}
+
+// Session logs (Claude Code/Codex JSONL) carry a real per-line ISO timestamp; reading a small
+// head+tail slice is enough to bound session start/end without loading (or uploading) full transcripts.
+async function readSessionTimeRange(file) {
+  try {
+    const stat = await fs.stat(file);
+    if (!/\.jsonl$/i.test(file)) return null;
+
+    const headHandle = await fs.open(file, 'r');
+    const headBuffer = Buffer.alloc(Math.min(MAX_SAMPLE_BYTES, stat.size));
+    const { bytesRead: headBytes } = await headHandle.read(headBuffer, 0, headBuffer.length, 0);
+    await headHandle.close();
+    const headText = headBuffer.subarray(0, headBytes).toString('utf8');
+
+    let tailText = '';
+    if (stat.size > headBytes) {
+      const tailSize = Math.min(TAIL_SAMPLE_BYTES, stat.size);
+      const tailHandle = await fs.open(file, 'r');
+      const tailBuffer = Buffer.alloc(tailSize);
+      const { bytesRead: tailBytes } = await tailHandle.read(tailBuffer, 0, tailSize, stat.size - tailSize);
+      await tailHandle.close();
+      tailText = tailBuffer.subarray(0, tailBytes).toString('utf8');
+    }
+
+    const headRange = firstAndLastTimestamp(headText);
+    const tailRange = firstAndLastTimestamp(tailText);
+    if (!headRange && !tailRange) return null;
+
+    const startMs = headRange ? headRange.startMs : tailRange.startMs;
+    const endMs = Math.max(headRange ? headRange.endMs : 0, tailRange ? tailRange.endMs : 0) || startMs;
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
+
+    const hours = (endMs - startMs) / 3_600_000;
+    if (hours > MAX_PLAUSIBLE_SESSION_HOURS) return null;
+
+    return { startMs, endMs };
+  } catch {
+    return null;
+  }
+}
+
 export async function readSourceSamples(sources) {
   const samples = [];
   for (const source of sources) {
+    const isSessionKind = source.kind === 'session/export summaries';
     for (const file of source.files.slice(0, MAX_FILES_PER_SOURCE)) {
       let text = '';
       try {
@@ -90,10 +143,12 @@ export async function readSourceSamples(sources) {
       } catch {
         continue;
       }
+      const timeRange = isSessionKind ? await readSessionTimeRange(file) : null;
       samples.push({
         agent: source.agent,
         kind: source.kind,
         text: redactSecrets(text),
+        timeRange,
       });
     }
   }

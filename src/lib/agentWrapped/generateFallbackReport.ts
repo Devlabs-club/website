@@ -42,6 +42,45 @@ function clampScore(score: number) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+const IDENTITY_DEFS: { name: string; tagline: string; score: (m: Record<string, number>) => number }[] = [
+  {
+    name: 'Shipper',
+    tagline: 'Ships fast, ships often.',
+    score: (m) => 0.25 * m.frontend + 0.25 * m.backend + 0.25 * m.verificationScore + 0.25 * m.testDisciplineScore,
+  },
+  {
+    name: 'Perfectionist',
+    tagline: 'One more pass before it ships.',
+    score: (m) => 0.5 * m.testDisciplineScore + 0.3 * m.verificationScore + 0.2 * Math.max(0, 100 - m.iterationScore),
+  },
+  {
+    name: 'Architect',
+    tagline: 'Plans before it prompts.',
+    score: (m) => 0.55 * m.planningScore + 0.45 * m.contextScore,
+  },
+  {
+    name: 'Systems Builder',
+    tagline: 'At home in infra and data.',
+    score: (m) => 0.5 * m.infra + 0.5 * m.database,
+  },
+  {
+    name: 'Full-Stack Operator',
+    tagline: 'Equally dangerous on both ends.',
+    score: (m) => Math.min(m.frontend, m.backend),
+  },
+  {
+    name: 'Polyglot',
+    tagline: 'Fluent across the stack.',
+    score: (m) => Math.min(100, m.languageCount * 14 + m.frameworkCount * 6),
+  },
+];
+
+function computeFallbackIdentities(metrics: Record<string, number>) {
+  return IDENTITY_DEFS.map((def) => ({ name: def.name, tagline: def.tagline, score: clampScore(def.score(metrics)) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
 export function generateFallbackAgentWrappedReport({
   profile,
   projects,
@@ -89,6 +128,29 @@ export function generateFallbackAgentWrappedReport({
   const projectCount = projects.length;
   const score = clampScore(62 + Math.min(projectCount, 8) * 4 + frameworks.length * 2);
 
+  const buildSurface = {
+    frontend: hasFrontend ? 86 : 42,
+    backend: hasBackend ? 78 : 38,
+    database: hasDb ? 70 : 28,
+    infra: hasInfra ? 64 : 25,
+    tests: hasTests ? 58 : 24,
+    docs: profile.bio || projects.some((project) => project.description) ? 55 : 20,
+  };
+  const agentMaturity = {
+    planningScore: 58,
+    contextScore: 52,
+    iterationScore: 61,
+    verificationScore: hasTests ? 62 : 40,
+  };
+  const testDisciplineScore = hasTests ? 66 : 38;
+  const identities = computeFallbackIdentities({
+    ...buildSurface,
+    ...agentMaturity,
+    testDisciplineScore,
+    languageCount: languageScores.length,
+    frameworkCount: frameworks.length,
+  });
+
   return {
     builderId,
     reportId: `fallback-${builderId}`,
@@ -124,25 +186,15 @@ export function generateFallbackAgentWrappedReport({
     frameworks: frameworks.length
       ? frameworks.map((name) => ({ name, confidence: 'moderate', evidence: ['profile/project fallback'] }))
       : [{ name: 'React', confidence: 'low', evidence: ['profile/project fallback'] }],
-    buildSurface: {
-      frontend: hasFrontend ? 86 : 42,
-      backend: hasBackend ? 78 : 38,
-      database: hasDb ? 70 : 28,
-      infra: hasInfra ? 64 : 25,
-      tests: hasTests ? 58 : 24,
-      docs: profile.bio || projects.some((project) => project.description) ? 55 : 20,
-    },
+    buildSurface,
     validation: {
       buildTestLoops: hasTests ? 8 : 3,
       errorRecoveryLoops: 5,
       successfulReruns: hasTests ? 6 : 2,
-      testDisciplineScore: hasTests ? 66 : 38,
+      testDisciplineScore,
     },
     agentMaturity: {
-      planningScore: 58,
-      contextScore: 52,
-      iterationScore: 61,
-      verificationScore: hasTests ? 62 : 40,
+      ...agentMaturity,
       blindAcceptanceRisk: hasTests ? 'moderate' : 'high',
     },
     founderRead: {
@@ -168,5 +220,12 @@ export function generateFallbackAgentWrappedReport({
       publicUrl: `${rootUrl.replace(/\/$/, '')}/builder/wrapped/${builderId}`,
     },
     createdAt: new Date().toISOString(),
+    timeInvested: {
+      totalHours: Math.max(12, projectCount * 22),
+      longestSessionMinutes: hasTests ? 220 : 140,
+      estimated: true,
+    },
+    agentSplit: [],
+    identities,
   };
 }

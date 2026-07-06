@@ -148,6 +148,27 @@ export function previewReport(report, sources, options = {}) {
   for (const line of wrappedLines(report.founderRead?.summary, 64)) console.log(`  ${theme.cream(line)}`);
   console.log('');
 
+  if (report.timeInvested) {
+    section('Time Invested', theme);
+    console.log(`  ${theme.cream(padRight('Total hours', 24))} ${theme.orange(report.timeInvested.totalHours)}`);
+    console.log(`  ${theme.cream(padRight('Longest session (min)', 24))} ${theme.orange(report.timeInvested.longestSessionMinutes)}`);
+    console.log('');
+  }
+
+  if (report.agentSplit?.length) {
+    section('Agent Split', theme);
+    for (const item of report.agentSplit) {
+      console.log(`  ${theme.cream(padRight(item.agent, 24))} ${theme.orange(`${item.percent}%`)}`);
+    }
+    console.log('');
+  }
+
+  if (report.identities?.length) {
+    section('Builder Identity', theme);
+    console.log(`  ${report.identities.map((identity) => theme.cream(identity.name)).join(theme.muted(' · '))}`);
+    console.log('');
+  }
+
   section('Source Coverage', theme);
   console.log(`  ${theme.muted('Agents:')} ${theme.cream(report.sourceCoverage?.agents?.join(', ') || 'Limited')}`);
   console.log(`  ${theme.muted('Sources:')} ${theme.cream(`${sources.length} source group${sources.length === 1 ? '' : 's'}`)}`);
