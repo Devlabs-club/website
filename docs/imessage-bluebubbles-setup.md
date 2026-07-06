@@ -48,10 +48,16 @@ BlueBubbles app → **Settings → API & Webhooks → Webhooks → Add**:
 ## 4. Env vars
 Add to `.env` / `.dev.vars`:
 ```
-BLUEBUBBLES_SERVER_URL=http://localhost:1234
+IMESSAGE_PROVIDER=bluebubbles
+BLUEBUBBLES_SERVER_URL=http://localhost:1234   # or your Cloudflare tunnel URL
 BLUEBUBBLES_PASSWORD=...
-BLUEBUBBLES_WEBHOOK_SECRET=...        # optional on localhost
+BLUEBUBBLES_IMESSAGE_ADDRESS=hi@geekydan.dev   # Apple ID on the Mac; builders text this
+BLUEBUBBLES_WEBHOOK_SECRET=...        # optional; ?password= also works
+BLUEBUBBLES_SEND_METHOD=apple-script  # or private-api
 ```
+
+When using a remote tunnel (e.g. Cloudflare), point the BlueBubbles webhook at:
+`https://<your-app>/api/imessage/webhook?password=<BLUEBUBBLES_PASSWORD>`
 
 ## 5. Run + test
 ```bash
@@ -68,11 +74,18 @@ curl -X POST "http://localhost:1234/api/v1/message/text?password=$BLUEBUBBLES_PA
 ```
 
 ## Files
-- `src/pages/api/imessage/webhook.ts` — inbound route
+- `src/pages/api/imessage/webhook.ts` — inbound route (alias)
+- `src/pages/api/builder/claim/message-webhook.ts` — inbound route (provider-aware)
+- `src/lib/messaging/getProvider.ts` — selects BlueBubbles vs AgentPhone via `IMESSAGE_PROVIDER`
+- `src/lib/messaging/providers/bluebubbles.ts` — BlueBubbles send/parse
+- `src/lib/messaging/bluebubblesClient.ts` — outbound REST client
 - `src/lib/messaging/imessageGateway.ts` — orchestration (resolve → agent → reply)
-- `src/lib/messaging/providers/bluebubbles.ts` — BlueBubbles send/parse (swap this file for Spectrum-TS later)
 - `src/lib/messaging/builderResolver.ts` — phone/email → BuilderProfile
 - `src/models/talent/ImessageConversation.ts` — per-handle thread + history + dedupe
+
+## Swapping providers
+Set `IMESSAGE_PROVIDER=agentphone` to revert to AgentPhone without code changes.
+Default auto-detects BlueBubbles when `BLUEBUBBLES_*` env vars are present.
 
 ## Migrating to Spectrum-TS later
 Implement the same `MessageProvider` interface in `src/lib/messaging/providers/spectrum.ts`

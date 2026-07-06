@@ -394,7 +394,13 @@ export async function startClaimConversation(claim: any, runtime?: RuntimeEnv) {
  * Resolve an inbound iMessage: verification handshake OR ongoing conversation.
  */
 export async function advanceClaimConversation(
-  params: { fromPhone: string; body: string; providerMessageId?: string | null; resumeText?: string | null },
+  params: {
+    fromPhone: string;
+    body: string;
+    providerMessageId?: string | null;
+    resumeText?: string | null;
+    resumeExtracted?: Record<string, unknown> | null;
+  },
   runtime?: RuntimeEnv
 ) {
   const phone = normalizeClaimPhone(params.fromPhone);
@@ -473,7 +479,9 @@ export async function advanceClaimConversation(
     claim,
     userText: body || '(sent a resume)',
     history,
-    resume: params.resumeText ? { text: params.resumeText } : null,
+    resume: params.resumeText
+      ? { text: params.resumeText, extracted: params.resumeExtracted || undefined }
+      : null,
     runtime,
   });
 

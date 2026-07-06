@@ -23,8 +23,9 @@ import {
 } from '@/lib/talent/builderAgentMemory';
 import { formatDossierForAgent } from '@/lib/talent/builderDossier';
 import { appendSessionMemory, formatSessionMemoryBlock } from '@/lib/talent/builderSessionMemory';
-import { extractResumeFields, applyResumeToBuilder } from '@/lib/talent/builderResumeExtract';
+import { extractResumeFields, writeResumeExtractionToBuilder, type ExtractedResume } from '@/lib/talent/builderResumeExtract';
 import { enrichBuilderProfile, type EnrichmentSource } from '@/lib/talent/builderEnrichment';
+import { aggregateInferredSkills } from '@/lib/talent/builderEnrichment/apply';
 import { deepResearchBuilder } from '@/lib/talent/builderDeepResearch';
 import { extractUrls, classifyLink, processGenericLink } from '@/lib/talent/builderLinkProcessor';
 import IntroRequest from '@/models/talent/IntroRequest';
@@ -112,14 +113,18 @@ YOUR WRITE TOOL: update_builder_data is your single tool to change ANYTHING — 
 
 WRITING RULES (bio/headline/experience — founders READ these):
 - Plain, concrete, builder language. Lead with what they've actually shipped and their real skills. The bio is the first thing a founder sees on a recommendation — make it specific and convincing, not flowery. Tight enough that a founder knows in one line whether to talk to them.
-- Fold their TOP skills (from their github/projects) into the headline/bio — don't ask them to list skills, you already have them.
+- Fold their TOP technical skills (from github/projects/linkedin) into builder.skills via update_builder_data — NOT rolePreference. rolePreference is for job types ("full-stack engineer"), skills is for tech ("React", "Python", "TypeScript").
+- After LinkedIn/GitHub enrichment lands, confirm imported work history with ONE yes/no ("pulled [Title] at [Company] from linkedin — that track?"). Write experiences if missing. Never ask them to re-list jobs you already scraped.
 - BANNED (LinkedIn-bluff, never use): "passionate", "process-focused", "community-first", "technologist", "innovative", "loves connecting", "driven", "results-oriented", "synergy", "leverage", "transformative", "cutting-edge".
 - The bio is about the BUILDER's proof-of-work — NEVER paste a description of a program/company as their bio. Good: "Ships mobile apps in Flutter; 3 hackathon wins; runs DevLabs." Bad: "Process-focused builder passionate about innovative solutions."
 
 ENRICHMENT PRIORITY (chase the biggest gap first):
-1. github + linkedin (proof links) 2. one real project/experience with what THEY did 3. clear headline + bio 4. role preference + availability 5. location + work authorization.
+1. github + linkedin (proof links) 2. resume PDF if profile still thin after scraping 3. one real project/experience with what THEY did 4. clear headline + bio 5. role preference + availability 6. location + work authorization.
 
-RESUME: if they offer one, tell them to just drop the PDF in here — you'll read it and fill everything. When applied you'll get a system note of what you pulled; acknowledge and ask only about what's still thin.
+RESUME (high value — ask at the right moment):
+- After github/linkedin homework lands, if work history, skills, or projects are still thin, ask ONCE: "got a resume pdf? just drop it in here — i'll cross-check it against what we already pulled and fill the gaps."
+- When they send a PDF (BlueBubbles attachment), we parse it automatically and cross-check against their existing profile — new skills/experiences/projects get added; we only overwrite empty or clearly weaker fields.
+- Acknowledge specifics ("pulled your cloudflare internship + 3 projects from the resume"). Confirm imported jobs with ONE yes/no. Never ask them to re-type what's already on the resume.
 
 PROFILE LINK: when they ask to see/view their profile, or once it's looking solid, call send_profile_link and text them the link. Tell them it's their private page — only they can open it — and it's exactly what founders see.
 
@@ -136,7 +141,8 @@ builder (BuilderProfile):
 - location (string), timezone (string), universityOrCompany (string), graduationYear (number)
 - currentStatus (enum: student | full_time | unemployed | founder | freelancer | other)
 - workAuthorization (string, e.g. "US citizen" / "F1 OPT" / "needs sponsorship")
-- rolePreference (string[]), preferredWorkType (string[])
+- rolePreference (string[] — job types they want, e.g. "Full-stack engineer"), skills (string[] — technical skills, e.g. "React", "Python")
+- preferredWorkType (string[])
 - links.{ linkedin, github, portfolio, personalWebsite, resume, devpost, twitter } (string)
 - availability.{ availableNow (bool), hoursPerWeek (number), desiredCompensation (string), salaryExpectationMin (number), salaryExpectationMax (number), remotePreference (enum: remote | in_person | hybrid | unspecified) }
 - hiringIntent.{ internship, contract, fullTime, cofounder, projectSprint, optedIn } (bool)
@@ -369,8 +375,56 @@ export type ImessageAgentResult = {
   followUp?: FollowUpJob;
 };
 
+/** Summarize what enrichment wrote so the agent can confirm with the builder. */
+function formatProfileWritebackNote(builder: any, projects: any[]): string {
+  const lines: string[] = [];
+  const exps = (builder.experiences || []).slice(0, 4);
+  if (exps.length) {
+    lines.push(
+      `Work history now on profile: ${exps
+        .map((e: any) => {
+          const dates = e.dateRange ? ` (${e.dateRange})` : '';
+          return `${e.title || 'Role'} at ${e.company || 'Company'}${dates}`;
+        })
+        .join('; ')}`
+    );
+  }
+  if (builder.headline) lines.push(`Headline: ${builder.headline}`);
+  const skills = (builder.skills || []).slice(0, 12);
+  if (skills.length) lines.push(`Technical skills saved: ${skills.join(', ')}`);
+  const stacks = [...new Set(projects.flatMap((p: any) => p.techStack || []).slice(0, 12))];
+  if (stacks.length) lines.push(`Project tech stacks: ${stacks.join(', ')}`);
+  return lines.join('\n');
+}
+
+function formatLinkedInEnrichmentSummary(sourceResult: any): string {
+  const writeResult = sourceResult?.meta?.writeResult;
+  const extractedCount = sourceResult?.meta?.extractedExperienceCount;
+  if (!writeResult && !extractedCount) return '';
+  const lines: string[] = [];
+  if (writeResult?.experienceHighlights?.length) {
+    lines.push(`LinkedIn roles imported: ${writeResult.experienceHighlights.join('; ')}`);
+  } else if (typeof extractedCount === 'number' && extractedCount > 0) {
+    lines.push(`LinkedIn: ${extractedCount} experience cards parsed`);
+  }
+  if (writeResult.experiencesAdded > 0) {
+    lines.push(`Added ${writeResult.experiencesAdded} new experience${writeResult.experiencesAdded === 1 ? '' : 's'} to profile`);
+  }
+  if (writeResult.skillsAdded > 0) {
+    lines.push(`Added ${writeResult.skillsAdded} skill${writeResult.skillsAdded === 1 ? '' : 's'} from LinkedIn`);
+  }
+  if (writeResult.headline) lines.push(`Headline from LinkedIn: ${writeResult.headline}`);
+  return lines.join('\n');
+}
+
 /** Run the scheduled scrape/research, save what it found, and return a note for the model. */
-async function executeFollowUpJob(builderId: string, memRef: MemoryRef, job: FollowUpJob, runtime?: RuntimeEnv): Promise<string> {
+async function executeFollowUpJob(
+  builderId: string,
+  memRef: MemoryRef,
+  job: FollowUpJob,
+  runtime?: RuntimeEnv,
+  claim?: any
+): Promise<string> {
   const parts: string[] = [];
   const coolFacts: string[] = [];
 
@@ -394,10 +448,31 @@ async function executeFollowUpJob(builderId: string, memRef: MemoryRef, job: Fol
 
   if (job.sources?.length) {
     try {
-      const res = await withTimeout(enrichBuilderProfile({ builderId, sources: job.sources }), 30000, 'enrichment');
+      const hasLinkedin = job.sources.includes('linkedin');
+      const enrichmentTimeoutMs = hasLinkedin ? 150_000 : 45_000;
+      const res = await withTimeout(
+        enrichBuilderProfile({ builderId, sources: job.sources, runtime }),
+        enrichmentTimeoutMs,
+        'enrichment'
+      );
       for (const f of res.profileFieldsUpdated) await resolveBuilderMemoryField(memRef, f);
+      await aggregateInferredSkills(builderId);
+      const builder = await reloadBuilder(builderId);
+      const projects = await getProjects(builderId);
+      const writeback = builder ? formatProfileWritebackNote(builder, projects) : '';
+      const linkedinSummary = formatLinkedInEnrichmentSummary(res.sources.find((s) => s.source === 'linkedin'));
+
+      if (claim && res.profileFieldsUpdated.length) {
+        const memoryBits = [
+          linkedinSummary || null,
+          res.profileFieldsUpdated.length ? `fields: ${res.profileFieldsUpdated.join(', ')}` : null,
+          res.projectsCreated ? `projects +${res.projectsCreated}` : null,
+        ].filter(Boolean);
+        appendSessionMemory(claim, `Enrichment writeback — ${memoryBits.join('; ')}`);
+      }
+
       parts.push(
-        `Scraped ${job.sources.join(' + ')}: filled [${res.profileFieldsUpdated.join(', ') || 'nothing new'}], projects +${res.projectsCreated} new / ${res.projectsUpdated} updated.`
+        `Scraped ${job.sources.join(' + ')}: filled [${res.profileFieldsUpdated.join(', ') || 'nothing new'}], projects +${res.projectsCreated} new / ${res.projectsUpdated} updated.${linkedinSummary ? `\n${linkedinSummary}` : ''}${writeback ? `\n${writeback}` : ''}`
       );
     } catch (e) {
       parts.push(`Couldn't fully scrape ${job.sources.join(' + ')} (${e instanceof Error ? e.message : 'error'}).`);
@@ -438,7 +513,7 @@ export async function runImessageBuilderAgentTurn(params: {
   claim: any;
   userText?: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
-  resume?: { text: string } | null;
+  resume?: { text: string; extracted?: Record<string, unknown> } | null;
   /** Open the conversation (no inbound message yet) right after phone verification. */
   kickoff?: boolean;
   /**
@@ -497,28 +572,64 @@ export async function runImessageBuilderAgentTurn(params: {
 
   // Follow-up turn: do the heavy scraping/research first, then let the model react.
   let followupNote = '';
+  const followUp: FollowUpJob = { sources: [], research: false, links: [] };
   if (isFollowup && params.followUpJob) {
-    followupNote = await executeFollowUpJob(builderId, memRef, params.followUpJob, runtime);
+    followupNote = await executeFollowUpJob(builderId, memRef, params.followUpJob, runtime, claim);
   }
 
-  // Resume came in this turn → extract + apply before the model runs.
+  // Resume came in this turn → extract, cross-check, and write back to profile (same pipeline as enrichment).
   let resumeNote = '';
   if (params.resume?.text) {
     try {
-      const extracted = await extractResumeFields(params.resume.text);
-      const result = await applyResumeToBuilder(builder, extracted);
-      resumeNote = result.applied.length
-        ? `[system: builder just sent a resume. I auto-filled: ${result.applied.join(', ')}. Acknowledge casually and ask only about what's still thin.]`
-        : `[system: builder sent a resume but it didn't add much new. Ask them what they want to highlight.]`;
+      const extracted =
+        (params.resume.extracted as ExtractedResume | undefined) || (await extractResumeFields(params.resume.text));
+      const writeResult = await writeResumeExtractionToBuilder(builderId, extracted);
+
+      for (const field of writeResult.profileFieldsUpdated) {
+        await resolveBuilderMemoryField(memRef, field);
+      }
+      appendSessionMemory(
+        claim,
+        `Resume PDF processed — new: ${writeResult.added.join(', ') || 'none'}; improved: ${writeResult.improved.join(', ') || 'none'}`
+      );
+
+      const reloaded = (await reloadBuilder(builderId)) || builder;
+      const projects = await getProjects(builderId);
+      const writeback = formatProfileWritebackNote(reloaded, projects);
+
+      if (writeResult.added.length || writeResult.improved.length) {
+        const highlights = [...writeResult.added, ...writeResult.improved].slice(0, 8).join(', ');
+        resumeNote = `[system: resume PDF cross-checked and written to builder profile (scores, search index, embeddings refreshed).
+NEW: ${writeResult.added.join(', ') || 'none'}
+IMPROVED: ${writeResult.improved.join(', ') || 'none'}
+${writeback ? `Profile now:\n${writeback}` : ''}
+Acknowledge 1-2 specific things you pulled (a job, project, or skill). Confirm imported work history with ONE yes/no if experiences changed. Ask only about gaps still in missingFields — do NOT re-ask for info already on the resume.
+Summary: ${highlights}]`;
+        if (writeResult.newLinks.github && !followUp.sources.includes('github')) followUp.sources.push('github');
+        if (writeResult.newLinks.linkedin && !followUp.sources.includes('linkedin')) followUp.sources.push('linkedin');
+      } else {
+        resumeNote = `[system: resume PDF cross-checked — mostly matched existing profile (${writeResult.unchanged.slice(0, 6).join(', ') || 'no major changes'}). Thank them, mention you're aligned, and ask ONE thing still thin in missingFields.]`;
+      }
     } catch (err) {
-      resumeNote = `[system: couldn't read that resume file (${err instanceof Error ? err.message : 'parse error'}). Ask them to send a PDF.]`;
+      resumeNote = `[system: couldn't read that resume file (${err instanceof Error ? err.message : 'parse error'}). Ask them to resend a text-based PDF (not a scanned image-only PDF).]`;
     }
   }
 
   let finalizeCalled = false;
   // Stable private link to this builder's own profile page (token gated to them).
   const profileLink = claimProfileViewUrl(ensureClaimViewToken(claim), runtime);
-  const followUp: FollowUpJob = { sources: [], research: false, links: [] };
+
+  // Kickoff: dossier links are already on profile — scrape GitHub + LinkedIn immediately.
+  if (params.kickoff) {
+    const dossierLinks = (claim.metadata?.dossier as { inferredLinks?: Record<string, string> })?.inferredLinks || {};
+    const fresh = (await reloadBuilder(builderId)) || builder;
+    if (dossierLinks.github || fresh.links?.github) {
+      if (!followUp.sources.includes('github')) followUp.sources.push('github');
+    }
+    if (dossierLinks.linkedin || fresh.links?.linkedin) {
+      if (!followUp.sources.includes('linkedin')) followUp.sources.push('linkedin');
+    }
+  }
 
   // PROACTIVE: auto-detect any link the builder dropped and queue it for background
   // processing — no need for them to ask. We save it + scan it, then surprise them next turn.
@@ -605,7 +716,11 @@ export async function runImessageBuilderAgentTurn(params: {
           if (res.linksChanged.length) {
             if (isFollowup) {
               try {
-                const enr = await withTimeout(enrichBuilderProfile({ builderId, sources: res.linksChanged }), 28000, 'enrichment');
+                const enr = await withTimeout(
+                  enrichBuilderProfile({ builderId, sources: res.linksChanged, runtime }),
+                  res.linksChanged.includes('linkedin') ? 150_000 : 45_000,
+                  'enrichment'
+                );
                 for (const f of enr.profileFieldsUpdated) await resolveBuilderMemoryField(memRef, f);
               } catch { /* best effort */ }
             } else {
@@ -754,11 +869,24 @@ export async function runImessageBuilderAgentTurn(params: {
   ].join('\n');
 
   const kickoffNote = params.kickoff
-    ? "[system: the builder just verified by texting hi from their phone. You ALREADY ran dossier research — open in 1-3 SHORT bubbles (blank line between each). LEAD with the most specific surprising proof point from the DOSSIER (never say you scraped/researched). Then ONE confirmation question (yes/no style). NEVER open by asking for GitHub/LinkedIn if the dossier already has links. Draft headline/bio if present and ask 'this look right?']"
+    ? "[system: the builder just verified by texting hi from their phone. You ALREADY ran dossier research — open in 1-3 SHORT bubbles (blank line between each). LEAD with the most specific surprising proof point from the DOSSIER (never say you scraped/researched). Then ONE confirmation question (yes/no style). NEVER open by asking for GitHub/LinkedIn if the dossier already has links — you're scraping those in the background right now. Draft headline/bio if present and ask 'this look right?']"
+    : '';
+
+  const profileStillThin =
+    (snapshot.experiences?.length || 0) < 2 ||
+    (snapshot.skills?.length || 0) < 4 ||
+    !snapshot.bio ||
+    (snapshot.projectCount || 0) < 1;
+  const alreadySentResume = (claim.messages || []).some(
+    (m: any) => m.direction === 'inbound' && /\(sent a resume\)|resume|\.pdf/i.test(String(m.body || ''))
+  );
+  const shouldAskResume = isFollowup && !params.resume?.text && profileStillThin && !alreadySentResume;
+  const resumeAskSuffix = shouldAskResume
+    ? `\nProfile is still thin on work history/projects/skills. After you react to findings, end with ONE casual ask: "got a resume pdf? just drop it here — i'll cross-check it against what we already pulled and fill the gaps." Don't make it sound like homework.`
     : '';
 
   const followupTurnNote = isFollowup
-    ? `[system: your background homework finished. FINDINGS:\n${followupNote || '(nothing useful came back)'}\n\nText the builder in 1-3 SHORT bubbles (blank line between each). LEAD with the single most surprising/specific thing you found and say it like you just KNOW it — do NOT explain that you scraped, searched, enriched, or researched anything. Then ask ONE sharp follow-up. If nothing useful came back, just ask your next question casually (don't mention you looked). Natural, a little cheeky, no buzzwords.]`
+    ? `[system: your background homework finished. FINDINGS:\n${followupNote || '(nothing useful came back)'}\n\nText the builder in 1-3 SHORT bubbles (blank line between each). LEAD with the single most surprising/specific thing you found and say it like you just KNOW it — do NOT explain that you scraped, searched, enriched, or researched anything.\nIf work history or skills were imported, confirm with ONE yes/no ("pulled [role] at [company] from linkedin — that track?" / "skills look like react, python, typescript — missing anything?"). Call update_builder_data to fix anything they correct.\nThen ask ONE sharp follow-up. If nothing useful came back, just ask your next question casually (don't mention you looked). Natural, a little cheeky, no buzzwords.${resumeAskSuffix}]`
     : '';
 
   const introTurnNote = params.intro

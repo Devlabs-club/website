@@ -1,5 +1,7 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 import { runRemoteLinkedInScraperScript } from '@/lib/remoteLinkedInScraper';
+import type { RuntimeEnv } from '@/lib/workosEnv';
+import { applyLinkedInCdpToBuilder } from './apply';
 import { fetchUrlMarkdown, normalizeUrl } from './urlToMarkdown';
 import { urlForMarkdownFetch } from './urlForMarkdown';
 import {
@@ -91,7 +93,8 @@ function mapVoyagerToDraft(
     universityOrCompany: university,
     education,
     experiences,
-    rolePreference: voyager.skills.slice(0, 20),
+    skills: voyager.skills.slice(0, 24),
+    rolePreference: voyager.skills.slice(0, 8),
     links: { linkedin: linkedinUrl },
   };
 }
@@ -164,8 +167,11 @@ async function refineWithLlm(rawText: string, draft: EnrichedProfileDraft): Prom
           .slice(0, 6)
       : draft.education,
     rolePreference: Array.isArray(parsed.skills)
-      ? [...new Set([...(draft.rolePreference || []), ...parsed.skills.map(String)])]
+      ? [...new Set([...(draft.rolePreference || []), ...parsed.skills.map(String)])].slice(0, 8)
       : draft.rolePreference,
+    skills: Array.isArray(parsed.skills)
+      ? [...new Set([...(draft.skills || []), ...parsed.skills.map(String)])].slice(0, 24)
+      : draft.skills,
     links: draft.links,
   };
 }
@@ -196,13 +202,22 @@ function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): Enrich
     location: typeof set.location === 'string' ? set.location : null,
     graduationYear: typeof set.graduationYear === 'number' ? set.graduationYear : null,
     rolePreference: eachValues(addToSet.rolePreference).slice(0, 20),
+    skills: eachValues(addToSet.skills).length
+      ? eachValues(addToSet.skills)
+      : Array.isArray(artifact?.extracted?.skills)
+        ? artifact.extracted.skills
+        : undefined,
     experiences: Array.isArray(experiences) ? experiences.slice(0, 10) : undefined,
     education: Array.isArray(education) ? education.slice(0, 6) : undefined,
     links: { linkedin: linkedinUrl },
   };
 }
 
-async function enrichFromRemoteCdp(builder: any, normalizedUrl: string): Promise<SourceEnrichmentResult | null> {
+async function enrichFromRemoteCdp(
+  builder: any,
+  normalizedUrl: string,
+  runtime?: RuntimeEnv
+): Promise<SourceEnrichmentResult | null> {
   // Remote scraper reads from its own Mongo when given --builderId. Local/dev builders
   // won't exist there, so always pass the LinkedIn URL directly.
   const args = [
@@ -216,15 +231,22 @@ async function enrichFromRemoteCdp(builder: any, normalizedUrl: string): Promise
   const email = String(builder?.email || '').trim().toLowerCase();
   if (email) args.push('--email', email);
 
-  const result = await runRemoteLinkedInScraperScript('enrich-builder-linkedin-cdp.mjs', args);
+  const result = await runRemoteLinkedInScraperScript(
+    'enrich-builder-linkedin-cdp.mjs',
+    args,
+    runtime,
+    150_000
+  );
   if (!result) return null;
 
   const artifact = result.artifact;
   const extracted = artifact?.extracted || {};
+  const writeResult = await applyLinkedInCdpToBuilder(builder, artifact, normalizedUrl);
   return {
     source: 'linkedin',
-    profile: profileDraftFromCdpArtifact(artifact, normalizedUrl),
     meta: {
+      appliedInEnricher: true,
+      writeResult,
       mode: 'remote_chrome_cdp',
       summary: result.summary,
       artifactPath: result.summary?.outputPath || null,
@@ -236,7 +258,10 @@ async function enrichFromRemoteCdp(builder: any, normalizedUrl: string): Promise
   };
 }
 
-export async function enrichFromLinkedIn(builder: any): Promise<SourceEnrichmentResult> {
+export async function enrichFromLinkedIn(
+  builder: any,
+  options?: { runtime?: RuntimeEnv }
+): Promise<SourceEnrichmentResult> {
   const linkedinUrl = builder?.links?.linkedin;
   if (!linkedinUrl) {
     return { source: 'linkedin', errors: ['no_linkedin_url'] };
@@ -248,7 +273,7 @@ export async function enrichFromLinkedIn(builder: any): Promise<SourceEnrichment
   }
 
   try {
-    const remote = await enrichFromRemoteCdp(builder, normalizedUrl);
+    const remote = await enrichFromRemoteCdp(builder, normalizedUrl, options?.runtime);
     if (remote) return remote;
   } catch (err) {
     console.warn('[linkedin] remote CDP enrichment failed, falling back', err);

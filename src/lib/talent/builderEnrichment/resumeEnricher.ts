@@ -1,6 +1,10 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 import type { EnrichedProfileDraft, EnrichedProjectDraft, SourceEnrichmentResult } from './types';
 import { downloadResumeAsPdf } from './resumeUrl';
+import {
+  applyResumeToBuilder,
+  recordToExtractedResume,
+} from '@/lib/talent/builderResumeExtract';
 
 const RESUME_EXTRACT_PROMPT = `You are an expert resume parser for a developer talent marketplace.
 Extract information from the resume text and return strict JSON only — no markdown fences, no commentary.
@@ -17,6 +21,16 @@ Use EXACTLY this schema (do not rename keys or add extra top-level fields):
     "linkedin": "string | null",
     "portfolio": "string | null"
   },
+  "experiences": [
+    {
+      "title": "string | null",
+      "company": "string | null",
+      "dateRange": "string | null",
+      "description": "string | null",
+      "skills": ["string"],
+      "isCurrent": "boolean"
+    }
+  ],
   "projects": [
     {
       "projectName": "string",
@@ -29,7 +43,7 @@ Use EXACTLY this schema (do not rename keys or add extra top-level fields):
 }
 
 Rules:
-- Include at most 4 projects (most recent / most relevant only).
+- Include at most 6 experiences (most recent first) and at most 4 projects (most relevant only).
 - Keep descriptions concise (1-2 sentences each).
 - If a field is unknown, use null or [] — never omit required keys.`;
 
@@ -156,8 +170,11 @@ export function mapResumeExtractionToDraft(extracted: Record<string, unknown>): 
       typeof extracted.universityOrCompany === 'string' ? extracted.universityOrCompany : null,
     graduationYear:
       typeof extracted.graduationYear === 'number' ? extracted.graduationYear : null,
-    rolePreference: Array.isArray(extracted.skills)
-      ? extracted.skills.map(String).map((s) => s.trim()).filter(Boolean)
+    rolePreference: Array.isArray(extracted.rolePreference)
+      ? extracted.rolePreference.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 6)
+      : [],
+    skills: Array.isArray(extracted.skills)
+      ? extracted.skills.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 24)
       : [],
     links: {
       github:
@@ -229,14 +246,19 @@ export async function enrichFromResume(builder: any): Promise<SourceEnrichmentRe
       }
 
       const { profile, projects } = mapResumeExtractionToDraft(parsed.extracted);
+      const extracted = recordToExtractedResume(parsed.extracted as Record<string, unknown>);
+      const writeResult = await applyResumeToBuilder(builder, extracted);
       return {
         source: 'resume',
-        profile,
-        projects,
         meta: {
+          appliedInEnricher: true,
+          writeResult,
           resumeUrl,
           fetchUrl: downloaded.fetchUrl,
           localPdfPath: downloaded.localPdfPath,
+          // Legacy fields for callers that read profile/projects without cross-check apply
+          profileDraft: profile,
+          projectDrafts: projects,
         },
       };
     } finally {

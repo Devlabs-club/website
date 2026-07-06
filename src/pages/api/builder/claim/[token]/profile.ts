@@ -38,6 +38,7 @@ export const GET: APIRoute = async ({ params }) => {
       location: profile.location || null,
       universityOrCompany: profile.universityOrCompany || null,
       rolePreference: profile.rolePreference || [],
+      skills: profile.skills || [],
       preferredWorkType: profile.preferredWorkType || [],
       experiences: profile.experiences || [],
       links: profile.links || {},

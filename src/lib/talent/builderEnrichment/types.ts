@@ -27,6 +27,7 @@ export type EnrichedProfileDraft = {
   avatarUrl?: string | null;
   location?: string | null;
   rolePreference?: string[];
+  skills?: string[];
   universityOrCompany?: string | null;
   graduationYear?: number | null;
   experiences?: Array<{

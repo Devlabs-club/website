@@ -41,6 +41,7 @@ function serializeProfile(profile: any, projects: any[] = []) {
     education: profile.education || [],
     experiences: profile.experiences || [],
     rolePreference: profile.rolePreference || [],
+    skills: profile.skills || [],
     preferredWorkType: profile.preferredWorkType || [],
     links: profile.links || {},
     availability: profile.availability || {},

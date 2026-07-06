@@ -1,3 +1,4 @@
+import type { RuntimeEnv } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { applyProfileDraft, refreshBuilderScores, upsertEnrichedProjects } from './apply';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
@@ -20,14 +21,14 @@ const DEFAULT_ORDER: EnrichmentSource[] = [
 
 const ENRICHERS: Record<
   EnrichmentSource,
-  (builder: any) => Promise<import('./types').SourceEnrichmentResult>
+  (builder: any, ctx?: { runtime?: RuntimeEnv }) => Promise<import('./types').SourceEnrichmentResult>
 > = {
-  resume: enrichFromResume,
-  github: enrichFromGithub,
-  devpost: enrichFromDevpost,
-  linkedin: enrichFromLinkedIn,
-  portfolio: enrichFromPortfolio,
-  twitter: enrichFromTwitter,
+  resume: (builder) => enrichFromResume(builder),
+  github: (builder) => enrichFromGithub(builder),
+  devpost: (builder) => enrichFromDevpost(builder),
+  linkedin: (builder, ctx) => enrichFromLinkedIn(builder, ctx),
+  portfolio: (builder) => enrichFromPortfolio(builder),
+  twitter: (builder) => enrichFromTwitter(builder),
 };
 
 export async function enrichBuilderProfile(params: {
@@ -35,6 +36,7 @@ export async function enrichBuilderProfile(params: {
   sources?: EnrichmentSource[];
   dryRun?: boolean;
   overwriteImportedProjects?: boolean;
+  runtime?: RuntimeEnv;
 }): Promise<BuilderEnrichmentResult> {
   const builder = await BuilderProfile.findById(params.builderId);
   if (!builder) {
@@ -49,10 +51,24 @@ export async function enrichBuilderProfile(params: {
 
   for (const source of sources) {
     const enricher = ENRICHERS[source];
-    const result = await enricher(builder);
+    const result = await enricher(builder, { runtime: params.runtime });
     sourceResults.push(result);
 
     if (params.dryRun) continue;
+
+    if (result.meta?.appliedInEnricher && result.meta.writeResult) {
+      const writeResult = result.meta.writeResult as {
+        profileFieldsUpdated?: string[];
+        projectsCreated?: number;
+        projectsUpdated?: number;
+      };
+      profileFieldsUpdated.push(...(writeResult.profileFieldsUpdated || []));
+      projectsCreated += writeResult.projectsCreated || 0;
+      projectsUpdated += writeResult.projectsUpdated || 0;
+      const refreshed = await BuilderProfile.findById(builder._id);
+      if (refreshed) Object.assign(builder, refreshed.toObject());
+      continue;
+    }
 
     if (result.profile) {
       const updated = await applyProfileDraft(builder, result.profile, {
@@ -76,6 +92,7 @@ export async function enrichBuilderProfile(params: {
   }
 
   if (!params.dryRun) {
+    await aggregateInferredSkills(builder._id);
     await refreshBuilderScores(builder._id);
   }
 

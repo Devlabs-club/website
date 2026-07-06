@@ -1,17 +1,19 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
 import { advanceClaimConversation } from '@/lib/builderClaim';
-import { readEnv, runtimeEnvFromLocals } from '@/lib/workosEnv';
+import { runtimeEnvFromLocals } from '@/lib/workosEnv';
+import { getImessageProvider, getImessageProviderName } from '@/lib/messaging/getProvider';
 import {
-  getAgentPhoneConfig,
-  parseAgentPhoneInbound,
-  verifyAgentPhoneWebhook,
-} from '@/lib/messaging/agentPhoneClient';
+  parseBlueBubblesAttachments,
+  looksLikeResume,
+  downloadBlueBubblesAttachment,
+} from '@/lib/messaging/bluebubblesAttachments';
 import {
   downloadAgentPhoneMedia,
   looksLikeResumeAttachment,
 } from '@/lib/messaging/agentPhoneAttachments';
-import { resumeBytesToText } from '@/lib/talent/builderResumeExtract';
+import { parseAgentPhoneInbound } from '@/lib/messaging/agentPhoneClient';
+import { parseResumeAttachment } from '@/lib/talent/builderResumeExtract';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -21,17 +23,16 @@ function json(body: unknown, status = 200) {
 }
 
 /**
- * Inbound webhook for AgentPhone (SMS/MMS/iMessage).
- * Configure in AgentPhone dashboard → Webhooks:
- *   https://<your-domain>/api/builder/claim/message-webhook
- * Also reachable at /api/imessage/webhook (legacy alias).
+ * Inbound webhook for builder iMessage/SMS conversations.
+ * Provider is selected via IMESSAGE_PROVIDER (bluebubbles | agentphone).
+ *
+ * BlueBubbles: Settings → API & Webhooks → `https://<domain>/api/imessage/webhook?password=<BLUEBUBBLES_PASSWORD>`
+ * AgentPhone: dashboard → `https://<domain>/api/builder/claim/message-webhook`
  */
 export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = runtimeEnvFromLocals(locals);
   const rawBody = await request.text();
-
-  const config = getAgentPhoneConfig(runtime);
-  const legacySecret = readEnv('BUILDER_CLAIM_INBOUND_WEBHOOK_SECRET', runtime);
+  const url = new URL(request.url);
 
   let body: unknown = {};
   try {
@@ -40,49 +41,87 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ success: false, error: 'Invalid JSON' }, 400);
   }
 
-  const webhookId =
-    request.headers.get('X-Webhook-ID') ||
-    request.headers.get('x-webhook-id') ||
-    null;
-
-  if (config?.webhookSecret) {
-    if (!verifyAgentPhoneWebhook(rawBody, request.headers, config.webhookSecret)) {
-      return json({ success: false, error: 'Unauthorized' }, 401);
-    }
-  } else if (legacySecret) {
-    const auth = request.headers.get('Authorization') || '';
-    const url = new URL(request.url);
-    const querySecret = url.searchParams.get('secret');
-    const authorized = auth === `Bearer ${legacySecret}` || querySecret === legacySecret;
-    if (!authorized) return json({ success: false, error: 'Unauthorized' }, 401);
+  const provider = getImessageProvider(runtime);
+  if (
+    !provider.verifyInbound({
+      searchParams: url.searchParams,
+      headers: request.headers,
+      rawBody: body,
+    })
+  ) {
+    return json({ success: false, error: 'Unauthorized' }, 401);
   }
 
-  const parsed = parseAgentPhoneInbound(body);
-  if (!parsed) {
-    return json({ success: true, ignored: true });
-  }
-
+  const providerName = getImessageProviderName(runtime);
+  let fromPhone = '';
+  let text = '';
+  let messageId: string | null = null;
   let resumeText: string | null = null;
-  if (parsed.mediaUrl && looksLikeResumeAttachment(null, parsed.mediaUrl)) {
-    try {
-      const file = await downloadAgentPhoneMedia(parsed.mediaUrl);
-      if (file) {
-        resumeText = await resumeBytesToText(file.buffer, file.contentType, parsed.mediaUrl);
+  let resumeExtracted: Record<string, unknown> | null = null;
+
+  if (providerName === 'bluebubbles') {
+    const inbound = provider.parseInbound(body);
+    if (!inbound) return json({ success: true, ignored: true });
+
+    fromPhone = inbound.handle;
+    text = inbound.text === '(attachment)' ? '' : inbound.text;
+    messageId = inbound.providerMessageGuid;
+
+    const attachments = parseBlueBubblesAttachments(body);
+    const resumeAttachment = attachments.find(looksLikeResume);
+    if (resumeAttachment) {
+      try {
+        const file = await downloadBlueBubblesAttachment(resumeAttachment.guid, runtime);
+        if (file) {
+          const parsed = await parseResumeAttachment(
+            file.buffer,
+            file.contentType || resumeAttachment.mimeType,
+            resumeAttachment.transferName
+          );
+          resumeText = parsed.text;
+          resumeExtracted = parsed.extracted as Record<string, unknown>;
+        }
+      } catch (err) {
+        console.warn('[claim/message-webhook] resume attachment processing failed', err);
       }
-    } catch (err) {
-      console.warn('[claim/message-webhook] resume attachment processing failed', err);
+    }
+  } else {
+    const parsed = parseAgentPhoneInbound(body);
+    if (!parsed) return json({ success: true, ignored: true });
+
+    fromPhone = parsed.fromPhone;
+    text = parsed.text;
+    messageId =
+      request.headers.get('X-Webhook-ID') ||
+      request.headers.get('x-webhook-id') ||
+      parsed.messageId;
+
+    if (parsed.mediaUrl && looksLikeResumeAttachment(null, parsed.mediaUrl)) {
+      try {
+        const file = await downloadAgentPhoneMedia(parsed.mediaUrl);
+        if (file) {
+          const parsedResume = await parseResumeAttachment(file.buffer, file.contentType, parsed.mediaUrl);
+          resumeText = parsedResume.text;
+          resumeExtracted = parsedResume.extracted as Record<string, unknown>;
+        }
+      } catch (err) {
+        console.warn('[claim/message-webhook] resume attachment processing failed', err);
+      }
     }
   }
 
-  const messageId = webhookId || parsed.messageId;
+  if (!fromPhone || (!text.trim() && !resumeText)) {
+    return json({ success: false, error: 'fromPhone and body (or a resume attachment) are required.' }, 400);
+  }
 
   await connectAdminDB();
   const result = await advanceClaimConversation(
     {
-      fromPhone: parsed.fromPhone,
-      body: parsed.text.trim() || '(sent a resume)',
+      fromPhone,
+      body: text.trim() || '(sent a resume)',
       providerMessageId: messageId,
       resumeText,
+      resumeExtracted,
     },
     runtime
   );
