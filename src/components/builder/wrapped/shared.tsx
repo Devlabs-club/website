@@ -1,12 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
-export const CalloutPill: React.FC<{ children: React.ReactNode; delay?: number }> = ({ children, delay = 0.5 }) => (
+export const CalloutPill: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({
+  children,
+  delay = 0.5,
+  className = '',
+}) => (
   <motion.div
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-    className="inline-flex w-fit items-center rounded-lg bg-white px-3.5 py-2 text-[13px] font-bold text-black shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
+    className={`inline-flex w-fit items-center rounded-lg bg-white px-3.5 py-2 text-[13px] font-bold text-black shadow-[0_6px_18px_rgba(0,0,0,0.35)] ${className}`}
   >
     {children}
   </motion.div>
@@ -22,7 +26,7 @@ export const AnimatedBar: React.FC<{
   <div>
     <div className="mb-1.5 flex items-center justify-between gap-3 text-[13px]">
       <span className="font-bold text-white/90">{label}</span>
-      <span className="font-spinnaker text-white/60">{valueLabel ?? `${Math.round(value)}%`}</span>
+      <span className="font-gatwick text-white/60">{valueLabel ?? `${Math.round(value)}%`}</span>
     </div>
     <div className="h-2 overflow-hidden rounded-full bg-white/15">
       <motion.div

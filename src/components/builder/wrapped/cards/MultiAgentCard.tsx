@@ -2,8 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { StoryCardShell } from '../StoryCardShell';
-import { CardEyebrow } from '../shared';
 import { CARD_THEMES } from '../theme';
+import { CountUp } from '../CountUp';
 
 const AGENT_COLORS: Record<string, string> = {
   'Claude Code': '#fa7d22',
@@ -16,86 +16,103 @@ function agentColor(agent: string) {
   return AGENT_COLORS[agent] || '#ffce54';
 }
 
+const AGENT_ORDER = ['Codex', 'Claude Code', 'Cursor'];
+
 export const MultiAgentCard: React.FC<{ report: AgentWrappedReport; index: number; total: number }> = ({
   report,
   index,
   total,
 }) => {
-  const split = (report.agentSplit || []).filter((item) => item.percent > 0);
-  const r = 42;
-  const cx = 50;
-  const cy = 50;
-
-  let cumulative = 0;
-  const segments = split.map((item) => {
-    const start = cumulative;
-    cumulative += item.percent / 100;
-    return { ...item, start, length: item.percent / 100 };
+  const split = (report.agentSplit || [])
+    .filter((item) => item.percent > 0)
+    .sort((a, b) => b.percent - a.percent);
+  const fallbackSplit = (
+    split.length
+      ? split
+      : [
+          { agent: 'Codex', percent: 42 },
+          { agent: 'Claude Code', percent: 34 },
+          { agent: 'Cursor', percent: 24 },
+        ]
+  ).sort((a, b) => {
+    const aIndex = AGENT_ORDER.indexOf(a.agent);
+    const bIndex = AGENT_ORDER.indexOf(b.agent);
+    return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
   });
+  const normalizedTotal = fallbackSplit.reduce((sum, item) => sum + item.percent, 0) || 100;
+  const segments = fallbackSplit.map((item) => ({ ...item, width: (item.percent / normalizedTotal) * 100 }));
 
   return (
-    <StoryCardShell theme={CARD_THEMES.agents} index={index} total={total}>
-      <CardEyebrow>Multi-Agent Split</CardEyebrow>
+    <StoryCardShell theme={CARD_THEMES.agents} index={index} total={total} contentClassName="">
+      <div className="relative h-full">
+        <motion.p
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.42 }}
+          className="absolute left-0 top-[13%] font-gatwick text-[0.72rem] font-black uppercase tracking-[0.48em] text-white/75"
+        >
+          Multi-Agent Split
+        </motion.p>
 
-      <motion.h2
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-4 font-spinnaker text-3xl font-bold text-white sm:text-4xl"
-      >
-        {split.length > 1 ? 'You run a squad.' : 'One agent, deep.'}
-      </motion.h2>
+        <motion.h2
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12, duration: 0.58, ease: [0.16, 1, 0.3, 1] }}
+          className="absolute left-0 right-0 top-[20%] font-gatwick text-[3.2rem] font-black leading-[0.95] text-white drop-shadow-[6px_6px_0_rgba(22,141,247,0.76)] sm:text-[3.85rem]"
+        >
+          your agent
+          <br />
+          bench was
+          <br />
+          stacked.
+        </motion.h2>
 
-      {split.length ? (
-        <div className="flex items-center gap-5">
-          <svg viewBox="0 0 100 100" className="h-28 w-28 shrink-0 -rotate-0">
-            <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" />
-            {segments.map((segment, i) => (
-              <motion.circle
-                key={segment.agent}
-                cx={cx}
-                cy={cy}
-                r={r}
-                fill="none"
-                stroke={agentColor(segment.agent)}
-                strokeWidth="12"
-                strokeLinecap="round"
-                transform={`rotate(-90 ${cx} ${cy})`}
-                style={{ pathOffset: segment.start }}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: segment.length }}
-                transition={{ duration: 0.9, delay: 0.3 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
-              />
-            ))}
-          </svg>
-          <div className="flex-1 space-y-2">
-            {segments.map((segment, i) => (
-              <motion.div
-                key={segment.agent}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.12, duration: 0.4 }}
-                className="flex items-center justify-between gap-2 text-sm"
-              >
-                <span className="flex items-center gap-1.5 font-semibold text-white/90">
-                  <span className="h-2 w-2 rounded-full" style={{ background: agentColor(segment.agent) }} />
-                  {segment.agent}
-                </span>
-                <span className="font-spinnaker font-bold text-white/70">{segment.percent}%</span>
-              </motion.div>
-            ))}
+        <div className="absolute left-0 right-[11%] top-[50%]">
+          <div className="relative h-16 overflow-hidden border-2 border-white bg-black shadow-[9px_9px_0_rgba(255,220,46,0.82)]">
+            <div className="flex h-full">
+              {segments.map((segment, i) => (
+                <motion.div
+                  key={segment.agent}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${segment.width}%` }}
+                  transition={{ delay: 0.34 + i * 0.12, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                  className="relative h-full overflow-hidden"
+                  style={{ background: agentColor(segment.agent) }}
+                >
+                  <div className="absolute inset-0 opacity-35 mix-blend-overlay [background-image:linear-gradient(135deg,rgba(255,255,255,.9)_0_1px,transparent_1px)] [background-size:8px_8px]" />
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="rounded-xl border border-white/15 bg-white/[0.06] p-4 text-sm leading-6 text-white/70"
-        >
-          No agent trace connected yet. Run the local analysis to see your Claude Code / Codex / Cursor split.
-        </motion.div>
-      )}
+
+        <div className="absolute left-0 right-[11%] top-[66%] space-y-4 sm:space-y-5">
+          {segments.map((segment, i) => (
+            <motion.div
+              key={`label-${segment.agent}`}
+              initial={{ opacity: 0, x: i % 2 ? 22 : -22, rotate: i % 2 ? 2 : -2 }}
+              animate={{ opacity: 1, x: 0, rotate: i % 2 ? 1.4 : -1.4 }}
+              transition={{ delay: 0.72 + i * 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="flex min-w-0 items-center justify-between gap-3 border border-white bg-white px-3 py-2 text-black shadow-[6px_6px_0_rgba(220,39,16,0.88)]"
+            >
+              <span className="min-w-0 truncate text-[0.78rem] font-black uppercase tracking-[0.08em]">{segment.agent}</span>
+              <span className="shrink-0 font-gatwick text-[1.42rem] font-black leading-none">
+                <CountUp value={segment.percent} durationMs={700} />%
+              </span>
+            </motion.div>
+          ))}
+          {!split.length ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="text-[0.62rem] font-black uppercase leading-tight tracking-[0.14em] text-white/68"
+              >
+                sample split shown until your agent trace is uploaded
+              </motion.div>
+          ) : null}
+        </div>
+      </div>
     </StoryCardShell>
   );
 };

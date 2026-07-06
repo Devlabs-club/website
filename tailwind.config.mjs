@@ -11,6 +11,7 @@ export default {
       fontFamily: {
         seasons: ['"the-seasons"', 'sans-serif'],
         spinnaker: ['Spinnaker', 'sans-serif'],
+        gatwick: ['"PP Gatwick"', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

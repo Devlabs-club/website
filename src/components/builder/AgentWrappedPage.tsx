@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, ChevronDown, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { WrappedStoryPlayer } from './wrapped/WrappedStoryPlayer';
 
@@ -98,7 +98,6 @@ export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId })
   const [report, setReport] = useState<AgentWrappedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showFullReport, setShowFullReport] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -117,7 +116,7 @@ export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId })
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#080809] text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[#fbfaf7] text-[#14110f]">
         <Loader2 className="h-6 w-6 animate-spin text-[#fa7d22]" />
       </main>
     );
@@ -125,53 +124,42 @@ export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId })
 
   if (error || !report) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#080809] px-4 text-white">
-        <div className="max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center">
+      <main className="flex min-h-screen items-center justify-center bg-[#fbfaf7] px-4 text-[#14110f]">
+        <div className="max-w-md rounded-2xl border border-black/10 bg-white p-6 text-center shadow-[0_18px_50px_rgba(33,24,16,0.08)]">
           <AlertCircle className="mx-auto h-8 w-8 text-[#fa7d22]" />
           <h1 className="mt-4 text-xl font-bold">Wrapped unavailable</h1>
-          <p className="mt-2 text-sm text-white/55">{error || 'Builder report not found.'}</p>
+          <p className="mt-2 text-sm text-black/55">{error || 'Builder report not found.'}</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080809] px-4 py-8 text-white sm:px-6 lg:px-8">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_12%,rgba(250,125,34,0.16),transparent_30%),radial-gradient(circle_at_86%_0%,rgba(22,141,247,0.16),transparent_28%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-noise opacity-[0.05]" />
-      <div className="relative mx-auto flex max-w-6xl flex-col items-center">
-        <div className="mb-6 flex w-full max-w-5xl items-center justify-between gap-4">
-          <a href="/" className="inline-flex items-center gap-2 text-sm font-bold text-white/85">
-            <img src="/logo.png" alt="" className="h-7 w-7 rounded-lg" />
+    <main className="relative min-h-screen overflow-hidden bg-[#fbfaf7] px-3 py-4 text-[#14110f] sm:px-6 sm:py-6 lg:px-8">
+      <div className="pointer-events-none fixed inset-0 bg-noise opacity-[0.06]" />
+
+      <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] max-w-6xl flex-col items-center">
+        <div className="mb-3 flex w-full max-w-5xl items-center justify-between gap-4 sm:mb-5">
+          <a href="/" className="inline-flex items-center gap-2 text-sm font-black text-[#14110f]">
+            <img src="/logo.png" alt="" className="h-7 w-7 object-contain" />
             DevLabs
           </a>
-          <div className="text-xs font-semibold text-white/45">Builder Wrapped</div>
+          <div className="text-xs font-black uppercase tracking-[0.2em] text-black/40">Builder Wrapped</div>
         </div>
 
         {report.source === 'profile_fallback' ? (
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#fa7d22]/25 bg-[#fa7d22]/10 px-4 py-2 text-xs font-semibold text-[#ffb580]">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#fa7d22]/25 bg-white px-4 py-2 text-xs font-bold text-[#a95515] shadow-[0_10px_24px_rgba(33,24,16,0.06)]">
             <Sparkles className="h-3.5 w-3.5" />
             Estimated from profile — connect an agent trace for the verified version
           </div>
         ) : (
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-semibold text-emerald-200">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-white px-4 py-2 text-xs font-bold text-emerald-700 shadow-[0_10px_24px_rgba(33,24,16,0.06)]">
             <ShieldCheck className="h-3.5 w-3.5" />
             Verified by approved local agent analysis
           </div>
         )}
 
         <WrappedStoryPlayer report={report} />
-
-        <button
-          type="button"
-          onClick={() => setShowFullReport((value) => !value)}
-          className="mt-10 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.14em] text-white/50 hover:text-white"
-        >
-          {showFullReport ? 'Hide' : 'Show'} full report
-          <ChevronDown className={`h-4 w-4 transition-transform ${showFullReport ? 'rotate-180' : ''}`} />
-        </button>
-
-        {showFullReport ? <FullReportDetail report={report} /> : null}
       </div>
     </main>
   );

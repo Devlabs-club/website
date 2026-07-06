@@ -12,6 +12,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: "PP Gatwick";
+  src: url("/fonts/PPGatwick-Ultralight.otf") format("opentype");
+  font-weight: 100 350;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PP Gatwick";
+  src: url("/fonts/PPGatwick-Bold.otf") format("opentype");
+  font-weight: 351 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
     --surface-base: 8 8 9;

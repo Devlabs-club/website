@@ -12,6 +12,7 @@ type AgentTraceSetupProps = {
   command: string;
   publicUrl: string;
   messageDelivery?: MessageDelivery | null;
+  autoCompleteOnUploaded?: boolean;
   onComplete: () => void | Promise<void>;
 };
 
@@ -31,6 +32,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
   command,
   publicUrl,
   messageDelivery,
+  autoCompleteOnUploaded = true,
   onComplete,
 }) => {
   const [copied, setCopied] = useState(false);
@@ -53,7 +55,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
       const data = await readJson(res);
       if (!res.ok || !data.ok) throw new Error(data.error || 'Could not check trace status.');
       setUploaded(Boolean(data.uploaded));
-      if (data.uploaded) await onComplete();
+      if (data.uploaded && autoCompleteOnUploaded) await onComplete();
       else if (!silent) setError('No uploaded Agent Wrapped report yet. Run the command, approve the preview, then check again.');
     } catch (err) {
       if (!silent) setError(err instanceof Error ? err.message : 'Could not check trace status.');
@@ -66,8 +68,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
     void checkStatus(true);
     const timer = window.setInterval(() => void checkStatus(true), 12000);
     return () => window.clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusUrl]);
+  }, [statusUrl, autoCompleteOnUploaded]);
 
   const copyCommand = async () => {
     setError('');

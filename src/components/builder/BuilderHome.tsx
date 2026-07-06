@@ -42,6 +42,7 @@ export const BuilderHome: React.FC = () => {
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [verified, setVerified] = useState(false);
   const [traceUploaded, setTraceUploaded] = useState(false);
+  const [showAgentWrappedCommand, setShowAgentWrappedCommand] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -63,6 +64,7 @@ export const BuilderHome: React.FC = () => {
         setTraceUploaded(Boolean(status.ok && status.uploaded));
       } else {
         setTraceUploaded(false);
+        setShowAgentWrappedCommand(false);
       }
     } catch {
       setData({ success: false, error: 'Could not load your profile.' });
@@ -145,15 +147,29 @@ export const BuilderHome: React.FC = () => {
                     {verified ? 'Verified and ready for founder introductions.' : 'Confirm your number so DevLabs can reach you.'}
                   </p>
                 </div>
-                <div className="dashboard-inset rounded-2xl p-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (data?.agentWrapped?.command) setShowAgentWrappedCommand(true);
+                  }}
+                  disabled={!data?.agentWrapped?.command}
+                  aria-expanded={showAgentWrappedCommand}
+                  className="dashboard-inset w-full rounded-2xl p-4 text-left transition hover:border-[#fa7d22]/30 hover:bg-[#fff7ef] disabled:cursor-not-allowed disabled:hover:border-[#1a140f]/10 disabled:hover:bg-transparent"
+                >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[#14110f]">
                     <TerminalSquare className="h-4 w-4 text-[#fa7d22]" />
                     Agent Wrapped
                   </div>
                   <p className="mt-2 text-xs leading-5 text-[#776e65]">
-                    {traceUploaded ? 'Trace summary uploaded.' : 'Run the local trace command to unlock richer proof.'}
+                    {data?.agentWrapped?.command
+                      ? traceUploaded
+                        ? 'Trace summary uploaded. Click to view or rerun the terminal command.'
+                        : 'Click to copy the local trace command for Terminal.'
+                      : verified
+                        ? 'Agent Wrapped command is being prepared.'
+                        : 'Verify your phone to unlock the local trace command.'}
                   </p>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -197,16 +213,33 @@ export const BuilderHome: React.FC = () => {
               pollVerified
             />
           </div>
-        ) : data.agentWrapped && !traceUploaded ? (
+        ) : data.agentWrapped && (!traceUploaded || showAgentWrappedCommand) ? (
           <div className="py-2">
+            {showAgentWrappedCommand && profile ? (
+              <div className="mx-auto mb-4 flex w-full max-w-2xl items-center justify-between gap-3 rounded-2xl border border-[#1a140f]/10 bg-white px-4 py-3 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
+                <div>
+                  <p className="text-sm font-bold text-[#14110f]">Agent Wrapped command</p>
+                  <p className="mt-1 text-xs text-[#746b62]">Copy this into Terminal to regenerate or update your wrapped report.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAgentWrappedCommand(false)}
+                  className="inline-flex h-9 shrink-0 items-center rounded-xl border border-[#1a140f]/10 bg-[#fbfaf7] px-3 text-xs font-bold text-[#14110f] hover:bg-[#fff7ef]"
+                >
+                  Back to profile
+                </button>
+              </div>
+            ) : null}
             <AgentTraceSetup
               builderId={data.agentWrapped.builderId}
               uploadToken={data.agentWrapped.uploadToken}
               command={data.agentWrapped.command}
               publicUrl={data.agentWrapped.publicUrl}
               messageDelivery={data.agentWrapped.messageDelivery}
+              autoCompleteOnUploaded={!traceUploaded}
               onComplete={async () => {
                 setTraceUploaded(true);
+                setShowAgentWrappedCommand(false);
                 await loadProfile();
               }}
             />
