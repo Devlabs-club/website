@@ -10,6 +10,7 @@ export type BuilderProfileView = {
   location?: string | null;
   universityOrCompany?: string | null;
   rolePreference?: string[];
+  skills?: string[];
   preferredWorkType?: string[];
   experiences?: Array<{ title: string; company: string; dateRange?: string; description?: string; skills?: string[] }>;
   projects?: Array<{
@@ -51,11 +52,24 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView }> = 
 
       <PreviewSection title="Skills">
         <div className="flex flex-wrap gap-1.5">
-          {[...(profile.rolePreference || []), ...(profile.preferredWorkType || [])].slice(0, 10).map((skill) => (
+          {(profile.skills?.length ? profile.skills : profile.rolePreference || []).slice(0, 12).map((skill) => (
             <span key={skill} className="rounded-full border border-[#1a140f]/10 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#6f665d]">{skill}</span>
           ))}
+          {!(profile.skills?.length || profile.rolePreference?.length) && (
+            <p className="text-sm text-[#746b62]">No skills added yet.</p>
+          )}
         </div>
       </PreviewSection>
+
+      {(profile.rolePreference?.length ?? 0) > 0 && (profile.skills?.length ?? 0) > 0 && (
+        <PreviewSection title="Open to">
+          <div className="flex flex-wrap gap-1.5">
+            {profile.rolePreference.slice(0, 6).map((role) => (
+              <span key={role} className="rounded-full border border-[#fa7d22]/20 bg-[#fff7ef] px-2.5 py-1 text-[11px] font-semibold text-[#c45a00]">{role}</span>
+            ))}
+          </div>
+        </PreviewSection>
+      )}
 
       <PreviewSection title="Experience">
         <div className="space-y-3">

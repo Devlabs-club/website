@@ -41,6 +41,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
     imessageUrl: handoff.imessageUrl,
     smsUrl: handoff.smsUrl,
     agentPhone: handoff.phone,
+    imessageAddress: handoff.imessageAddress,
+    agentContact: handoff.contact?.address || handoff.phone || handoff.imessageAddress || null,
   });
 };
 

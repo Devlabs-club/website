@@ -11,6 +11,8 @@ type HandoffData = {
   smsUrl?: string | null;
   messageBody?: string;
   agentPhone?: string | null;
+  imessageAddress?: string | null;
+  agentContact?: string | null;
 };
 
 const cardClass = 'rounded-2xl border border-border bg-card p-6 shadow-sm';
@@ -128,8 +130,8 @@ export const BuilderImessageHandoff: React.FC<{
         </a>
       ) : (
         <p className="mt-4 text-sm text-destructive">
-          iMessage handoff is not configured (set DEVLABS_IMESSAGE_PHONE). Text{' '}
-          {data.agentPhone || 'the DevLabs number'} manually:
+          iMessage handoff is not configured. Text{' '}
+          {data.agentContact || data.imessageAddress || data.agentPhone || 'the DevLabs agent'} manually:
         </p>
       )}
 

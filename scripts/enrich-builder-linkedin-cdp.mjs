@@ -300,6 +300,74 @@ function connectCdpWebSocket(wsUrl) {
   });
 }
 
+function normalizeLinkedInProfileUrl(input) {
+  try {
+    const u = new URL(String(input).trim());
+    u.search = '';
+    u.hash = '';
+    const match = u.pathname.match(/\/in\/([^/]+)/i);
+    if (match) {
+      u.pathname = `/in/${match[1]}/`;
+      return u.toString();
+    }
+  } catch {
+    /* ignore */
+  }
+  return String(input || '').trim();
+}
+
+function linkedInExperienceDetailsUrl(profileUrl) {
+  const match = String(profileUrl || '').match(/linkedin\.com\/in\/([^/?#]+)/i);
+  return match ? `https://www.linkedin.com/in/${match[1]}/details/experience/` : null;
+}
+
+async function scrollAndExpandPage(session) {
+  await session.send('Runtime.evaluate', {
+    expression: `(async () => {
+      for (let i = 0; i < 6; i += 1) {
+        window.scrollBy(0, Math.floor(window.innerHeight * 0.85));
+        await new Promise((resolve) => setTimeout(resolve, 400));
+      }
+      const clickers = Array.from(document.querySelectorAll('button, a[role="button"], a'));
+      for (const el of clickers) {
+        const label = String(el.innerText || el.getAttribute('aria-label') || '').trim();
+        if (/^(show all|see all|view all)\\s+(\\d+\\s+)?(experiences?|skills?)/i.test(label)) {
+          el.click();
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        }
+      }
+      window.scrollTo(0, 0);
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    })()`,
+    awaitPromise: true,
+  });
+}
+
+async function evaluateLinkedInDom(session, builderName) {
+  const evaluated = await session.send('Runtime.evaluate', {
+    expression: linkedInDomExtractionExpression(builderName),
+    awaitPromise: true,
+    returnByValue: true,
+  });
+  return evaluated?.result?.value || {};
+}
+
+function applyDomToCdpResult(result, dom) {
+  result.pageTitle = dom.title;
+  result.finalUrl = dom.url;
+  result.rawText = dom.text || '';
+  result.experienceEntries = dom.experienceEntries || [];
+  result.companyLinks = dom.companyLinks || [];
+  result.skillLabels = dom.skillLabels || [];
+  result.photo.candidates = dom.candidates || [];
+  if (dom.bestPhoto?.src) {
+    result.photo.imageUrl = dom.bestPhoto.src;
+    result.photo.source = 'cdp-dom';
+    result.photo.alt = dom.bestPhoto.alt || null;
+    result.photo.score = dom.bestPhoto.score;
+  }
+}
+
 function linkedInDomExtractionExpression(builderName) {
   return `(${function extractLinkedInDom(builderNameValue) {
     const normalizedName = String(builderNameValue || '').toLowerCase();
@@ -396,18 +464,41 @@ function linkedInDomExtractionExpression(builderName) {
 
       return entries;
     };
+    const findExperienceSection = () => {
+      const byId = document.getElementById('experience');
+      if (byId) return byId.closest('section') || byId.parentElement?.closest('section') || byId.parentElement;
+
+      for (const section of document.querySelectorAll('section')) {
+        const heading = section.querySelector('h2, h3, span.visually-hidden, div.pvs-header__title, div.text-heading-large');
+        const label = String(heading?.textContent || section.innerText?.slice(0, 80) || '').trim();
+        if (/^experience\\b/i.test(label) || /\\nExperience\\n/i.test(`\\n${label}\\n`)) return section;
+      }
+
+      for (const el of document.querySelectorAll('[data-view-name*="experience" i], [componentkey*="Experience"]')) {
+        const host = el.closest('section') || el.closest('div.scaffold-finite-scroll');
+        if (host) return host;
+      }
+      return null;
+    };
     const extractExperienceEntries = () => {
-      const sections = Array.from(document.querySelectorAll('section'));
-      const experienceSection = sections.find((section) => {
-        const firstLines = cleanLines(section.innerText).slice(0, 6).join('\n');
-        return /^Experience\b/im.test(firstLines) || /\nExperience\n/i.test(`\n${firstLines}\n`);
-      });
+      const experienceSection = findExperienceSection();
       if (!experienceSection) return [];
 
-      const firstList = experienceSection.querySelector('ul');
-      const itemNodes = firstList
-        ? Array.from(firstList.children).filter((node) => node.matches?.('li'))
-        : Array.from(experienceSection.querySelectorAll('li.artdeco-list__item, li.pvs-list__item--line-separated, li'));
+      const itemSelectors = [
+        'li.pvs-list__paged-list-item',
+        'li.artdeco-list__item',
+        'div.pvs-list__paged-list-item',
+        'div[data-view-name="profile-component-entity"]',
+        'li.pvs-list__item--line-separated',
+      ];
+      let itemNodes = [];
+      for (const selector of itemSelectors) {
+        const found = Array.from(experienceSection.querySelectorAll(selector));
+        if (found.length > itemNodes.length) itemNodes = found;
+      }
+      if (!itemNodes.length && experienceSection.querySelector('ul')) {
+        itemNodes = Array.from(experienceSection.querySelector('ul').children).filter((node) => node.matches?.('li'));
+      }
 
       const entries = itemNodes
         .map((item, index) => {
@@ -419,16 +510,36 @@ function linkedInDomExtractionExpression(builderName) {
           return {
             index,
             lines,
-            text: lines.join('\n'),
+            text: lines.join('\\n'),
             companyLinkedInUrl,
             logo,
           };
         })
-        .filter((entry) => entry.lines.length >= 3)
+        .filter((entry) => entry.lines.length >= 2)
         .slice(0, 12);
 
       if (entries.length) return entries;
       return segmentExperienceLines(experienceSection).slice(0, 12);
+    };
+    const extractSkillLabels = () => {
+      const skillsSection = Array.from(document.querySelectorAll('section')).find((section) => {
+        const head = cleanLines(section.innerText).slice(0, 4).join('\\n');
+        return /^Skills\\b/im.test(head) || /\\nSkills\\n/i.test(`\\n${head}\\n`);
+      });
+      if (!skillsSection) {
+        const topIdx = cleanLines(document.body?.innerText || '').findIndex((line) => /^top skills$/i.test(line));
+        if (topIdx >= 0) {
+          return cleanLines(document.body.innerText).slice(topIdx + 1, topIdx + 8)
+            .flatMap((line) => line.split(/\\s*[•,]\\s*/))
+            .map((s) => s.trim())
+            .filter((s) => s.length > 1 && s.length <= 50);
+        }
+        return [];
+      }
+      return cleanLines(skillsSection.innerText)
+        .filter((line) => !/^skills$/i.test(line) && !/^show all/i.test(line))
+        .filter((line) => line.length <= 50)
+        .slice(0, 20);
     };
     const text = document.body?.innerText || '';
     const imageData = Array.from(document.images).map((img) => {
@@ -497,6 +608,7 @@ function linkedInDomExtractionExpression(builderName) {
       url: location.href,
       text,
       experienceEntries: extractExperienceEntries(),
+      skillLabels: extractSkillLabels(),
       companyLinks: collectCompanyLinks(),
       candidates,
       bestPhoto: candidates[0] || null,
@@ -517,6 +629,7 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     rawText: '',
     experienceEntries: [],
     companyLinks: [],
+    skillLabels: [],
     photo: {
       imageUrl: null,
       source: null,
@@ -528,6 +641,9 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
 
   let target;
   let session;
+  const profileUrl = normalizeLinkedInProfileUrl(url);
+  const experienceDetailsUrl = linkedInExperienceDetailsUrl(profileUrl);
+
   try {
     target = await createCdpTarget(cdpUrl, 'about:blank');
     if (!target?.webSocketDebuggerUrl) throw new Error('Chrome CDP did not return a target websocket URL.');
@@ -535,40 +651,33 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     session = await connectCdpWebSocket(target.webSocketDebuggerUrl);
     await session.send('Page.enable');
     await session.send('Runtime.enable');
-    await session.send('Page.navigate', { url });
+    await session.send('Page.navigate', { url: profileUrl });
     await sleep(waitMs);
+    await scrollAndExpandPage(session);
 
-    await session.send('Runtime.evaluate', {
-      expression: `(async () => {
-        for (let i = 0; i < 5; i += 1) {
-          window.scrollBy(0, Math.floor(window.innerHeight * 0.85));
-          await new Promise((resolve) => setTimeout(resolve, 450));
-        }
-        window.scrollTo(0, 0);
-        await new Promise((resolve) => setTimeout(resolve, 700));
-      })()`,
-      awaitPromise: true,
-    });
+    let dom = await evaluateLinkedInDom(session, builder.name);
+    applyDomToCdpResult(result, dom);
 
-    const evaluated = await session.send('Runtime.evaluate', {
-      expression: linkedInDomExtractionExpression(builder.name),
-      awaitPromise: true,
-      returnByValue: true,
-    });
-    const dom = evaluated?.result?.value || {};
-
-    result.pageTitle = dom.title;
-    result.finalUrl = dom.url;
-    result.rawText = dom.text || '';
-    result.experienceEntries = dom.experienceEntries || [];
-    result.companyLinks = dom.companyLinks || [];
-    result.photo.candidates = dom.candidates || [];
-    if (dom.bestPhoto?.src) {
-      result.photo.imageUrl = dom.bestPhoto.src;
-      result.photo.source = 'cdp-dom';
-      result.photo.alt = dom.bestPhoto.alt || null;
-      result.photo.score = dom.bestPhoto.score;
+    if ((dom.experienceEntries || []).length < 2 && experienceDetailsUrl) {
+      await session.send('Page.navigate', { url: experienceDetailsUrl });
+      await sleep(Math.max(waitMs, 14000));
+      await scrollAndExpandPage(session);
+      const detailsDom = await evaluateLinkedInDom(session, builder.name);
+      if ((detailsDom.experienceEntries || []).length >= (dom.experienceEntries || []).length) {
+        dom = {
+          ...detailsDom,
+          text: `${dom.text || ''}\n${detailsDom.text || ''}`.trim(),
+          skillLabels: [...(dom.skillLabels || []), ...(detailsDom.skillLabels || [])],
+          companyLinks: [...(dom.companyLinks || []), ...(detailsDom.companyLinks || [])],
+          experienceEntries: detailsDom.experienceEntries?.length
+            ? detailsDom.experienceEntries
+            : dom.experienceEntries,
+        };
+        applyDomToCdpResult(result, dom);
+      }
     }
+
+    result.skillLabels = dom.skillLabels || [];
 
     const authProbe = `${dom.title}\n${String(dom.text || '').slice(0, 600)}`;
     if (/sign in|sign up|join now|authwall|checkpoint|log in to view/i.test(authProbe)) {
@@ -638,11 +747,12 @@ function extractYears(text) {
 function extractLinkedInData(rawText, builder, cdpExtraction) {
   const lines = linesFromText(rawText);
   const allText = lines.join('\n');
-  const aboutLines = section(lines, 'About', ['Activity', 'Experience', 'Education', 'Licenses & certifications', 'Projects', 'Skills', 'Recommendations']);
-  const experienceLines = section(lines, 'Experience', ['Education', 'Licenses & certifications', 'Projects', 'Skills', 'Recommendations']);
-  const educationLines = section(lines, 'Education', ['Licenses & certifications', 'Projects', 'Skills', 'Recommendations', 'Interests']);
-  const skillsLines = section(lines, 'Skills', ['Recommendations', 'Interests', 'Courses', 'Languages']);
-  const projectLines = section(lines, 'Projects', ['Skills', 'Recommendations', 'Education', 'Interests']);
+  const aboutLines = section(lines, 'About', ['Activity', 'Experience', 'Education', 'Licenses & certifications', 'Projects', 'Skills', 'Recommendations', 'Services', 'Featured']);
+  const experienceLines = section(lines, 'Experience', ['Education', 'Licenses & certifications', 'Projects', 'Skills', 'Recommendations', 'Featured', 'Activity']);
+  const educationLines = section(lines, 'Education', ['Licenses & certifications', 'Projects', 'Skills', 'Recommendations', 'Interests', 'Featured', 'Activity']);
+  const skillsLines = section(lines, 'Skills', ['Recommendations', 'Interests', 'Courses', 'Languages', 'Featured', 'Activity']);
+  const servicesLines = section(lines, 'Services', ['Featured', 'Experience', 'Education', 'Skills', 'Activity']);
+  const projectLines = section(lines, 'Projects', ['Skills', 'Recommendations', 'Education', 'Interests', 'Featured', 'Activity']);
 
   const nameIndex = lines.findIndex((line) => line.toLowerCase() === String(builder.name || '').toLowerCase());
   const headlineCandidate = nameIndex >= 0 ? lines.slice(nameIndex + 1).find((line) => {
@@ -666,9 +776,27 @@ function extractLinkedInData(rawText, builder, cdpExtraction) {
     location: lines.find(looksLikeLocation) || null,
     about: aboutLines.join(' ').slice(0, 1500) || null,
     experience: experienceLines.slice(0, 80),
-    experiences: parseExperienceEntries(cdpExtraction, builder),
+    experiences: mergeExperienceResults(
+      parseExperienceEntries(cdpExtraction, builder, experienceLines),
+      (cdpExtraction.experienceEntries || []).length < 2
+        ? inferExperiencesFromHeadline(headlineCandidate, cdpExtraction.companyLinks || [], builder)
+        : [],
+      (cdpExtraction.experienceEntries || []).length < 2
+        ? inferExperiencesFromProfileBadges(lines, cdpExtraction.companyLinks || [], builder)
+        : []
+    ),
     education: educationLines.slice(0, 60),
-    skills: extractSkills(skillsLines, lines),
+    skills: (() => {
+      const domSkills = Array.isArray(cdpExtraction.skillLabels) ? cdpExtraction.skillLabels : [];
+      const parsedSkills = extractSkills(skillsLines, lines);
+      const serviceSkills = servicesLines
+        .filter((line) => line.length <= 60 && !/^(services|show all)$/i.test(line));
+      return [...domSkills, ...parsedSkills, ...serviceSkills]
+        .map((skill) => String(skill || '').trim())
+        .filter(Boolean)
+        .filter((skill, index, arr) => arr.findIndex((candidate) => candidate.toLowerCase() === skill.toLowerCase()) === index)
+        .slice(0, 25);
+    })(),
     projects: projectLines.slice(0, 40),
     inferredGraduationYear,
     currentExperience,
@@ -736,7 +864,11 @@ function splitDateRange(line) {
 }
 
 function looksLikeDateRange(line) {
-  return /\b(present|20[0-4][0-9]|19[8-9][0-9])\b/i.test(line) && /\s[–-]\s/.test(line);
+  const value = String(line || '').trim();
+  if (!value) return false;
+  if (/\bpresent\b/i.test(value) && (/[-–—]| to /i.test(value) || /\d{4}/.test(value))) return true;
+  if (/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{4}\s*[-–—]/i.test(value)) return true;
+  return /\b(20[0-4][0-9]|19[8-9][0-9])\b/i.test(value) && /\s[-–—]\s/.test(value);
 }
 
 function looksLikeExperienceLocation(line) {
@@ -779,15 +911,20 @@ function resolveCompanyLink(company, companyLinkedInUrl, companyLinks) {
 
 function parseExperienceEntry(rawEntry, builder, companyLinks) {
   const lines = normalizeExperienceLines(rawEntry.lines || []);
-  if (lines.length < 3) return null;
+  if (lines.length < 2) return null;
 
   const dateIndex = lines.findIndex(looksLikeDateRange);
   if (dateIndex < 1) return null;
 
-  const title = lines[0];
-  const companyLine = lines.slice(1, dateIndex).find((line) => !looksLikeDateRange(line)) || lines[1];
+  let title = lines[0];
+  const companyLine = lines.slice(1, dateIndex).find((line) => !looksLikeDateRange(line) && !looksLikeExperienceLocation(line)) || lines[1];
   const { company, employmentType } = splitCompanyLine(companyLine);
   if (!title || !company) return null;
+
+  if (compactKey(title) === compactKey(company)) {
+    const alternateTitle = lines.slice(1, dateIndex).find((line) => line !== companyLine && !looksLikeDateRange(line) && !looksLikeExperienceLocation(line));
+    if (alternateTitle) title = alternateTitle;
+  }
 
   const dateParts = splitDateRange(lines[dateIndex]);
   const afterDate = lines.slice(dateIndex + 1);
@@ -828,11 +965,128 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
   };
 }
 
-function parseExperienceEntries(cdpExtraction, builder) {
+function mergeExperienceResults(...groups) {
+  const merged = [];
+  for (const group of groups) {
+    for (const entry of group || []) {
+      if (!entry?.title && !entry?.company) continue;
+      if (merged.some((existing) => existing.sourceId === entry.sourceId)) continue;
+      merged.push(entry);
+    }
+  }
+  return merged.slice(0, 12);
+}
+
+function inferExperiencesFromHeadline(headline, companyLinks, builder) {
+  const text = String(headline || '').trim();
+  if (!text) return [];
+
+  const segments = text.split(/\s*\|\s*/).map((part) => part.trim()).filter(Boolean);
+  const results = [];
+
+  for (const segment of segments) {
+    const match = segment.match(/^(.*?)\s+(?:@|at)\s*(.+)$/i);
+    if (!match) continue;
+    const title = match[1].trim();
+    const company = match[2].trim();
+    if (!title || !company) continue;
+
+    const { companyUsername, companyLinkedInUrl } = resolveCompanyLink(company, null, companyLinks);
+    const sourceId = `linkedin:headline:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${title}-${company}`)}`;
+    results.push({
+      title: title.slice(0, 140),
+      company: company.slice(0, 140),
+      companyLogoUrl: null,
+      companyUsername,
+      companyLinkedInUrl,
+      employmentType: null,
+      location: null,
+      dateRange: null,
+      startDateLabel: null,
+      endDateLabel: null,
+      duration: null,
+      description: null,
+      skills: [],
+      isCurrent: !/\bprev\b/i.test(segment),
+      source: 'linkedin',
+      sourceId,
+      importedAt: new Date().toISOString(),
+    });
+  }
+
+  return results;
+}
+
+function inferExperiencesFromProfileBadges(lines, companyLinks, builder) {
+  const nameIndex = lines.findIndex((line) => line.toLowerCase() === String(builder.name || '').toLowerCase());
+  if (nameIndex < 0) return [];
+
+  const badgeLines = lines
+    .slice(nameIndex + 1, nameIndex + 12)
+    .filter((line) => line.length <= 80)
+    .filter((line) => !/^(he\/him|she\/her|they\/them|contact info|followers|connections|\d+ followers|\d+\+ connections|open to|·|resources|enhance profile|add section|open to work)$/i.test(line))
+    .filter((line) => !looksLikeLocation(line))
+    .filter((line) => !/^(co founder|founder|swe|software|intern|student|engineer)/i.test(line));
+
+  const results = [];
+  for (const line of badgeLines) {
+    if (/university|college|school|asu\b/i.test(line)) continue;
+    const { companyUsername, companyLinkedInUrl } = resolveCompanyLink(line, null, companyLinks);
+    const sourceId = `linkedin:badge:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(line)}`;
+    results.push({
+      title: null,
+      company: line.slice(0, 140),
+      companyLogoUrl: null,
+      companyUsername,
+      companyLinkedInUrl,
+      employmentType: null,
+      location: null,
+      dateRange: null,
+      startDateLabel: null,
+      endDateLabel: null,
+      duration: null,
+      description: null,
+      skills: [],
+      isCurrent: true,
+      source: 'linkedin',
+      sourceId,
+      importedAt: new Date().toISOString(),
+    });
+    if (results.length >= 2) break;
+  }
+
+  return results.filter((entry) => entry.company);
+}
+
+function parseExperiencesFromTextLines(experienceLines, builder, companyLinks) {
+  const lines = experienceLines.filter((line) => !/^experience$/i.test(String(line || '').trim()));
+  const results = [];
+  let cursor = 0;
+
+  while (cursor < lines.length) {
+    const dateIndex = lines.findIndex((line, index) => index >= cursor && looksLikeDateRange(line));
+    if (dateIndex < 0) break;
+
+    const start = Math.max(cursor, dateIndex - 3);
+    const slice = lines.slice(start, Math.min(lines.length, dateIndex + 8));
+    const parsed = parseExperienceEntry({ lines: slice, index: results.length }, builder, companyLinks);
+    if (parsed) results.push(parsed);
+    cursor = dateIndex + 1;
+  }
+
+  return results;
+}
+
+function parseExperienceEntries(cdpExtraction, builder, experienceLines = []) {
   const companyLinks = cdpExtraction.companyLinks || [];
-  return (cdpExtraction.experienceEntries || [])
+  const fromDom = (cdpExtraction.experienceEntries || [])
     .map((entry) => parseExperienceEntry(entry, builder, companyLinks))
-    .filter(Boolean)
+    .filter(Boolean);
+  const merged = fromDom.length
+    ? fromDom
+    : parseExperiencesFromTextLines(experienceLines, builder, companyLinks);
+
+  return merged
     .filter((entry, index, arr) => arr.findIndex((candidate) => candidate.sourceId === entry.sourceId) === index)
     .slice(0, 12);
 }
@@ -936,6 +1190,9 @@ function buildProposedDiff(builder, extracted) {
 
   const existingRoles = new Set((builder.rolePreference || []).map((role) => String(role).toLowerCase()));
   addSet(proposed, 'rolePreference', inferRolePreferences(extracted).filter((role) => !existingRoles.has(role.toLowerCase())), 'LinkedIn-derived role/skill labels; internship/full-time is intentionally excluded.');
+
+  const existingProfileSkills = new Set((builder.skills || []).map((skill) => String(skill).toLowerCase()));
+  addSet(proposed, 'skills', extracted.skills.filter((skill) => !existingProfileSkills.has(skill.toLowerCase())), 'LinkedIn skills section (Top skills + Skills).');
 
   const work = decideWork(builder, extracted);
   const existingWorkTypes = new Set((builder.preferredWorkType || []).map((type) => String(type).toLowerCase()));

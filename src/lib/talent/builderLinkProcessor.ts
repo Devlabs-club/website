@@ -119,5 +119,18 @@ Only include facts the page supports. Empty arrays / null when unknown.`,
     await rememberBuilderFact(memRef, { content: `Bio idea (grounded, no buzzwords): ${parsed.suggestedBio.trim()}`, kind: 'todo', field: 'bio' });
   }
 
+  const parsedSkills = Array.isArray(parsed.skills)
+    ? parsed.skills.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 16)
+    : [];
+  if (parsedSkills.length) {
+    const existing = builder.skills || [];
+    const merged = [...new Set([...existing, ...parsedSkills])].slice(0, 32);
+    if (merged.length > existing.length) {
+      builder.skills = merged;
+      await builder.save();
+      result.applied.push(`${merged.length - existing.length} skills`);
+    }
+  }
+
   return result;
 }

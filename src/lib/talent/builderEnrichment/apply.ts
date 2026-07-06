@@ -164,9 +164,16 @@ export async function applyProfileDraft(
   }
   if (draft.rolePreference?.length) {
     const next = mergeSkills(builder.rolePreference || [], draft.rolePreference);
-    if (next.length > (builder.rolePreference?.length || 0)) {
+    if (next.length !== (builder.rolePreference || []).length || next.some((s, i) => s !== (builder.rolePreference || [])[i])) {
       builder.rolePreference = next;
       updated.push('rolePreference');
+    }
+  }
+  if (draft.skills?.length) {
+    const next = mergeSkills(builder.skills || [], draft.skills);
+    if (next.length !== (builder.skills || []).length || next.some((s, i) => s !== (builder.skills || [])[i])) {
+      builder.skills = next.slice(0, 32);
+      updated.push('skills');
     }
   }
   if (!isEmpty(draft.universityOrCompany) && (overwrite || isEmpty(builder.universityOrCompany))) {
@@ -214,6 +221,145 @@ export async function applyProfileDraft(
   }
 
   return updated;
+}
+
+function eachMongoValues(value: unknown): string[] {
+  if (value && typeof value === 'object' && '$each' in (value as object) && Array.isArray((value as any).$each)) {
+    return (value as any).$each.map(String);
+  }
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value === 'string') return [value];
+  return [];
+}
+
+function setNestedField(target: Record<string, unknown>, path: string, value: unknown) {
+  const parts = path.split('.');
+  let cursor: Record<string, unknown> = target;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    const key = parts[index];
+    const next = cursor[key];
+    if (!next || typeof next !== 'object' || Array.isArray(next)) cursor[key] = {};
+    cursor = cursor[key] as Record<string, unknown>;
+  }
+  cursor[parts[parts.length - 1]] = value;
+}
+
+export type LinkedInCdpApplyResult = {
+  profileFieldsUpdated: string[];
+  experiencesAdded: number;
+  experiencesImproved: number;
+  experienceHighlights: string[];
+  skillsAdded: number;
+  headline: string | null;
+  mode: 'remote_chrome_cdp';
+};
+
+/** Apply Railway CDP LinkedIn artifact to a builder (same fields as onboarding linkedin-enrichment). */
+export async function applyLinkedInCdpToBuilder(
+  builder: any,
+  artifact: any,
+  linkedinUrl: string
+): Promise<LinkedInCdpApplyResult> {
+  const extracted = artifact?.extracted || {};
+  const proposed = artifact?.proposedMongoUpdate || {};
+  const profileFieldsUpdated: string[] = [];
+  const beforeExperienceCount = (builder.experiences || []).length;
+  const beforeSkillCount = (builder.skills || []).length;
+
+  const draft: EnrichedProfileDraft = {
+    headline: typeof proposed.$set?.headline === 'string' ? proposed.$set.headline : extracted.headline || null,
+    bio:
+      typeof proposed.$set?.bio === 'string'
+        ? proposed.$set.bio
+        : typeof extracted.about === 'string'
+          ? extracted.about
+          : null,
+    avatarUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
+    location: typeof proposed.$set?.location === 'string' ? proposed.$set.location : extracted.location || null,
+    graduationYear:
+      typeof proposed.$set?.graduationYear === 'number'
+        ? proposed.$set.graduationYear
+        : typeof extracted.inferredGraduationYear === 'number'
+          ? extracted.inferredGraduationYear
+          : null,
+    universityOrCompany:
+      typeof proposed.$set?.universityOrCompany === 'string' ? proposed.$set.universityOrCompany : null,
+    skills: [
+      ...eachMongoValues(proposed.$addToSet?.skills),
+      ...(Array.isArray(extracted.skills) ? extracted.skills.map(String) : []),
+    ],
+    rolePreference: eachMongoValues(proposed.$addToSet?.rolePreference),
+    experiences: Array.isArray(extracted.experiences) ? extracted.experiences : [],
+    links: { linkedin: linkedinUrl },
+  };
+
+  profileFieldsUpdated.push(...(await applyProfileDraft(builder, draft, { overwriteBasics: true })));
+
+  for (const [key, value] of Object.entries(proposed.$set || {})) {
+    if (['headline', 'bio', 'location', 'graduationYear', 'universityOrCompany', 'updatedAt'].includes(key)) continue;
+    if (key.startsWith('availability.') || key.startsWith('hiringIntent.')) {
+      setNestedField(builder, key, value);
+      const root = key.split('.')[0];
+      if (!profileFieldsUpdated.includes(root)) profileFieldsUpdated.push(root);
+    }
+  }
+
+  const preferredIncoming = eachMongoValues(proposed.$addToSet?.preferredWorkType);
+  if (preferredIncoming.length) {
+    const merged = mergeSkills(builder.preferredWorkType || [], preferredIncoming);
+    if (merged.length > (builder.preferredWorkType || []).length) {
+      builder.preferredWorkType = merged;
+      profileFieldsUpdated.push('preferredWorkType');
+    }
+  }
+
+  builder.links = { ...(builder.links || {}), linkedin: linkedinUrl };
+  await builder.save();
+
+  const afterExperiences = builder.experiences || [];
+  const experiencesAdded = Math.max(0, afterExperiences.length - beforeExperienceCount);
+  const experiencesImproved = 0;
+
+  await aggregateInferredSkills(builder._id);
+  const refreshed = await refreshBuilderScores(builder._id);
+  const snapshotBuilder = refreshed || builder;
+  const skillsAdded = Math.max(0, (snapshotBuilder.skills || []).length - beforeSkillCount);
+
+  const experienceHighlights = (snapshotBuilder.experiences || [])
+    .slice(0, 5)
+    .map((entry: any) => {
+      const title = entry?.title || 'Role';
+      const company = entry?.company || 'Company';
+      const dates = entry?.dateRange ? ` (${entry.dateRange})` : '';
+      return `${title} at ${company}${dates}`;
+    });
+
+  return {
+    profileFieldsUpdated: [...new Set(profileFieldsUpdated)],
+    experiencesAdded,
+    experiencesImproved,
+    experienceHighlights,
+    skillsAdded,
+    headline: snapshotBuilder.headline || null,
+    mode: 'remote_chrome_cdp',
+  };
+}
+
+/** Union technical skills from profile, projects, and experience entries. */
+export async function aggregateInferredSkills(builderId: any): Promise<string[]> {
+  const builder = await BuilderProfile.findById(builderId);
+  if (!builder) return [];
+
+  const projects = await ProjectRecord.find({ builderId: builder._id }).select('techStack').lean();
+  const fromProjects = projects.flatMap((p: any) => p.techStack || []);
+  const fromExperiences = (builder.experiences || []).flatMap((e: any) => e.skills || []);
+  const merged = mergeSkills(builder.skills || [], fromProjects, fromExperiences);
+
+  if (merged.length !== (builder.skills || []).length || merged.some((s, i) => s !== (builder.skills || [])[i])) {
+    builder.skills = merged.slice(0, 32);
+    await builder.save();
+  }
+  return builder.skills || [];
 }
 
 export async function upsertEnrichedProjects(

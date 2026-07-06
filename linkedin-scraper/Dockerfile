@@ -13,10 +13,15 @@ FROM node:22-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# System packages: headless browser stack + viewer + proxy + supervisor.
+# System packages: browser stack + viewer + proxy + supervisor.
+# Use Google Chrome stable instead of Debian chromium — recent bookworm chromium builds SIGTRAP in Railway containers.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      chromium xvfb x11vnc novnc websockify nginx gettext-base supervisor \
-      dumb-init fonts-liberation libnss3 ca-certificates curl gnupg procps \
+      wget gnupg xvfb x11vnc novnc websockify nginx gettext-base supervisor \
+      dumb-init fonts-liberation libnss3 ca-certificates curl procps \
+      libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 libgbm1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 libgtk-3-0 libpango-1.0-0 \
+ && wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+ && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+ && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable \
  && rm -rf /var/lib/apt/lists/*
 
 # MongoDB Shell (mongosh) — the scripts call it directly.

@@ -1,6 +1,7 @@
 /**
  * Transport-agnostic messaging layer for the Builder Agent.
- * Production provider: AgentPhone (SMS/MMS/iMessage).
+ * Providers: BlueBubbles (iMessage pilot) or AgentPhone (SMS/MMS/iMessage).
+ * Select via IMESSAGE_PROVIDER or auto-detect from env.
  */
 
 export type NormalizedInbound = {

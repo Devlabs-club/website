@@ -2,7 +2,7 @@ import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
 import type { EnrichedProfileDraft, EnrichedProjectDraft, SourceEnrichmentResult } from './types';
 
 const MIN_REPO_SIZE_KB = 30;
-const MIN_AUTHOR_COMMITS = 5;
+const MIN_AUTHOR_COMMITS = 3;
 const MAX_REPOS_TO_ENRICH = 8;
 const MAX_REPO_AGE_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 
@@ -316,6 +316,20 @@ function parseJsonResponse(raw: string): Record<string, unknown> | null {
   }
 }
 
+function extractProblemFromReadme(readme: string | null): string | null {
+  if (!readme) return null;
+  const lines = readme.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const startIdx = lines.findIndex((line) =>
+    /^(#+\s*)?(about|overview|problem|what it does|description|motivation|why)/i.test(line)
+  );
+  const body = (startIdx >= 0 ? lines.slice(startIdx + 1, startIdx + 8) : lines.slice(0, 6))
+    .filter((line) => !/^#+\s/.test(line) && !/^[-*]\s/.test(line))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return body ? body.slice(0, 220) : null;
+}
+
 async function summarizeRepoForProfile(params: {
   repo: GithubRepo;
   username: string;
@@ -325,10 +339,11 @@ async function summarizeRepoForProfile(params: {
   manifests: ManifestContext[];
   inferredStack: string[];
   authorCommits: number;
-}): Promise<{ description: string | null; techStack: string[]; builderContribution: string | null }> {
+}): Promise<{ description: string | null; problemSolved: string | null; techStack: string[]; builderContribution: string | null }> {
   const { repo, languages, readme, rootFiles, manifests, inferredStack, authorCommits } = params;
 
-  const fallbackDescription = repo.description?.trim() || null;
+  const fallbackDescription = repo.description?.trim() || extractProblemFromReadme(readme);
+  const fallbackProblem = extractProblemFromReadme(readme) || repo.description?.trim() || null;
   const fallbackStack = Array.from(
     new Set([...inferredStack, ...(repo.topics || []), ...languages, repo.language].filter(Boolean) as string[])
   );
@@ -336,6 +351,7 @@ async function summarizeRepoForProfile(params: {
   if (!hasOpenRouterConfig()) {
     return {
       description: fallbackDescription,
+      problemSolved: fallbackProblem,
       techStack: fallbackStack,
       builderContribution: fallbackDescription
         ? `Built and maintained ${repo.name} (${authorCommits}+ commits).`
@@ -345,7 +361,13 @@ async function summarizeRepoForProfile(params: {
 
   const extraction = await generateOpenRouterReply({
     systemPrompt: `You summarize GitHub repos for a founder-facing builder profile.
-Return strict JSON: description (max 300 chars), techStack (string[]), builderContribution (max 250 chars — what the developer shipped, be specific).
+Return strict JSON:
+{
+  "description": "string | null (max 300 chars — what the project is)",
+  "problemSolved": "string | null (max 220 chars — user/customer problem addressed)",
+  "techStack": "string[] (concrete technologies)",
+  "builderContribution": "string | null (max 250 chars — what this developer shipped, be specific about features/architecture)"
+}
 If there is no README, infer from repo metadata, languages, topics, and root files. Do not invent features not supported by the inputs.`,
     userPrompt: `Repo: ${repo.full_name}
 GitHub description: ${repo.description || 'none'}
@@ -362,13 +384,14 @@ ${manifests.map((manifest) => `--- ${manifest.path} ---\n${manifest.text.slice(0
 README:
 ${readme || 'NO README — use metadata only'}`,
     temperature: 0,
-    maxTokens: 600,
+    maxTokens: 700,
   });
 
   const parsed = parseJsonResponse(extraction);
   if (!parsed) {
     return {
       description: fallbackDescription,
+      problemSolved: fallbackProblem,
       techStack: fallbackStack,
       builderContribution: fallbackDescription
         ? `Built and maintained ${repo.name} (${authorCommits}+ commits).`
@@ -378,6 +401,10 @@ ${readme || 'NO README — use metadata only'}`,
 
   return {
     description: typeof parsed.description === 'string' ? parsed.description : fallbackDescription,
+    problemSolved:
+      typeof parsed.problemSolved === 'string'
+        ? parsed.problemSolved
+        : fallbackProblem,
     techStack: Array.from(new Set([
       ...(Array.isArray(parsed.techStack)
         ? parsed.techStack.map(String).map((s) => s.trim()).filter(Boolean)
@@ -488,6 +515,7 @@ export async function enrichGithubReposForUser(
     projects.push({
       projectName: repo.name,
       description: summary.description,
+      problemSolved: summary.problemSolved,
       techStack: summary.techStack,
       builderContribution: summary.builderContribution,
       links: {
@@ -501,7 +529,16 @@ export async function enrichGithubReposForUser(
     });
   }
 
-  profile.rolePreference = Array.from(allSkills);
+  profile.skills = Array.from(allSkills).slice(0, 24);
+
+  // Broader language/topic signals when strict repo filters leave skills thin.
+  if (allSkills.size < 6) {
+    for (const repo of repos.filter((r) => !r.fork && !isLowSignalRepo(r)).slice(0, 20)) {
+      if (repo.language) allSkills.add(repo.language);
+      for (const topic of (repo.topics || []).slice(0, 4)) addSkill(allSkills, topic);
+    }
+    profile.skills = Array.from(allSkills).slice(0, 24);
+  }
 
   return {
     profile,

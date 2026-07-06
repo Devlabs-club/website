@@ -39,6 +39,7 @@ const BuilderProfileSchema = new mongoose.Schema(
       default: 'student',
     },
     rolePreference: [{ type: String }],
+    skills: [{ type: String }],
     workAuthorization: { type: String, default: null },
     preferredWorkType: [{ type: String }],
     experiences: [
@@ -147,6 +148,7 @@ const BuilderProfileSchema = new mongoose.Schema(
 BuilderProfileSchema.index({ email: 1, name: 1 });
 BuilderProfileSchema.index({ verificationStatus: 1, visibilityStatus: 1, updatedAt: -1 });
 BuilderProfileSchema.index({ rolePreference: 1, verificationStatus: 1, visibilityStatus: 1 });
+BuilderProfileSchema.index({ skills: 1, verificationStatus: 1, visibilityStatus: 1 });
 BuilderProfileSchema.index({ 'experiences.skills': 1, verificationStatus: 1, visibilityStatus: 1 });
 
 export default (mongoose.models.BuilderProfile as mongoose.Model<any>) ||

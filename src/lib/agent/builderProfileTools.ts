@@ -67,6 +67,7 @@ export function buildProfileSnapshot(builder: any, projects: any[]) {
     graduationYear: builder.graduationYear || null,
     workAuthorization: builder.workAuthorization || null,
     rolePreference: builder.rolePreference || [],
+    skills: builder.skills || [],
     preferredWorkType: builder.preferredWorkType || [],
     links: {
       github: builder.links?.github || null,

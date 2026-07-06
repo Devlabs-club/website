@@ -1,7 +1,14 @@
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
 import { createClaimToken, verifyClaimToken, type ClaimTokenPayload } from '@/lib/messaging/claimToken';
+import { getImessageProviderName } from '@/lib/messaging/getProvider';
 
-/** DevLabs agent line — E.164. Prefer AgentPhone number. */
+export type ImessageContact = {
+  /** Phone (E.164) or Apple ID email the builder texts to open the thread. */
+  address: string;
+  kind: 'email' | 'phone';
+};
+
+/** DevLabs agent line for AgentPhone — E.164 phone number. */
 export function getDevlabsImessagePhone(runtime?: RuntimeEnv): string | null {
   const raw =
     readEnv('AGENTPHONE_FROM_NUMBER', runtime) ||
@@ -14,6 +21,26 @@ export function getDevlabsImessagePhone(runtime?: RuntimeEnv): string | null {
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
   return digits ? `+${digits}` : null;
+}
+
+/** Apple ID / email signed into BlueBubbles iMessage on the Mac. */
+export function getBlueBubblesImessageAddress(runtime?: RuntimeEnv): string | null {
+  const raw =
+    readEnv('BLUEBUBBLES_IMESSAGE_ADDRESS', runtime) ||
+    readEnv('DEVLABS_IMESSAGE_ADDRESS', runtime) ||
+    'hi@geekydan.dev';
+  const trimmed = raw.trim().toLowerCase();
+  return trimmed.includes('@') ? trimmed : null;
+}
+
+/** Where builders should text to start the DevLabs agent thread. */
+export function getDevlabsImessageContact(runtime?: RuntimeEnv): ImessageContact | null {
+  if (getImessageProviderName(runtime) === 'bluebubbles') {
+    const address = getBlueBubblesImessageAddress(runtime);
+    return address ? { address, kind: 'email' } : null;
+  }
+  const phone = getDevlabsImessagePhone(runtime);
+  return phone ? { address: phone, kind: 'phone' } : null;
 }
 
 /** Signed token embedded in the builder's first iMessage to verify identity + phone. */
@@ -39,19 +66,37 @@ export function buildVerificationMessageBody(token: string) {
   return `hi devlabs:${token}`;
 }
 
-export function buildImessageHandoffUrls(params: { token: string; runtime?: RuntimeEnv }) {
-  const phone = getDevlabsImessagePhone(params.runtime);
-  if (!phone) {
-    return { phone: null as string | null, messageBody: buildVerificationMessageBody(params.token), smsUrl: null, imessageUrl: null };
-  }
-  const messageBody = buildVerificationMessageBody(params.token);
+function buildDeepLink(contact: ImessageContact, messageBody: string) {
   const encoded = encodeURIComponent(messageBody);
-  const phoneDigits = phone.replace(/[^\d+]/g, '');
+  if (contact.kind === 'email') {
+    // imessage:// opens Messages to an Apple ID email (BlueBubbles pilot).
+    return `imessage://${contact.address}&body=${encoded}`;
+  }
+  const phoneDigits = contact.address.replace(/[^\d+]/g, '');
+  return `sms:${phoneDigits}?body=${encoded}`;
+}
+
+export function buildImessageHandoffUrls(params: { token: string; runtime?: RuntimeEnv }) {
+  const contact = getDevlabsImessageContact(params.runtime);
+  const messageBody = buildVerificationMessageBody(params.token);
+  if (!contact) {
+    return {
+      contact: null as ImessageContact | null,
+      phone: null as string | null,
+      messageBody,
+      smsUrl: null,
+      imessageUrl: null,
+    };
+  }
+
+  const deepLink = buildDeepLink(contact, messageBody);
   return {
-    phone,
+    contact,
+    phone: contact.kind === 'phone' ? contact.address : null,
+    imessageAddress: contact.kind === 'email' ? contact.address : null,
     messageBody,
-    smsUrl: `sms:${phoneDigits}?body=${encoded}`,
-    imessageUrl: `sms:${phoneDigits}?body=${encoded}`,
+    smsUrl: contact.kind === 'phone' ? deepLink : null,
+    imessageUrl: deepLink,
   };
 }
 
