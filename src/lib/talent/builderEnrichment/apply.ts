@@ -140,7 +140,7 @@ async function syncBuilderUserAvatar(builder: any, avatarUrl: string) {
 export async function applyProfileDraft(
   builder: any,
   draft: EnrichedProfileDraft,
-  options?: { overwriteBasics?: boolean }
+  options?: { overwriteBasics?: boolean; deferExperiences?: boolean }
 ): Promise<string[]> {
   const updated: string[] = [];
   const overwrite = options?.overwriteBasics ?? false;
@@ -192,7 +192,7 @@ export async function applyProfileDraft(
       updated.push('universityOrCompany');
     }
   }
-  if (draft.experiences?.length) {
+  if (draft.experiences?.length && !options?.deferExperiences) {
     const nextExperiences = mergeExperiences(builder.experiences || [], draft.experiences);
     if (JSON.stringify(nextExperiences) !== JSON.stringify(builder.experiences || [])) {
       builder.experiences = nextExperiences;
@@ -258,7 +258,8 @@ export type LinkedInCdpApplyResult = {
 export async function applyLinkedInCdpToBuilder(
   builder: any,
   artifact: any,
-  linkedinUrl: string
+  linkedinUrl: string,
+  options?: { deferExperiences?: boolean }
 ): Promise<LinkedInCdpApplyResult> {
   const extracted = artifact?.extracted || {};
   const proposed = artifact?.proposedMongoUpdate || {};
@@ -293,7 +294,7 @@ export async function applyLinkedInCdpToBuilder(
     links: { linkedin: linkedinUrl },
   };
 
-  profileFieldsUpdated.push(...(await applyProfileDraft(builder, draft, { overwriteBasics: true })));
+  profileFieldsUpdated.push(...(await applyProfileDraft(builder, draft, { overwriteBasics: true, deferExperiences: options?.deferExperiences })));
 
   for (const [key, value] of Object.entries(proposed.$set || {})) {
     if (['headline', 'bio', 'location', 'graduationYear', 'universityOrCompany', 'updatedAt'].includes(key)) continue;

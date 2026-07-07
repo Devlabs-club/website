@@ -7,6 +7,7 @@ import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
+import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
 
 function json(body: unknown, status = 200) {
@@ -110,6 +111,12 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     wrappedBuilderId && phoneVerified
       ? generateAgentWrappedUploadToken({ builderId: wrappedBuilderId, email: wrappedEmail }, runtime)
       : null;
+  const uploadedWrapped = wrappedBuilderId
+    ? ((await AgentWrappedReportModel.findOne({ builderId: wrappedBuilderId, source: 'uploaded_agent_usage' })
+        .sort({ createdAt: -1 })
+        .select('reportId report.archetype report.score report.sourceCoverage')
+        .lean()) as any)
+    : null;
 
   return json({
     success: true,
@@ -128,6 +135,11 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
           command: buildAgentWrappedCommand(uploadToken, runtime),
           publicUrl: `/builder/wrapped/${wrappedBuilderId}`,
           messageDelivery: claimMessageDelivery(claim),
+          uploaded: Boolean(uploadedWrapped),
+          reportId: uploadedWrapped?.reportId || null,
+          archetype: uploadedWrapped?.report?.archetype || null,
+          score: typeof uploadedWrapped?.report?.score === 'number' ? uploadedWrapped.report.score : null,
+          agents: uploadedWrapped?.report?.sourceCoverage?.agents || [],
         }
       : null,
     profile: serializeProfile(profile, projects),

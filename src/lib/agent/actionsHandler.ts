@@ -205,12 +205,11 @@ async function applyClaimProfile(builder: any, claimConfirmed: boolean) {
 
 async function applyAvailabilityUpdate(
   builder: any,
-  updates: { availableNow?: boolean; hoursPerWeek?: number | null; desiredCompensation?: string | null; remotePreference?: string | null }
+  updates: { availableNow?: boolean; desiredCompensation?: string | null; remotePreference?: string | null }
 ) {
   builder.availability = {
     ...builder.availability,
     ...(typeof updates.availableNow === 'boolean' ? { availableNow: updates.availableNow } : {}),
-    hoursPerWeek: updates.hoursPerWeek ?? builder.availability?.hoursPerWeek ?? null,
     desiredCompensation: updates.desiredCompensation ?? builder.availability?.desiredCompensation ?? null,
     remotePreference: updates.remotePreference ?? builder.availability?.remotePreference ?? 'unspecified',
     refreshedAt: new Date(),
@@ -303,7 +302,6 @@ async function resolveAuthedBuilder(request: Request, runtime?: RuntimeEnv) {
       verificationStatus: 'builder_confirmed',
       availability: {
         availableNow: true,
-        hoursPerWeek: null,
         remotePreference: 'unspecified',
         refreshedAt: new Date(),
       },
@@ -631,14 +629,13 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     }
 
     if (action === 'update_availability') {
-      const { availableNow, hoursPerWeek, desiredCompensation, remotePreference } = payload;
+      const { availableNow, desiredCompensation, remotePreference } = payload;
       const resolved = await resolveAuthedBuilder(request, runtime);
       if ('error' in resolved) return bad(resolved.error || 'Please log in to continue.', 401);
       const { builder } = resolved;
 
       const completion = await applyAvailabilityUpdate(builder, {
         availableNow: typeof availableNow === 'boolean' ? availableNow : undefined,
-        hoursPerWeek,
         desiredCompensation,
         remotePreference,
       });
@@ -652,7 +649,7 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
           {
             type: 'summary_card',
             title: 'Availability Updated',
-            body: `Now marked ${builder.availability.availableNow ? 'available' : 'not available'} with ${builder.availability.hoursPerWeek || 0} hrs/week.`,
+            body: `Now marked ${builder.availability.availableNow ? 'available' : 'not available'}.`,
           },
         ],
       });

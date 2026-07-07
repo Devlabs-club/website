@@ -142,6 +142,105 @@
     background: #ff8f3d;
   }
 
+  .builder-dashboard {
+    font-family: Manrope, system-ui, sans-serif;
+    letter-spacing: 0;
+    background-color: #fbf6f3;
+    background-image:
+      linear-gradient(to right, rgba(5, 5, 5, 0.028) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(5, 5, 5, 0.028) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .builder-sidebar {
+    background: rgb(251 246 243 / 0.72);
+  }
+
+  .builder-nav-active {
+    position: relative;
+    border: 1px solid rgb(0 0 0 / 0.08);
+  }
+
+  .builder-nav-active::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 60%;
+    background: #ff7417;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .builder-metric-orange {
+    background: #ff7417;
+    color: white;
+  }
+
+  .builder-metric-dark {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .builder-metric-green {
+    background: #c6d99b;
+    color: #20311d;
+  }
+
+  .builder-content-panel {
+    border: 1px solid rgb(0 0 0 / 0.1);
+    background: rgb(255 250 247 / 0.86);
+    box-shadow: 0 28px 90px rgb(5 5 5 / 0.05);
+  }
+
+  .builder-content-grid {
+    background-image:
+      linear-gradient(rgb(5 5 5 / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(5 5 5 / 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .builder-primary-button {
+    background: #ff7417;
+    color: white;
+    box-shadow: 0 10px 24px rgb(255 116 23 / 0.22);
+    transition: background-color 0.2s, transform 0.2s;
+  }
+
+  .builder-primary-button:hover {
+    background: #e8650f;
+  }
+
+  .builder-outline-button {
+    border: 1px solid rgb(0 0 0 / 0.12);
+    background: white;
+    color: rgb(5 5 5 / 0.72);
+    transition: border-color 0.2s, background-color 0.2s, color 0.2s;
+  }
+
+  .builder-outline-button:hover {
+    border-color: rgb(255 116 23 / 0.45);
+    background: #fff5ef;
+    color: #050505;
+  }
+
+  .builder-mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .builder-messages-stage {
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media (max-width: 1023px) {
+    .builder-dashboard main {
+      padding-bottom: 4.5rem;
+    }
+  }
+
   .founder-dark-canvas {
     background:
       radial-gradient(circle at 56% 20%, rgb(250 125 34 / 0.06), transparent 34rem),

@@ -201,8 +201,7 @@ function scoreAvailabilityFit(builder: any, opportunity: any): number {
   if (!avail.availableNow) return 0.1;
 
   let score = 0.6;
-  if (avail.hoursPerWeek && avail.hoursPerWeek >= 20) score += 0.2;
-  if (avail.hoursPerWeek && avail.hoursPerWeek >= 40) score += 0.2;
+  if (avail.availableNow) score += 0.3;
 
   const locationPref = opportunity.locationPreference || '';
   const remoteOk = !locationPref || /remote/i.test(locationPref);

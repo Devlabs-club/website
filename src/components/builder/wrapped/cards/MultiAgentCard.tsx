@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
+import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
 import { StoryCardShell } from '../StoryCardShell';
 import { CARD_THEMES } from '../theme';
 import { CountUp } from '../CountUp';
@@ -26,21 +27,18 @@ export const MultiAgentCard: React.FC<{ report: AgentWrappedReport; index: numbe
   const split = (report.agentSplit || [])
     .filter((item) => item.percent > 0)
     .sort((a, b) => b.percent - a.percent);
-  const fallbackSplit = (
-    split.length
-      ? split
-      : [
-          { agent: 'Codex', percent: 42 },
-          { agent: 'Claude Code', percent: 34 },
-          { agent: 'Cursor', percent: 24 },
-        ]
-  ).sort((a, b) => {
+  const verified = isUploadedAgentWrappedReport(report);
+  const displaySplit = (verified ? split : split.length ? split : [
+    { agent: 'Codex', percent: 42 },
+    { agent: 'Claude Code', percent: 34 },
+    { agent: 'Cursor', percent: 24 },
+  ]).sort((a, b) => {
     const aIndex = AGENT_ORDER.indexOf(a.agent);
     const bIndex = AGENT_ORDER.indexOf(b.agent);
     return (aIndex === -1 ? 99 : aIndex) - (bIndex === -1 ? 99 : bIndex);
   });
-  const normalizedTotal = fallbackSplit.reduce((sum, item) => sum + item.percent, 0) || 100;
-  const segments = fallbackSplit.map((item) => ({ ...item, width: (item.percent / normalizedTotal) * 100 }));
+  const normalizedTotal = displaySplit.reduce((sum, item) => sum + item.percent, 0) || 100;
+  const segments = displaySplit.map((item) => ({ ...item, width: (item.percent / normalizedTotal) * 100 }));
 
   return (
     <StoryCardShell theme={CARD_THEMES.agents} index={index} total={total} contentClassName="">
@@ -101,7 +99,7 @@ export const MultiAgentCard: React.FC<{ report: AgentWrappedReport; index: numbe
               </span>
             </motion.div>
           ))}
-          {!split.length ? (
+          {!verified && !split.length ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -109,6 +107,15 @@ export const MultiAgentCard: React.FC<{ report: AgentWrappedReport; index: numbe
                 className="text-[0.62rem] font-black uppercase leading-tight tracking-[0.14em] text-white/68"
               >
                 sample split shown until your agent trace is uploaded
+              </motion.div>
+          ) : verified && !split.length ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="text-[0.62rem] font-black uppercase leading-tight tracking-[0.14em] text-white/68"
+              >
+                no multi-agent split detected in uploaded trace
               </motion.div>
           ) : null}
         </div>

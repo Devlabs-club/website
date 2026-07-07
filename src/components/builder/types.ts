@@ -40,7 +40,6 @@ export type BuilderData = {
   };
   availability?: {
     availableNow?: boolean;
-    hoursPerWeek?: number | null;
     remotePreference?: string | null;
     salaryExpectationMin?: number | null;
     salaryExpectationMax?: number | null;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
+import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
 import { StoryCardShell } from '../StoryCardShell';
 import { CARD_THEMES } from '../theme';
 
@@ -9,14 +10,17 @@ export const IdentityCard: React.FC<{ report: AgentWrappedReport; index: number;
   index,
   total,
 }) => {
+  const verified = isUploadedAgentWrappedReport(report);
   const fallbackIdentities = [
     { name: 'Builder', tagline: 'Still writing your story.', score: 50 },
     { name: 'Shipper', tagline: 'Keeps momentum visible.', score: 48 },
     { name: 'Debugger', tagline: 'Turns broken builds into proof.', score: 44 },
   ];
   const identities = report.identities?.length
-    ? [...report.identities, ...fallbackIdentities].slice(0, 3)
-    : fallbackIdentities;
+    ? [...report.identities, ...(verified ? [] : fallbackIdentities)].slice(0, 3)
+    : verified
+      ? [{ name: report.archetype || 'Builder', tagline: report.founderRead?.summary || 'Verified agent usage uploaded.', score: report.score || 50 }]
+      : fallbackIdentities;
   const [lead, ...rest] = identities;
   const leadSizeClass =
     lead.name.length > 11

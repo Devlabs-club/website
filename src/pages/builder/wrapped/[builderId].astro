@@ -1,10 +1,31 @@
 ---
 import AppLayout from "../../../layouts/AppLayout.astro";
 import AgentWrappedPage from "../../../components/builder/AgentWrappedPage";
+import { loadWrappedOgData } from "../../../lib/agentWrapped/loadWrappedOgData";
 
 const builderId = Astro.params.builderId || "";
+const siteOrigin = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
+const ogImage = `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png`;
+
+let pageTitle = "Agent Wrapped · DevLabs";
+let pageDescription = "DevLabs Agent Wrapped proof-of-work card.";
+
+try {
+  const ogData = await loadWrappedOgData(builderId, siteOrigin);
+  if (ogData) {
+    pageTitle = `${ogData.builderName} · Builder Wrapped`;
+    pageDescription = `${ogData.builderName} — ${ogData.archetype}. Score ${ogData.score}. ${ogData.headline}`;
+  }
+} catch {
+  /* fall back to generic meta */
+}
 ---
 
-<AppLayout title="Agent Wrapped · DevLabs" description="DevLabs Agent Wrapped proof-of-work card.">
+<AppLayout
+  title={pageTitle}
+  description={pageDescription}
+  ogImage={ogImage}
+  ogImageAlt={`${pageTitle} — DevLabs Builder Wrapped`}
+>
   <AgentWrappedPage builderId={builderId} client:load />
 </AppLayout>

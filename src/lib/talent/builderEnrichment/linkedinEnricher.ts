@@ -216,7 +216,8 @@ function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): Enrich
 async function enrichFromRemoteCdp(
   builder: any,
   normalizedUrl: string,
-  runtime?: RuntimeEnv
+  runtime?: RuntimeEnv,
+  deferExperiences?: boolean
 ): Promise<SourceEnrichmentResult | null> {
   // Remote scraper reads from its own Mongo when given --builderId. Local/dev builders
   // won't exist there, so always pass the LinkedIn URL directly.
@@ -241,7 +242,7 @@ async function enrichFromRemoteCdp(
 
   const artifact = result.artifact;
   const extracted = artifact?.extracted || {};
-  const writeResult = await applyLinkedInCdpToBuilder(builder, artifact, normalizedUrl);
+  const writeResult = await applyLinkedInCdpToBuilder(builder, artifact, normalizedUrl, { deferExperiences });
   return {
     source: 'linkedin',
     meta: {
@@ -260,7 +261,7 @@ async function enrichFromRemoteCdp(
 
 export async function enrichFromLinkedIn(
   builder: any,
-  options?: { runtime?: RuntimeEnv }
+  options?: { runtime?: RuntimeEnv; deferExperiences?: boolean }
 ): Promise<SourceEnrichmentResult> {
   const linkedinUrl = builder?.links?.linkedin;
   if (!linkedinUrl) {
@@ -273,7 +274,7 @@ export async function enrichFromLinkedIn(
   }
 
   try {
-    const remote = await enrichFromRemoteCdp(builder, normalizedUrl, options?.runtime);
+    const remote = await enrichFromRemoteCdp(builder, normalizedUrl, options?.runtime, options?.deferExperiences);
     if (remote) return remote;
   } catch (err) {
     console.warn('[linkedin] remote CDP enrichment failed, falling back', err);

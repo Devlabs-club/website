@@ -5,6 +5,7 @@ import BuilderProfile from '@/models/talent/BuilderProfile';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import { validateSafeAgentWrappedReport } from '@/lib/agentWrapped/privacy';
 import { verifyAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import type { UploadAgentWrappedReportRequest } from '@/lib/agentWrapped/types';
 
@@ -84,6 +85,10 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
+
+  void upsertTalentSearchIndexForBuilder(body.builderId).catch((error) => {
+    console.warn('[agent-wrapped-upload] search index refresh failed', error instanceof Error ? error.message : error);
+  });
 
   return json({
     ok: true,

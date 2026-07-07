@@ -342,13 +342,8 @@ function scoreAvailabilityFit(builder: any, opportunity: OpportunityLike): numbe
   const avail = builder.availability || {};
   let score = 0;
 
-  if (avail.availableNow) score += 0.55;
+  if (avail.availableNow) score += 0.7;
   else score += 0.15;
-
-  const hours = avail.hoursPerWeek || 0;
-  if (hours >= 20) score += 0.35;
-  else if (hours >= 10) score += 0.25;
-  else if (hours > 0) score += 0.12;
 
   const remote = norm(avail.remotePreference || 'unspecified');
   const loc = norm(opportunity.locationPreference || opportunity.availabilityNeeded || '');
@@ -509,14 +504,10 @@ export function buildAnonymousProofSummary(projects: any[]): string {
 export function buildAvailabilitySummary(builder: any): string {
   const a = builder.availability || {};
   if (a.availableNow) {
-    const hrs = a.hoursPerWeek ? `${a.hoursPerWeek} hrs/week` : 'flexible hours';
     const remote = a.remotePreference && a.remotePreference !== 'unspecified'
       ? ` · ${String(a.remotePreference).replace('_', ' ')}`
       : '';
-    return `Available now · ${hrs}${remote}`;
-  }
-  if (a.hoursPerWeek) {
-    return `Limited availability · ${a.hoursPerWeek} hrs/week`;
+    return `Available now${remote}`;
   }
   return 'Availability not specified';
 }

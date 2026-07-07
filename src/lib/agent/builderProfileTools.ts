@@ -80,7 +80,6 @@ export function buildProfileSnapshot(builder: any, projects: any[]) {
     },
     availability: {
       availableNow: builder.availability?.availableNow ?? false,
-      hoursPerWeek: builder.availability?.hoursPerWeek ?? null,
       remotePreference: builder.availability?.remotePreference ?? 'unspecified',
       desiredCompensation: builder.availability?.desiredCompensation ?? null,
       earliestStartDate: builder.availability?.earliestStartDate ?? null,
@@ -138,11 +137,10 @@ export async function updateLinks(builder: any, args: { github?: string; linkedi
   return builder.links;
 }
 
-export async function updateAvailability(builder: any, args: { availableNow?: boolean; hoursPerWeek?: number; remotePreference?: string; desiredCompensation?: string }) {
+export async function updateAvailability(builder: any, args: { availableNow?: boolean; remotePreference?: string; desiredCompensation?: string }) {
   builder.availability = {
     ...builder.availability,
     ...(typeof args.availableNow === 'boolean' ? { availableNow: args.availableNow, refreshedAt: new Date() } : {}),
-    ...(typeof args.hoursPerWeek === 'number' ? { hoursPerWeek: args.hoursPerWeek } : {}),
     ...(typeof args.remotePreference === 'string' ? { remotePreference: args.remotePreference } : {}),
     ...(typeof args.desiredCompensation === 'string' ? { desiredCompensation: args.desiredCompensation } : {}),
   };

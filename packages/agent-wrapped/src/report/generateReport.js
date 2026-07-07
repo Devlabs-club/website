@@ -30,6 +30,8 @@ function clamp(value) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+const DEFAULT_SESSION_MINUTES = 42;
+
 function scoreFromTerms(text, terms) {
   return terms.reduce((sum, term) => sum + countMatches(text, term), 0);
 }
@@ -93,16 +95,41 @@ function computeIdentities(metrics) {
 }
 
 function computeTimeInvested(samples) {
-  const ranges = samples.map((sample) => sample.timeRange).filter(Boolean);
-  if (!ranges.length) {
-    return { totalHours: 0, longestSessionMinutes: 0, estimated: true };
-  }
-  const durationsMinutes = ranges.map((range) => Math.max(1, (range.endMs - range.startMs) / 60_000));
-  const totalMinutes = durationsMinutes.reduce((sum, value) => sum + value, 0);
+  const sessionSamples = samples.filter((sample) => sample.isSessionFile);
+  const timedSessions = sessionSamples.filter((sample) => sample.timeRange);
+  const untimedSessions = sessionSamples.filter((sample) => !sample.timeRange);
+
+  const timedMinutes = timedSessions.map((sample) =>
+    Math.max(1, (sample.timeRange.endMs - sample.timeRange.startMs) / 60_000)
+  );
+  const timedTotalMinutes = timedMinutes.reduce((sum, value) => sum + value, 0);
+  const avgTimedMinutes =
+    timedMinutes.length > 0 ? timedTotalMinutes / timedMinutes.length : DEFAULT_SESSION_MINUTES;
+
+  const estimatedUntimedMinutes = untimedSessions.length * Math.max(DEFAULT_SESSION_MINUTES, avgTimedMinutes);
+  const configMinutes = samples
+    .filter((sample) => !sample.isSessionFile)
+    .length * Math.max(12, Math.round(avgTimedMinutes * 0.35));
+
+  const totalMinutes = timedTotalMinutes + estimatedUntimedMinutes + configMinutes;
+  const longestSessionMinutes = timedMinutes.length
+    ? Math.round(Math.max(...timedMinutes))
+    : Math.round(Math.max(DEFAULT_SESSION_MINUTES, avgTimedMinutes));
+
+  const allStarts = timedSessions.map((sample) => sample.timeRange.startMs);
+  const allEnds = timedSessions.map((sample) => sample.timeRange.endMs);
+  const daysCovered =
+    allStarts.length && allEnds.length
+      ? Math.max(1, Math.ceil((Math.max(...allEnds) - Math.min(...allStarts)) / 86_400_000))
+      : undefined;
+
   return {
     totalHours: Math.round((totalMinutes / 60) * 10) / 10,
-    longestSessionMinutes: Math.round(Math.max(...durationsMinutes)),
-    estimated: ranges.length < samples.length,
+    longestSessionMinutes,
+    sessionFiles: sessionSamples.length,
+    timedSessionFiles: timedSessions.length,
+    estimated: untimedSessions.length > 0 || timedSessions.length < sessionSamples.length,
+    daysCovered,
   };
 }
 
@@ -150,7 +177,7 @@ function computeAgentSplit(samples, agents) {
 export function generateReport({ builderId, builderName, samples, publicRoot }) {
   const allText = samples.map((sample) => sample.text).join('\n').toLowerCase();
   const agents = [...new Set(samples.map((sample) => sample.agent))];
-  const sessionCount = samples.length;
+  const sessionCount = samples.filter((sample) => sample.isSessionFile).length || samples.length;
 
   const languageHits = Object.entries(LANGUAGE_PATTERNS)
     .map(([name, pattern]) => ({ name, hits: countMatches(allText, pattern) }))
@@ -238,7 +265,7 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
       codexSessions: samples.filter((sample) => sample.agent === 'Codex').length,
       cursorSessions: samples.filter((sample) => sample.agent === 'Cursor').length,
       manualImports: samples.filter((sample) => sample.agent === 'Manual import').length,
-      daysCovered: undefined,
+      daysCovered: timeInvested.daysCovered,
     },
     sourceCoverage: {
       agents,

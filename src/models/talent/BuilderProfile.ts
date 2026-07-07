@@ -81,7 +81,6 @@ const BuilderProfileSchema = new mongoose.Schema(
     },
     availability: {
       availableNow: { type: Boolean, default: false },
-      hoursPerWeek: { type: Number, default: null },
       desiredCompensation: { type: String, default: null },
       salaryExpectationMin: { type: Number, default: null },
       salaryExpectationMax: { type: Number, default: null },

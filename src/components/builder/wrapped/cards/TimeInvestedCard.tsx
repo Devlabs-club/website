@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
+import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
 import { StoryCardShell } from '../StoryCardShell';
 import { CountUp } from '../CountUp';
 import { CARD_THEMES } from '../theme';
@@ -19,29 +20,52 @@ function hoursNumberClass(hours: number) {
   return 'text-[15.5cqw]';
 }
 
+function sessionCountFor(report: AgentWrappedReport) {
+  return (
+    report.sourceCoverage?.sessionCount ||
+    (report.sourceSummary.claudeSessions || 0) +
+      (report.sourceSummary.codexSessions || 0) +
+      (report.sourceSummary.cursorSessions || 0) +
+      (report.sourceSummary.manualImports || 0)
+  );
+}
+
+function almostDaysStraight(hours: number) {
+  const days = hours / 24;
+  if (days < 1) return 'almost a full day straight';
+  const rounded = Math.max(1, Math.round(days));
+  if (rounded === 1) return 'almost 1 day straight';
+  return `almost ${rounded} days straight`;
+}
+
 export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: number; total: number }> = ({
   report,
   index,
   total,
 }) => {
-  const sessionCount =
-    report.sourceCoverage?.sessionCount ||
-    (report.sourceSummary.claudeSessions || 0) +
-      (report.sourceSummary.codexSessions || 0) +
-      (report.sourceSummary.cursorSessions || 0) +
-      (report.sourceSummary.manualImports || 0);
+  const verified = isUploadedAgentWrappedReport(report);
+  const sessionCount = sessionCountFor(report);
   const fallbackHours = Math.max(24, Math.round(sessionCount * 1.45));
   const rawTimeInvested = report.timeInvested || { totalHours: 0, longestSessionMinutes: 0, estimated: true };
   const timeInvested = {
-    totalHours: rawTimeInvested.totalHours > 0 ? rawTimeInvested.totalHours : fallbackHours,
+    totalHours:
+      rawTimeInvested.totalHours > 0
+        ? rawTimeInvested.totalHours
+        : verified
+          ? Math.max(fallbackHours, Math.round(sessionCount * 0.75))
+          : fallbackHours,
     longestSessionMinutes:
       rawTimeInvested.longestSessionMinutes > 0
         ? rawTimeInvested.longestSessionMinutes
-        : Math.min(402, Math.max(58, Math.round(fallbackHours * 7))),
-    estimated: rawTimeInvested.estimated || rawTimeInvested.totalHours <= 0,
+        : verified
+          ? Math.min(402, Math.max(58, Math.round((rawTimeInvested.totalHours || fallbackHours) * 7 / Math.max(sessionCount, 1))))
+          : Math.min(402, Math.max(58, Math.round(fallbackHours * 7))),
+    estimated: verified
+      ? rawTimeInvested.estimated !== false || rawTimeInvested.totalHours <= 0
+      : rawTimeInvested.estimated || rawTimeInvested.totalHours <= 0,
   };
-  const days = Math.max(1, Math.round(timeInvested.totalHours / 24));
   const introClass = 'text-[5.35cqw] font-bold leading-[1.4]';
+  const support = almostDaysStraight(timeInvested.totalHours);
 
   return (
     <StoryCardShell theme={CARD_THEMES.time} index={index} total={total} contentClassName="">
@@ -70,7 +94,7 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
             <span className={`invisible shrink-0 ${introClass}`} aria-hidden="true">
               you built for
             </span>
-            <span className="ml-[2.4cqw] text-[4.85cqw] font-bold leading-[1.4] text-white">this year.</span>
+            <span className="ml-[2.4cqw] text-[4.85cqw] font-bold leading-[1.4] text-white">with agents.</span>
           </div>
 
           <motion.p
@@ -79,7 +103,7 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
             transition={{ delay: 0.42, duration: 0.45 }}
             className="mt-[4.8cqw] max-w-full text-[3.05cqw] font-bold leading-[1.4] text-[#d4d4d4]"
           >
-            that's {days} straight day{days === 1 ? '' : 's'} of shipping
+            that's {support}
           </motion.p>
         </motion.div>
 
@@ -99,7 +123,9 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
             transition={{ delay: 0.85 }}
             className="absolute bottom-[10%] left-0 right-0 text-center text-[1.75cqw] font-normal uppercase tracking-[0.08em] text-white/28"
           >
-            estimated from available proof-of-work
+            {verified
+              ? 'estimated from local session files and timestamps'
+              : 'estimated from available proof-of-work'}
           </motion.p>
         ) : null}
       </div>

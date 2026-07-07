@@ -29,79 +29,117 @@ export type BuilderProfileView = {
 };
 
 export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView }> = ({ profile }) => {
+  const skills = (profile.skills?.length ? profile.skills : profile.rolePreference || []).slice(0, 12);
+  const showOpenTo = (profile.rolePreference?.length ?? 0) > 0 && (profile.skills?.length ?? 0) > 0;
+  const experiences = (profile.experiences || []).slice(0, 3);
+  const projects = (profile.projects || []).slice(0, 3);
+
   return (
-    <div className="rounded-[22px] border border-[#1a140f]/10 bg-[#fbfaf7] p-5 shadow-[0_16px_42px_rgba(33,24,16,0.07)]">
-      <div className="flex items-start gap-4 rounded-2xl bg-white p-4 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
+    <div className="builder-profile-preview font-manrope mx-auto w-full max-w-3xl">
+      <header className="flex items-start gap-5 border-b border-black/10 pb-8">
         {profile.avatarUrl ? (
           <img
             src={profile.avatarUrl}
             alt={profile.name || "Builder"}
-            className="h-16 w-16 shrink-0 rounded-2xl border border-[#1a140f]/10 object-cover"
+            className="h-16 w-16 shrink-0 object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-[#fa7d22]/25 bg-[#fff7ef] text-lg font-extrabold text-[#fa7d22]">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center bg-[#fff5ef] text-xl font-extrabold text-[#ff7417]">
             {(profile.name || "B").slice(0, 1).toUpperCase()}
           </div>
         )}
-        <div className="min-w-0">
-          <h2 className="truncate text-xl font-extrabold tracking-tight text-[#14110f]">{profile.name || "Builder"}</h2>
-          <p className="mt-1 text-sm font-medium leading-6 text-[#5e554d]">{profile.headline || profile.bio || "Proof-of-work builder"}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#9b9188]">{profile.location || profile.universityOrCompany}</p>
+        <div className="min-w-0 pt-0.5">
+          <h2 className="truncate text-[clamp(1.25rem,2.5vw,1.75rem)] font-extrabold tracking-tight text-[#050505]">
+            {profile.name || "Builder"}
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-black/55">
+            {profile.headline || profile.bio || "Proof-of-work builder"}
+          </p>
+          {(profile.location || profile.universityOrCompany) ? (
+            <p className="mt-2 text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-black/40">
+              {profile.location || profile.universityOrCompany}
+            </p>
+          ) : null}
         </div>
-      </div>
+      </header>
 
-      <PreviewSection title="Skills">
-        <div className="flex flex-wrap gap-1.5">
-          {(profile.skills?.length ? profile.skills : profile.rolePreference || []).slice(0, 12).map((skill) => (
-            <span key={skill} className="rounded-full border border-[#1a140f]/10 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#6f665d]">{skill}</span>
-          ))}
-          {!(profile.skills?.length || profile.rolePreference?.length) && (
-            <p className="text-sm text-[#746b62]">No skills added yet.</p>
-          )}
-        </div>
+      <PreviewSection label="Skills">
+        {skills.length ? (
+          <div className="flex flex-wrap gap-2">
+            {skills.map((skill) => (
+              <span
+                key={skill}
+                className="border border-black/10 bg-[#fbf6f3]/86 px-2.5 py-1 text-xs font-semibold text-black/65"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm leading-6 text-black/45">No skills added yet.</p>
+        )}
       </PreviewSection>
 
-      {(profile.rolePreference?.length ?? 0) > 0 && (profile.skills?.length ?? 0) > 0 && (
-        <PreviewSection title="Open to">
-          <div className="flex flex-wrap gap-1.5">
-            {profile.rolePreference.slice(0, 6).map((role) => (
-              <span key={role} className="rounded-full border border-[#fa7d22]/20 bg-[#fff7ef] px-2.5 py-1 text-[11px] font-semibold text-[#c45a00]">{role}</span>
+      {showOpenTo ? (
+        <PreviewSection label="Open to">
+          <div className="flex flex-wrap gap-2">
+            {profile.rolePreference!.slice(0, 6).map((role) => (
+              <span
+                key={role}
+                className="border border-[#ff7417]/35 bg-[#fff5ef] px-2.5 py-1 text-xs font-semibold text-[#bf4f08]"
+              >
+                {role}
+              </span>
             ))}
           </div>
         </PreviewSection>
-      )}
+      ) : null}
 
-      <PreviewSection title="Experience">
-        <div className="space-y-3">
-          {(profile.experiences || []).slice(0, 3).map((exp, index) => (
-            <div key={`${exp.company}-${index}`} className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
-              <p className="text-sm font-bold text-[#14110f]">{exp.title} · {exp.company}</p>
-              <p className="mt-1 text-xs leading-5 text-[#746b62]">{exp.description || exp.dateRange}</p>
-            </div>
-          ))}
-          {!(profile.experiences || []).length && <p className="text-sm text-[#746b62]">No experience added yet.</p>}
-        </div>
+      <PreviewSection label="Experience">
+        {experiences.length ? (
+          <ul className="divide-y divide-black/10">
+            {experiences.map((exp, index) => (
+              <li key={`${exp.company}-${index}`} className="py-4 first:pt-0 last:pb-0">
+                <p className="text-sm font-extrabold text-[#050505]">
+                  {exp.title} · {exp.company}
+                </p>
+                <p className="mt-1.5 text-sm leading-6 text-black/50">{exp.description || exp.dateRange}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm leading-6 text-black/45">No experience added yet.</p>
+        )}
       </PreviewSection>
 
-      <PreviewSection title="Projects">
-        <div className="space-y-3">
-          {(profile.projects || []).slice(0, 3).map((project) => (
-            <div key={project.id || project.projectName} className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
-              <p className="text-sm font-bold text-[#14110f]">{project.projectName}</p>
-              <p className="mt-1 text-xs leading-5 text-[#746b62]">{project.description}</p>
-            </div>
-          ))}
-          {!(profile.projects || []).length && <p className="text-sm text-[#746b62]">No projects added yet.</p>}
-        </div>
+      <PreviewSection label="Projects" last>
+        {projects.length ? (
+          <ul className="divide-y divide-black/10">
+            {projects.map((project) => (
+              <li key={project.id || project.projectName} className="py-4 first:pt-0 last:pb-0">
+                <p className="text-sm font-extrabold text-[#050505]">{project.projectName}</p>
+                {project.description ? (
+                  <p className="mt-1.5 text-sm leading-6 text-black/50">{project.description}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm leading-6 text-black/45">No projects added yet.</p>
+        )}
       </PreviewSection>
     </div>
   );
 };
 
-const PreviewSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="mt-5">
-    <h3 className="mb-2 text-xs font-extrabold uppercase tracking-[0.14em] text-[#9b9188]">{title}</h3>
-    {children}
+const PreviewSection: React.FC<{ label: string; children: React.ReactNode; last?: boolean }> = ({
+  label,
+  children,
+  last,
+}) => (
+  <section className={last ? "pt-8" : "border-b border-black/10 py-8"}>
+    <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">{label}</p>
+    <div className="mt-4">{children}</div>
   </section>
 );
 

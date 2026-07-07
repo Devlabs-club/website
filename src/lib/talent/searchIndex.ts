@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import ProjectRecord from '@/models/talent/ProjectRecord';
+import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import TalentSearchIndex from '@/models/talent/TalentSearchIndex';
 import TalentSearchKey from '@/models/talent/TalentSearchKey';
 
@@ -264,7 +265,7 @@ export function buildSearchableBuilderFilter(extra: Record<string, unknown> = {}
   };
 }
 
-export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
+export function buildTalentSearchIndexPayload(builder: any, projects: any[], agentWrappedReport?: any) {
   const sortedProjects = [...projects]
     .map(buildProjectSnapshot)
     .sort((a, b) => b.evidenceScore - a.evidenceScore);
@@ -277,6 +278,9 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
     entry.degree,
     entry.field,
   ]);
+  const wrappedLanguages = (agentWrappedReport?.languages || []).map((item: any) => item?.name).filter(Boolean);
+  const wrappedFrameworks = (agentWrappedReport?.frameworks || []).map((item: any) => item?.name).filter(Boolean);
+  const wrappedAgents = agentWrappedReport?.sourceCoverage?.agents || [];
   const searchTerms = expandTerms([
     ...(builder.rolePreference || []),
     ...(builder.preferredWorkType || []),
@@ -284,6 +288,12 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
     builder.universityOrCompany,
     ...educationTerms,
     builder.profileQuality?.oneLineSummary,
+    agentWrappedReport?.archetype,
+    agentWrappedReport?.founderRead?.summary,
+    ...(agentWrappedReport?.founderRead?.bestFitRoles || []),
+    ...wrappedLanguages,
+    ...wrappedFrameworks,
+    ...wrappedAgents,
     ...projects.flatMap((project) => [
       project.projectName,
       project.description,
@@ -309,7 +319,6 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
     links: builder.links || {},
     availability: {
       availableNow: Boolean(builder.availability?.availableNow),
-      hoursPerWeek: builder.availability?.hoursPerWeek || null,
       remotePreference: builder.availability?.remotePreference || 'unspecified',
     },
     hiringIntent: builder.hiringIntent || {},
@@ -326,6 +335,17 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[]) {
     strongProjectCount: sortedProjects.filter((project) => project.evidenceScore >= 6).length,
     bestProjectEvidenceScore: sortedProjects[0]?.evidenceScore || 0,
     projectSnapshots,
+    agentWrapped: agentWrappedReport
+      ? {
+          uploaded: agentWrappedReport.source === 'uploaded_agent_usage',
+          archetype: agentWrappedReport.archetype || null,
+          score: typeof agentWrappedReport.score === 'number' ? agentWrappedReport.score : null,
+          agents: wrappedAgents.slice(0, 6),
+          languages: wrappedLanguages.slice(0, 6),
+          frameworks: wrappedFrameworks.slice(0, 8),
+          sessionCount: agentWrappedReport.sourceCoverage?.sessionCount || 0,
+        }
+      : { uploaded: false },
     sourceUpdatedAt: builder.updatedAt || null,
     indexedAt: new Date(),
   };
@@ -344,7 +364,11 @@ export async function upsertTalentSearchIndexForBuilder(builderId: unknown) {
   const projects = await ProjectRecord.find({ builderId: builder._id })
     .select(PROJECT_INDEX_SELECT)
     .lean();
-  const payload = buildTalentSearchIndexPayload(builder, projects);
+  const wrappedDoc = (await AgentWrappedReportModel.findOne({ builderId: builder._id, source: 'uploaded_agent_usage' })
+    .sort({ createdAt: -1 })
+    .select('report')
+    .lean()) as { report?: any } | null;
+  const payload = buildTalentSearchIndexPayload(builder, projects, wrappedDoc?.report || null);
   const result = await TalentSearchIndex.findOneAndUpdate(
     { builderId: builder._id },
     { $set: payload },

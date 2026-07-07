@@ -54,7 +54,6 @@ export type AdminCandidate = {
   location: string | null;
   availability: {
     availableNow: boolean;
-    hoursPerWeek: number | null;
     remotePreference: string | null;
     desiredCompensation: string | null;
   };

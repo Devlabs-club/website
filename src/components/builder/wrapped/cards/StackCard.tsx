@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
+import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
 import { StoryCardShell } from '../StoryCardShell';
 import { CARD_THEMES } from '../theme';
 
@@ -21,6 +22,7 @@ export const StackCard: React.FC<{ report: AgentWrappedReport; index: number; to
   index,
   total,
 }) => {
+  const verified = isUploadedAgentWrappedReport(report);
   const languages = report.languages.slice(0, 5);
   const frameworks = report.frameworks.slice(0, 5);
   const tools = [
@@ -34,7 +36,10 @@ export const StackCard: React.FC<{ report: AgentWrappedReport; index: number; to
   const chipGroups = [
     { label: 'Languages', items: languages.map((item) => `${item.name} ${Math.round(item.percent)}%`) },
     { label: 'Frameworks', items: frameworks.map((item) => item.name) },
-    { label: 'Tools', items: tools.length ? tools : ['Codex', 'Claude Code', 'Cursor'] },
+    {
+      label: 'Tools',
+      items: tools.length ? tools : verified ? ['No agent tools detected'] : ['Codex', 'Claude Code', 'Cursor'],
+    },
   ];
 
   return (

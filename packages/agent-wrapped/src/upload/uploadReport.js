@@ -8,7 +8,7 @@ export async function uploadReport({ apiRoot, token, builderId, report }) {
     body: JSON.stringify({
       builderId,
       report,
-      localAnalysisVersion: '0.1.0',
+      localAnalysisVersion: '0.2.2',
       consent: {
         approvedAt: new Date().toISOString(),
         rawContentUploaded: false,

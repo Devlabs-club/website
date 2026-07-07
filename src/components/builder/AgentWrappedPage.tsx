@@ -96,6 +96,7 @@ const FullReportDetail: React.FC<{ report: AgentWrappedReport }> = ({ report }) 
 
 export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId }) => {
   const [report, setReport] = useState<AgentWrappedReport | null>(null);
+  const [source, setSource] = useState<AgentWrappedReport['source']>('profile_fallback');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -106,6 +107,7 @@ export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId })
         const data: WrappedResponse = await res.json();
         if (!res.ok || !data.ok || !data.report) throw new Error(data.error || 'Could not load wrapped report.');
         setReport(data.report);
+        setSource(data.source || data.report.source || 'profile_fallback');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Could not load wrapped report.');
       } finally {
@@ -147,7 +149,7 @@ export const AgentWrappedPage: React.FC<{ builderId: string }> = ({ builderId })
           <div className="text-xs font-black uppercase tracking-[0.2em] text-black/40">Builder Wrapped</div>
         </div>
 
-        {report.source === 'profile_fallback' ? (
+        {source === 'profile_fallback' ? (
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#fa7d22]/25 bg-white px-4 py-2 text-xs font-bold text-[#a95515] shadow-[0_10px_24px_rgba(33,24,16,0.06)]">
             <Sparkles className="h-3.5 w-3.5" />
             Estimated from profile — connect an agent trace for the verified version

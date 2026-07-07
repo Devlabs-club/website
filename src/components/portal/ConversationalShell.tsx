@@ -17,10 +17,9 @@ function buildPayload(action: string, input: string) {
   }
 
   if (action === 'update_availability') {
-    const [available, hours, comp, mode] = value.split('|').map((part) => part.trim());
+    const [available, comp, mode] = value.split('|').map((part) => part.trim());
     return {
       availableNow: ['true', 'yes', 'available', 'open'].includes((available || '').toLowerCase()),
-      hoursPerWeek: Number(hours) || null,
       desiredCompensation: comp || null,
       remotePreference: mode || 'unspecified',
     };
@@ -92,7 +91,7 @@ export default function ConversationalShell({
         setCards(data.shortlist.map((candidate: any) => ({
           type: 'candidate_card',
           title: `${candidate.name} — ${candidate.matchScore}%`,
-          subtitle: `${candidate.location || 'Remote'} · ${candidate.availability?.hoursPerWeek || 0} hrs/week`,
+          subtitle: `${candidate.location || 'Remote'} · ${candidate.availability?.availableNow ? 'available' : 'not available'}`,
           riskFlags: candidate.riskFlags || [],
         })));
       }

@@ -53,7 +53,6 @@ const TalentSearchIndexSchema = new mongoose.Schema(
     },
     availability: {
       availableNow: { type: Boolean, default: false },
-      hoursPerWeek: { type: Number, default: null },
       remotePreference: { type: String, default: 'unspecified' },
     },
     hiringIntent: {
@@ -87,6 +86,15 @@ const TalentSearchIndexSchema = new mongoose.Schema(
     strongProjectCount: { type: Number, default: 0 },
     bestProjectEvidenceScore: { type: Number, default: 0 },
     projectSnapshots: [ProjectSnapshotSchema],
+    agentWrapped: {
+      uploaded: { type: Boolean, default: false },
+      archetype: { type: String, default: null },
+      score: { type: Number, default: null },
+      agents: [{ type: String }],
+      languages: [{ type: String }],
+      frameworks: [{ type: String }],
+      sessionCount: { type: Number, default: 0 },
+    },
     sourceUpdatedAt: { type: Date, default: null },
     indexedAt: { type: Date, default: Date.now, index: true },
   },

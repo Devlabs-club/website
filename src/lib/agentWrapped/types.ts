@@ -73,6 +73,9 @@ export type AgentWrappedReport = {
     totalHours: number;
     longestSessionMinutes: number;
     estimated?: boolean;
+    sessionFiles?: number;
+    timedSessionFiles?: number;
+    daysCovered?: number;
   };
   agentSplit?: {
     agent: string;
@@ -101,3 +104,7 @@ export type AgentWrappedUploadTokenPayload = {
   builderId: string;
   email: string;
 };
+
+export function isUploadedAgentWrappedReport(report: AgentWrappedReport | null | undefined): boolean {
+  return report?.source === 'uploaded_agent_usage';
+}

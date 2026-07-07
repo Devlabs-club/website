@@ -3,7 +3,7 @@ import type { EnrichedProfileDraft, EnrichedProjectDraft, SourceEnrichmentResult
 
 const MIN_REPO_SIZE_KB = 30;
 const MIN_AUTHOR_COMMITS = 3;
-const MAX_REPOS_TO_ENRICH = 8;
+const MAX_REPOS_TO_ENRICH = 3;
 const MAX_REPO_AGE_MS = 3 * 365 * 24 * 60 * 60 * 1000;
 
 const TUTORIAL_REPO_PATTERN =

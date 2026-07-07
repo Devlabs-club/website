@@ -120,7 +120,7 @@ Education:
 ${formatEducation(builder)}
 Experience:
 ${formatExperience(builder)}
-Availability: ${builder.availability?.availableNow ? `Available, ${builder.availability.hoursPerWeek || '?'} hrs/week` : 'Not available'}
+Availability: ${builder.availability?.availableNow ? 'Available' : 'Not available'}
 
 Top projects (up to 3):
 ${projects.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.projectName || 'Unnamed'}: ${p.description || 'No description'}. Problem: ${p.problemSolved || 'Not stated'}. Contribution: ${p.builderContribution || 'Not stated'}. Stack: ${(p.techStack || []).join(', ')}. Tags: ${(p.contributionTags || []).join(', ') || 'None'}. Links: ${formatLinks(p.links)}. Verified: ${p.verificationStatus || 'unverified'}.`).join('\n')}

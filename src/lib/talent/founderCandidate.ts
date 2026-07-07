@@ -310,7 +310,7 @@ function buildLockedTraceDetails(params: {
     proofSummary ? `Proof summary: ${proofSummary}` : null,
     ...findings,
     ...buildProjectEvidenceLines(projects),
-    builder?.availability?.hoursPerWeek ? `Availability: ${builder.availability.hoursPerWeek} hrs/week` : null,
+    builder?.availability?.availableNow ? 'Availability: open to work' : null,
   ];
 
   return uniqueStrings([...reportLines, ...profileLines], 4, 120);
@@ -325,7 +325,7 @@ function buildAgentTraceFromWrapped(
   locked: boolean
 ): AgentTraceTeaserPayload | null {
   const report = agentWrapped?.report;
-  if (!report) return null;
+  if (!report || report.source !== 'uploaded_agent_usage') return null;
 
   const agents = Array.isArray(report.sourceCoverage?.agents) ? report.sourceCoverage.agents : [];
   const profileBadges = [
@@ -714,7 +714,6 @@ export async function buildFullCandidateCard(params: {
     location: builder.location || null,
     availability: {
       availableNow: Boolean(availability.availableNow),
-      hoursPerWeek: availability.hoursPerWeek ?? null,
       remotePreference: availability.remotePreference || null,
       desiredCompensation: availability.desiredCompensation || null,
     },
@@ -887,7 +886,7 @@ export async function buildFullCandidatesForShortlist(
   const entitlementAccess = options?.entitlements;
 
   const wrappedDocs = builderIds.length
-    ? await AgentWrappedReportModel.find({ builderId: { $in: builderIds } })
+    ? await AgentWrappedReportModel.find({ builderId: { $in: builderIds }, source: 'uploaded_agent_usage' })
         .sort({ createdAt: -1 })
         .lean()
     : [];

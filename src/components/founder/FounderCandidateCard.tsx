@@ -80,7 +80,6 @@ export default function FounderCandidateCard({
       <div className="text-sm text-white/70">
         <span className="text-white/45 text-xs uppercase tracking-wider">Availability · </span>
         {candidate.availability.availableNow ? 'Available now' : 'Limited availability'}
-        {candidate.availability.hoursPerWeek ? ` · ${candidate.availability.hoursPerWeek} hrs/week` : ''}
       </div>
 
       {candidate.workTypes.length > 0 ? (

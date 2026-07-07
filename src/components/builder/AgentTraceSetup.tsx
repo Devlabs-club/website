@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Clipboard, Loader2, RefreshCw, Terminal } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Clipboard, Loader2, RefreshCw } from 'lucide-react';
 
 export type MessageDelivery =
   | { status: 'sent'; providerMessageId?: string | null }
@@ -56,7 +56,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
       if (!res.ok || !data.ok) throw new Error(data.error || 'Could not check trace status.');
       setUploaded(Boolean(data.uploaded));
       if (data.uploaded && autoCompleteOnUploaded) await onComplete();
-      else if (!silent) setError('No uploaded Agent Wrapped report yet. Run the command, approve the preview, then check again.');
+      else if (!silent) setError('No uploaded report yet. Run the command, approve the preview, then check again.');
     } catch (err) {
       if (!silent) setError(err instanceof Error ? err.message : 'Could not check trace status.');
     } finally {
@@ -103,99 +103,116 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl rounded-[22px] border border-[#1a140f]/10 bg-[#fbfaf7] p-6 shadow-[0_16px_42px_rgba(33,24,16,0.07)] sm:p-8">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#fa7d22]/25 bg-[#fff7ef] text-[#fa7d22]">
-        {uploaded ? <CheckCircle2 className="h-5 w-5" /> : <Terminal className="h-5 w-5" />}
-      </div>
+    <div className="agent-trace-setup font-manrope mx-auto w-full max-w-3xl">
+      {uploaded ? (
+        <div className="mb-8 flex items-center gap-2 text-sm font-semibold text-[#20311d]">
+          <CheckCircle2 className="h-4 w-4 text-[#ff7417]" />
+          Agent Wrapped uploaded — continuing…
+        </div>
+      ) : null}
 
-      <p className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[#fa7d22]">DevLabs Agent Wrapped</p>
-      <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-[#14110f]">Run agent traces</h2>
-      <p className="mt-2 text-sm leading-6 text-[#746b62]">
-        Turn your real AI-building workflow into verified proof-of-work. This runs locally across
-        Claude Code, Codex, Cursor, and exported session summaries, then uploads only safe aggregated
-        metrics after you approve the preview.
-      </p>
+      <section className="border-b border-black/10 pb-8">
+        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">01 · Run locally</p>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-black/50">
+          Paste this in Terminal. It scans Claude Code, Codex, Cursor, and exported sessions — then uploads
+          only aggregated metrics after you approve the preview.
+        </p>
 
-      <div className="mt-5 rounded-2xl border border-[#1a140f]/10 bg-white p-4 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-bold text-[#14110f]">iMessage agent</p>
-            <p className="mt-1 text-sm leading-6 text-[#746b62]">
-              {delivery?.status === 'sent'
-                ? 'The DevLabs agent texted you. Continue the profile conversation in Messages while traces run here.'
-                : delivery?.status === 'delivery_failed'
-                  ? `The agent did not send automatically: ${delivery.error}`
-                  : 'The agent has not been confirmed as sent yet.'}
-            </p>
+        <div className="mt-5 overflow-hidden border border-black/10 bg-[#1a1a1a]">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-2.5">
+            <span className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-white/40">Terminal</span>
+            <button
+              type="button"
+              onClick={copyCommand}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white/70 transition-colors hover:text-white"
+            >
+              <Clipboard className="h-3.5 w-3.5" />
+              {copied ? 'Copied' : 'Copy'}
+            </button>
           </div>
-          {delivery?.status !== 'sent' && (
+          <pre className="custom-scrollbar overflow-x-auto whitespace-pre px-4 py-4 text-[0.78rem] leading-6 text-white/90">
+            <code>{command}</code>
+          </pre>
+        </div>
+      </section>
+
+      <section className="border-b border-black/10 py-8">
+        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">02 · Messages</p>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <p className="max-w-lg text-sm leading-6 text-black/50">
+            {delivery?.status === 'sent'
+              ? 'The DevLabs agent texted you. Keep building your profile in Messages while traces run here.'
+              : delivery?.status === 'delivery_failed'
+                ? `Could not send automatically: ${delivery.error}`
+                : 'The agent has not been confirmed as sent yet.'}
+          </p>
+          {delivery?.status !== 'sent' ? (
             <button
               type="button"
               onClick={() => void retryMessage()}
               disabled={startingMessage}
-              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl border border-[#1a140f]/10 bg-[#fbfaf7] px-4 text-sm font-bold text-[#14110f] hover:bg-[#fff7ef] disabled:opacity-50"
+              className="builder-outline-button inline-flex h-9 shrink-0 items-center gap-2 px-3 text-xs font-bold uppercase tracking-[0.08em] disabled:opacity-50"
             >
-              {startingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Start iMessage agent
+              {startingMessage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+              Start agent
             </button>
+          ) : (
+            <span className="inline-flex shrink-0 items-center gap-1.5 border border-[#ff7417]/30 bg-[#fff5ef] px-2.5 py-1 text-[0.68rem] font-extrabold uppercase tracking-[0.1em] text-[#bf4f08]">
+              <CheckCircle2 className="h-3 w-3" />
+              Sent
+            </span>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="mt-5 rounded-2xl border border-[#1a140f]/10 bg-white p-3 shadow-[0_10px_26px_rgba(33,24,16,0.05)]">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#9b9188]">Copy and run locally</span>
+      <section className="border-b border-black/10 py-8">
+        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-black/35">What gets shared</p>
+        <div className="mt-5 grid gap-8 sm:grid-cols-2">
+          <div>
+            <p className="text-sm font-extrabold text-[#050505]">Will upload</p>
+            <p className="mt-2 text-sm leading-6 text-black/50">
+              Language patterns, frameworks, build surfaces, validation habits, agent maturity, and safe evidence summaries.
+            </p>
+          </div>
+          <div>
+            <p className="text-sm font-extrabold text-[#050505]">Will not upload</p>
+            <p className="mt-2 text-sm leading-6 text-black/50">
+              Raw prompts, conversations, source code, secrets, env vars, full paths, or private filenames.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="pt-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
             type="button"
-            onClick={copyCommand}
-            className="inline-flex h-8 items-center gap-2 rounded-lg border border-[#1a140f]/10 bg-[#fbfaf7] px-3 text-xs font-bold text-[#14110f] hover:bg-[#fff7ef]"
+            onClick={() => void checkStatus(false)}
+            disabled={checking}
+            className="builder-primary-button inline-flex h-10 flex-1 items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-[0.1em] disabled:opacity-50 sm:max-w-[14rem]"
           >
-            <Clipboard className="h-3.5 w-3.5" />
-            {copied ? 'Copied' : 'Copy'}
+            {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Check status
           </button>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="builder-outline-button inline-flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] sm:max-w-[14rem]"
+          >
+            Preview card
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </a>
         </div>
-        <pre className="custom-scrollbar overflow-x-auto whitespace-pre rounded-xl bg-black p-4 text-xs leading-6 text-white">
-          <code>{command}</code>
-        </pre>
-      </div>
 
-      <div className="mt-5 grid gap-3 text-sm text-[#746b62] sm:grid-cols-2">
-        <div className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
-          <p className="font-bold text-[#14110f]">Will upload</p>
-          <p className="mt-1 leading-6">Language patterns, frameworks, build surfaces, validation habits, agent maturity, and safe evidence summaries.</p>
-        </div>
-        <div className="rounded-2xl border border-[#1a140f]/10 bg-white p-4">
-          <p className="font-bold text-[#14110f]">Will not upload</p>
-          <p className="mt-1 leading-6">Raw prompts, conversations, source code, secrets, environment variables, full paths, or private filenames.</p>
-        </div>
-      </div>
+        {error ? <p className="mt-4 text-sm font-medium text-red-600">{error}</p> : null}
 
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={() => void checkStatus(false)}
-          disabled={checking}
-          className="dashboard-orange-button inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition-colors disabled:opacity-50"
-        >
-          {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Check status
-        </button>
-        <a
-          href={publicUrl}
-          className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-[#1a140f]/10 bg-white px-4 text-sm font-bold text-[#14110f] hover:bg-[#fff7ef]"
-        >
-          Preview public card
-        </a>
-      </div>
-
-      {error ? <p className="mt-4 text-sm font-medium text-red-600">{error}</p> : null}
-      {uploaded ? (
-        <p className="mt-4 text-sm font-semibold text-emerald-600">Agent Wrapped report uploaded. Continuing...</p>
-      ) : (
-        <p className="mt-4 text-xs leading-5 text-[#746b62]">
-          This step is required before your profile is unlocked because Agent Wrapped should be based on builder-level AI agent usage, not one selected project.
-        </p>
-      )}
+        {!uploaded ? (
+          <p className="mt-5 max-w-xl text-xs leading-5 text-black/40">
+            Required before your profile goes live — Agent Wrapped reflects how you ship with AI across all your work, not one project.
+          </p>
+        ) : null}
+      </section>
     </div>
   );
 };

@@ -6,6 +6,11 @@ Builder-level local analyzer for DevLabs Agent Wrapped.
 npx devlabs-talent@latest analyze --token <verified-upload-token>
 ```
 
+Version 0.2.0 adds the trace fields required by the Wrapped story cards:
+- `timeInvested` from session timestamps
+- `agentSplit` across Claude Code, Codex, and Cursor
+- `identities` for the final reveal card
+
 Use `--color` to force the DevLabs terminal theme when recording or screenshotting output:
 
 ```bash

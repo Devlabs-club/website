@@ -81,7 +81,7 @@ export function computeBuilderScores(builder: any, projects: any[] = []) {
     Boolean(builder?.name),
     Boolean(builder?.email),
     Boolean(builder?.availability?.availableNow !== undefined),
-    Boolean(builder?.availability?.hoursPerWeek),
+    Boolean(String(builder?.workAuthorization || '').trim()),
     Array.isArray(builder?.rolePreference) && builder.rolePreference.length > 0,
     Array.isArray(builder?.preferredWorkType) && builder.preferredWorkType.length > 0,
   ];
@@ -141,7 +141,7 @@ export function computeBuilderScores(builder: any, projects: any[] = []) {
 
   const missingItems: string[] = [];
   if (!builder?.links?.github && !builder?.links?.resume && !builder?.links?.portfolio) missingItems.push('Add GitHub or Resume');
-  if (!builder?.availability?.hoursPerWeek) missingItems.push('Set weekly availability');
+  if (!String(builder?.workAuthorization || '').trim()) missingItems.push('Set work authorization / visa status');
   if (!builder?.preferredWorkType?.length) missingItems.push('Select preferred work types');
   if (!Array.isArray(builder?.rolePreference) || builder.rolePreference.length === 0) missingItems.push('Set role preferences');
   if (projects.length === 0) missingItems.push('Add a proof-of-work project');

@@ -74,7 +74,7 @@ export function evaluateDeterministicQuality(builder: any, projects: any[]): Pro
 
   if (hasLinks || builder?.links?.github || builder?.links?.portfolio) score += 15;
 
-  if (builder?.availability?.hoursPerWeek && builder?.preferredWorkType?.length > 0) score += 10;
+  if (builder?.availability?.availableNow && builder?.preferredWorkType?.length > 0) score += 10;
 
   // Add 10 points if there's any verification
   if (projects.some(p => ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(p.verificationStatus))) {
@@ -124,7 +124,7 @@ export function evaluateDeterministicQuality(builder: any, projects: any[]): Pro
       projects: projects.length ? 100 : 0,
       contributions: maxContribScore > 0 ? (maxContribScore / 15) * 100 : 0,
       proofLinks: hasLinks ? 100 : 0,
-      availability: builder?.availability?.hoursPerWeek ? 100 : 0,
+      availability: builder?.availability?.availableNow ? 100 : 0,
     },
     source: 'deterministic'
   };
@@ -149,7 +149,6 @@ export async function evaluateBuilderProfileQuality(builder: any, projects: any[
     workPreferences: builder.preferredWorkType,
     availability: {
       availableNow: builder.availability?.availableNow,
-      hoursPerWeek: builder.availability?.hoursPerWeek,
       remotePreference: builder.availability?.remotePreference,
     },
     links: {

@@ -401,7 +401,6 @@ export default function FounderCandidateDrawer({
             <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Availability</h3>
             <p className="text-sm text-white/80">
               {candidate.availability.availableNow ? 'Available now' : 'Not marked available'}
-              {candidate.availability.hoursPerWeek ? ` · ${candidate.availability.hoursPerWeek} hrs/week` : ''}
               {candidate.availability.remotePreference
                 ? ` · ${String(candidate.availability.remotePreference).replace('_', ' ')}`
                 : ''}

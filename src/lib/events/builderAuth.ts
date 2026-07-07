@@ -39,7 +39,6 @@ export async function resolveAuthedBuilder(request: Request) {
       verificationStatus: 'builder_confirmed',
       availability: {
         availableNow: true,
-        hoursPerWeek: null,
         remotePreference: 'unspecified',
         salaryExpectationMin: null,
         salaryExpectationMax: null,

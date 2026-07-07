@@ -3,7 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 const MAX_SAMPLE_BYTES = 160_000;
-const MAX_FILES_PER_SOURCE = 24;
+const CHUNK_SCAN_BYTES = 256_000;
+const DEFAULT_SESSION_MINUTES = 42;
 
 async function exists(target) {
   try {
@@ -14,10 +15,9 @@ async function exists(target) {
   }
 }
 
-async function listFiles(dir, max = MAX_FILES_PER_SOURCE) {
+async function listFiles(dir) {
   const results = [];
   async function walk(current) {
-    if (results.length >= max) return;
     let entries = [];
     try {
       entries = await fs.readdir(current, { withFileTypes: true });
@@ -25,14 +25,23 @@ async function listFiles(dir, max = MAX_FILES_PER_SOURCE) {
       return;
     }
     for (const entry of entries) {
-      if (results.length >= max) return;
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) await walk(full);
       else if (/\.(json|jsonl|md|txt|toml)$/i.test(entry.name)) results.push(full);
     }
   }
   await walk(dir);
-  return results;
+  const withMtime = await Promise.all(
+    results.map(async (file) => {
+      try {
+        const stat = await fs.stat(file);
+        return { file, mtimeMs: stat.mtimeMs };
+      } catch {
+        return { file, mtimeMs: 0 };
+      }
+    })
+  );
+  return withMtime.sort((a, b) => b.mtimeMs - a.mtimeMs).map((item) => item.file);
 }
 
 async function addSource(sources, agent, kind, target) {
@@ -45,7 +54,7 @@ async function addSource(sources, agent, kind, target) {
     kind,
     target,
     files,
-    safeCountLabel: stat.isDirectory() ? `${files.length}+ readable summary/config files` : '1 readable file',
+    safeCountLabel: stat.isDirectory() ? `${files.length} readable summary/config files` : '1 readable file',
   });
 }
 
@@ -55,10 +64,13 @@ export async function discoverAgentSources({ imports = [] } = {}) {
 
   await addSource(sources, 'Claude Code', 'local settings', path.join(home, '.claude', 'settings.json'));
   await addSource(sources, 'Claude Code', 'session/export summaries', path.join(home, '.claude', 'projects'));
+  await addSource(sources, 'Claude Code', 'session/export summaries', path.join(home, '.claude', 'history'));
   await addSource(sources, 'Codex', 'local config', path.join(home, '.codex', 'config.toml'));
   await addSource(sources, 'Codex', 'session/export summaries', path.join(home, '.codex', 'sessions'));
   await addSource(sources, 'Codex', 'agent instructions', path.join(home, '.codex', 'AGENTS.md'));
-  await addSource(sources, 'Cursor', 'rules and summaries', path.join(home, '.cursor'));
+  await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, '.cursor'));
+  await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, '.cursor', 'chats'));
+  await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, 'Library', 'Application Support', 'Cursor', 'User', 'History'));
 
   for (const manual of imports.filter(Boolean)) {
     await addSource(sources, 'Manual import', 'exported session summary', path.resolve(manual));
@@ -77,62 +89,110 @@ function redactSecrets(text) {
 }
 
 const TIMESTAMP_PATTERN = /"timestamp"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?)"/g;
-const TAIL_SAMPLE_BYTES = 8_000;
-const MAX_PLAUSIBLE_SESSION_HOURS = 12;
+const CREATED_AT_PATTERN = /"createdAt"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?)"/g;
+const UPDATED_AT_PATTERN = /"updatedAt"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z?)"/g;
 
-function firstAndLastTimestamp(text) {
-  const matches = [...text.matchAll(TIMESTAMP_PATTERN)];
-  if (!matches.length) return null;
-  const times = matches.map((match) => Date.parse(match[1])).filter((value) => !Number.isNaN(value));
-  if (!times.length) return null;
-  return { startMs: Math.min(...times), endMs: Math.max(...times) };
+function collectTimestamps(text) {
+  const times = [];
+  for (const pattern of [TIMESTAMP_PATTERN, CREATED_AT_PATTERN, UPDATED_AT_PATTERN]) {
+    pattern.lastIndex = 0;
+    for (const match of text.matchAll(pattern)) {
+      const parsed = Date.parse(match[1]);
+      if (!Number.isNaN(parsed)) times.push(parsed);
+    }
+  }
+  return times;
 }
 
-// Session logs (Claude Code/Codex JSONL) carry a real per-line ISO timestamp; reading a small
-// head+tail slice is enough to bound session start/end without loading (or uploading) full transcripts.
-async function readSessionTimeRange(file) {
+function rangeFromTimestamps(times) {
+  if (!times.length) return null;
+  const startMs = Math.min(...times);
+  const endMs = Math.max(...times);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
+  return { startMs, endMs, source: 'timestamps' };
+}
+
+async function readJsonlTimeRange(file) {
   try {
     const stat = await fs.stat(file);
     if (!/\.jsonl$/i.test(file)) return null;
 
-    const headHandle = await fs.open(file, 'r');
-    const headBuffer = Buffer.alloc(Math.min(MAX_SAMPLE_BYTES, stat.size));
-    const { bytesRead: headBytes } = await headHandle.read(headBuffer, 0, headBuffer.length, 0);
-    await headHandle.close();
-    const headText = headBuffer.subarray(0, headBytes).toString('utf8');
-
-    let tailText = '';
-    if (stat.size > headBytes) {
-      const tailSize = Math.min(TAIL_SAMPLE_BYTES, stat.size);
-      const tailHandle = await fs.open(file, 'r');
-      const tailBuffer = Buffer.alloc(tailSize);
-      const { bytesRead: tailBytes } = await tailHandle.read(tailBuffer, 0, tailSize, stat.size - tailSize);
-      await tailHandle.close();
-      tailText = tailBuffer.subarray(0, tailBytes).toString('utf8');
+    const times = [];
+    const handle = await fs.open(file, 'r');
+    let offset = 0;
+    while (offset < stat.size) {
+      const chunkSize = Math.min(CHUNK_SCAN_BYTES, stat.size - offset);
+      const buffer = Buffer.alloc(chunkSize);
+      const { bytesRead } = await handle.read(buffer, 0, chunkSize, offset);
+      if (bytesRead <= 0) break;
+      times.push(...collectTimestamps(buffer.subarray(0, bytesRead).toString('utf8')));
+      offset += bytesRead;
     }
+    await handle.close();
 
-    const headRange = firstAndLastTimestamp(headText);
-    const tailRange = firstAndLastTimestamp(tailText);
-    if (!headRange && !tailRange) return null;
+    const ranged = rangeFromTimestamps(times);
+    if (ranged) return ranged;
 
-    const startMs = headRange ? headRange.startMs : tailRange.startMs;
-    const endMs = Math.max(headRange ? headRange.endMs : 0, tailRange ? tailRange.endMs : 0) || startMs;
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
-
-    const hours = (endMs - startMs) / 3_600_000;
-    if (hours > MAX_PLAUSIBLE_SESSION_HOURS) return null;
-
-    return { startMs, endMs };
+    if (stat.size > 4_000) {
+      const minutes = Math.max(DEFAULT_SESSION_MINUTES, Math.round(stat.size / 2_000));
+      const endMs = stat.mtimeMs || Date.now();
+      return { startMs: endMs - minutes * 60_000, endMs, source: 'file-size' };
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
+async function readJsonTimeRange(file) {
+  try {
+    const stat = await fs.stat(file);
+    if (!/\.json$/i.test(file)) return null;
+
+    const handle = await fs.open(file, 'r');
+    const buffer = Buffer.alloc(Math.min(stat.size, 512_000));
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    await handle.close();
+    const ranged = rangeFromTimestamps(collectTimestamps(buffer.subarray(0, bytesRead).toString('utf8')));
+    if (ranged) return ranged;
+
+    if (stat.size > 2_000) {
+      const minutes = Math.max(DEFAULT_SESSION_MINUTES, Math.round(stat.size / 2_500));
+      const endMs = stat.mtimeMs || Date.now();
+      return { startMs: endMs - minutes * 60_000, endMs, source: 'file-size' };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function readHeuristicSessionTimeRange(file) {
+  try {
+    const stat = await fs.stat(file);
+    if (!/\.(json|jsonl|md|txt)$/i.test(file)) return null;
+    const minutes = Math.max(DEFAULT_SESSION_MINUTES, Math.round(stat.size / 2_500) + 12);
+    const endMs = stat.mtimeMs || Date.now();
+    return { startMs: endMs - minutes * 60_000, endMs, source: 'file-heuristic' };
+  } catch {
+    return null;
+  }
+}
+
+function isSessionLikeFile(source, file) {
+  if (source.kind === 'session/export summaries') return true;
+  if (source.agent === 'Cursor' && /\.(json|jsonl)$/i.test(file)) return true;
+  if (/\.jsonl$/i.test(file)) return true;
+  return false;
+}
+
 export async function readSourceSamples(sources) {
   const samples = [];
+  const seenFiles = new Set();
   for (const source of sources) {
-    const isSessionKind = source.kind === 'session/export summaries';
-    for (const file of source.files.slice(0, MAX_FILES_PER_SOURCE)) {
+    for (const file of source.files) {
+      if (seenFiles.has(file)) continue;
+      seenFiles.add(file);
       let text = '';
       try {
         const handle = await fs.open(file, 'r');
@@ -143,10 +203,18 @@ export async function readSourceSamples(sources) {
       } catch {
         continue;
       }
-      const timeRange = isSessionKind ? await readSessionTimeRange(file) : null;
+
+      const sessionLike = isSessionLikeFile(source, file);
+      const timeRange = sessionLike
+        ? (await readJsonlTimeRange(file)) ||
+          (await readJsonTimeRange(file)) ||
+          (await readHeuristicSessionTimeRange(file))
+        : null;
+
       samples.push({
         agent: source.agent,
         kind: source.kind,
+        isSessionFile: sessionLike,
         text: redactSecrets(text),
         timeRange,
       });

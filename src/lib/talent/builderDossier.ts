@@ -3,7 +3,6 @@ import { generateOpenRouterReply } from '@/lib/openrouter';
 import { exaSearch, hasExaConfig } from '@/lib/talent/exaClient';
 import { urlsToMarkdown } from '@/lib/talent/urlToMarkdown';
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
-import { updateLinks } from '@/lib/agent/builderProfileTools';
 
 export type DossierGap = {
   id: string;
@@ -173,10 +172,10 @@ Return STRICT JSON:
 {
   "identityConfidence": number,          // 0-1 how sure this is the right person
   "narrativeSummary": string,            // 2-3 sentences, founder-facing
-  "proofPoints": string[],               // 3-6 concrete verifiable wins
-  "suggestedOpeners": string[],          // 2-3 Poke-style surprise openers for iMessage (specific, casual, no "I scraped")
-  "suggestedConfirmations": string[],    // 2-3 yes/no checks ("still at X as Y?")
-  "draftedHeadline": string|null,
+  "proofPoints": string[],               // 3-6 concrete verifiable wins (community scale, products shipped, hackathons, companies founded)
+  "suggestedOpeners": string[],          // 2-3 natural conversation hooks (specific praise or curiosity about their work)
+  "suggestedConfirmations": string[],    // 2-3 things worth confirming in conversation (current role, headline accuracy, etc.)
+  "draftedHeadline": string|null,        // founder-facing headline draft to propose when the moment fits
   "draftedBio": string|null,
   "inferredLinks": { "github": string|null, "linkedin": string|null, "devpost": string|null, "twitter": string|null, "portfolio": string|null },
   "gaps": [ { "id": string, "question": string, "founderImpact": number, "reason": string } ]
@@ -225,36 +224,25 @@ gaps: max 5, ranked by founderImpact (1-10). Ask only what you CANNOT infer.`,
   };
 }
 
-/** Persist dossier links + drafts onto the builder profile before kickoff. */
-export async function applyDossierToProfile(builderId: string, dossier: BuilderDossier) {
-  const builder = await BuilderProfile.findById(builderId);
-  if (!builder) return;
-
-  const linkPatch: Record<string, string> = {};
-  for (const [k, v] of Object.entries(dossier.inferredLinks)) {
-    if (!v) continue;
-    const existing = (builder.links as any)?.[k === 'portfolio' ? 'portfolio' : k];
-    if (!existing) linkPatch[k === 'portfolio' ? 'portfolio' : k] = v;
-  }
-  if (Object.keys(linkPatch).length) await updateLinks(builder, linkPatch);
-
-  if (dossier.draftedHeadline && !builder.headline) builder.headline = dossier.draftedHeadline;
-  if (dossier.draftedBio && !builder.bio) builder.bio = dossier.draftedBio;
-  await builder.save();
+/** Dossier is research-only — kept on the claim for the agent, not written to the profile. */
+export async function applyDossierToProfile(_builderId: string, _dossier: BuilderDossier) {
+  // Intentionally no-op: links, headline, and bio from deep search are conversation
+  // starters only. The agent confirms GitHub/LinkedIn and work history with the builder
+  // before calling update_builder_data.
 }
 
 export function formatDossierForAgent(dossier: BuilderDossier | null | undefined): string {
   if (!dossier) return '';
   return [
-    'PRE-BUILT DOSSIER (research done before first text — use this, do NOT ask for GitHub/LinkedIn if links are present):',
+    'PRE-BUILT DOSSIER (background research — use to open conversation naturally; confirm before writing to profile):',
     `Identity confidence: ${dossier.identityConfidence}`,
     dossier.narrativeSummary ? `Summary: ${dossier.narrativeSummary}` : '',
     dossier.proofPoints.length ? `Proof points: ${dossier.proofPoints.join(' | ')}` : '',
-    Object.keys(dossier.inferredLinks).length ? `Links: ${JSON.stringify(dossier.inferredLinks)}` : '',
-    dossier.draftedHeadline ? `Draft headline: ${dossier.draftedHeadline}` : '',
+    Object.keys(dossier.inferredLinks).length ? `Inferred links (confirm before saving): ${JSON.stringify(dossier.inferredLinks)}` : '',
+    dossier.draftedHeadline ? `Draft headline (propose when it fits): ${dossier.draftedHeadline}` : '',
     dossier.draftedBio ? `Draft bio: ${dossier.draftedBio}` : '',
-    dossier.suggestedOpeners.length ? `Suggested openers: ${dossier.suggestedOpeners.join(' / ')}` : '',
-    dossier.suggestedConfirmations.length ? `Confirm: ${dossier.suggestedConfirmations.join(' / ')}` : '',
+    dossier.suggestedOpeners.length ? `Conversation hooks: ${dossier.suggestedOpeners.join(' / ')}` : '',
+    dossier.suggestedConfirmations.length ? `Worth confirming: ${dossier.suggestedConfirmations.join(' / ')}` : '',
     dossier.gaps.length ? `Best gaps to probe: ${dossier.gaps.map((g) => g.question).join(' | ')}` : '',
   ]
     .filter(Boolean)

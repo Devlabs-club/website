@@ -21,7 +21,7 @@ const DEFAULT_ORDER: EnrichmentSource[] = [
 
 const ENRICHERS: Record<
   EnrichmentSource,
-  (builder: any, ctx?: { runtime?: RuntimeEnv }) => Promise<import('./types').SourceEnrichmentResult>
+  (builder: any, ctx?: { runtime?: RuntimeEnv; deferExperiences?: boolean }) => Promise<import('./types').SourceEnrichmentResult>
 > = {
   resume: (builder) => enrichFromResume(builder),
   github: (builder) => enrichFromGithub(builder),
@@ -36,6 +36,8 @@ export async function enrichBuilderProfile(params: {
   sources?: EnrichmentSource[];
   dryRun?: boolean;
   overwriteImportedProjects?: boolean;
+  /** When true, LinkedIn work history is held back until the agent confirms with the builder. */
+  deferExperiences?: boolean;
   runtime?: RuntimeEnv;
 }): Promise<BuilderEnrichmentResult> {
   const builder = await BuilderProfile.findById(params.builderId);
@@ -51,7 +53,7 @@ export async function enrichBuilderProfile(params: {
 
   for (const source of sources) {
     const enricher = ENRICHERS[source];
-    const result = await enricher(builder, { runtime: params.runtime });
+    const result = await enricher(builder, { runtime: params.runtime, deferExperiences: params.deferExperiences });
     sourceResults.push(result);
 
     if (params.dryRun) continue;
@@ -73,6 +75,7 @@ export async function enrichBuilderProfile(params: {
     if (result.profile) {
       const updated = await applyProfileDraft(builder, result.profile, {
         overwriteBasics: source === 'linkedin',
+        deferExperiences: params.deferExperiences,
       });
       profileFieldsUpdated.push(...updated);
     }

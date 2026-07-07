@@ -68,9 +68,6 @@ export default function AdminScoutCandidateDrawer({
               <p className="text-[10px] uppercase tracking-wider text-white/40">Availability</p>
               <p className="text-white/80">
                 {candidate.availability.availableNow ? 'Available now' : 'Not marked available'}
-                {candidate.availability.hoursPerWeek
-                  ? ` · ${candidate.availability.hoursPerWeek} hrs/wk`
-                  : ''}
               </p>
             </div>
           </div>
