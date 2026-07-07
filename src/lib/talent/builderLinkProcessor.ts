@@ -1,4 +1,5 @@
 import { generateOpenRouterReply } from '@/lib/openrouter';
+import { crawlMarkdownFromUrl } from '@/lib/talent/builderEnrichment/crawlMarkdown';
 import { fetchUrlMarkdown, fetchAuthenticatedPageText, normalizeUrl } from '@/lib/talent/builderEnrichment/urlToMarkdown';
 import { updateLinks } from '@/lib/agent/builderProfileTools';
 import { rememberBuilderFact, type MemoryRef } from '@/lib/talent/builderAgentMemory';
@@ -56,10 +57,15 @@ export async function processGenericLink(builder: any, url: string, memRef: Memo
   const normalized = normalizeUrl(url) || url;
   const result: ProcessedLink = { url: normalized, ok: false, coolFacts: [], applied: [], summary: '' };
 
-  // Fetch page content (markdown service first, direct fetch as fallback).
+  // Fetch page content — crawl outbound links up to 2 depth when markdown is available.
   let content = '';
-  const md = await fetchUrlMarkdown(normalized, 'builder link', 6000);
-  if (md?.markdown) content = md.markdown;
+  const crawled = await crawlMarkdownFromUrl(normalized, { maxDepth: 2, maxPages: 7, maxCharsPerPage: 4500 });
+  if (crawled.combinedMarkdown) {
+    content = crawled.combinedMarkdown;
+  } else {
+    const md = await fetchUrlMarkdown(normalized, 'builder link', 6000);
+    if (md?.markdown) content = md.markdown;
+  }
   if (!content) content = (await fetchAuthenticatedPageText(normalized, { maxChars: 6000 })) || '';
   if (!content || content.length < 80) return result;
 
@@ -132,5 +138,68 @@ Only include facts the page supports. Empty arrays / null when unknown.`,
     }
   }
 
+  return result;
+}
+
+/** Dry-run generic link scrape — same extraction as processGenericLink, no DB/memory writes. */
+export async function probeGenericLink(url: string): Promise<ProcessedLink & { skills?: string[]; discoveredLinks?: Record<string, string | null> }> {
+  const normalized = normalizeUrl(url) || url;
+  const result: ProcessedLink & { skills?: string[]; discoveredLinks?: Record<string, string | null> } = {
+    url: normalized,
+    ok: false,
+    coolFacts: [],
+    applied: [],
+    summary: '',
+  };
+
+  let content = '';
+  const crawled = await crawlMarkdownFromUrl(normalized, { maxDepth: 2, maxPages: 7, maxCharsPerPage: 4500 });
+  if (crawled.combinedMarkdown) {
+    content = crawled.combinedMarkdown;
+  } else {
+    const md = await fetchUrlMarkdown(normalized, 'builder link', 6000);
+    if (md?.markdown) content = md.markdown;
+  }
+  if (!content) content = (await fetchAuthenticatedPageText(normalized, { maxChars: 6000 })) || '';
+  if (!content || content.length < 80) return result;
+
+  let raw = '';
+  try {
+    raw = await generateOpenRouterReply({
+      systemPrompt: `You read a web page a builder shared and pull out what matters for their DevLabs profile.
+Return STRICT JSON:
+{
+  "isAboutBuilder": boolean,
+  "summary": string,
+  "coolFacts": string[],
+  "skills": string[],
+  "discoveredLinks": { "twitter": string|null, "personalWebsite": string|null, "github": string|null, "linkedin": string|null, "devpost": string|null },
+  "suggestedHeadline": string|null,
+  "suggestedBio": string|null
+}
+Only include facts the page supports. Empty arrays / null when unknown.`,
+      userPrompt: `URL: ${normalized}\n\nPage content:\n${content}`,
+      temperature: 0.1,
+      maxTokens: 800,
+      responseFormat: 'json_object',
+    });
+  } catch {
+    return result;
+  }
+
+  let parsed: any = {};
+  try {
+    parsed = JSON.parse(raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim());
+  } catch {
+    return result;
+  }
+
+  result.ok = true;
+  result.summary = typeof parsed.summary === 'string' ? parsed.summary : '';
+  result.coolFacts = Array.isArray(parsed.coolFacts) ? parsed.coolFacts.filter((f: unknown) => typeof f === 'string').slice(0, 3) : [];
+  result.skills = Array.isArray(parsed.skills)
+    ? parsed.skills.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 16)
+    : [];
+  result.discoveredLinks = parsed.discoveredLinks || {};
   return result;
 }

@@ -65,6 +65,15 @@ export type BuilderData = {
     suggestedFixes?: Array<{ field?: string; priority?: string; action?: string; example?: string }>;
     source?: string;
   };
+  enrichmentInsights?: {
+    founderHighlights?: Array<{ title?: string; detail?: string; source?: string }>;
+    githubShowcase?: {
+      featuredCount?: number;
+      additionalProjectCount?: number;
+      reposScanned?: number;
+    };
+    updatedAt?: string;
+  };
   visibilityStatus?: 'public' | 'matched_only' | 'hidden';
 };
 

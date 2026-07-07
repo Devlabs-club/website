@@ -23,12 +23,14 @@ function isEmpty(value: unknown) {
 }
 
 function mergeSkills(existing: string[] = [], incoming: string[] = []) {
-  const merged = new Set(existing.map((s) => s.trim()).filter(Boolean));
-  incoming.forEach((skill) => {
-    const trimmed = skill.trim();
-    if (trimmed) merged.add(trimmed);
-  });
-  return Array.from(merged);
+  const merged = new Map<string, string>();
+  for (const skill of [...existing, ...incoming]) {
+    const trimmed = String(skill || '').trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (!merged.has(key)) merged.set(key, trimmed);
+  }
+  return Array.from(merged.values());
 }
 
 function normalizeEducationEntry(entry: any) {

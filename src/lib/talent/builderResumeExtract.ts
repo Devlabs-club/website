@@ -1,5 +1,6 @@
 import { generateOpenRouterReply } from '@/lib/openrouter';
 import BuilderProfile from '@/models/talent/BuilderProfile';
+import { uploadResumeToCloudinary, deleteResumeFromCloudinary } from '@/lib/cloudinary';
 import { getProjects, buildProfileSnapshot } from '@/lib/agent/builderProfileTools';
 import {
   aggregateInferredSkills,
@@ -7,6 +8,7 @@ import {
   upsertEnrichedProjects,
 } from '@/lib/talent/builderEnrichment/apply';
 import type { EnrichedProjectDraft } from '@/lib/talent/builderEnrichment/types';
+import type { InboundResumePdf } from '@/lib/messaging/inboundResume';
 
 export type ExtractedResumeProject = {
   projectName: string;
@@ -128,11 +130,12 @@ export function recordToExtractedResume(raw: Record<string, unknown>): Extracted
 /** Load builder and apply resume extraction with full enrichment writeback (scores, embeddings, search). */
 export async function writeResumeExtractionToBuilder(
   builderId: string,
-  extracted: ExtractedResume
+  extracted: ExtractedResume,
+  opts?: { resumePdf?: InboundResumePdf | null }
 ): Promise<ResumeApplyResult> {
   const builder = await BuilderProfile.findById(builderId);
   if (!builder) throw new Error(`Builder not found: ${builderId}`);
-  return applyResumeToBuilder(builder, extracted);
+  return applyResumeToBuilder(builder, extracted, { ...opts, builderId });
 }
 
 function compactKey(value: string) {
@@ -163,6 +166,52 @@ function mergeSkillLists(...groups: string[][]) {
     }
   }
   return Array.from(merged);
+}
+
+function isStoredResumeFileUrl(url: string | null | undefined): boolean {
+  const value = String(url || '').trim();
+  if (!value || value === 'imessage:attachment') return false;
+  if (/linkedin\.com/i.test(value)) return false;
+  return /\.pdf($|\?)/i.test(value) || /cloudinary\.com/i.test(value);
+}
+
+/** Upload resume PDF to storage and return a permanent URL for links.resume. */
+async function persistResumePdfOnProfile(
+  buffer: Buffer,
+  fileName: string | null | undefined,
+  builderId: string,
+  previousResumeUrl?: string | null
+): Promise<string | null> {
+  if (!process.env.CLOUDINARY_CLOUD_NAME) {
+    console.warn('[builder-resume] CLOUDINARY_CLOUD_NAME not set — cannot store resume PDF on profile');
+    return null;
+  }
+
+  const prior = String(previousResumeUrl || '').trim();
+  if (prior && isStoredResumeFileUrl(prior)) {
+    try {
+      const deleted = await deleteResumeFromCloudinary(prior);
+      if (deleted) {
+        console.log('[builder-resume] deleted previous resume from Cloudinary');
+      } else {
+        console.warn('[builder-resume] could not delete previous resume from Cloudinary — continuing upload');
+      }
+    } catch (err) {
+      console.warn('[builder-resume] error deleting previous resume from Cloudinary — continuing upload', err);
+    }
+  }
+
+  const baseName = String(fileName || 'resume')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/\.pdf$/i, '')
+    .slice(0, 80);
+  const safeName = `${builderId}-${baseName || 'resume'}-${Date.now()}.pdf`;
+  try {
+    return await uploadResumeToCloudinary(buffer, safeName);
+  } catch (err) {
+    console.warn('[builder-resume] resume PDF upload failed', err);
+    return null;
+  }
 }
 
 /** Turn raw resume bytes into plain text. Handles PDF + text; flags everything else. */
@@ -308,7 +357,11 @@ function mapResumeProjects(extracted: ExtractedResume): EnrichedProjectDraft[] {
  * Fills gaps, enriches thin fields, and imports projects — never blindly overwrites
  * stronger data the builder already has from LinkedIn/GitHub.
  */
-export async function applyResumeToBuilder(builder: any, extracted: ExtractedResume): Promise<ResumeApplyResult> {
+export async function applyResumeToBuilder(
+  builder: any,
+  extracted: ExtractedResume,
+  opts?: { resumePdf?: InboundResumePdf | null; builderId?: string }
+): Promise<ResumeApplyResult> {
   const added: string[] = [];
   const improved: string[] = [];
   const unchanged: string[] = [];
@@ -414,7 +467,30 @@ export async function applyResumeToBuilder(builder: any, extracted: ExtractedRes
     added.push('portfolio link');
     markProfileField(profileFieldsUpdated, 'links.portfolio');
   }
-  builder.links.resume = builder.links.resume || 'imessage:attachment';
+
+  // Persist the PDF on the profile only after successful parse + extraction write.
+  const resumePdf = opts?.resumePdf;
+  if (resumePdf?.buffer?.length) {
+    const existingResumeLink = String(builder.links.resume || '').trim();
+    const storedUrl = await persistResumePdfOnProfile(
+      resumePdf.buffer,
+      resumePdf.fileName,
+      String(opts?.builderId || builder._id || 'builder'),
+      existingResumeLink
+    );
+    if (storedUrl) {
+      builder.links.resume = storedUrl;
+      if (!isStoredResumeFileUrl(existingResumeLink)) {
+        added.push('resume PDF');
+        markProfileField(profileFieldsUpdated, 'links.resume');
+      } else if (existingResumeLink !== storedUrl) {
+        improved.push('resume PDF');
+        markProfileField(profileFieldsUpdated, 'links.resume');
+      }
+    } else {
+      console.warn('[builder-resume] parsed resume but Cloudinary upload failed — profile fields updated without PDF URL');
+    }
+  }
 
   builder.experiences = builder.experiences || [];
   let experiencesAdded = 0;

@@ -128,6 +128,17 @@ const BuilderProfileSchema = new mongoose.Schema(
       source: { type: String, default: 'deterministic' },
       evaluatedAt: { type: Date, default: null }
     },
+    /** Hyper-personalized founder-facing proof from enrichment (GitHub depth, LinkedIn, Twitter, Devpost). */
+    enrichmentInsights: {
+      founderHighlights: [{ title: String, detail: String, source: String }],
+      sourcesCompleted: [{ source: String, completedAt: Date, projectCount: Number, profileFields: [String] }],
+      githubShowcase: {
+        featuredCount: { type: Number, default: 0 },
+        additionalProjectCount: { type: Number, default: 0 },
+        reposScanned: { type: Number, default: 0 },
+      },
+      updatedAt: { type: Date, default: null },
+    },
     verificationStatus: {
       type: String,
       enum: ['imported_unverified', 'builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified', 'rejected'],

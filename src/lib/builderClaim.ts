@@ -18,6 +18,7 @@ import {
 } from '@/lib/talent/builderDossier';
 import { appendSessionMemory, formatSessionMemoryBlock } from '@/lib/talent/builderSessionMemory';
 import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
+import type { ResumeInbound } from '@/lib/messaging/inboundResume';
 
 const CLAIM_TTL_DAYS = 14;
 
@@ -400,6 +401,8 @@ export async function advanceClaimConversation(
     providerMessageId?: string | null;
     resumeText?: string | null;
     resumeExtracted?: Record<string, unknown> | null;
+    resumePdf?: import('@/lib/messaging/inboundResume').InboundResumePdf | null;
+    resumeInbound?: ResumeInbound | null;
   },
   runtime?: RuntimeEnv
 ) {
@@ -480,8 +483,13 @@ export async function advanceClaimConversation(
     userText: body || '(sent a resume)',
     history,
     resume: params.resumeText
-      ? { text: params.resumeText, extracted: params.resumeExtracted || undefined }
+      ? {
+          text: params.resumeText,
+          extracted: params.resumeExtracted || undefined,
+          pdf: params.resumePdf || undefined,
+        }
       : null,
+    resumeInbound: params.resumeInbound || null,
     runtime,
   });
 

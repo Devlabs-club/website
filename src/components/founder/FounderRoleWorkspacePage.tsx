@@ -786,10 +786,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const profileDialog = profileOpen ? (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 sm:p-8" onClick={() => { setProfileOpen(false); setProfileRec(null); }}>
       <div
-        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_24px_70px_rgba(16,24,40,0.15)]"
+        className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-[#ece7e1] bg-[#fffcfa] shadow-[0_1px_3px_rgba(16,24,40,0.05),0_24px_70px_rgba(16,24,40,0.15)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#ece7e1] p-4">
+        <div className="flex items-center justify-between border-b border-[#ece7e1] bg-white p-4">
           <p className="text-sm font-semibold text-black">Builder profile</p>
           <button
             type="button"
@@ -799,7 +799,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="overflow-y-auto p-6">
+        <div className="overflow-y-auto bg-[#fffcfa] p-6 text-black">
           {profileLoading || !profile ? (
             <div className="flex h-60 items-center justify-center text-black/45">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -807,6 +807,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           ) : (
             <>
               <BuilderProfileView
+                variant="founder"
                 profile={profile}
                 afterLinks={
                   profileRec?.teasers?.agentTrace ? (
@@ -1547,48 +1548,55 @@ const BuilderCell: React.FC<{ rec: Recommendation; onOpenProfile: () => void }> 
 );
 
 const AgentTraceTeaserSection: React.FC<{ teaser: AgentTraceTeaser; compact?: boolean }> = ({ teaser, compact }) => (
-  <section className={`rounded-2xl border border-[#ec9149]/25 bg-[#fff7ef] ${compact ? "p-3" : "p-4 mb-6"}`}>
+  <section className={`rounded-2xl border border-[#ec9149]/30 bg-[#fff7ef] ${compact ? "p-3" : "p-4 mb-6"}`}>
     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#c56a12]">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#9a4f0c]">
         {teaser.hasAgentWrapped ? "Agent Wrapped" : teaser.locked ? "Agent trace preview" : "Agent trace"}
       </h3>
       <div className="flex flex-wrap items-center gap-2">
         {teaser.hasAgentWrapped ? (
-          <span className="rounded-full bg-[#ec9149]/15 px-2 py-0.5 text-[10px] font-semibold text-[#c56a12]">Uploaded</span>
+          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
+            Uploaded
+          </span>
         ) : null}
         {typeof teaser.wrappedScore === "number" ? (
-          <span className="text-[10px] font-semibold text-[#c56a12]">Founder fit {teaser.wrappedScore}/100</span>
+          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
+            Founder fit {teaser.wrappedScore}/100
+          </span>
         ) : null}
-        <span className="text-[10px] text-black/40">{teaser.label}</span>
+        <span className="text-[10px] font-medium text-black/55">{teaser.label}</span>
       </div>
     </div>
     {teaser.archetype ? (
       <p className={`mb-2 font-semibold text-black ${compact ? "text-xs" : "text-sm"}`}>{teaser.archetype}</p>
     ) : null}
     {teaser.bestFitRoles?.length ? (
-      <p className={`mb-2 text-black/55 ${compact ? "text-[11px]" : "text-xs"}`}>
+      <p className={`mb-2 text-black/70 ${compact ? "text-[11px]" : "text-xs"}`}>
         Best fit: {teaser.bestFitRoles.join(" · ")}
       </p>
     ) : null}
     {teaser.projectHighlight ? (
-      <p className={`mb-2 font-medium italic text-[#c56a12]/90 ${compact ? "text-[11px] line-clamp-2" : "text-xs"}`}>
+      <p className={`mb-2 font-medium italic text-[#8a4609] ${compact ? "text-[11px] line-clamp-2" : "text-xs"}`}>
         {teaser.projectHighlight}
       </p>
     ) : null}
     {teaser.sourceBadges.length > 0 ? (
       <div className="mb-2 flex flex-wrap gap-1.5">
         {teaser.sourceBadges.map((badge) => (
-          <span key={badge} className="rounded-md border border-[#ece7e1] bg-white px-2 py-0.5 text-[10px] text-black/55">
+          <span key={badge} className="rounded-md border border-[#ece7e1] bg-white px-2 py-0.5 text-[10px] font-semibold text-black/70">
             {badge}
           </span>
         ))}
       </div>
     ) : null}
-    <p className={`leading-relaxed text-black/75 ${compact ? "text-xs line-clamp-3" : "text-sm"}`}>{teaser.visibleInsight}</p>
+    <p className={`leading-relaxed text-black/80 ${compact ? "text-xs line-clamp-3" : "text-sm"}`}>{teaser.visibleInsight}</p>
     {teaser.quantifiedSignals?.length ? (
       <div className="mt-2 flex flex-wrap gap-1.5">
         {teaser.quantifiedSignals.map((signal) => (
-          <span key={signal} className="rounded-md border border-[#ec9149]/20 bg-[#ec9149]/10 px-2 py-0.5 text-[10px] font-medium text-[#c56a12]">
+          <span
+            key={signal}
+            className="rounded-full border border-[#ec9149]/35 bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#9a4f0c]"
+          >
             {signal}
           </span>
         ))}

@@ -483,6 +483,13 @@ export async function enrichGithubReposForUser(
   const projects: EnrichedProjectDraft[] = [];
   const allSkills = new Set<string>();
 
+  // Skills from every substantive repo (not just the top 3 showcased projects).
+  for (const repo of repos) {
+    if (repo.fork || repo.archived || repo.disabled) continue;
+    if (repo.language) allSkills.add(repo.language);
+    for (const topic of repo.topics || []) addSkill(allSkills, topic);
+  }
+
   for (const { repo, authorCommits } of selected) {
     const [owner, name] = repo.full_name.split('/');
     const [languages, readme, rootFiles, manifests] = await Promise.all([
@@ -529,16 +536,17 @@ export async function enrichGithubReposForUser(
     });
   }
 
-  profile.skills = Array.from(allSkills).slice(0, 24);
+  profile.skills = Array.from(allSkills).slice(0, 32);
 
-  // Broader language/topic signals when strict repo filters leave skills thin.
-  if (allSkills.size < 6) {
-    for (const repo of repos.filter((r) => !r.fork && !isLowSignalRepo(r)).slice(0, 20)) {
-      if (repo.language) allSkills.add(repo.language);
-      for (const topic of (repo.topics || []).slice(0, 4)) addSkill(allSkills, topic);
-    }
-    profile.skills = Array.from(allSkills).slice(0, 24);
-  }
+  const shippedRepoCount = repos.filter((r) => !r.fork && !r.archived && !r.disabled && r.size >= MIN_REPO_SIZE_KB).length;
+  const additionalProjectsCount = Math.max(0, shippedRepoCount - projects.length);
+  const featuredNames = projects.map((p) => p.projectName).join(', ');
+  const founderHighlight =
+    projects.length > 0
+      ? additionalProjectsCount > 0
+        ? `Featured ${projects.length} flagship repos (${featuredNames}) — plus ${additionalProjectsCount} more shipped GitHub projects.`
+        : `Featured flagship repos: ${featuredNames}.`
+      : null;
 
   return {
     profile,
@@ -548,6 +556,10 @@ export async function enrichGithubReposForUser(
       reposScanned: repos.length,
       reposQualified: scored.length,
       reposEnriched: projects.length,
+      shippedRepoCount,
+      additionalProjectsCount,
+      founderHighlight,
+      featuredProjectNames: projects.map((p) => p.projectName),
     },
   };
 }
@@ -572,4 +584,100 @@ export async function enrichFromGithub(builder: any): Promise<SourceEnrichmentRe
       errors: [err instanceof Error ? err.message : 'github_enrichment_failed'],
     };
   }
+}
+
+export const GITHUB_ENRICHMENT_TUNING = {
+  MIN_REPO_SIZE_KB,
+  MIN_AUTHOR_COMMITS,
+  MAX_REPOS_TO_ENRICH,
+  MAX_REPO_AGE_MS,
+} as const;
+
+function githubRepoFilterReasons(repo: GithubRepo): string[] {
+  const reasons: string[] = [];
+  if (repo.archived) reasons.push('archived');
+  if (repo.disabled) reasons.push('disabled');
+  if (repo.fork) reasons.push('fork');
+  if (repo.size < MIN_REPO_SIZE_KB) reasons.push(`size_lt_${MIN_REPO_SIZE_KB}kb`);
+  if (repo.owner?.login && repo.name.toLowerCase() === repo.owner.login.toLowerCase()) {
+    reasons.push('profile_readme_repo');
+  }
+  if (TUTORIAL_REPO_PATTERN.test(repo.name)) reasons.push('tutorial_name');
+  if (CLASSWORK_REPO_PATTERN.test(repo.name)) reasons.push('classwork_name');
+  if (LOW_SIGNAL_NAME_PATTERN.test(repo.name)) reasons.push('low_signal_name');
+  const pushedAt = new Date(repo.pushed_at).getTime();
+  if (Number.isNaN(pushedAt) || Date.now() - pushedAt > MAX_REPO_AGE_MS) reasons.push('stale');
+  if (repo.description && TUTORIAL_REPO_PATTERN.test(repo.description)) reasons.push('tutorial_description');
+  if (repo.description && LOW_SIGNAL_NAME_PATTERN.test(repo.description)) reasons.push('low_signal_description');
+  return reasons;
+}
+
+/** Dry-run repo scoring — see which repos pass filters before LLM summarization. */
+export async function auditGithubReposForUser(username: string) {
+  const repos = await listUserRepos(username);
+  const rows: Array<{
+    name: string;
+    fullName: string;
+    url: string;
+    sizeKb: number;
+    stars: number;
+    pushedAt: string;
+    language: string | null;
+    topics: string[];
+    filterReasons: string[];
+    passesLowSignalFilter: boolean;
+    passesStrongSignal: boolean;
+    authorCommits: number | null;
+    wouldEnrich: boolean;
+  }> = [];
+
+  for (const repo of repos) {
+    const filterReasons = githubRepoFilterReasons(repo);
+    const passesLowSignalFilter = filterReasons.length === 0;
+    const passesStrongSignal = isStrongProjectRepo(repo);
+    let authorCommits: number | null = null;
+    let wouldEnrich = false;
+
+    if (passesLowSignalFilter && passesStrongSignal) {
+      const [owner, name] = repo.full_name.split('/');
+      authorCommits = await getAuthorCommitCount(owner, name, username);
+      wouldEnrich = authorCommits >= MIN_AUTHOR_COMMITS;
+    }
+
+    rows.push({
+      name: repo.name,
+      fullName: repo.full_name,
+      url: repo.html_url,
+      sizeKb: repo.size,
+      stars: repo.stargazers_count,
+      pushedAt: repo.pushed_at,
+      language: repo.language,
+      topics: repo.topics || [],
+      filterReasons,
+      passesLowSignalFilter,
+      passesStrongSignal,
+      authorCommits,
+      wouldEnrich,
+    });
+  }
+
+  const qualified = rows.filter((r) => r.passesLowSignalFilter && r.passesStrongSignal && (r.authorCommits || 0) >= MIN_AUTHOR_COMMITS);
+  qualified.sort((a, b) => {
+    const score = (row: typeof rows[number]) =>
+      (row.authorCommits || 0) * 2 +
+      row.stars * 4 +
+      Math.min(row.sizeKb / 120, 35) +
+      (row.topics.length * 3);
+    return score(b) - score(a);
+  });
+
+  return {
+    username,
+    tuning: GITHUB_ENRICHMENT_TUNING,
+    reposScanned: repos.length,
+    reposQualified: qualified.length,
+    reposWouldEnrich: qualified.slice(0, MAX_REPOS_TO_ENRICH).map((r) => r.fullName),
+    repos: rows.sort((a, b) => b.stars - a.stars || b.sizeKb - a.sizeKb),
+    topQualified: qualified.slice(0, 10),
+  };
 }

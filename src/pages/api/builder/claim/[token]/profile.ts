@@ -3,6 +3,7 @@ import { connectAdminDB } from '@/lib/mongodb';
 import { findClaimByViewToken } from '@/lib/builderClaim';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import ProjectRecord from '@/models/talent/ProjectRecord';
+import { serializeBuilderProfile } from '@/lib/talent/serializeBuilderProfile';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -10,8 +11,8 @@ function json(body: unknown, status = 200) {
 
 /**
  * Resolve a builder's PRIVATE profile-view token (sent only over their verified
- * iMessage) into the same profile shape the dashboard renders. Token-gated, so
- * only that builder can open their own page.
+ * iMessage) into the same profile shape founders see. Token-gated — only that
+ * builder can open their own page.
  */
 export const GET: APIRoute = async ({ params }) => {
   const token = String(params.token || '');
@@ -28,33 +29,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   return json({
     success: true,
-    profile: {
-      id: String(profile._id),
-      name: profile.name,
-      email: profile.email || null,
-      avatarUrl: profile.avatarUrl || null,
-      headline: profile.headline || null,
-      bio: profile.bio || null,
-      location: profile.location || null,
-      universityOrCompany: profile.universityOrCompany || null,
-      rolePreference: profile.rolePreference || [],
-      skills: profile.skills || [],
-      preferredWorkType: profile.preferredWorkType || [],
-      experiences: profile.experiences || [],
-      links: profile.links || {},
-      verificationStatus: profile.verificationStatus || 'imported_unverified',
-      projects: projects.map((project: any) => ({
-        id: String(project._id),
-        projectName: project.projectName,
-        description: project.description || null,
-        problemSolved: project.problemSolved || null,
-        builderContribution: project.builderContribution || null,
-        techStack: project.techStack || [],
-        links: project.links || {},
-        source: project.source || 'manual',
-        sourceId: project.sourceId || null,
-      })),
-    },
+    profile: serializeBuilderProfile(profile, projects),
   });
 };
 

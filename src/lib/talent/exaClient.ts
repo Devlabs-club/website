@@ -44,8 +44,8 @@ export async function exaSearch(
   if (!res.ok) {
     const detail = await res.text().catch(() => '');
     console.warn(`[exa] search failed (${res.status})${detail ? `: ${detail.slice(0, 300)}` : ''}`);
-    if (res.status === 401 || res.status === 403) {
-      console.warn('[exa] 401/403 means the EXA_API_KEY the server loaded is wrong/empty. Restart the dev server and ensure no stale EXA_API_KEY in your shell or .dev.vars overrides .env (dotenv uses override:false).');
+    if (res.status === 401) {
+      console.warn('[exa] 401 means the EXA_API_KEY the server loaded is wrong/empty. Restart the dev server and ensure no stale EXA_API_KEY in your shell or .dev.vars overrides .env.');
     }
     return [];
   }

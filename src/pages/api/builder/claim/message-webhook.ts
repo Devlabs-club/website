@@ -6,14 +6,22 @@ import { getImessageProvider, getImessageProviderName } from '@/lib/messaging/ge
 import {
   parseBlueBubblesAttachments,
   looksLikeResume,
-  downloadBlueBubblesAttachment,
 } from '@/lib/messaging/bluebubblesAttachments';
 import {
   downloadAgentPhoneMedia,
   looksLikeResumeAttachment,
 } from '@/lib/messaging/agentPhoneAttachments';
 import { parseAgentPhoneInbound } from '@/lib/messaging/agentPhoneClient';
-import { parseResumeAttachment } from '@/lib/talent/builderResumeExtract';
+import { processBlueBubblesResumeAttachment, processResumeBytes } from '@/lib/messaging/inboundResume';
+import type { ResumeInbound } from '@/lib/messaging/inboundResume';
+import {
+  pendingResumeFromAttachment,
+  stashPendingResumeAttachment,
+  clearPendingResumeAttachment,
+  resolvePendingResumeAttachment,
+  looksLikeResumeIntent,
+  phoneFromBlueBubblesBody,
+} from '@/lib/messaging/pendingResumeAttachment';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -58,8 +66,18 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let messageId: string | null = null;
   let resumeText: string | null = null;
   let resumeExtracted: Record<string, unknown> | null = null;
+  let resumePdf: import('@/lib/messaging/inboundResume').InboundResumePdf | null = null;
+  let resumeInbound: ResumeInbound | null = null;
 
   if (providerName === 'bluebubbles') {
+    const attachments = parseBlueBubblesAttachments(body);
+    const resumeAttachment = attachments.find(looksLikeResume);
+    const earlyPhone = phoneFromBlueBubblesBody(body);
+    if (resumeAttachment && earlyPhone) {
+      await connectAdminDB();
+      await stashPendingResumeAttachment(earlyPhone, pendingResumeFromAttachment(resumeAttachment));
+    }
+
     const inbound = provider.parseInbound(body);
     if (!inbound) return json({ success: true, ignored: true });
 
@@ -67,22 +85,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
     text = inbound.text === '(attachment)' ? '' : inbound.text;
     messageId = inbound.providerMessageGuid;
 
-    const attachments = parseBlueBubblesAttachments(body);
-    const resumeAttachment = attachments.find(looksLikeResume);
     if (resumeAttachment) {
-      try {
-        const file = await downloadBlueBubblesAttachment(resumeAttachment.guid, runtime);
-        if (file) {
-          const parsed = await parseResumeAttachment(
-            file.buffer,
-            file.contentType || resumeAttachment.mimeType,
-            resumeAttachment.transferName
-          );
-          resumeText = parsed.text;
-          resumeExtracted = parsed.extracted as Record<string, unknown>;
-        }
-      } catch (err) {
-        console.warn('[claim/message-webhook] resume attachment processing failed', err);
+      resumeInbound = await processBlueBubblesResumeAttachment(resumeAttachment, runtime);
+      if (resumeInbound.status === 'parsed') {
+        resumeText = resumeInbound.text;
+        resumeExtracted = resumeInbound.extracted as Record<string, unknown>;
+        resumePdf = resumeInbound.pdf;
+        await clearPendingResumeAttachment(fromPhone);
+      } else {
+        console.warn('[claim/message-webhook] resume attachment processing failed', resumeInbound);
       }
     }
   } else {
@@ -100,28 +111,64 @@ export const POST: APIRoute = async ({ request, locals }) => {
       try {
         const file = await downloadAgentPhoneMedia(parsed.mediaUrl);
         if (file) {
-          const parsedResume = await parseResumeAttachment(file.buffer, file.contentType, parsed.mediaUrl);
-          resumeText = parsedResume.text;
-          resumeExtracted = parsedResume.extracted as Record<string, unknown>;
+          resumeInbound = await processResumeBytes(file.buffer, file.contentType, parsed.mediaUrl);
+          if (resumeInbound.status === 'parsed') {
+            resumeText = resumeInbound.text;
+            resumeExtracted = resumeInbound.extracted as Record<string, unknown>;
+            resumePdf = resumeInbound.pdf;
+          } else {
+            console.warn('[claim/message-webhook] resume attachment processing failed', resumeInbound);
+          }
+        } else {
+          resumeInbound = { status: 'download_failed', fileName: parsed.mediaUrl, error: 'Could not download media URL.' };
         }
       } catch (err) {
+        resumeInbound = {
+          status: 'download_failed',
+          fileName: parsed.mediaUrl,
+          error: err instanceof Error ? err.message : 'download error',
+        };
         console.warn('[claim/message-webhook] resume attachment processing failed', err);
       }
     }
   }
 
-  if (!fromPhone || (!text.trim() && !resumeText)) {
+  const resumeAttachmentLabel =
+    resumeInbound && resumeInbound.status !== 'parsed'
+      ? `(sent a resume PDF${resumeInbound.fileName ? `: ${resumeInbound.fileName}` : ''})`
+      : resumeText
+        ? '(sent a resume)'
+        : null;
+
+  if (!fromPhone || (!text.trim() && !resumeText && !resumeAttachmentLabel)) {
     return json({ success: false, error: 'fromPhone and body (or a resume attachment) are required.' }, 400);
   }
 
   await connectAdminDB();
+
+  // Pair caption-only follow-ups ("this is my resume") with a PDF from a prior webhook.
+  if (!resumeText && (looksLikeResumeIntent(text) || resumeAttachmentLabel)) {
+    const pending = await resolvePendingResumeAttachment(fromPhone, runtime);
+    if (pending.resumeText) {
+      resumeText = pending.resumeText;
+      resumeExtracted = pending.resumeExtracted;
+      resumePdf = pending.resumePdf;
+      resumeInbound = pending.resumeInbound;
+      console.log('[claim/message-webhook] paired text with pending resume PDF');
+    } else if (!resumeInbound && pending.resumeInbound) {
+      resumeInbound = pending.resumeInbound;
+    }
+  }
+
   const result = await advanceClaimConversation(
     {
       fromPhone,
-      body: text.trim() || '(sent a resume)',
+      body: text.trim() || resumeAttachmentLabel || '(sent a resume)',
       providerMessageId: messageId,
       resumeText,
       resumeExtracted,
+      resumePdf,
+      resumeInbound,
     },
     runtime
   );

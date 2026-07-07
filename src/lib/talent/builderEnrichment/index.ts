@@ -28,7 +28,7 @@ const ENRICHERS: Record<
   devpost: (builder) => enrichFromDevpost(builder),
   linkedin: (builder, ctx) => enrichFromLinkedIn(builder, ctx),
   portfolio: (builder) => enrichFromPortfolio(builder),
-  twitter: (builder) => enrichFromTwitter(builder),
+  twitter: (builder, ctx) => enrichFromTwitter(builder, ctx),
 };
 
 export async function enrichBuilderProfile(params: {
@@ -109,4 +109,23 @@ export async function enrichBuilderProfile(params: {
 }
 
 export { enrichFromResume, enrichFromGithub, enrichFromDevpost, enrichFromLinkedIn, enrichFromPortfolio, enrichFromTwitter };
+export {
+  runEnrichmentProbe,
+  runEnrichmentProbeBatch,
+  SAMPLE_PROBE_PROFILES,
+  type EnrichmentProbeRequest,
+  type EnrichmentProbeResult,
+} from './probe';
+export { auditGithubReposForUser, enrichGithubReposForUser, GITHUB_ENRICHMENT_TUNING } from './githubEnricher';
+export { probeLinkedInProfile } from './linkedinEnricher';
+export { enrichDevpostUrl, enrichDevpostProfile, isDevpostProfileUrl } from './devpostEnricher';
+export { persistEnrichmentContext } from './enrichmentInsights';
+export {
+  planEnrichment,
+  assessPublicProfileReadiness,
+  runEnrichmentPipeline,
+  ensureProfilePolishedBeforeShare,
+  buildEnrichmentPlaybookHint,
+  enrichmentStatusForAgent,
+} from './orchestrator';
 export type { EnrichmentSource, BuilderEnrichmentResult } from './types';

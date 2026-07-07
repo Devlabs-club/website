@@ -29,5 +29,8 @@ cookie.txt
 .idea/
 .vercel
 
+# local-only dev tools (not committed)
+local/
+
 .env
 .env*.local

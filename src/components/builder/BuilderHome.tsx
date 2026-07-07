@@ -360,6 +360,14 @@ export const BuilderHome: React.FC = () => {
         ...data.profile,
         name: data.profile.name || data.basics?.name,
         avatarUrl: data.profile.avatarUrl || data.basics?.avatarUrl || null,
+        founderHighlights:
+          data.profile.founderHighlights ??
+          (data.profile as { enrichmentInsights?: { founderHighlights?: BuilderProfileView['founderHighlights'] } })
+            .enrichmentInsights?.founderHighlights,
+        githubShowcase:
+          data.profile.githubShowcase ??
+          (data.profile as { enrichmentInsights?: { githubShowcase?: BuilderProfileView['githubShowcase'] } })
+            .enrichmentInsights?.githubShowcase,
       }
     : null;
 

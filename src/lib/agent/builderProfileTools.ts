@@ -8,6 +8,7 @@ import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { generateOpenRouterReply } from '@/lib/openrouter';
+import { fetchUrlMarkdown } from '@/lib/talent/builderEnrichment/urlToMarkdown';
 import { updateUserAccount, findUserByEmail } from '@/lib/adminMongo';
 import type { RuntimeEnv } from '@/lib/workosEnv';
 import type { EnrichmentSource } from '@/lib/talent/builderEnrichment';
@@ -436,11 +437,9 @@ export async function importProject(url: string, builderId: any) {
   };
 
   if (isDevpost) {
-    const params = new URLSearchParams({ url: normalizedUrl, title: 'true', links: 'true', clean: 'true' });
-    const mdRes = await fetch(`https://urltomarkdown.herokuapp.com/?${params}`);
-    if (!mdRes.ok) throw new Error(`Failed to fetch Devpost page: HTTP ${mdRes.status}`);
-    const markdown = await mdRes.text();
-    if (!markdown.trim()) throw new Error('Empty response from Devpost page');
+    const mdChunk = await fetchUrlMarkdown(normalizedUrl, 'Devpost', 6000);
+    if (!mdChunk?.markdown) throw new Error('Failed to fetch Devpost page as markdown');
+    const markdown = mdChunk.markdown;
 
     const imageMatches = Array.from(markdown.matchAll(/!\[[^\]]*]\((https?:\/\/[^)\s]+)[^)]*\)/gi));
     const imageUrl = imageMatches.map((m) => m[1]).find((u) => !/badge|logo|avatar|profile/i.test(u)) || imageMatches[0]?.[1] || null;

@@ -1,4 +1,5 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
+import { crawlMarkdownFromUrl } from './crawlMarkdown';
 import { fetchUrlMarkdown, normalizeUrl } from './urlToMarkdown';
 import type { EnrichedProfileDraft, EnrichedProjectDraft, SourceEnrichmentResult } from './types';
 
@@ -41,9 +42,31 @@ export async function enrichFromPortfolio(builder: any): Promise<SourceEnrichmen
   }
 
   try {
-    const chunk = await fetchUrlMarkdown(normalized, 'Portfolio', 7000);
-    if (!chunk) {
-      return { source: 'portfolio', errors: ['portfolio_fetch_failed'] };
+    const crawled = await crawlMarkdownFromUrl(normalized, {
+      maxDepth: 2,
+      maxPages: 10,
+      maxCharsPerPage: 5000,
+    });
+    const chunk = crawled.combinedMarkdown
+      ? { markdown: crawled.combinedMarkdown, provider: 'crawl' as const }
+      : await fetchUrlMarkdown(normalized, 'Portfolio', 7000);
+    if (!chunk?.markdown) {
+      let hint = 'portfolio_fetch_failed';
+      try {
+        await fetch(normalized, { method: 'HEAD', signal: AbortSignal.timeout(8000) });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/ENOTFOUND|Could not resolve/i.test(msg)) hint = 'portfolio_dns_failed';
+      }
+      return {
+        source: 'portfolio',
+        errors: [hint],
+        meta: {
+          portfolioUrl: normalized,
+          pagesCrawled: crawled.pages.length,
+          triedProviders: ['jina', 'heroku', 'direct_html', 'crawl'],
+        },
+      };
     }
 
     if (!hasOpenRouterConfig()) {
@@ -103,7 +126,12 @@ export async function enrichFromPortfolio(builder: any): Promise<SourceEnrichmen
       source: 'portfolio',
       profile,
       projects,
-      meta: { portfolioUrl: normalized },
+      meta: {
+        portfolioUrl: normalized,
+        pagesCrawled: crawled.pages.length,
+        crawledUrls: crawled.pages.map((p) => ({ url: p.url, depth: p.depth })),
+        markdownProvider: 'provider' in chunk ? chunk.provider : 'crawl',
+      },
     };
   } catch (err) {
     return {

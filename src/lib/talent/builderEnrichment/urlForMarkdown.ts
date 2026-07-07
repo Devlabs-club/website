@@ -1,6 +1,6 @@
 import { normalizeUrl } from './urlToMarkdown';
 
-/** urltomarkdown.herokuapp.com fails when the target URL ends with `/` (e.g. LinkedIn profiles). */
+/** urltomarkdown.herokuapp.com and Jina Reader can fail when the target URL ends with `/`. */
 export function urlForMarkdownFetch(input: string): string | null {
   const normalized = normalizeUrl(input);
   if (!normalized) return null;

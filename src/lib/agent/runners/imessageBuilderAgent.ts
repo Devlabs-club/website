@@ -24,10 +24,16 @@ import {
 import { formatDossierForAgent } from '@/lib/talent/builderDossier';
 import { appendSessionMemory, formatSessionMemoryBlock } from '@/lib/talent/builderSessionMemory';
 import { extractResumeFields, writeResumeExtractionToBuilder, type ExtractedResume } from '@/lib/talent/builderResumeExtract';
-import { enrichBuilderProfile, type EnrichmentSource } from '@/lib/talent/builderEnrichment';
-import { aggregateInferredSkills } from '@/lib/talent/builderEnrichment/apply';
-import { deepResearchBuilder } from '@/lib/talent/builderDeepResearch';
-import { extractUrls, classifyLink, processGenericLink } from '@/lib/talent/builderLinkProcessor';
+import type { ResumeInbound } from '@/lib/messaging/inboundResume';
+import {
+  buildEnrichmentPlaybookHint,
+  enrichmentStatusForAgent,
+  ensureProfilePolishedBeforeShare,
+  planEnrichment,
+  runEnrichmentPipeline,
+} from '@/lib/talent/builderEnrichment/orchestrator';
+import type { EnrichmentSource } from '@/lib/talent/builderEnrichment';
+import { extractUrls, classifyLink } from '@/lib/talent/builderLinkProcessor';
 import IntroRequest from '@/models/talent/IntroRequest';
 import MatchRecord from '@/models/talent/MatchRecord';
 import MessageThread from '@/models/talent/MessageThread';
@@ -154,6 +160,14 @@ GET TO KNOW THEM — homework informs the chat, links build the profile:
 - Dossier/research is background knowledge — don't auto-write it to the profile without confirmation.
 - Links they send are auto-saved and scraped quietly; react casually, reference findings naturally next turn.
 - run_enrichment / deep_research once you have their URLs. Verify work history before writing as fact.
+- polish_profile BEFORE send_profile_link or finalize_profile — runs every pending scrape + web research so their public profile is actually founder-ready.
+
+ENRICHMENT TOOLING (timing matters more than the scrape itself):
+- Link drops → we auto-queue the matching source; still call run_enrichment if pending sources show in the snapshot.
+- GitHub + LinkedIn first (projects, work history, skills). Devpost profile URL → ALL hackathon projects. Twitter → voice/posts only (no projects). Portfolio → site + linked pages.
+- deep_research once after core links — Brave search + markdown crawl for proof points and discovered links.
+- After findings land: propose headline/bio from data, confirm LinkedIn roles with ONE yes/no, batch-write ALL project contributions in ONE update_builder_data call.
+- NEVER send_profile_link or finalize_profile until publicProfileReadiness.ready is true — call polish_profile first if pending enrichment or blockers remain.
 
 YOUR WRITE TOOL: update_builder_data is your single tool to change ANYTHING — profile fields, projects, or their user account — in one call. You have full rights; no permission needed. See BUILDER_DATA_SCHEMA below for every field. Batch related changes into one call.
 
@@ -165,16 +179,18 @@ WRITING RULES (bio/headline/experience — founders READ these):
 - The bio is about the BUILDER's proof-of-work — NEVER paste a description of a program/company as their bio. Good: "Ships mobile apps in Flutter; 3 hackathon wins; runs DevLabs." Bad: "Process-focused builder passionate about innovative solutions."
 
 ENRICHMENT PRIORITY (chase the biggest gap — usually a missing link):
-1. GitHub + LinkedIn URLs (ask for them — highest leverage) 2. Devpost / portfolio / flagship repo 3. resume PDF if still thin 4. project contributions + headline/bio 5. work authorization 6. availability. NEVER ask hours per week.
+1. GitHub + LinkedIn URLs → run_enrichment [github, linkedin] 2. Devpost profile → [devpost] 3. Twitter → [twitter] 4. portfolio / personal site → [portfolio] 5. resume PDF if still thin 6. polish_profile before profile link 7. project contributions + headline/bio 8. work authorization 9. availability. NEVER ask hours per week.
+
+PROFILE LINK GATE: call polish_profile first. Only send_profile_link when publicProfileReadiness.ready is true in the snapshot (or polish_profile returns ready). If blockers remain, fix them in conversation — don't ship a thin profile.
 
 RESUME (high value — ask at the right moment):
 - After github/linkedin homework lands, if work history, skills, or projects are still thin, ask ONCE: "got a resume pdf? just drop it in here — i'll cross-check it against what we already pulled and fill the gaps."
-- When they send a PDF (BlueBubbles attachment), we parse it automatically and cross-check against their existing profile — new skills/experiences/projects get added; we only overwrite empty or clearly weaker fields.
+- When they send a PDF (BlueBubbles attachment), we parse automatically and cross-check against their existing profile — new skills/experiences/projects get added; we only overwrite empty or clearly weaker fields. After extraction succeeds, we upload the PDF and save it on their profile as links.resume (a hosted .pdf URL). NEVER ask for a "resume URL" when they attached a PDF. Do NOT set links.resume to LinkedIn or any non-PDF URL.
 - Acknowledge specifics ("pulled your cloudflare internship + 3 projects from the resume"). Confirm imported jobs with ONE yes/no. Never ask them to re-type what's already on the resume.
 
-PROFILE LINK: only when they ask to see/view their profile, or after you've confirmed their experience, projects, and visa status through real back-and-forth — then call send_profile_link. Never send the profile link on your first message or before they've had a chance to correct wrong info.
+PROFILE LINK: only when they ask to see/view their profile, or after polish_profile confirms founder-ready — then call send_profile_link. Never send on kickoff or before enrichments have run on their links.
 
-FINISHING: when it's genuinely founder-ready (confirmed proof links + a solid project/experience + clear headline + work authorization + availableNow set), call finalize_profile, then tell them in your own warm voice that their profile is locked in and you'll ping them right here when a founder wants to hire them — and share the link send_profile_link returns. Don't finalize a thin profile or one you haven't confirmed with them. Never finalize on kickoff or before they've replied at least once. Once finalized, DON'T keep manufacturing gaps to ask about — but DO stay available: answer their questions and help with anything they bring up.
+FINISHING: when publicProfileReadiness.ready and they've confirmed details, call polish_profile then finalize_profile, then send_profile_link. Don't finalize thin profiles.
 
 NEVER say "this helps you get matched / rank higher / get noticed." Say "this makes your profile easy for a founder to read."`;
 
@@ -255,7 +271,17 @@ const BASE_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'evaluate_profile',
-      description: 'Run a quality evaluation to see what is still weak or missing.',
+      description:
+        'Run quality evaluation + publicProfileReadiness (score, blockers, pending enrichments). Use before polish_profile or send_profile_link to see what is still missing.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'polish_profile',
+      description:
+        'Run ALL pending enrichment + web research NOW to make the public profile founder-ready. REQUIRED before send_profile_link or finalize_profile. Returns readiness score + blockers. May take up to 2 minutes.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -279,7 +305,8 @@ const BASE_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'send_profile_link',
-      description: "Get the builder's PRIVATE profile-view link to text them — when they ask to see their profile, or when you think it's ready to view. Only this builder can open it.",
+      description:
+        "Get the builder's PRIVATE profile-view link to text them. ONLY when they ask to see their profile AND publicProfileReadiness.ready is true (runs polish automatically if needed). Blocked if profile is still thin.",
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -287,7 +314,8 @@ const BASE_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'finalize_profile',
-      description: 'Mark the profile claimed + founder-ready (only when proof links, confirmed project/experience, clear headline, work authorization, and availableNow are set — and you have confirmed details with the builder in conversation). Returns the private profile link to share.',
+      description:
+        'Mark profile claimed + public for founders. ONLY after polish_profile confirms founder-ready, work authorization is set, and builder confirmed details in conversation.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -347,14 +375,15 @@ const SCHEDULING_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'run_enrichment',
-      description: "Scrape the builder's own GitHub/LinkedIn/Devpost/portfolio and auto-fill their profile. Runs in the BACKGROUND — call it, tell them 'give me a sec', and react to the results next turn.",
+      description:
+        "Scrape the builder's linked sources into their profile. Runs in BACKGROUND — one casual line, findings next turn. Use: github+linkedin when those links exist; devpost for Devpost PROFILE urls (extracts all projects); twitter for X handle (posts/voice, not projects); portfolio for personal sites; resume for PDF link. Check pendingSources in snapshot.",
       parameters: {
         type: 'object',
         properties: {
           sources: {
             type: 'array',
             items: { type: 'string', enum: ['github', 'linkedin', 'devpost', 'portfolio', 'resume', 'twitter'] },
-            description: 'Which sources to scrape. Default: github + linkedin.',
+            description: 'Sources to scrape. Default: all pending sources for links they have.',
           },
         },
       },
@@ -364,7 +393,8 @@ const SCHEDULING_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'deep_research',
-      description: "Web-search the builder's public presence (X/Twitter, personal site, Devpost, press) for founder-grade proof-of-work + the sharpest follow-up questions. Runs in the BACKGROUND — call it, say 'give me a sec', and react to results next turn.",
+      description:
+        "Brave web search + page crawl + Twitter API for public proof-of-work and discovered links. Run ONCE after GitHub/LinkedIn enrichment. BACKGROUND — findings next turn.",
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -443,10 +473,52 @@ function formatProfileWritebackNote(builder: any, projects: any[]): string {
   return lines.join('\n');
 }
 
+function formatGithubEnrichmentSummary(sourceResult: any): string {
+  const meta = sourceResult?.meta;
+  const projects = sourceResult?.projects || [];
+  if (!projects.length && !meta?.founderHighlight) return '';
+  const lines: string[] = [];
+  if (meta?.founderHighlight) lines.push(String(meta.founderHighlight));
+  else if (projects.length) {
+    const names = projects.map((p: any) => p.projectName).join(', ');
+    const extra = Number(meta?.additionalProjectsCount || 0);
+    lines.push(
+      extra > 0
+        ? `GitHub: top ${projects.length} — ${names} (+${extra} more repos)`
+        : `GitHub: ${names}`
+    );
+  }
+  const skills = sourceResult?.profile?.skills || [];
+  if (skills.length) lines.push(`Skills across repos: ${skills.slice(0, 14).join(', ')}`);
+  return lines.join('\n');
+}
+
+function formatTwitterEnrichmentSummary(sourceResult: any): string {
+  const posts = sourceResult?.meta?.topPosts;
+  const signals = sourceResult?.meta?.signals;
+  const lines: string[] = [];
+  const profile = sourceResult?.profile;
+  if (profile?.headline) lines.push(`Twitter headline: ${profile.headline}`);
+  if (profile?.bio) lines.push(`Twitter bio: ${profile.bio}`);
+  if (Array.isArray(posts) && posts.length) {
+    lines.push(
+      `Twitter: pulled ${posts.length} high-signal posts — ${posts
+        .slice(0, 2)
+        .map((p: any) => `"${String(p.text || '').slice(0, 90)}…" (${p.likes || 0} likes)`)
+        .join(' | ')}`
+    );
+  }
+  if (Array.isArray(signals) && signals.length) {
+    lines.push(`Twitter signals: ${signals.slice(0, 3).join(' | ')}`);
+  }
+  return lines.join('\n');
+}
+
 function formatLinkedInEnrichmentSummary(sourceResult: any): string {
   const writeResult = sourceResult?.meta?.writeResult;
   const extractedCount = sourceResult?.meta?.extractedExperienceCount;
-  if (!writeResult && !extractedCount) return '';
+  const profile = sourceResult?.profile;
+  if (!writeResult && !extractedCount && !profile) return '';
   const lines: string[] = [];
   if (writeResult?.experienceHighlights?.length) {
     lines.push(`LinkedIn roles imported: ${writeResult.experienceHighlights.join('; ')}`);
@@ -460,6 +532,21 @@ function formatLinkedInEnrichmentSummary(sourceResult: any): string {
     lines.push(`Added ${writeResult.skillsAdded} skill${writeResult.skillsAdded === 1 ? '' : 's'} from LinkedIn`);
   }
   if (writeResult.headline) lines.push(`Headline from LinkedIn: ${writeResult.headline}`);
+  else if (profile?.headline) lines.push(`Headline from LinkedIn: ${profile.headline}`);
+
+  const skills = [...(profile?.skills || []), ...(profile?.rolePreference || [])];
+  const uniqueSkills = [...new Set(skills.map((s: string) => String(s).trim()).filter(Boolean))];
+  if (uniqueSkills.length) lines.push(`LinkedIn skills: ${uniqueSkills.slice(0, 12).join(', ')}`);
+
+  const exps = profile?.experiences || [];
+  if (exps.length && !writeResult?.experienceHighlights?.length) {
+    lines.push(
+      `LinkedIn roles: ${exps
+        .slice(0, 3)
+        .map((e: any) => `${e.title || 'Role'} at ${e.company || 'Company'}`)
+        .join('; ')}`
+    );
+  }
   return lines.join('\n');
 }
 
@@ -471,97 +558,77 @@ async function executeFollowUpJob(
   runtime?: RuntimeEnv,
   claim?: any
 ): Promise<string> {
-  const parts: string[] = [];
-  const coolFacts: string[] = [];
+  const inboundCount = (claim?.messages || []).filter((m: any) => m.direction === 'inbound').length;
+  const deferExperiences = inboundCount < 4;
+  const hasLinkedin = job.sources.includes('linkedin');
+  const timeoutMs = hasLinkedin ? 180_000 : job.research ? 90_000 : 60_000;
 
-  // Any arbitrary links the builder dropped (personal site, X, blog, project page).
-  if (job.links?.length) {
+  try {
+    const pipeline = await withTimeout(
+      runEnrichmentPipeline({
+        builderId,
+        memRef,
+        sources: job.sources,
+        research: job.research,
+        genericLinks: job.links,
+        runtime,
+        claim,
+        deferExperiences,
+      }),
+      timeoutMs,
+      'enrichment_pipeline'
+    );
+
     const builder = await reloadBuilder(builderId);
-    for (const url of job.links.slice(0, 4)) {
-      try {
-        const r = await withTimeout(processGenericLink(builder, url, memRef), 25000, 'link');
-        if (r.ok) {
-          coolFacts.push(...r.coolFacts);
-          parts.push(`From ${url}: ${r.summary || 'read it'}${r.coolFacts.length ? ` — ${r.coolFacts.join('; ')}` : ''}${r.applied.length ? ` (saved ${r.applied.join(', ')})` : ''}.`);
-        } else {
-          parts.push(`Couldn't open ${url}.`);
-        }
-      } catch (e) {
-        parts.push(`Couldn't read ${url} (${e instanceof Error ? e.message : 'error'}).`);
-      }
+    const projects = await getProjects(builderId);
+    const writeback = builder ? formatProfileWritebackNote(builder, projects) : '';
+
+    for (const f of ['headline', 'bio', 'skills', 'experiences', 'rolePreference']) {
+      await resolveBuilderMemoryField(memRef, f);
     }
+
+    const linkedinSummary = formatLinkedInEnrichmentSummary(pipeline.results.find((s) => s.source === 'linkedin'));
+    const twitterSummary = formatTwitterEnrichmentSummary(pipeline.results.find((s) => s.source === 'twitter'));
+    const githubSummary = formatGithubEnrichmentSummary(pipeline.results.find((s) => s.source === 'github'));
+    const devpostSummary = (() => {
+      const d = pipeline.results.find((s) => s.source === 'devpost');
+      const count = d?.projects?.length || 0;
+      if (!count) return '';
+      return `Devpost: extracted ${count} project${count === 1 ? '' : 's'} — ${d?.projects?.map((p: any) => p.projectName).join(', ')}`;
+    })();
+
+    const founderHighlights = (builder?.enrichmentInsights?.founderHighlights || [])
+      .slice(0, 4)
+      .map((h: any) => `${h.title}: ${h.detail}`)
+      .join(' | ');
+
+    const readiness = pipeline.readiness;
+    const parts = [
+      pipeline.note,
+      linkedinSummary,
+      twitterSummary,
+      githubSummary,
+      devpostSummary,
+      founderHighlights ? `Founder highlights: ${founderHighlights}` : '',
+      writeback,
+      `Public profile readiness: ${readiness.ready ? 'READY' : 'NOT YET'} (score ${readiness.score}/100)${readiness.blockers.length ? ` — blockers: ${readiness.blockers.join('; ')}` : ''}`,
+      readiness.ready
+        ? 'You may call send_profile_link if they want to see it, or finalize_profile when they confirm.'
+        : 'Keep filling gaps — run polish_profile before sharing the profile link.',
+    ].filter(Boolean);
+
+    return parts.join('\n');
+  } catch (e) {
+    return `Enrichment pipeline issue (${e instanceof Error ? e.message : 'error'}). Ask for the missing link or retry polish_profile.`;
   }
-
-  if (job.sources?.length) {
-    try {
-      const hasLinkedin = job.sources.includes('linkedin');
-      const enrichmentTimeoutMs = hasLinkedin ? 150_000 : 45_000;
-      const inboundCount = (claim?.messages || []).filter((m: any) => m.direction === 'inbound').length;
-      const deferExperiences = inboundCount < 4;
-      const res = await withTimeout(
-        enrichBuilderProfile({ builderId, sources: job.sources, runtime, deferExperiences }),
-        enrichmentTimeoutMs,
-        'enrichment'
-      );
-      for (const f of res.profileFieldsUpdated) await resolveBuilderMemoryField(memRef, f);
-      await aggregateInferredSkills(builderId);
-      const builder = await reloadBuilder(builderId);
-      const projects = await getProjects(builderId);
-      const writeback = builder ? formatProfileWritebackNote(builder, projects) : '';
-      const linkedinSummary = formatLinkedInEnrichmentSummary(res.sources.find((s) => s.source === 'linkedin'));
-
-      if (claim && res.profileFieldsUpdated.length) {
-        const memoryBits = [
-          linkedinSummary || null,
-          res.profileFieldsUpdated.length ? `fields: ${res.profileFieldsUpdated.join(', ')}` : null,
-          res.projectsCreated ? `projects +${res.projectsCreated}` : null,
-        ].filter(Boolean);
-        appendSessionMemory(claim, `Enrichment writeback — ${memoryBits.join('; ')}`);
-      }
-
-      parts.push(
-        `Scraped ${job.sources.join(' + ')}: filled [${res.profileFieldsUpdated.join(', ') || 'nothing new'}], projects +${res.projectsCreated} new / ${res.projectsUpdated} updated.${linkedinSummary ? `\n${linkedinSummary}` : ''}${writeback ? `\n${writeback}` : ''}`
-      );
-    } catch (e) {
-      parts.push(`Couldn't fully scrape ${job.sources.join(' + ')} (${e instanceof Error ? e.message : 'error'}).`);
-    }
-  }
-
-  if (job.research) {
-    try {
-      const builder = await reloadBuilder(builderId);
-      const projects = await getProjects(builderId);
-      const r = await withTimeout(deepResearchBuilder({ builder, projects, memRef, runtime }), 30000, 'deep_research');
-      // Save any links we discovered (only if not already set).
-      const linkUpdates: Record<string, string> = {};
-      if (r.discoveredLinks.devpost && !builder.links?.devpost) linkUpdates.devpost = r.discoveredLinks.devpost;
-      if (r.discoveredLinks.personalWebsite && !builder.links?.personalWebsite) linkUpdates.personalWebsite = r.discoveredLinks.personalWebsite;
-      if (r.discoveredLinks.twitter && !builder.links?.twitter) linkUpdates.twitter = r.discoveredLinks.twitter;
-      if (Object.keys(linkUpdates).length) await updateLinks(builder, linkUpdates);
-
-      const found = [
-        r.summary,
-        r.proofPoints.length ? `Proof points: ${r.proofPoints.slice(0, 4).join(' | ')}` : '',
-        Object.values(linkUpdates).length ? `Found links: ${Object.entries(linkUpdates).map(([k, v]) => `${k}=${v}`).join(', ')}` : '',
-        r.suggestedQuestions.length ? `Best questions to ask: ${r.suggestedQuestions.slice(0, 3).join(' | ')}` : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-      parts.push(found || 'Web search turned up little I could verify.');
-    } catch (e) {
-      parts.push(`Research hiccup (${e instanceof Error ? e.message : 'error'}).`);
-    }
-  }
-
-  const note = parts.join('\n');
-  return coolFacts.length ? `SURPRISING THINGS TO DROP: ${coolFacts.join(' | ')}\n${note}` : note;
 }
 
 export async function runImessageBuilderAgentTurn(params: {
   claim: any;
   userText?: string;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
-  resume?: { text: string; extracted?: Record<string, unknown> } | null;
+  resume?: { text: string; extracted?: Record<string, unknown>; pdf?: import('@/lib/messaging/inboundResume').InboundResumePdf } | null;
+  resumeInbound?: ResumeInbound | null;
   /** Open the conversation (no inbound message yet) right after phone verification. */
   kickoff?: boolean;
   /**
@@ -631,7 +698,9 @@ export async function runImessageBuilderAgentTurn(params: {
     try {
       const extracted =
         (params.resume.extracted as ExtractedResume | undefined) || (await extractResumeFields(params.resume.text));
-      const writeResult = await writeResumeExtractionToBuilder(builderId, extracted);
+      const writeResult = await writeResumeExtractionToBuilder(builderId, extracted, {
+        resumePdf: params.resume.pdf,
+      });
 
       for (const field of writeResult.profileFieldsUpdated) {
         await resolveBuilderMemoryField(memRef, field);
@@ -659,8 +728,35 @@ Summary: ${highlights}]`;
         resumeNote = `[system: resume PDF cross-checked — mostly matched existing profile (${writeResult.unchanged.slice(0, 6).join(', ') || 'no major changes'}). Thank them, mention you're aligned, and ask ONE thing still thin in missingFields.]`;
       }
     } catch (err) {
-      resumeNote = `[system: couldn't read that resume file (${err instanceof Error ? err.message : 'parse error'}). Ask them to resend a text-based PDF (not a scanned image-only PDF).]`;
+      resumeNote = `[system: couldn't read that resume file (${err instanceof Error ? err.message : 'parse error'}). Ask them to resend a text-based PDF (not a scanned image-only PDF). Do NOT ask for a resume URL.]`;
     }
+  } else if (params.resumeInbound && params.resumeInbound.status !== 'parsed') {
+    const fileLabel = params.resumeInbound.fileName ? ` (${params.resumeInbound.fileName})` : '';
+    if (params.resumeInbound.status === 'download_failed') {
+      resumeNote = `[system: the builder attached a resume PDF${fileLabel} but we could NOT download it from the iMessage server (${params.resumeInbound.error}). Do NOT ask for a resume URL or link — they already sent the file as an attachment. Apologize briefly, say you're having trouble opening the attachment right now, and ask them to resend the PDF. Do NOT claim you updated their resume or resume link.]`;
+    } else {
+      resumeNote = `[system: the builder attached a resume PDF${fileLabel} but we could NOT read it (${params.resumeInbound.error}). Do NOT ask for a resume URL. Ask them to resend a text-based PDF (not a scanned image-only PDF). Do NOT claim you updated their resume.]`;
+    }
+  }
+
+  if (
+    !params.resume?.text &&
+    params.resumeInbound?.status === 'download_failed' &&
+    !params.kickoff &&
+    !isFollowup &&
+    !params.intro &&
+    !params.trialAssigned &&
+    !params.hired &&
+    userText
+  ) {
+    const first = builderFirstName(claim, builder).toLowerCase();
+    return {
+      builderId,
+      replies: splitIntoBubbles(
+        `hey ${first} — i got your resume pdf but i'm having trouble opening it on my end right now.\n\nmind sending it one more time? just drop the pdf here again — no link needed.`
+      ),
+      completed: false,
+    };
   }
 
   let finalizeCalled = false;
@@ -676,13 +772,42 @@ Summary: ${highlights}]`;
     const handled: string[] = [];
     for (const url of extractUrls(userText)) {
       const kind = classifyLink(url);
-      if (kind === 'github') { await updateLinks(builder, { github: url }); if (!followUp.sources.includes('github')) followUp.sources.push('github'); handled.push('github'); }
-      else if (kind === 'linkedin') { await updateLinks(builder, { linkedin: url }); if (!followUp.sources.includes('linkedin')) followUp.sources.push('linkedin'); handled.push('linkedin'); }
-      else if (kind === 'devpost') { await updateLinks(builder, { devpost: url }); if (!followUp.sources.includes('devpost')) followUp.sources.push('devpost'); handled.push('devpost'); }
-      else if (kind === 'twitter') { await updateLinks(builder, { twitter: url }); if (!followUp.sources.includes('twitter')) followUp.sources.push('twitter'); handled.push('twitter'); }
-      else { followUp.links.push(url); handled.push('a link'); }
+      if (kind === 'github') {
+        await updateLinks(builder, { github: url });
+        if (!followUp.sources.includes('github')) followUp.sources.push('github');
+        handled.push('github');
+      } else if (kind === 'linkedin') {
+        await updateLinks(builder, { linkedin: url });
+        if (!followUp.sources.includes('linkedin')) followUp.sources.push('linkedin');
+        handled.push('linkedin');
+      } else if (kind === 'devpost') {
+        await updateLinks(builder, { devpost: url });
+        if (!followUp.sources.includes('devpost')) followUp.sources.push('devpost');
+        handled.push('devpost');
+      } else if (kind === 'twitter') {
+        await updateLinks(builder, { twitter: url });
+        if (!followUp.sources.includes('twitter')) followUp.sources.push('twitter');
+        handled.push('twitter');
+      } else {
+        const looksLikePortfolio = /\.(dev|me|io|app|xyz|site|page)(\/|$)/i.test(url) || /portfolio|personal/i.test(url);
+        if (looksLikePortfolio) {
+          await updateLinks(builder, { portfolio: url, personalWebsite: url });
+          if (!followUp.sources.includes('portfolio')) followUp.sources.push('portfolio');
+          handled.push('portfolio');
+        } else {
+          followUp.links.push(url);
+          handled.push('a link');
+        }
+      }
     }
     if (handled.length) {
+      const fresh = (await reloadBuilder(builderId)) || builder;
+      const plan = planEnrichment(fresh);
+      for (const s of plan.sources) {
+        if (!followUp.sources.includes(s)) followUp.sources.push(s);
+      }
+      const inboundTurns = (claim.messages || []).filter((m: any) => m.direction === 'inbound').length;
+      if (inboundTurns >= 2 && followUp.sources.length >= 2) followUp.research = true;
       autoLinkNote = `[system: the builder just dropped ${handled.join(', ')}; you're already quietly checking it in the background. Reply in ONE short, casual line — do NOT mention scraping/enrichment/research or anything technical, don't say "I'm looking into it." Just be natural ("oh nice", "love it"). The interesting findings land next turn for you to surprise them with.]`;
     }
   }
@@ -691,7 +816,11 @@ Summary: ${highlights}]`;
   const sessionMemory = formatSessionMemoryBlock(claim);
   const dossierText = formatDossierForAgent(claim.metadata?.dossier);
   const freshBuilder = (await reloadBuilder(builderId)) || builder;
-  const snapshot = buildProfileSnapshot(freshBuilder, await getProjects(builderId));
+  const projectsForSnapshot = await getProjects(builderId);
+  const snapshot = {
+    ...buildProfileSnapshot(freshBuilder, projectsForSnapshot),
+    ...enrichmentStatusForAgent(freshBuilder, projectsForSnapshot),
+  };
 
   // OPEN ITEMS: everything currently live for this builder, so the agent can resolve
   // an ambiguous reply to the right opportunity/thread without asking every time.
@@ -742,8 +871,13 @@ Summary: ${highlights}]`;
   async function runTool(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
     const b = (await reloadBuilder(builderId)) || builder;
     switch (name) {
-      case 'get_builder_profile':
-        return buildProfileSnapshot(b, await getProjects(builderId)) as unknown as Record<string, unknown>;
+      case 'get_builder_profile': {
+        const projects = await getProjects(builderId);
+        return {
+          ...buildProfileSnapshot(b, projects),
+          ...enrichmentStatusForAgent(b, projects),
+        } as unknown as Record<string, unknown>;
+      }
 
       case 'update_builder_data': {
         try {
@@ -755,20 +889,25 @@ Summary: ${highlights}]`;
             if (isFollowup) {
               try {
                 const inboundTurns = (claim.messages || []).filter((m: any) => m.direction === 'inbound').length;
-                const enr = await withTimeout(
-                  enrichBuilderProfile({
+                await withTimeout(
+                  runEnrichmentPipeline({
                     builderId,
-                    sources: res.linksChanged,
+                    memRef,
+                    sources: res.linksChanged as EnrichmentSource[],
                     runtime,
+                    claim,
                     deferExperiences: inboundTurns < 4,
                   }),
-                  res.linksChanged.includes('linkedin') ? 150_000 : 45_000,
+                  res.linksChanged.includes('linkedin') ? 180_000 : 60_000,
                   'enrichment'
                 );
-                for (const f of enr.profileFieldsUpdated) await resolveBuilderMemoryField(memRef, f);
+                for (const f of ['headline', 'bio', 'skills', 'experiences']) {
+                  await resolveBuilderMemoryField(memRef, f);
+                }
               } catch { /* best effort */ }
             } else {
               for (const s of res.linksChanged) if (!followUp.sources.includes(s)) followUp.sources.push(s);
+              if (res.linksChanged.includes('github') || res.linksChanged.includes('linkedin')) followUp.research = true;
             }
           }
 
@@ -806,18 +945,61 @@ Summary: ${highlights}]`;
       }
 
       case 'run_enrichment': {
-        const sources = (Array.isArray(args.sources) && args.sources.length ? args.sources : ['github', 'linkedin']) as EnrichmentSource[];
+        const current = (await reloadBuilder(builderId)) || builder;
+        const plan = planEnrichment(current);
+        const sources = (
+          Array.isArray(args.sources) && args.sources.length ? args.sources : plan.sources.length ? plan.sources : ['github', 'linkedin']
+        ) as EnrichmentSource[];
         for (const s of sources) if (!followUp.sources.includes(s)) followUp.sources.push(s);
-        return { success: true, scheduled: sources, note: "reply with ONE casual line — don't mention scraping/enrichment. Findings come next turn to surprise them." };
+        if (sources.some((s) => ['github', 'linkedin', 'devpost'].includes(s))) followUp.research = true;
+        return {
+          success: true,
+          scheduled: sources,
+          pendingBefore: plan.sources,
+          note: "reply with ONE casual line — don't mention scraping/enrichment. Findings come next turn to surprise them.",
+        };
       }
 
       case 'deep_research': {
         followUp.research = true;
-        return { success: true, scheduled: 'deep_research', note: "reply with ONE casual line — don't mention research/digging. Findings come next turn to surprise them." };
+        return { success: true, scheduled: 'deep_research', note: "reply with ONE casual line — don't mention research. Findings come next turn." };
       }
 
-      case 'evaluate_profile':
-        return (await evaluateProfile(b)) as unknown as Record<string, unknown>;
+      case 'polish_profile': {
+        try {
+          const inboundTurns = (claim.messages || []).filter((m: any) => m.direction === 'inbound').length;
+          const polish = await withTimeout(
+            ensureProfilePolishedBeforeShare({
+              builderId,
+              memRef,
+              runtime,
+              claim,
+              deferExperiences: inboundTurns < 4,
+            }),
+            180_000,
+            'polish_profile'
+          );
+          return {
+            success: polish.ready,
+            ready: polish.ready,
+            score: polish.score,
+            blockers: polish.blockers,
+            ran: polish.ran,
+            note: polish.polishNote,
+            message: polish.ready
+              ? 'Profile is founder-ready — you can send_profile_link or finalize_profile after they confirm.'
+              : 'Still not ready — address blockers in conversation, then try again.',
+          };
+        } catch (e) {
+          return { success: false, error: e instanceof Error ? e.message : 'Polish failed' };
+        }
+      }
+
+      case 'evaluate_profile': {
+        const quality = await evaluateProfile(b);
+        const readiness = enrichmentStatusForAgent(b, await getProjects(builderId)).publicProfileReadiness;
+        return { ...quality, publicProfileReadiness: readiness };
+      }
 
       case 'remember_fact': {
         const content = typeof args.content === 'string' ? args.content : '';
@@ -835,7 +1017,36 @@ Summary: ${highlights}]`;
         if (params.kickoff || inboundTurns < 2) {
           return { success: false, error: 'Too early — confirm their experience and projects in conversation before sharing the profile link.' };
         }
-        return { success: true, profileLink, note: 'Text them this private link; remind them only they can open it.' };
+        try {
+          const polish = await withTimeout(
+            ensureProfilePolishedBeforeShare({
+              builderId,
+              memRef,
+              runtime,
+              claim,
+              deferExperiences: inboundTurns < 4,
+            }),
+            180_000,
+            'polish_before_link'
+          );
+          if (!polish.ready) {
+            return {
+              success: false,
+              error: `Profile not founder-ready (score ${polish.score}/100): ${polish.blockers.join('; ')}`,
+              blockers: polish.blockers,
+              ranPolish: polish.ran,
+              note: 'Fix gaps in conversation, ensure enrichments ran on their links, then call polish_profile again.',
+            };
+          }
+          return {
+            success: true,
+            profileLink,
+            readinessScore: polish.score,
+            note: 'Text them this private link; remind them only they can open it. Their public profile is enriched and founder-ready.',
+          };
+        } catch (e) {
+          return { success: false, error: e instanceof Error ? e.message : 'Could not polish profile before sharing link.' };
+        }
       }
 
       case 'finalize_profile': {
@@ -847,6 +1058,28 @@ Summary: ${highlights}]`;
         }
         if (!String(snap.workAuthorization || '').trim()) {
           return { success: false, error: 'Ask about visa / work authorization status before finalizing.' };
+        }
+        try {
+          const polish = await withTimeout(
+            ensureProfilePolishedBeforeShare({
+              builderId,
+              memRef,
+              runtime,
+              claim,
+              deferExperiences: inboundTurns < 4,
+            }),
+            180_000,
+            'polish_before_finalize'
+          );
+          if (!polish.ready) {
+            return {
+              success: false,
+              error: `Cannot finalize yet (score ${polish.score}/100): ${polish.blockers.join('; ')}`,
+              blockers: polish.blockers,
+            };
+          }
+        } catch (e) {
+          return { success: false, error: e instanceof Error ? e.message : 'Profile polish failed before finalize.' };
         }
         b.verificationStatus = 'builder_confirmed';
         b.visibilityStatus = 'public';
@@ -913,20 +1146,12 @@ Summary: ${highlights}]`;
 
   // Founder-ready: enough to confidently put in front of a founder → wrap up.
   const inboundUserTurns = (claim.messages || []).filter((m: any) => m.direction === 'inbound').length;
-  const hasWorkAuthorization = Boolean(String(snapshot.workAuthorization || '').trim());
-  const hasContribProject = (snapshot.projects || []).some((p: any) => p.contribution);
-  const hasAvailability = snapshot.availability?.availableNow === true;
-  const conversationReady = inboundUserTurns >= 2 && hasWorkAuthorization;
-  const founderReady =
-    !params.kickoff &&
-    conversationReady &&
-    (snapshot.profileScore ?? 0) >= 70 &&
-    hasContribProject &&
-    hasAvailability &&
-    Boolean(snapshot.links?.github || snapshot.links?.linkedin);
-  const founderReadyNote = founderReady && !isFollowup && !params.intro && !params.trialAssigned && !params.hired
-    ? `\n[system: profile looks strong (score ${snapshot.profileScore}). If they've confirmed their details, you can finalize_profile and send_profile_link — otherwise keep proactively filling gaps.]`
-    : '';
+  const founderReadyNote =
+    snapshot.publicProfileReadiness?.ready && !isFollowup && !params.intro && !params.trialAssigned && !params.hired
+      ? `\n[system: public profile is founder-ready (score ${snapshot.publicProfileReadiness.score}). If they've confirmed details, call finalize_profile and send_profile_link.]`
+      : snapshot.publicProfileReadiness?.blockers?.length && inboundUserTurns >= 2
+        ? `\n[system: public profile NOT ready (score ${snapshot.publicProfileReadiness.score}) — blockers: ${snapshot.publicProfileReadiness.blockers.join('; ')}. Run polish_profile after links land; do NOT send_profile_link yet.]`
+        : '';
 
   const profileGapHint = buildProfileGapHint(snapshot, claim.metadata?.dossier);
 
@@ -937,6 +1162,7 @@ Summary: ${highlights}]`;
     params.kickoff ? '\nContext: first text after phone verification — you have dossier homework. Welcome them, show you know their work, converse naturally toward a founder-ready profile.' : '',
     dossierText ? `\n${dossierText}` : '',
     profileGapHint ? `\n${profileGapHint}` : '',
+    `\n${buildEnrichmentPlaybookHint(freshBuilder)}`,
     sessionMemory ? `\n${sessionMemory}` : '',
     memoryText ? `\nMEMORY (already told you — never re-ask):\n${memoryText}` : '',
     `\nCURRENT PROFILE SNAPSHOT (may be stale; call get_builder_profile to confirm):\n${JSON.stringify(snapshot)}`,

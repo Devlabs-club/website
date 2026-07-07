@@ -330,3 +330,92 @@ export async function enrichFromLinkedIn(
     };
   }
 }
+
+/** Dry-run LinkedIn enrichment — Railway CDP first, then Voyager + markdown fallback (no DB writes). */
+export async function probeLinkedInProfile(
+  linkedinUrl: string,
+  runtime?: RuntimeEnv
+): Promise<SourceEnrichmentResult> {
+  const normalizedUrl = normalizeLinkedInUrl(linkedinUrl);
+  if (!normalizedUrl) {
+    return { source: 'linkedin', errors: ['invalid_linkedin_url'] };
+  }
+
+  try {
+    const remote = await runRemoteLinkedInScraperScript(
+      'enrich-builder-linkedin-cdp.mjs',
+      [
+        '--linkedin-url',
+        normalizedUrl,
+        '--name',
+        'Probe Builder',
+        '--wait-ms',
+        '12000',
+      ],
+      runtime,
+      150_000
+    );
+    if (remote?.artifact) {
+      const profile = profileDraftFromCdpArtifact(remote.artifact, normalizedUrl);
+      const extracted = remote.artifact?.extracted || {};
+      return {
+        source: 'linkedin',
+        profile,
+        meta: {
+          mode: 'remote_chrome_cdp',
+          dryRun: true,
+          summary: remote.summary,
+          profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
+          extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
+          extractedEducationCount: Array.isArray(extracted.education) ? extracted.education.length : 0,
+          warnings: remote.artifact?.warnings || extracted?.warnings || [],
+        },
+      };
+    }
+  } catch (err) {
+    console.warn('[linkedin] probe remote CDP failed, falling back', err);
+  }
+
+  try {
+    const voyager = await fetchLinkedInProfileViaVoyager(normalizedUrl);
+    let profile = mapVoyagerToDraft(voyager, normalizedUrl);
+    profile = await refineWithLlm(voyager.rawText, profile);
+    return {
+      source: 'linkedin',
+      profile,
+      meta: {
+        mode: 'voyager_api',
+        dryRun: true,
+        vanityName: voyager.vanityName,
+        skillCount: voyager.skills.length,
+        positionCount: voyager.positions.length,
+        profilePhotoUrl: voyager.photoUrl,
+      },
+    };
+  } catch (err) {
+    if (err instanceof LinkedInSessionError && err.code === 'session_expired') {
+      return { source: 'linkedin', errors: [err.code, err.message], meta: { mode: 'voyager_api', dryRun: true } };
+    }
+
+    const markdownUrl = urlForMarkdownFetch(normalizedUrl) || normalizedUrl;
+    const chunk = await fetchUrlMarkdown(markdownUrl, 'LinkedIn profile', 7000);
+    if (chunk && hasOpenRouterConfig()) {
+      let profile: EnrichedProfileDraft = { links: { linkedin: normalizedUrl } };
+      profile = await refineWithLlm(chunk.markdown, profile);
+      return {
+        source: 'linkedin',
+        profile,
+        meta: { mode: 'urltomarkdown', dryRun: true, fetchUrl: markdownUrl },
+      };
+    }
+
+    return {
+      source: 'linkedin',
+      errors: [
+        err instanceof Error ? err.message : 'linkedin_probe_failed',
+        'Railway CDP and Voyager both failed — check LINKEDIN_SCRAPER_URL/SECRET and LinkedIn session cookies.',
+      ],
+      meta: { dryRun: true },
+    };
+  }
+}

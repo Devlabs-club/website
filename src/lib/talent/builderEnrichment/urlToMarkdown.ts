@@ -8,7 +8,17 @@ export function normalizeUrl(input: string | null | undefined): string | null {
   return hasScheme ? trimmed : `https://${trimmed}`;
 }
 
-function buildUrlToMarkdownUrl(url: string) {
+function isUsableMarkdown(text: string, minChars = 80): boolean {
+  const trimmed = text.trim();
+  return (
+    trimmed.length >= minChars &&
+    !/could not fetch and convert/i.test(trimmed) &&
+    !/status code 999/i.test(trimmed) &&
+    !/^error:/i.test(trimmed)
+  );
+}
+
+function buildHerokuMarkdownUrl(url: string) {
   const fetchUrl = urlForMarkdownFetch(url) || url;
   const params = new URLSearchParams({
     url: fetchUrl,
@@ -19,42 +29,91 @@ function buildUrlToMarkdownUrl(url: string) {
   return `https://urltomarkdown.herokuapp.com/?${params.toString()}`;
 }
 
+/** Jina Reader — free markdown proxy, generally more reliable than Heroku urltomarkdown. */
+async function fetchViaJina(url: string, maxChars: number): Promise<string | null> {
+  try {
+    const res = await fetch(`https://r.jina.ai/${url}`, {
+      signal: AbortSignal.timeout(28000),
+      headers: {
+        Accept: 'text/markdown',
+        'X-Return-Format': 'markdown',
+      },
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!isUsableMarkdown(text)) return null;
+    return text.slice(0, maxChars);
+  } catch {
+    return null;
+  }
+}
+
+/** Legacy Heroku converter — kept as fallback when Jina fails. */
+async function fetchViaHeroku(url: string, maxChars: number): Promise<string | null> {
+  try {
+    const res = await fetch(buildHerokuMarkdownUrl(url), {
+      signal: AbortSignal.timeout(22000),
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (!isUsableMarkdown(text)) return null;
+    return text.slice(0, maxChars);
+  } catch {
+    return null;
+  }
+}
+
+/** Direct HTML fetch → plain text when markdown services fail. */
+async function fetchViaDirectHtml(url: string, maxChars: number): Promise<string | null> {
+  const text = await fetchAuthenticatedPageText(url, { maxChars });
+  return text && text.length >= 80 ? text : null;
+}
+
+export type PageMarkdownResult = {
+  source: string;
+  label: string;
+  markdown: string;
+  provider: 'jina' | 'heroku' | 'direct_html';
+};
+
+/**
+ * Fetch a public page as markdown/plain text.
+ * Tries Jina Reader → Heroku urltomarkdown → direct HTML (in order).
+ */
 export async function fetchUrlMarkdown(
   url: string,
   label: string,
   maxChars = 6000
-): Promise<{ source: string; label: string; markdown: string } | null> {
+): Promise<PageMarkdownResult | null> {
   const normalized = normalizeUrl(url);
   if (!normalized) return null;
   const markdownUrl = urlForMarkdownFetch(normalized) || normalized;
 
-  try {
-    const response = await fetch(buildUrlToMarkdownUrl(normalized), {
-      signal: AbortSignal.timeout(20000),
-    });
-    const markdown = await response.text();
-    if (
-      !response.ok ||
-      !markdown.trim() ||
-      markdown.length < 80 ||
-      /could not fetch and convert/i.test(markdown) ||
-      /status code 999/i.test(markdown)
-    ) {
-      return null;
+  const attempts: Array<{ provider: PageMarkdownResult['provider']; fetch: () => Promise<string | null> }> = [
+    { provider: 'jina', fetch: () => fetchViaJina(markdownUrl, maxChars) },
+    { provider: 'heroku', fetch: () => fetchViaHeroku(markdownUrl, maxChars) },
+    { provider: 'direct_html', fetch: () => fetchViaDirectHtml(markdownUrl, maxChars) },
+  ];
+
+  const errors: string[] = [];
+  for (const attempt of attempts) {
+    try {
+      const markdown = await attempt.fetch();
+      if (markdown) {
+        return { source: markdownUrl, label, markdown, provider: attempt.provider };
+      }
+      errors.push(`${attempt.provider}:empty`);
+    } catch (err) {
+      errors.push(`${attempt.provider}:${err instanceof Error ? err.message : 'failed'}`);
     }
-    return {
-      source: markdownUrl,
-      label,
-      markdown: markdown.slice(0, maxChars),
-    };
-  } catch (err) {
-    console.warn('[builderEnrichment] urlToMarkdown failed', {
-      label,
-      url: markdownUrl,
-      error: err instanceof Error ? err.message : err,
-    });
-    return null;
   }
+
+  console.warn('[builderEnrichment] page markdown fetch failed', {
+    label,
+    url: markdownUrl,
+    errors,
+  });
+  return null;
 }
 
 /** Strip HTML to plain text for authenticated fetches (e.g. LinkedIn with session cookie). */

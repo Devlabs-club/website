@@ -9,6 +9,7 @@ import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
+import { serializeBuilderProfile } from '@/lib/talent/serializeBuilderProfile';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -26,41 +27,6 @@ async function resolveUser(request: Request, locals: App.Locals) {
   const decoded = verifyToken(token, runtime);
   if (!decoded) return { user: null, runtime };
   return { user: await findUserById(decoded.userId, runtime), runtime };
-}
-
-function serializeProfile(profile: any, projects: any[] = []) {
-  if (!profile) return null;
-  return {
-    id: String(profile._id),
-    name: profile.name,
-    email: profile.email || null,
-    avatarUrl: profile.avatarUrl || null,
-    headline: profile.headline || null,
-    bio: profile.bio || null,
-    location: profile.location || null,
-    universityOrCompany: profile.universityOrCompany || null,
-    education: profile.education || [],
-    experiences: profile.experiences || [],
-    rolePreference: profile.rolePreference || [],
-    skills: profile.skills || [],
-    preferredWorkType: profile.preferredWorkType || [],
-    links: profile.links || {},
-    availability: profile.availability || {},
-    verificationStatus: profile.verificationStatus || 'imported_unverified',
-    visibilityStatus: profile.visibilityStatus || 'matched_only',
-    projects: projects.map((project) => ({
-      id: String(project._id),
-      projectName: project.projectName,
-      description: project.description || null,
-      problemSolved: project.problemSolved || null,
-      builderContribution: project.builderContribution || null,
-      techStack: project.techStack || [],
-      links: project.links || {},
-      source: project.source || 'manual',
-      sourceId: project.sourceId || null,
-      verificationStatus: project.verificationStatus,
-    })),
-  };
 }
 
 function claimMessageDelivery(claim: any) {
@@ -88,7 +54,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return json({ success: false, error: 'Invalid builder id.' }, 400);
     const profile = await BuilderProfile.findById(id).lean() as any;
     const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
-    return json({ success: Boolean(profile), profile: serializeProfile(profile, projects) });
+    return json({ success: Boolean(profile), profile: serializeBuilderProfile(profile, projects) });
   }
 
   const { user, runtime } = await resolveUser(request, locals);
@@ -142,7 +108,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
           agents: uploadedWrapped?.report?.sourceCoverage?.agents || [],
         }
       : null,
-    profile: serializeProfile(profile, projects),
+    profile: serializeBuilderProfile(profile, projects),
   });
 };
 
