@@ -487,8 +487,15 @@ const customPricingSteps = [
     pointer-events: none;
     opacity: 1;
     overflow: hidden;
-    mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
+    /* Fade vertically at top/bottom, and horizontally toward the page center */
+    mask-image:
+      linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.78) 22%, rgba(0, 0, 0, 0.38) 52%, transparent 100%),
+      linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
+    -webkit-mask-image:
+      linear-gradient(90deg, #000 0%, rgba(0, 0, 0, 0.78) 22%, rgba(0, 0, 0, 0.38) 52%, transparent 100%),
+      linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.12) 10%, #000 24%, #000 76%, rgba(0, 0, 0, 0.12) 90%, transparent 100%);
+    mask-composite: intersect;
+    -webkit-mask-composite: source-in;
   }
 
   .pricing-side-left {
@@ -521,7 +528,7 @@ const customPricingSteps = [
     top: -3rem;
     width: 30rem;
     height: 38rem;
-    background: linear-gradient(90deg, rgba(255, 232, 214, 0.62), rgba(255, 250, 247, 0.36), transparent);
+    background: linear-gradient(90deg, rgba(255, 232, 214, 0.62) 0%, rgba(255, 250, 247, 0.28) 42%, transparent 78%);
     filter: blur(20px);
   }
 
@@ -570,7 +577,7 @@ const customPricingSteps = [
     top: 2rem;
     width: 6.75rem;
     height: 42rem;
-    opacity: 0.45;
+    opacity: 0.38;
   }
 
   .pricing-side span:nth-child(5) {
@@ -578,7 +585,7 @@ const customPricingSteps = [
     top: 5rem;
     width: 6rem;
     height: 38rem;
-    opacity: 0.34;
+    opacity: 0.22;
   }
 
   .pricing-side span:nth-child(6) {
@@ -586,7 +593,7 @@ const customPricingSteps = [
     top: 8rem;
     width: 5.5rem;
     height: 34rem;
-    opacity: 0.24;
+    opacity: 0.1;
   }
 
   .pricing-side span:nth-child(7) {
@@ -594,7 +601,7 @@ const customPricingSteps = [
     top: 11rem;
     width: 5rem;
     height: 30rem;
-    opacity: 0.18;
+    opacity: 0;
   }
 
   .pricing-scale {
