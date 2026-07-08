@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
   CheckCircle2,
@@ -375,9 +375,9 @@ export const BuilderHome: React.FC = () => {
   const [verified, setVerified] = useState(false);
   const [traceUploaded, setTraceUploaded] = useState(false);
   const [activeSection, setActiveSection] = useState<BuilderSection>('overview');
-  const [sectionInitialized, setSectionInitialized] = useState(false);
+  const sectionInitializedRef = useRef(false);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const res = await fetch('/api/builder/profile', { credentials: 'include' });
       if (res.status === 401) {
@@ -405,20 +405,20 @@ export const BuilderHome: React.FC = () => {
         setTraceUploaded(false);
       }
 
-      if (!sectionInitialized) {
+      if (!sectionInitializedRef.current) {
+        sectionInitializedRef.current = true;
         setActiveSection(defaultSection(isVerified, uploaded, Boolean(json.profile)));
-        setSectionInitialized(true);
       }
     } catch {
       setData({ success: false, error: 'Could not load your profile.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadProfile();
-  }, []);
+  }, [loadProfile]);
 
   const fetchHandoff = useCallback(async () => {
     const res = await fetch('/api/builder/imessage-handoff', { credentials: 'include' });

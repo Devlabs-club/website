@@ -116,5 +116,9 @@
   },
   "engines": {
     "node": "20.x"
+  },
+  "overrides": {
+    "sharp": "0.35.3",
+    "@xenova/transformers>sharp": "0.35.3"
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Clipboard, Loader2, MessageCircle } from 'lucide-react';
 
 type HandoffData = {
@@ -40,21 +40,36 @@ export const BuilderImessageHandoff: React.FC<{
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const onVerifiedRef = useRef(onVerified);
+  const verifiedNotifiedRef = useRef(false);
+
+  onVerifiedRef.current = onVerified;
+
+  const notifyVerifiedOnce = () => {
+    if (verifiedNotifiedRef.current) return;
+    verifiedNotifiedRef.current = true;
+    onVerifiedRef.current?.();
+  };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
         const res = await fetchHandoff();
+        if (cancelled) return;
         setData(res);
         if (!res.success) setError(res.error || 'Could not load handoff.');
-        else if (res.phoneVerified) onVerified?.();
+        else if (res.phoneVerified) notifyVerifiedOnce();
       } catch {
-        setError('Could not load handoff.');
+        if (!cancelled) setError('Could not load handoff.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [fetchHandoff, onVerified]);
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchHandoff]);
 
   useEffect(() => {
     if (!pollVerified || data?.phoneVerified) return;
@@ -64,15 +79,15 @@ export const BuilderImessageHandoff: React.FC<{
         if (!res.ok) return;
         const json = await res.json();
         if (json.phoneVerified) {
-          onVerified?.();
+          notifyVerifiedOnce();
           setData((prev) => (prev ? { ...prev, phoneVerified: true } : prev));
         }
       } catch {
         /* ignore */
       }
-    }, 4000);
+    }, 8000);
     return () => clearInterval(id);
-  }, [pollVerified, pollUrl, data?.phoneVerified, onVerified]);
+  }, [pollVerified, pollUrl, data?.phoneVerified]);
 
   const copyMessage = async () => {
     if (!data?.messageBody) return;
