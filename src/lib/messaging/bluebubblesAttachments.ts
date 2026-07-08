@@ -1,4 +1,5 @@
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
+import { blueBubblesServerCandidates } from './bluebubblesClient';
 
 export type InboundAttachment = {
   guid: string;
@@ -37,24 +38,6 @@ export function looksLikeResume(att: InboundAttachment): boolean {
   // iMessage sometimes sends PDFs as generic octet-stream — sniff the extension.
   if ((type.includes('octet-stream') || type === 'application/data') && name.endsWith('.pdf')) return true;
   return false;
-}
-
-function blueBubblesServerCandidates(runtime?: RuntimeEnv): string[] {
-  const values = [
-    readEnv('BLUEBUBBLES_SERVER_URL', runtime),
-    readEnv('BLUEBUBBLES_SERVER_URL_FALLBACK', runtime),
-    // Common local dev default when the primary tunnel URL has expired.
-    process.env.NODE_ENV !== 'production' ? 'http://127.0.0.1:1234' : null,
-  ];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const value of values) {
-    const trimmed = value?.replace(/\/$/, '') || '';
-    if (!trimmed || seen.has(trimmed)) continue;
-    seen.add(trimmed);
-    out.push(trimmed);
-  }
-  return out;
 }
 
 /** Download an attachment's raw bytes from the BlueBubbles server. */

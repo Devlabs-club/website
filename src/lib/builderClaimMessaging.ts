@@ -32,7 +32,15 @@ export async function sendBuilderClaimMessage(
       { toPhone: params.toPhone, body: params.body, tempGuid: `devlabs-${params.claimId}-${Date.now()}` },
       runtime
     );
-    if (result.error) return { status: 'delivery_failed', error: result.error };
+    if (result.error) {
+      console.warn('[builder-claim-message] BlueBubbles delivery failed', {
+        claimId: params.claimId,
+        toPhone: params.toPhone,
+        purpose: params.purpose,
+        error: result.error,
+      });
+      return { status: 'delivery_failed', error: result.error };
+    }
     return { status: 'sent', providerMessageId: result.guid || null };
   }
 
