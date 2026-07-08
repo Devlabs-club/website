@@ -25,10 +25,12 @@ const GoogleAuthButton: React.FC<{ onClick?: () => void; disabled?: boolean; lab
     onClick={onClick}
     disabled={disabled}
     aria-label={label}
-    className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+    className="group relative flex h-[3.35rem] w-full items-center justify-center gap-3 overflow-hidden rounded-none border border-black bg-white px-4 text-sm font-extrabold text-[#050505] shadow-[0_14px_24px_rgba(0,0,0,0.06)] transition-[transform,box-shadow] duration-300 before:pointer-events-none before:absolute before:inset-0 before:origin-left before:scale-x-0 before:bg-[#fbf6f3] before:transition-transform before:duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(5,5,5,0.1)] hover:before:scale-x-100 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
   >
+    <span className="relative z-10 flex items-center gap-3">
     <GoogleIcon />
     <span>{disabled ? "Redirecting to Google..." : label}</span>
+    </span>
   </button>
 );
 

@@ -12,6 +12,9 @@ function postAuthDestination(): string {
   return redirect || "/auth/select-role";
 }
 
+const authInputClassName =
+  "h-[3.35rem] w-full rounded-none border border-black bg-white px-4 text-[#050505] shadow-[0_14px_24px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-black/35 focus:border-[#ff7417] focus:shadow-[0_14px_24px_rgba(255,116,23,0.12)]";
+
 /**
  * Minimal email-first auth (matches the wireframe): enter email -> Continue
  * reveals a password field -> submit creates the account or logs in.
@@ -62,7 +65,7 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm text-muted-foreground">
+        <label htmlFor="email" className="text-sm font-medium text-black/55">
           Work email
         </label>
         <input
@@ -72,13 +75,13 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="e.g. kavya@devlabs.in"
           autoComplete="email"
-          className="h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40"
+          className={authInputClassName}
         />
       </div>
 
       {showPassword && (
         <div className="animate-fade-in space-y-2">
-          <label htmlFor="password" className="text-sm text-muted-foreground">
+          <label htmlFor="password" className="text-sm font-medium text-black/55">
             Password
           </label>
           <input
@@ -89,17 +92,17 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
             placeholder={mode === "signup" ? "Create a password" : "Enter your password"}
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
             autoFocus
-            className="h-12 w-full rounded-xl border border-border bg-background px-4 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-foreground/40"
+            className={authInputClassName}
           />
         </div>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
+        className="flex h-[3.35rem] w-full items-center justify-center gap-2 rounded-none border-2 border-[#050505] bg-[#050505] text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,transform,box-shadow] duration-300 hover:-translate-y-0.5 hover:border-black hover:bg-white hover:text-[#050505] hover:shadow-[0_18px_40px_rgba(5,5,5,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black disabled:translate-y-0 disabled:opacity-60"
       >
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {showPassword ? (mode === "signup" ? "Create account" : "Log in") : "Continue"}

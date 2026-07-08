@@ -6,8 +6,8 @@ import { SocialRow } from "./SocialRow";
 
 const OrDivider = () => (
   <div className="relative my-6 flex items-center justify-center">
-    <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-border" />
-    <span className="relative bg-background px-3 text-xs uppercase tracking-wide text-muted-foreground">
+    <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-black/10" />
+    <span className="relative bg-[#fbf6f3] px-3 text-xs font-semibold uppercase tracking-[0.14em] text-black/40">
       Or
     </span>
   </div>
@@ -51,13 +51,17 @@ export const AuthLoginPage: React.FC<AuthLoginPageProps> = ({ redirect }) => {
   return (
     <AuthProvider>
       <AuthShell>
-        <img src="/logo.png" alt="DevLabs" className="mb-8 h-11 w-11 rounded-xl object-contain" />
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Welcome back</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Log in to continue to DevLabs.
+        <a href="/" aria-label="DevLabs home" className="mb-8 inline-flex">
+          <img src="/logo.png" alt="" className="h-10 w-10 rounded-xl object-contain" />
+        </a>
+        <h1 className="text-[clamp(1.85rem,4vw,2.35rem)] font-extrabold leading-tight tracking-[-0.03em] text-[#050505]">
+          Welcome back
+        </h1>
+        <p className="mt-3 text-sm leading-relaxed text-black/55">
+          Log in to continue to DevLabs — the community-backed hiring platform for founders.
         </p>
         {oauthError && (
-          <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <p className="mt-5 rounded-xl border border-red-300/50 bg-red-50 px-4 py-3 text-sm text-red-700">
             {oauthError}
           </p>
         )}
@@ -65,12 +69,15 @@ export const AuthLoginPage: React.FC<AuthLoginPageProps> = ({ redirect }) => {
         <div className="mt-8">
           <EmailAuthForm mode="login" />
           <OrDivider />
-          <SocialRow label="Sign in with Google" />
+          <SocialRow label="Continue with Google" />
         </div>
 
-        <p className="mt-8 text-center text-xs text-muted-foreground">
+        <p className="mt-8 text-center text-xs text-black/45">
           New to DevLabs?{" "}
-          <a href={authSwitchHref("/auth/signup", redirect)} className="font-medium text-foreground underline-offset-4 hover:underline">
+          <a
+            href={authSwitchHref("/auth/signup", redirect)}
+            className="font-semibold text-[#050505] underline-offset-4 hover:text-[#ff7417] hover:underline"
+          >
             Sign up
           </a>
         </p>
