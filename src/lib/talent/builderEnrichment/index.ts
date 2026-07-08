@@ -1,6 +1,6 @@
 import type { RuntimeEnv } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
-import { applyProfileDraft, refreshBuilderScores, upsertEnrichedProjects } from './apply';
+import { aggregateInferredSkills, applyProfileDraft, refreshBuilderScores, upsertEnrichedProjects } from './apply';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { enrichFromDevpost } from './devpostEnricher';
 import { enrichFromGithub } from './githubEnricher';
@@ -74,7 +74,8 @@ export async function enrichBuilderProfile(params: {
 
     if (result.profile) {
       const updated = await applyProfileDraft(builder, result.profile, {
-        overwriteBasics: source === 'linkedin',
+        overwriteBasics: false,
+        writeBasics: source === 'resume',
         deferExperiences: params.deferExperiences,
       });
       profileFieldsUpdated.push(...updated);

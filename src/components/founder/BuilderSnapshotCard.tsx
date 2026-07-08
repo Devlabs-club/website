@@ -66,6 +66,7 @@ export default function BuilderSnapshotCard({
 
   // Safe checks for arrays and properties
   const skills = Array.isArray(candidate.topSkills) ? candidate.topSkills : [];
+  const founderSignals = Array.isArray(candidate.founderSignals) ? candidate.founderSignals.slice(0, 3) : [];
   const name = isAnon ? candidate.anonymousLabel : candidate.name;
   const headline = isAnon ? (candidate.roleType || 'Builder') : (candidate.headline || 'Builder');
   const matchLabel = candidate.matchLabel || 'Possible Match';
@@ -113,16 +114,38 @@ export default function BuilderSnapshotCard({
           </div>
         </div>
 
-        {/* Pitch / Interesting Fact Box */}
-        <div className="rounded-2xl bg-gradient-to-r from-[#fa7d22]/10 to-transparent p-4 border-l-2 border-[#fa7d22]">
-          <p className="text-[10px] uppercase tracking-wider text-[#ffb580] font-bold flex items-center gap-1.5 mb-1.5">
-            <Zap className="w-3.5 h-3.5 fill-[#ffb580]" />
-            Why They Fit
-          </p>
-          <p className="text-sm text-white/90 leading-relaxed font-medium">
-            {getInterestingFact()}
-          </p>
-        </div>
+        {founderSignals.length > 0 ? (
+          <div className="grid gap-2">
+            {founderSignals.map((signal: any) => (
+              <div key={`${signal.label}-${signal.detail}`} className="rounded-2xl border border-[#fa7d22]/20 bg-[#fa7d22]/10 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-wider text-[#ffb580] font-bold flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 fill-[#ffb580]" />
+                    {signal.label}
+                  </p>
+                  {signal.source ? (
+                    <span className="shrink-0 rounded-md border border-white/10 px-1.5 py-0.5 text-[9px] font-semibold text-white/45">
+                      {signal.source}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="mt-1.5 line-clamp-2 text-xs text-white/80 leading-relaxed">
+                  {signal.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl bg-gradient-to-r from-[#fa7d22]/10 to-transparent p-4 border-l-2 border-[#fa7d22]">
+            <p className="text-[10px] uppercase tracking-wider text-[#ffb580] font-bold flex items-center gap-1.5 mb-1.5">
+              <Zap className="w-3.5 h-3.5 fill-[#ffb580]" />
+              Why They Fit
+            </p>
+            <p className="text-sm text-white/90 leading-relaxed font-medium">
+              {getInterestingFact()}
+            </p>
+          </div>
+        )}
 
         {/* Top Skills Chips */}
         {skills.length > 0 && (

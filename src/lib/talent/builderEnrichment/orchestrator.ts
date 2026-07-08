@@ -4,7 +4,7 @@ import { rememberBuilderFact } from '@/lib/talent/builderAgentMemory';
 import { enrichBuilderProfile, type EnrichmentSource } from '@/lib/talent/builderEnrichment';
 import { aggregateInferredSkills } from '@/lib/talent/builderEnrichment/apply';
 import { persistEnrichmentContext } from '@/lib/talent/builderEnrichment/enrichmentInsights';
-import { deepResearchBuilder } from '@/lib/talent/builderDeepResearch';
+import { deepResearchBuilder, type DeepResearchResult } from '@/lib/talent/builderDeepResearch';
 import { processGenericLink } from '@/lib/talent/builderLinkProcessor';
 import { reloadBuilder, getProjects, updateBuilderScores, updateLinks } from '@/lib/agent/builderProfileTools';
 import type { SourceEnrichmentResult } from './types';
@@ -40,6 +40,12 @@ function linkForSource(builder: any, source: EnrichmentSource): string | null {
   if (source === 'portfolio') return links.portfolio || links.personalWebsite || null;
   if (source === 'resume') return links.resume || null;
   return links[source] || null;
+}
+
+function sourceForLinkField(field: string): EnrichmentSource | null {
+  if (field === 'personalWebsite') return 'portfolio';
+  if (SOURCE_ORDER.includes(field as EnrichmentSource)) return field as EnrichmentSource;
+  return null;
 }
 
 /** Decide which enrichment sources still need to run for this builder. */
@@ -199,6 +205,7 @@ export async function runEnrichmentPipeline(params: {
   }
 
   let researchSummary = '';
+  let researchResult: DeepResearchResult | null = null;
   if (params.research) {
     const projects = await getProjects(params.builderId);
     const research = await deepResearchBuilder({
@@ -207,6 +214,7 @@ export async function runEnrichmentPipeline(params: {
       memRef: params.memRef,
       runtime: params.runtime,
     });
+    researchResult = research;
     researchSummary = [research.summary, research.proofPoints.slice(0, 3).join(' | ')].filter(Boolean).join(' — ');
     const linkUpdates: Record<string, string> = {};
     if (research.discoveredLinks.devpost && !builder.links?.devpost) linkUpdates.devpost = research.discoveredLinks.devpost;
@@ -215,7 +223,30 @@ export async function runEnrichmentPipeline(params: {
     }
     if (research.discoveredLinks.twitter && !builder.links?.twitter) linkUpdates.twitter = research.discoveredLinks.twitter;
     if (research.discoveredLinks.github && !builder.links?.github) linkUpdates.github = research.discoveredLinks.github;
-    if (Object.keys(linkUpdates).length) await updateLinks(builder, linkUpdates);
+    const discoveredSources: EnrichmentSource[] = [];
+    for (const [field, value] of Object.entries(linkUpdates)) {
+      try {
+        await updateLinks(builder, { [field]: value } as any);
+        const source = sourceForLinkField(field);
+        if (source && !sources.includes(source) && !discoveredSources.includes(source)) {
+          discoveredSources.push(source);
+        }
+      } catch (err) {
+        genericNotes.push(
+          `Research found a possible ${field} link but it was not saved (${err instanceof Error ? err.message : 'invalid URL'})`
+        );
+      }
+    }
+
+    if (discoveredSources.length) {
+      const res = await enrichBuilderProfile({
+        builderId: params.builderId,
+        sources: discoveredSources,
+        runtime: params.runtime,
+        deferExperiences: params.deferExperiences,
+      });
+      results.push(...res.sources);
+    }
 
     if (researchSummary) {
       await rememberBuilderFact(params.memRef, {
@@ -231,6 +262,7 @@ export async function runEnrichmentPipeline(params: {
     builderId: params.builderId,
     sourceResults: results,
     builder: await reloadBuilder(params.builderId),
+    research: researchResult,
   });
 
   await aggregateInferredSkills(params.builderId);
@@ -351,7 +383,7 @@ export function buildEnrichmentPlaybookHint(builder: any): string {
     '1. When GitHub OR LinkedIn link lands → run_enrichment with [github, linkedin] immediately.',
     '2. When Devpost profile link lands → run_enrichment with [devpost] (scrapes ALL hackathon projects on their profile).',
     '3. When Twitter/X link lands → run_enrichment with [twitter] (voice + posts, NOT projects).',
-    '4. When portfolio/personal site lands → run_enrichment with [portfolio] (+ deep_research if still thin).',
+    '4. When portfolio/personal site lands → run_enrichment with [portfolio] (+ deep_research if the profile still needs more proof).',
     '5. After core links, run deep_research once for Brave/web proof + discovered links.',
     '6. BEFORE send_profile_link or finalize_profile → call polish_profile (runs anything still pending).',
     '7. After enrichment lands: confirm LinkedIn work history with ONE yes/no, draft headline/bio from findings, write ALL project contributions in one update_builder_data call.',

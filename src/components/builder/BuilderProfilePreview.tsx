@@ -1,5 +1,6 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
+import { BuilderHighlightsSection } from "./BuilderHighlightsSection";
 
 export type BuilderProfileView = {
   id?: string;
@@ -44,14 +45,17 @@ const linkLabel = (key: string) => {
   return labels[key] || key;
 };
 
-export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView }> = ({ profile }) => {
+export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; showHighlights?: boolean }> = ({
+  profile,
+  showHighlights = true,
+}) => {
   const skills = [...new Set([...(profile.skills || []), ...(profile.preferredWorkType || [])])].slice(0, 16);
   const experiences = (profile.experiences || []).slice(0, 5);
   const projects = (profile.projects || []).slice(0, 3);
-  const highlights = (profile.founderHighlights || []).slice(0, 6);
   const linkEntries = Object.entries(profile.links || {}).filter(([, href]) => Boolean(href));
   const additionalGithubProjects = profile.githubShowcase?.additionalProjectCount || 0;
   const reposScanned = profile.githubShowcase?.reposScanned || 0;
+  const highlights = (profile.founderHighlights || []).filter((item) => item?.title && item?.detail).slice(0, 6);
 
   const githubShowcaseNote =
     additionalGithubProjects > 0 ? (
@@ -112,19 +116,9 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView }> = 
         ) : null}
       </header>
 
-      {highlights.length > 0 ? (
+      {showHighlights && highlights.length > 0 ? (
         <PreviewSection label="Why this builder stands out">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {highlights.map((item, index) => (
-              <div
-                key={`${item.title}-${index}`}
-                className="rounded-2xl border border-[#ff7417]/25 bg-gradient-to-br from-[#fff9f4] to-[#fff5ef] p-4"
-              >
-                <p className="text-sm font-extrabold text-[#bf4f08]">{item.title}</p>
-                <p className="mt-1.5 text-sm leading-6 text-black/65">{item.detail}</p>
-              </div>
-            ))}
-          </div>
+          <BuilderHighlightsSection highlights={highlights} defaultVisible={4} />
         </PreviewSection>
       ) : null}
 

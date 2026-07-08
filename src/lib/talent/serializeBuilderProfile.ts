@@ -1,9 +1,12 @@
+import { dedupeProjectsForDisplay, mergeExperiences, mergeStringList } from '@/lib/talent/profileDedup';
+
 /** Shared API shape for founder + builder profile views (top projects + enrichment highlights). */
 export function serializeBuilderProfile(profile: any, projects: any[] = []) {
   if (!profile) return null;
 
   const githubShowcase = profile.enrichmentInsights?.githubShowcase || {};
-  const sortedProjects = [...projects].sort((a, b) => {
+  const displayProjects = dedupeProjectsForDisplay(projects);
+  const sortedProjects = [...displayProjects].sort((a, b) => {
     const confA = typeof a.confidence === 'number' ? a.confidence : 0;
     const confB = typeof b.confidence === 'number' ? b.confidence : 0;
     return confB - confA;
@@ -21,10 +24,10 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
     location: profile.location || null,
     universityOrCompany: profile.universityOrCompany || null,
     education: profile.education || [],
-    experiences: profile.experiences || [],
-    rolePreference: profile.rolePreference || [],
-    skills: profile.skills || [],
-    preferredWorkType: profile.preferredWorkType || [],
+    experiences: mergeExperiences(profile.experiences || [], []),
+    rolePreference: mergeStringList(profile.rolePreference || [], []),
+    skills: mergeStringList(profile.skills || [], []),
+    preferredWorkType: mergeStringList(profile.preferredWorkType || [], []),
     links: profile.links || {},
     availability: profile.availability || {},
     verificationStatus: profile.verificationStatus || 'imported_unverified',

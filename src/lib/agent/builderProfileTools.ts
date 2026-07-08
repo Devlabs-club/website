@@ -8,8 +8,14 @@ import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { generateOpenRouterReply } from '@/lib/openrouter';
-import { fetchUrlMarkdown } from '@/lib/talent/builderEnrichment/urlToMarkdown';
+import { fetchUrlMarkdown, normalizeUrl } from '@/lib/talent/builderEnrichment/urlToMarkdown';
 import { updateUserAccount, findUserByEmail } from '@/lib/adminMongo';
+import {
+  dedupeBuilderProfileCollections,
+  mergeExperiences as mergeExperienceEntries,
+  mergeStringList,
+  normalizedProjectName,
+} from '@/lib/talent/profileDedup';
 import type { RuntimeEnv } from '@/lib/workosEnv';
 import type { EnrichmentSource } from '@/lib/talent/builderEnrichment';
 
@@ -34,6 +40,7 @@ export async function getProjects(builderId: unknown) {
 
 /** Recompute completion + quality, persist, and refresh the search index. */
 export async function updateBuilderScores(builder: any) {
+  dedupeBuilderProfileCollections(builder);
   const [projects, events, momentum] = await Promise.all([
     ProjectRecord.find({ builderId: builder._id }).lean(),
     EventRecord.find({ builderId: builder._id }).lean(),
@@ -122,16 +129,67 @@ export async function updateProfileBasics(builder: any, args: { headline?: strin
   return { headline: builder.headline, bio: builder.bio };
 }
 
+const PROFILE_LINK_FIELDS = new Set(['github', 'linkedin', 'portfolio', 'personalWebsite', 'resume', 'devpost', 'twitter']);
+
+function normalizeProfileLink(field: string, value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value !== 'string') {
+    throw new Error(`links.${field} must be a URL string.`);
+  }
+  const normalized = normalizeUrl(value.trim());
+  if (!normalized) {
+    throw new Error(`links.${field} must be a valid URL, got "${value}".`);
+  }
+
+  let host = '';
+  let path = '';
+  try {
+    const parsed = new URL(normalized);
+    host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    path = parsed.pathname;
+  } catch {
+    throw new Error(`links.${field} must be a valid URL, got "${value}".`);
+  }
+
+  const matches = (expected: string) => host === expected || host.endsWith(`.${expected}`);
+  if (field === 'github' && host !== 'github.com') throw new Error('links.github must be a github.com URL.');
+  if (field === 'linkedin' && !matches('linkedin.com')) throw new Error('links.linkedin must be a linkedin.com URL.');
+  if (field === 'devpost' && host !== 'devpost.com') throw new Error('links.devpost must be a devpost.com URL.');
+  if (field === 'twitter' && host !== 'twitter.com' && host !== 'x.com') throw new Error('links.twitter must be an x.com or twitter.com URL.');
+  if (field === 'resume' && !/\.pdf($|[?#])/i.test(normalized)) throw new Error('links.resume must point to a PDF URL.');
+  if ((field === 'portfolio' || field === 'personalWebsite') && PROFILE_LINK_FIELDS.has(field) && !host.includes('.')) {
+    throw new Error(`links.${field} must be a valid website URL.`);
+  }
+  if (field === 'linkedin' && !path.startsWith('/in/')) {
+    throw new Error('links.linkedin must point to a LinkedIn profile URL.');
+  }
+
+  return normalized;
+}
+
+function normalizeLinkPatch(linkPatch: Record<string, unknown>) {
+  const normalized: Record<string, unknown> = {};
+  for (const [field, value] of Object.entries(linkPatch)) {
+    if (!PROFILE_LINK_FIELDS.has(field)) {
+      normalized[field] = value;
+      continue;
+    }
+    normalized[field] = normalizeProfileLink(field, value);
+  }
+  return normalized;
+}
+
 export async function updateLinks(builder: any, args: { github?: string; linkedin?: string; portfolio?: string; resume?: string; devpost?: string; personalWebsite?: string; twitter?: string }) {
+  const links = normalizeLinkPatch(args as Record<string, unknown>);
   builder.links = {
     ...builder.links,
-    ...(typeof args.github === 'string' ? { github: args.github } : {}),
-    ...(typeof args.linkedin === 'string' ? { linkedin: args.linkedin } : {}),
-    ...(typeof args.portfolio === 'string' ? { portfolio: args.portfolio } : {}),
-    ...(typeof args.resume === 'string' ? { resume: args.resume } : {}),
-    ...(typeof args.devpost === 'string' ? { devpost: args.devpost } : {}),
-    ...(typeof args.personalWebsite === 'string' ? { personalWebsite: args.personalWebsite } : {}),
-    ...(typeof args.twitter === 'string' ? { twitter: args.twitter } : {}),
+    ...(typeof links.github === 'string' ? { github: links.github } : {}),
+    ...(typeof links.linkedin === 'string' ? { linkedin: links.linkedin } : {}),
+    ...(typeof links.portfolio === 'string' ? { portfolio: links.portfolio } : {}),
+    ...(typeof links.resume === 'string' ? { resume: links.resume } : {}),
+    ...(typeof links.devpost === 'string' ? { devpost: links.devpost } : {}),
+    ...(typeof links.personalWebsite === 'string' ? { personalWebsite: links.personalWebsite } : {}),
+    ...(typeof links.twitter === 'string' ? { twitter: links.twitter } : {}),
   };
   await updateBuilderScores(builder);
   scheduleTalentStatsRefresh();
@@ -169,8 +227,8 @@ export async function updateProfileDetails(
   if (typeof args.universityOrCompany === 'string') builder.universityOrCompany = args.universityOrCompany.trim() || null;
   if (typeof args.graduationYear === 'number') builder.graduationYear = args.graduationYear;
   if (typeof args.workAuthorization === 'string') builder.workAuthorization = args.workAuthorization.trim() || null;
-  if (Array.isArray(args.rolePreference)) builder.rolePreference = args.rolePreference.filter((r) => typeof r === 'string' && r.trim()).map((r) => r.trim());
-  if (Array.isArray(args.preferredWorkType)) builder.preferredWorkType = args.preferredWorkType.filter((r) => typeof r === 'string' && r.trim()).map((r) => r.trim());
+  if (Array.isArray(args.rolePreference)) builder.rolePreference = mergeStringList([], args.rolePreference);
+  if (Array.isArray(args.preferredWorkType)) builder.preferredWorkType = mergeStringList([], args.preferredWorkType);
   await builder.save();
   await updateBuilderScores(builder);
   scheduleTalentStatsRefresh();
@@ -244,6 +302,20 @@ function flattenForSet(obj: Record<string, unknown>, prefix = '', out: Record<st
   return out;
 }
 
+function normalizeBuilderPatchLinks(builderPatch: Record<string, unknown>) {
+  const nestedLinks = builderPatch.links;
+  if (nestedLinks && typeof nestedLinks === 'object' && !Array.isArray(nestedLinks)) {
+    builderPatch.links = normalizeLinkPatch(nestedLinks as Record<string, unknown>);
+  }
+
+  for (const [key, value] of Object.entries(builderPatch)) {
+    if (!key.startsWith('links.')) continue;
+    const field = key.slice('links.'.length);
+    if (!PROFILE_LINK_FIELDS.has(field)) continue;
+    builderPatch[key] = normalizeProfileLink(field, value);
+  }
+}
+
 const LINK_TO_SOURCE: Record<string, EnrichmentSource> = {
   github: 'github',
   linkedin: 'linkedin',
@@ -259,25 +331,7 @@ function toPlain(e: any) {
 
 /** Merge experiences without clobbering existing ones; guarantee valid subdocs (sourceId/source). */
 function mergeExperiences(existing: any[], incoming: any[]) {
-  const sid = (e: any) =>
-    e.sourceId || `imessage:${String(e.company || '').trim().toLowerCase()}:${String(e.title || '').trim().toLowerCase()}`;
-  const byId = new Map<string, any>((existing || []).map((e) => { const p = toPlain(e); return [sid(p), p]; }));
-  for (const raw of incoming) {
-    if (!raw || (!raw.title && !raw.company)) continue;
-    const id = sid(raw);
-    const prev = byId.get(id) || {};
-    byId.set(id, {
-      ...prev,
-      ...raw,
-      title: raw.title ?? prev.title ?? 'Builder',
-      company: raw.company ?? prev.company ?? 'Independent',
-      skills: Array.isArray(raw.skills) ? raw.skills : prev.skills || [],
-      source: raw.source || prev.source || 'imessage',
-      sourceId: id,
-      importedAt: prev.importedAt || new Date(),
-    });
-  }
-  return [...byId.values()];
+  return mergeExperienceEntries(existing, incoming, 'imessage');
 }
 
 /** Merge education, dedup by school+degree+field. */
@@ -321,6 +375,7 @@ export async function applyBuilderDataPatch(
   // 1) Builder profile fields (dot-notation, any depth).
   if (patch.builder && typeof patch.builder === 'object') {
     const builderPatch: Record<string, unknown> = { ...patch.builder };
+    normalizeBuilderPatchLinks(builderPatch);
     // experiences/education merge instead of clobbering, and stay valid (sourceId/source).
     const expPatch = builderPatch.experiences;
     const eduPatch = builderPatch.education;
@@ -328,6 +383,9 @@ export async function applyBuilderDataPatch(
     delete builderPatch.education;
 
     const flat = flattenForSet(builderPatch);
+    if (Array.isArray(flat.skills)) flat.skills = mergeStringList([], flat.skills as unknown[]);
+    if (Array.isArray(flat.rolePreference)) flat.rolePreference = mergeStringList([], flat.rolePreference as unknown[]);
+    if (Array.isArray(flat.preferredWorkType)) flat.preferredWorkType = mergeStringList([], flat.preferredWorkType as unknown[]);
     if (Array.isArray(expPatch)) flat.experiences = mergeExperiences(builder.experiences || [], expPatch);
     if (Array.isArray(eduPatch)) flat.education = mergeEducation(builder.education || [], eduPatch);
     const keys = Object.keys(flat);
@@ -361,7 +419,10 @@ export async function applyBuilderDataPatch(
   for (const p of patch.projects || []) {
     const { id, projectName, ...rest } = p as Record<string, unknown>;
     const flat = flattenForSet(rest as Record<string, unknown>);
-    if (projectName && typeof projectName === 'string') flat.projectName = projectName;
+    if (projectName && typeof projectName === 'string') {
+      flat.projectName = projectName;
+      flat.projectNameKey = normalizedProjectName(projectName);
+    }
 
     let saved: any = null;
     if (id && typeof id === 'string') {
@@ -372,8 +433,10 @@ export async function applyBuilderDataPatch(
       );
     } else if (projectName && typeof projectName === 'string') {
       const sourceId = `imessage:${projectName.trim().toLowerCase()}`;
+      const projectNameKey = normalizedProjectName(projectName);
+      const existing = await ProjectRecord.findOne({ builderId: builder._id, projectNameKey });
       saved = await ProjectRecord.findOneAndUpdate(
-        { builderId: builder._id, projectName: projectName.trim() },
+        existing ? { _id: existing._id, builderId: builder._id } : { builderId: builder._id, sourceId },
         { $set: { ...flat, builderId: builder._id, source: 'imessage', sourceId, verificationStatus: 'builder_confirmed' } },
         { upsert: true, new: true }
       );

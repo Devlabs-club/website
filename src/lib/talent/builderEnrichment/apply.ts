@@ -6,6 +6,12 @@ import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
+import {
+  dedupeBuilderProfileCollections,
+  mergeExperiences as mergeExperienceEntries,
+  mergeStringList,
+  normalizedProjectName,
+} from '@/lib/talent/profileDedup';
 import type { EnrichedProfileDraft, EnrichedProjectDraft } from './types';
 
 const CONFIRMED_STATUSES = new Set([
@@ -23,14 +29,7 @@ function isEmpty(value: unknown) {
 }
 
 function mergeSkills(existing: string[] = [], incoming: string[] = []) {
-  const merged = new Map<string, string>();
-  for (const skill of [...existing, ...incoming]) {
-    const trimmed = String(skill || '').trim();
-    if (!trimmed) continue;
-    const key = trimmed.toLowerCase();
-    if (!merged.has(key)) merged.set(key, trimmed);
-  }
-  return Array.from(merged.values());
+  return mergeStringList(existing, incoming);
 }
 
 function normalizeEducationEntry(entry: any) {
@@ -112,16 +111,7 @@ function experienceKey(entry: any) {
 }
 
 function mergeExperiences(existing: any[] = [], incoming: any[] = []) {
-  const merged = new Map<string, any>();
-  for (const [index, entry] of existing.entries()) {
-    const normalized = normalizeExperienceEntry(entry, index);
-    if (normalized) merged.set(experienceKey(normalized), normalized);
-  }
-  for (const [index, entry] of incoming.entries()) {
-    const normalized = normalizeExperienceEntry(entry, index);
-    if (normalized) merged.set(experienceKey(normalized), normalized);
-  }
-  return Array.from(merged.values()).slice(0, 10);
+  return mergeExperienceEntries(existing, incoming, 'linkedin');
 }
 
 async function syncBuilderUserAvatar(builder: any, avatarUrl: string) {
@@ -142,16 +132,17 @@ async function syncBuilderUserAvatar(builder: any, avatarUrl: string) {
 export async function applyProfileDraft(
   builder: any,
   draft: EnrichedProfileDraft,
-  options?: { overwriteBasics?: boolean; deferExperiences?: boolean }
+  options?: { overwriteBasics?: boolean; deferExperiences?: boolean; writeBasics?: boolean }
 ): Promise<string[]> {
   const updated: string[] = [];
   const overwrite = options?.overwriteBasics ?? false;
+  const writeBasics = options?.writeBasics ?? true;
 
-  if (!isEmpty(draft.headline) && (overwrite || isEmpty(builder.headline))) {
+  if (writeBasics && !isEmpty(draft.headline) && (overwrite || isEmpty(builder.headline))) {
     builder.headline = String(draft.headline).trim().slice(0, 120);
     updated.push('headline');
   }
-  if (!isEmpty(draft.bio) && (overwrite || isEmpty(builder.bio))) {
+  if (writeBasics && !isEmpty(draft.bio) && (overwrite || isEmpty(builder.bio))) {
     builder.bio = String(draft.bio).trim().slice(0, 2000);
     updated.push('bio');
   }
@@ -296,7 +287,13 @@ export async function applyLinkedInCdpToBuilder(
     links: { linkedin: linkedinUrl },
   };
 
-  profileFieldsUpdated.push(...(await applyProfileDraft(builder, draft, { overwriteBasics: true, deferExperiences: options?.deferExperiences })));
+  profileFieldsUpdated.push(
+    ...(await applyProfileDraft(builder, draft, {
+      overwriteBasics: false,
+      deferExperiences: options?.deferExperiences,
+      writeBasics: false,
+    }))
+  );
 
   for (const [key, value] of Object.entries(proposed.$set || {})) {
     if (['headline', 'bio', 'location', 'graduationYear', 'universityOrCompany', 'updatedAt'].includes(key)) continue;
@@ -356,7 +353,7 @@ export async function aggregateInferredSkills(builderId: any): Promise<string[]>
   const projects = await ProjectRecord.find({ builderId: builder._id }).select('techStack').lean();
   const fromProjects = projects.flatMap((p: any) => p.techStack || []);
   const fromExperiences = (builder.experiences || []).flatMap((e: any) => e.skills || []);
-  const merged = mergeSkills(builder.skills || [], fromProjects, fromExperiences);
+  const merged = mergeSkills(mergeSkills(builder.skills || [], fromProjects), fromExperiences);
 
   if (merged.length !== (builder.skills || []).length || merged.some((s, i) => s !== (builder.skills || [])[i])) {
     builder.skills = merged.slice(0, 32);
@@ -377,13 +374,30 @@ export async function upsertEnrichedProjects(
   for (const draft of projects) {
     if (!draft.projectName || !draft.sourceId) continue;
 
-    const existing = await ProjectRecord.findOne({ builderId, sourceId: draft.sourceId }).lean() as any;
+    const projectNameKey = normalizedProjectName(draft.projectName);
+    const linkValues = Object.values(draft.links || {})
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+      .map((value) => value.trim().replace(/\/$/, ''));
+    const linkQueries = linkValues.flatMap((value) => [
+      { 'links.github': value },
+      { 'links.devpost': value },
+      { 'links.demo': value },
+    ]);
+    const existing = await ProjectRecord.findOne({
+      builderId,
+      $or: [
+        { sourceId: draft.sourceId },
+        { projectNameKey },
+        ...linkQueries,
+      ],
+    }).lean() as any;
     const isConfirmed = existing && CONFIRMED_STATUSES.has(String(existing.verificationStatus));
 
     if (isConfirmed && !overwriteImported) continue;
 
     const setFields: Record<string, unknown> = {
       projectName: draft.projectName,
+      projectNameKey,
       source: draft.source,
       sourceId: draft.sourceId,
       verificationStatus: draft.verificationStatus || 'imported_unverified',
@@ -417,7 +431,7 @@ export async function upsertEnrichedProjects(
     }
 
     const result = await ProjectRecord.findOneAndUpdate(
-      { builderId, sourceId: draft.sourceId },
+      existing ? { _id: existing._id, builderId } : { builderId, sourceId: draft.sourceId },
       { $set: setFields, $setOnInsert: { builderId } },
       { upsert: true, new: true }
     );
@@ -441,6 +455,7 @@ export async function refreshBuilderScores(
   if (!builder) return null;
 
   const projects = await ProjectRecord.find({ builderId: builder._id }).lean();
+  dedupeBuilderProfileCollections(builder);
   builder.profileCompletion = computeBuilderScores(builder, projects);
 
   if (!options?.skipQuality) {

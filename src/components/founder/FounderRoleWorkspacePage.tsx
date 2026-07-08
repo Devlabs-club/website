@@ -96,6 +96,14 @@ type Recommendation = {
   topSkills?: string[];
   proofStrengthLabel?: string;
   builderVerificationLabel?: string;
+  founderSignals?: Array<{
+    label: string;
+    detail: string;
+    category: 'shipping' | 'leadership' | 'work' | 'public_presence' | 'hackathon' | 'communication' | 'proof';
+    source: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
+  founderHighlights?: Array<{ title: string; detail: string; source: string }>;
   whyTheyMatch?: string | null;
   visibilityMode?: 'teaser' | 'full';
   traceAccess?: 'teaser' | 'full';
@@ -1652,12 +1660,14 @@ const PipelineTable: React.FC<{
 };
 
 function proofPoints(rec: Recommendation) {
+  const fromSignals = (rec.founderSignals || []).map((signal) => signal.detail).filter(Boolean);
+  const fromHighlights = (rec.founderHighlights || []).map((highlight) => highlight.detail).filter(Boolean);
   const fromReason = String(rec.whyTheyMatch || "")
     .split(";")
     .map((item) => item.trim())
     .filter(Boolean);
   const fromTrace = rec.teasers?.agentTrace?.projectHighlight ? [rec.teasers.agentTrace.projectHighlight] : [];
-  return [...fromReason, ...fromTrace].slice(0, 3);
+  return [...fromSignals, ...fromHighlights, ...fromReason, ...fromTrace].slice(0, 3);
 }
 
 function strongestProject(rec: Recommendation) {
@@ -1682,6 +1692,7 @@ const RecommendationCard: React.FC<{
   const experiences = rec.experiences || [];
   const projects = rec.projects || [];
   const points = proofPoints(rec);
+  const founderSignals = (rec.founderSignals || []).slice(0, 4);
   const primaryProject = strongestProject(rec);
   const visibleSkills = (rec.topSkills || []).slice(0, 5);
   const hasTrace = Boolean(rec.teasers?.agentTrace);
@@ -1722,7 +1733,21 @@ const RecommendationCard: React.FC<{
             </div>
           </div>
 
-          {points.length ? (
+          {founderSignals.length ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {founderSignals.map((signal) => (
+                <div key={`${signal.label}-${signal.detail}`} className="rounded-xl border border-[#ece7e1] bg-[#fffcfa] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#c56a12]">{signal.label}</p>
+                    <span className="shrink-0 rounded-full bg-[#f3ede4] px-2 py-0.5 text-[10px] font-medium text-black/45">
+                      {signal.source}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-black/70">{signal.detail}</p>
+                </div>
+              ))}
+            </div>
+          ) : points.length ? (
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               {points.map((point, index) => (
                 <div key={`${point}-${index}`} className="border-l border-[#ec9149]/25 pl-3">

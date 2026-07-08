@@ -5,6 +5,7 @@ const ProjectRecordSchema = new mongoose.Schema(
     builderId: { type: mongoose.Schema.Types.ObjectId, ref: 'BuilderProfile', index: true, required: true },
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'EventRecord', index: true, default: null },
     projectName: { type: String, required: true, index: true },
+    projectNameKey: { type: String, default: null, index: true },
     description: { type: String, default: null },
     problemSolved: { type: String, default: null },
     links: {
@@ -45,6 +46,7 @@ const ProjectRecordSchema = new mongoose.Schema(
 );
 
 ProjectRecordSchema.index({ builderId: 1, sourceId: 1 }, { unique: false });
+ProjectRecordSchema.index({ builderId: 1, projectNameKey: 1 });
 ProjectRecordSchema.index({ builderId: 1, updatedAt: -1 });
 ProjectRecordSchema.index({ techStack: 1, builderId: 1 });
 ProjectRecordSchema.index({ contributionTags: 1, builderId: 1 });

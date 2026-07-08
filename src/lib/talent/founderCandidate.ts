@@ -25,6 +25,14 @@ export type VerificationLabel =
   | 'Peer Confirmed'
   | 'Unverified';
 
+export type FounderSignal = {
+  label: string;
+  detail: string;
+  category: 'shipping' | 'leadership' | 'work' | 'public_presence' | 'hackathon' | 'communication' | 'proof';
+  source: string;
+  confidence: 'high' | 'medium' | 'low';
+};
+
 export function verificationLabelForStatus(
   status: string | null | undefined,
   entity: 'builder' | 'project' = 'builder'
@@ -153,6 +161,189 @@ function uniqueStrings(items: unknown[], maxItems: number, maxChars: number) {
     if (out.length >= maxItems) break;
   }
   return out;
+}
+
+function normalizeSignalText(value: unknown, max = 180) {
+  return compactText(value, max).replace(/\s+/g, ' ').trim();
+}
+
+function signalKey(label: string, detail: string) {
+  return `${label.trim().toLowerCase()}|${detail.trim().toLowerCase()}`;
+}
+
+function sourceLabel(source: string) {
+  const s = String(source || '').toLowerCase();
+  if (s.includes('github')) return 'GitHub';
+  if (s.includes('linkedin')) return 'LinkedIn';
+  if (s.includes('twitter') || s.includes('x/')) return 'X';
+  if (s.includes('devpost')) return 'Devpost';
+  if (s.includes('portfolio')) return 'Portfolio';
+  if (s.includes('resume')) return 'Resume';
+  if (s.includes('research')) return 'Web research';
+  return source || 'Profile';
+}
+
+function buildFounderSignals(builder: any, projects: any[], match?: any, shortlistCandidate?: any): FounderSignal[] {
+  const signals: FounderSignal[] = [];
+  const seen = new Set<string>();
+  const add = (signal: FounderSignal) => {
+    const label = normalizeSignalText(signal.label, 48);
+    const detail = normalizeSignalText(signal.detail, 190);
+    if (!label || !detail) return;
+    const key = signalKey(label, detail);
+    if (seen.has(key)) return;
+    seen.add(key);
+    signals.push({ ...signal, label, detail });
+  };
+
+  const links = builder?.links || {};
+  const experiences = Array.isArray(builder?.experiences) ? builder.experiences : [];
+  const highlights = Array.isArray(builder?.enrichmentInsights?.founderHighlights)
+    ? builder.enrichmentInsights.founderHighlights
+    : [];
+  const textBlob = [
+    builder?.headline,
+    builder?.bio,
+    builder?.universityOrCompany,
+    ...experiences.flatMap((exp: any) => [exp?.title, exp?.company, exp?.description]),
+    ...highlights.flatMap((h: any) => [h?.title, h?.detail]),
+    ...projects.flatMap((project: any) => [project?.projectName, project?.description, project?.problemSolved, project?.builderContribution]),
+    match?.reasoning,
+    shortlistCandidate?.proofSummary,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  for (const highlight of highlights.slice(0, 8)) {
+    const title = String(highlight?.title || '').trim();
+    const detail = String(highlight?.detail || '').trim();
+    if (!title || !detail) continue;
+    const lower = `${title} ${detail}`.toLowerCase();
+    const category: FounderSignal['category'] =
+      /community|founder|founded|runs|lead|organizer|president|club|devlabs/.test(lower)
+        ? 'leadership'
+        : /twitter|x\/|public voice|posts/.test(lower)
+          ? 'public_presence'
+          : /hackathon|devpost|winner|won/.test(lower)
+            ? 'hackathon'
+            : /github|repo|shipped|built|project|stack/.test(lower)
+              ? 'shipping'
+              : /work|intern|experience|company/.test(lower)
+                ? 'work'
+                : 'proof';
+    add({
+      label: title,
+      detail,
+      category,
+      source: sourceLabel(highlight.source || category),
+      confidence: 'high',
+    });
+  }
+
+  const githubShowcase = builder?.enrichmentInsights?.githubShowcase || {};
+  const scanned = Number(githubShowcase.reposScanned || 0);
+  const additional = Number(githubShowcase.additionalProjectCount || 0);
+  const projectProofCount = projects.filter((p: any) => p?.links?.github || p?.links?.demo || p?.links?.devpost).length;
+  if (projectProofCount || links.github) {
+    add({
+      label: 'Ships public work',
+      detail:
+        scanned > 0
+          ? `GitHub scan found ${scanned} repos; ${projects.length} projects are featured for founder review${additional > 0 ? `, with ${additional} more in reserve` : ''}.`
+          : `${projects.length || projectProofCount || 1} project${(projects.length || projectProofCount || 1) === 1 ? '' : 's'} with public proof links or repo evidence.`,
+      category: 'shipping',
+      source: 'GitHub',
+      confidence: links.github ? 'high' : 'medium',
+    });
+  }
+
+  const leadershipExp = experiences.find((exp: any) =>
+    /founder|co-?founder|president|lead|organizer|captain|community|devlabs/i.test(
+      `${exp?.title || ''} ${exp?.company || ''} ${exp?.description || ''}`
+    )
+  );
+  if (/community|founder|founded|runs|running|leadership|organizer|president|club|devlabs|500\+|builders/.test(textBlob)) {
+    add({
+      label: 'Leadership signal',
+      detail: leadershipExp
+        ? `${leadershipExp.title || 'Leadership role'} at ${leadershipExp.company || 'community/org'} shows they can organize people, not just write code.`
+        : 'Public profile evidence points to community building or leadership work alongside technical projects.',
+      category: 'leadership',
+      source: leadershipExp?.source === 'linkedin' ? 'LinkedIn' : 'Web/profile',
+      confidence: leadershipExp ? 'high' : 'medium',
+    });
+  }
+
+  const current = experiences.find((exp: any) => exp?.isCurrent) || experiences[0];
+  if (current?.title || current?.company) {
+    add({
+      label: 'Work credibility',
+      detail: `${current.title || 'Role'}${current.company ? ` at ${current.company}` : ''}${current.dateRange ? ` (${current.dateRange})` : ''}.`,
+      category: 'work',
+      source: sourceLabel(current.source || 'profile'),
+      confidence: current.source === 'linkedin' || current.source === 'resume' ? 'high' : 'medium',
+    });
+  }
+
+  if (links.twitter || /twitter|x\/|tweet|public voice|posts/.test(textBlob)) {
+    add({
+      label: 'Public technical presence',
+      detail: 'Has public writing or X/Twitter activity that helps founders judge communication, taste, and momentum.',
+      category: 'public_presence',
+      source: links.twitter ? 'X' : 'Web research',
+      confidence: links.twitter ? 'high' : 'medium',
+    });
+  }
+
+  if (links.devpost || /hackathon|devpost|winner|won\s+\d|\bwon\b/.test(textBlob)) {
+    add({
+      label: 'Hackathon proof',
+      detail: 'Hackathon or Devpost evidence suggests they can build under time pressure and ship demos.',
+      category: 'hackathon',
+      source: links.devpost ? 'Devpost' : 'Profile/research',
+      confidence: links.devpost ? 'high' : 'medium',
+    });
+  }
+
+  if (links.portfolio || links.personalWebsite) {
+    add({
+      label: 'Portfolio signal',
+      detail: 'Personal site gives founders a faster read on taste, communication, and shipped work.',
+      category: 'communication',
+      source: 'Portfolio',
+      confidence: 'high',
+    });
+  }
+
+  const matchReason = compactText(match?.reasoning || shortlistCandidate?.whyTheyMatch, 180);
+  if (matchReason) {
+    add({
+      label: 'Role-fit evidence',
+      detail: matchReason,
+      category: 'proof',
+      source: 'Role match',
+      confidence: 'medium',
+    });
+  }
+
+  const categoryRank: Record<FounderSignal['category'], number> = {
+    leadership: 0,
+    shipping: 1,
+    work: 2,
+    public_presence: 3,
+    hackathon: 4,
+    communication: 5,
+    proof: 6,
+  };
+  const confidenceRank = { high: 0, medium: 1, low: 2 };
+
+  return signals
+    .sort((a, b) => {
+      if (categoryRank[a.category] !== categoryRank[b.category]) return categoryRank[a.category] - categoryRank[b.category];
+      return confidenceRank[a.confidence] - confidenceRank[b.confidence];
+    })
+    .slice(0, 6);
 }
 
 function safeString(value: unknown, fallback: string, maxChars: number) {
@@ -688,6 +879,15 @@ export async function buildFullCandidateCard(params: {
   });
 
   const relevantProjects = sortedProjects.slice(0, 4).map(mapProjectForFounder);
+  const founderSignals = buildFounderSignals(builder, sortedProjects, match, shortlistCandidate);
+  const founderHighlights = (builder.enrichmentInsights?.founderHighlights || [])
+    .slice(0, 6)
+    .map((item: any) => ({
+      title: compactText(item?.title, 60),
+      detail: compactText(item?.detail, 220),
+      source: sourceLabel(item?.source || 'profile'),
+    }))
+    .filter((item: any) => item.title && item.detail);
   const riskFlags = Array.isArray(match?.riskFlags) ? match.riskFlags.filter(Boolean) : [];
   if (
     relevantProjects.length > 0 &&
@@ -728,6 +928,8 @@ export async function buildFullCandidateCard(params: {
     founderClarityLabel: founderClarityLabel(builder),
     proofStrengthLabel: proofStrengthLabel(builder),
     builderVerificationLabel: verificationLabelForStatus(builder.verificationStatus, 'builder'),
+    founderSignals,
+    founderHighlights,
     whyTheyMatch: match?.reasoning || shortlistCandidate?.whyTheyMatch || null,
     riskFlags,
     recommendedNextStep: buildRecommendedNextStep(builder, projects, match),

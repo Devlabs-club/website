@@ -9,6 +9,7 @@ import {
   TerminalSquare,
 } from 'lucide-react';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
+import { BuilderHighlightsSection } from './BuilderHighlightsSection';
 import BuilderImessageHandoff from './BuilderImessageHandoff';
 import AgentTraceSetup from './AgentTraceSetup';
 import BuilderShell, { builderNavIcons, type BuilderSection } from './BuilderShell';
@@ -166,6 +167,7 @@ function BuilderOverview({
   traceUploaded,
   profileVisible,
   hasProfile,
+  profile,
   wrappedPublicUrl,
   onNavigate,
 }: {
@@ -173,6 +175,7 @@ function BuilderOverview({
   traceUploaded: boolean;
   profileVisible: boolean;
   hasProfile: boolean;
+  profile: BuilderProfileView | null;
   wrappedPublicUrl?: string;
   onNavigate: (section: BuilderSection) => void;
 }) {
@@ -251,6 +254,8 @@ function BuilderOverview({
         </div>
       )}
 
+      <BuilderHighlightsPanel profile={profile} onOpenProfile={() => onNavigate('profile')} />
+
       <ul className="mt-8 divide-y divide-black/10 border-t border-black/10">
         {steps.map((step) => (
           <li key={step.key} className="flex items-center justify-between gap-4 py-3.5 text-sm">
@@ -276,6 +281,71 @@ function BuilderOverview({
       </ul>
       </div>
     </>
+  );
+}
+
+function BuilderHighlightsPanel({
+  profile,
+  onOpenProfile,
+  showAction = true,
+}: {
+  profile: BuilderProfileView | null;
+  onOpenProfile: () => void;
+  showAction?: boolean;
+}) {
+  const highlights = (profile?.founderHighlights || []).filter((item) => item?.title && item?.detail);
+  const githubShowcase = profile?.githubShowcase;
+  const hasGithubDepth = Boolean((githubShowcase?.reposScanned || 0) > 0 || (githubShowcase?.additionalProjectCount || 0) > 0);
+  const hasConnectedSources = Boolean(profile && Object.values(profile.links || {}).some(Boolean));
+
+  if (!profile) return null;
+
+  return (
+    <section className="mt-8 border border-[#ff7417]/20 bg-[#fffaf7] p-5 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#bf4f08]">Founder highlights</p>
+          <h2 className="mt-2 text-lg font-extrabold tracking-[-0.02em] text-[#050505]">What founders will notice first</h2>
+          <p className="mt-1 max-w-xl text-sm leading-6 text-black/55">
+            Evidence-backed signals pulled from your links, projects, and public profile.
+          </p>
+        </div>
+        {showAction ? (
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="builder-outline-button inline-flex h-9 shrink-0 items-center justify-center gap-1.5 px-3 text-xs font-extrabold"
+          >
+            Review profile
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+      </div>
+
+      {highlights.length ? (
+        <div className="mt-4">
+          <BuilderHighlightsSection highlights={highlights} defaultVisible={4} variant="panel" />
+        </div>
+      ) : (
+        <div className="mt-5 border border-dashed border-[#ff7417]/25 bg-white p-4">
+          <p className="text-sm font-extrabold text-[#050505]">Founder highlights are being built</p>
+          <p className="mt-1 text-sm leading-6 text-black/55">
+            {hasConnectedSources
+              ? 'Connected sources are already on the profile. The agent should synthesize and save founder-facing highlights as enrichment finishes.'
+              : 'The agent will show the strongest founder-facing signals here once it has links, projects, or resume evidence to synthesize.'}
+          </p>
+        </div>
+      )}
+
+      {hasGithubDepth ? (
+        <p className="mt-4 text-sm leading-6 text-black/55">
+          GitHub depth: {githubShowcase?.reposScanned || 'multiple'} repos scanned
+          {(githubShowcase?.additionalProjectCount || 0) > 0
+            ? `, with ${githubShowcase?.additionalProjectCount} additional shipped projects beyond the featured set.`
+            : '.'}
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -440,6 +510,7 @@ export const BuilderHome: React.FC = () => {
             traceUploaded={traceUploaded}
             profileVisible={profileVisible}
             hasProfile={hasProfile}
+            profile={profile}
             wrappedPublicUrl={data.agentWrapped?.publicUrl}
             onNavigate={setActiveSection}
           />

@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { generateOpenRouterAgentTurn, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
 import { type RuntimeEnv } from '@/lib/workosEnv';
-import { claimProfileViewUrl, ensureClaimViewToken } from '@/lib/builderClaim';
+import { claimBaseUrl, claimProfileViewUrl, ensureClaimViewToken } from '@/lib/builderClaim';
 import {
   reloadBuilder,
   getProjects,
@@ -69,6 +69,10 @@ function builderFirstName(claim: any, snapshot: { name?: string | null }): strin
   return raw.trim().split(/\s+/)[0] || 'there';
 }
 
+function builderDashboardUrl(runtime?: RuntimeEnv) {
+  return `${claimBaseUrl(runtime)}/builder/home`;
+}
+
 /** Soft context about what's missing — facts for the agent to reason over, not a script. */
 function buildProfileGapHint(
   snapshot: any,
@@ -104,6 +108,7 @@ YOUR NAME: you DON'T have one. You text in the voice/feel of Poke (sharp, fun, t
 VOICE — text like a sharp, fun, slightly sassy friend:
 - Short. iMessage, not email. Casual, lowercase-friendly, dry wit. No corporate tone.
 - A little cheeky and persistent — you WANT them to finish their profile and you nudge them to. Tease lightly ("c'mon, a github with zero links? we can do better than that") but NEVER insult, mock, or make them feel dumb or insecure. They should always feel liked and want to keep going. Encourage > criticize.
+- Never tell a builder their profile, work, contributions, or past work "looks thin". That is an internal diagnosis only. User-facing version: ask for the next useful link or say what specific source would help ("drop your github and i'll pull the projects") without judging them.
 - One question at a time. Never dump a list of questions.
 - NEVER use emojis. Not a single one. Plain text only.
 - Be precise. When you change something, say exactly what you changed.
@@ -115,14 +120,24 @@ SEND MULTIPLE SHORT TEXTS, never one wall of text:
 WHAT YOU'RE DOING:
 The builder verified by texting you from their phone (linked to their email + DevLabs profile) — identity is settled, don't re-verify. Your job: fill the gaps and make their proof-of-work clear to founders.
 
+FOUNDER-READY PROFILE RUBRIC:
+- Shipping proof: GitHub repos, demos, launches, Devpost, project descriptions, and what the builder personally did.
+- Work credibility: internships, jobs, repeated execution, real teams, and reliable ownership signals.
+- Leadership: communities, clubs, events, teams, OSS maintainership, founder/operator work, hackathons organized or won.
+- Public presence: X/Twitter, writing, portfolio, talks, demos, and clear communication artifacts.
+- Technical stack: concrete tools and domains, never vague labels.
+- Logistics: work authorization, availability, preferred work type.
+- Founder narrative: a concise headline/bio plus 3-5 evidence-backed highlights a founder can scan in seconds.
+
 HOW YOU THINK (reason, don't run a script):
-- Each turn, look at the SNAPSHOT (missingFields + what's thin) and the DOSSIER homework. Ask yourself: what's the ONE highest-impact thing that makes this profile more convincing to a founder right now? Do that. Never follow a rigid step list — let the conversation flow naturally while always moving the profile forward.
+- Each turn, look at the SNAPSHOT (missingFields + under-supported areas) and the DOSSIER homework. Ask yourself: what's the ONE highest-impact thing that makes this profile more convincing to a founder right now? Do that. Never follow a rigid step list — let the conversation flow naturally while always moving the profile forward.
 - You are judged on the FINISHED profile, not on asking lots of questions. Fewer, smarter moves win — but stay proactive; don't go passive waiting for them to volunteer info.
 
 ONBOARDING A NEW BUILDER (natural conversation, not a form):
 - You've already done homework before the first text (DOSSIER). Open like a friend who genuinely looked them up: welcome them, reflect something specific and impressive about their work, ask a real question about what they're doing now. Let the chat breathe — react to their answers before jumping ahead.
 - As you learn who they are, weave in headline/role confirmation naturally ("i've got you down as X — still accurate?"). When they correct you, write it that turn.
 - Never open with a profile link, never say "locked in" on the first message, never dump GitHub + LinkedIn + visa in one text.
+- Do not make negative completeness claims before you have asked for or scraped their core links. If you need more data, ask for the highest-signal missing source first.
 
 LINKS ARE YOUR SUPERPOWER — make profile-building effortless:
 - The easiest thing for a builder is to drop a URL. You scrape it quietly and fill the profile. Proactively ask for whatever link would help most right now: GitHub, LinkedIn, Devpost, portfolio, a repo they're proud of, a demo, a resume PDF. One link ask at a time, casual ("what's your github?" / "drop your linkedin if you've got one" / "got a devpost for that hackathon win?").
@@ -131,7 +146,7 @@ LINKS ARE YOUR SUPERPOWER — make profile-building effortless:
 - After GitHub/LinkedIn land, confirm imported work history with ONE yes/no before treating it as final. Ask if anything cool is missing from their public profile.
 
 STAY PROACTIVE every turn:
-- If the PROFILE GAPS block (or missingFields) shows something thin, go after it — don't wait. If you need GitHub and don't have it, ask. If headline is empty but dossier has a draft, propose it. If visa status is missing, ask when the moment fits.
+- If the PROFILE GAPS block (or missingFields) shows an under-supported area, go after it — don't wait. If you need GitHub and don't have it, ask. If headline is empty but dossier has a draft, propose it. If visa status is missing, ask when the moment fits.
 - Balance: one question per turn, but always nudge toward the next gap. You're building their profile WITH them, not interviewing them.
 
 ACT — don't narrate (this is critical):
@@ -148,6 +163,7 @@ ALWAYS:
 
 DO THE WORK — don't make them fill out a form:
 - Draft headline/bio/skills from research or scraped links — propose for confirmation rather than silently writing. When they confirm or send a link, apply it.
+- Scraped headlines/bios from LinkedIn, X, GitHub, portfolio, or search are raw material, not final copy. Never paste a source headline/about into the profile as-is. Write a DevLabs-native draft grounded in the combined context, ask for confirmation, then save.
 - If they push back ("you scraped my github, you know", "you come up with something", "too many questions", "just assume") — STOP asking. Draft it from what you have, apply it, and move on. Friction means you're interrogating; switch to doing.
 
 PROJECTS — ask once, then batch (never go project-by-project):
@@ -166,7 +182,9 @@ ENRICHMENT TOOLING (timing matters more than the scrape itself):
 - Link drops → we auto-queue the matching source; still call run_enrichment if pending sources show in the snapshot.
 - GitHub + LinkedIn first (projects, work history, skills). Devpost profile URL → ALL hackathon projects. Twitter → voice/posts only (no projects). Portfolio → site + linked pages.
 - deep_research once after core links — Brave search + markdown crawl for proof points and discovered links.
-- After findings land: propose headline/bio from data, confirm LinkedIn roles with ONE yes/no, batch-write ALL project contributions in ONE update_builder_data call.
+- If the builder says "run all enrichments", "run all enrichments again", "full enrichment", or asks for Brave/search/research, call run_enrichment with no sources or all relevant sources, and call deep_research. Do not stop at only GitHub/LinkedIn/portfolio.
+- After findings land: run a synthesis pass in your head before replying. Convert raw evidence into founder-facing signals: "runs a 500+ builder community" → leadership/community-building; "active X posts" → public technical presence; "GitHub repos + demos" → shipping proof. Keep the receipt in the wording.
+- Then propose headline/bio from the combined data, confirm LinkedIn roles with ONE yes/no, and batch-write ALL project contributions in ONE update_builder_data call.
 - NEVER send_profile_link or finalize_profile until publicProfileReadiness.ready is true — call polish_profile first if pending enrichment or blockers remain.
 
 YOUR WRITE TOOL: update_builder_data is your single tool to change ANYTHING — profile fields, projects, or their user account — in one call. You have full rights; no permission needed. See BUILDER_DATA_SCHEMA below for every field. Batch related changes into one call.
@@ -179,18 +197,18 @@ WRITING RULES (bio/headline/experience — founders READ these):
 - The bio is about the BUILDER's proof-of-work — NEVER paste a description of a program/company as their bio. Good: "Ships mobile apps in Flutter; 3 hackathon wins; runs DevLabs." Bad: "Process-focused builder passionate about innovative solutions."
 
 ENRICHMENT PRIORITY (chase the biggest gap — usually a missing link):
-1. GitHub + LinkedIn URLs → run_enrichment [github, linkedin] 2. Devpost profile → [devpost] 3. Twitter → [twitter] 4. portfolio / personal site → [portfolio] 5. resume PDF if still thin 6. polish_profile before profile link 7. project contributions + headline/bio 8. work authorization 9. availability. NEVER ask hours per week.
+1. GitHub + LinkedIn URLs → run_enrichment [github, linkedin] 2. Devpost profile → [devpost] 3. Twitter → [twitter] 4. portfolio / personal site → [portfolio] 5. resume PDF if work history/projects/skills still need support 6. polish_profile before profile link 7. project contributions + headline/bio 8. work authorization 9. availability. NEVER ask hours per week.
 
-PROFILE LINK GATE: call polish_profile first. Only send_profile_link when publicProfileReadiness.ready is true in the snapshot (or polish_profile returns ready). If blockers remain, fix them in conversation — don't ship a thin profile.
+PROFILE LINK GATE: call polish_profile first. Only send_profile_link when publicProfileReadiness.ready is true in the snapshot (or polish_profile returns ready). If blockers remain, fix them in conversation — don't ship an under-supported profile.
 
 RESUME (high value — ask at the right moment):
-- After github/linkedin homework lands, if work history, skills, or projects are still thin, ask ONCE: "got a resume pdf? just drop it in here — i'll cross-check it against what we already pulled and fill the gaps."
+- After github/linkedin homework lands, if work history, skills, or projects still need support, ask ONCE: "got a resume pdf? just drop it in here — i'll cross-check it against what we already pulled and fill the gaps."
 - When they send a PDF (BlueBubbles attachment), we parse automatically and cross-check against their existing profile — new skills/experiences/projects get added; we only overwrite empty or clearly weaker fields. After extraction succeeds, we upload the PDF and save it on their profile as links.resume (a hosted .pdf URL). NEVER ask for a "resume URL" when they attached a PDF. Do NOT set links.resume to LinkedIn or any non-PDF URL.
 - Acknowledge specifics ("pulled your cloudflare internship + 3 projects from the resume"). Confirm imported jobs with ONE yes/no. Never ask them to re-type what's already on the resume.
 
-PROFILE LINK: only when they ask to see/view their profile, or after polish_profile confirms founder-ready — then call send_profile_link. Never send on kickoff or before enrichments have run on their links.
+PROFILE VIEWING: never send on kickoff or before enrichments have run on their links. Once polish_profile/publicProfileReadiness says the profile is founder-ready AND the profile has at least one special founder-facing highlight, tell them automatically that they can view it in their builder dashboard at devlabs.club.
 
-FINISHING: when publicProfileReadiness.ready and they've confirmed details, call polish_profile then finalize_profile, then send_profile_link. Don't finalize thin profiles.
+FINISHING: when publicProfileReadiness.ready and they've confirmed details, call polish_profile then finalize_profile, then send_profile_link. Don't finalize under-supported profiles. After finish, also point them to the builder dashboard at devlabs.club.
 
 NEVER say "this helps you get matched / rank higher / get noticed." Say "this makes your profile easy for a founder to read."`;
 
@@ -306,7 +324,7 @@ const BASE_TOOLS: ToolDefinition[] = [
     function: {
       name: 'send_profile_link',
       description:
-        "Get the builder's PRIVATE profile-view link to text them. ONLY when they ask to see their profile AND publicProfileReadiness.ready is true (runs polish automatically if needed). Blocked if profile is still thin.",
+        "Get the builder's PRIVATE profile-view link to text them. Use when they ask to see their profile or when the profile is founder-ready and you're wrapping up. publicProfileReadiness.ready must be true (runs polish automatically if needed). Blocked if the profile still needs support.",
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -376,7 +394,7 @@ const SCHEDULING_TOOLS: ToolDefinition[] = [
     function: {
       name: 'run_enrichment',
       description:
-        "Scrape the builder's linked sources into their profile. Runs in BACKGROUND — one casual line, findings next turn. Use: github+linkedin when those links exist; devpost for Devpost PROFILE urls (extracts all projects); twitter for X handle (posts/voice, not projects); portfolio for personal sites; resume for PDF link. Check pendingSources in snapshot.",
+        "Scrape the builder's linked sources into their profile. Runs in BACKGROUND — one casual line, findings next turn. Use: github+linkedin when those links exist; devpost for Devpost PROFILE urls (extracts all projects); twitter for X handle (posts/voice, not projects); portfolio for personal sites; resume for PDF link. If the builder asks for all/full enrichments or to run them again, omit sources or include every available source; the backend will include completed sources and web research.",
       parameters: {
         type: 'object',
         properties: {
@@ -450,6 +468,18 @@ export type ImessageAgentResult = {
   /** Slow work to run AFTER the immediate replies go out; caller re-invokes in follow-up mode. */
   followUp?: FollowUpJob;
 };
+
+function uniqueSources(sources: EnrichmentSource[]) {
+  return [...new Set(sources)];
+}
+
+function wantsFullEnrichment(text: string) {
+  return /\benrich(?:ment|ments)?\b/i.test(text) && /\b(all|again|rerun|re-run|full|everything|every)\b/i.test(text);
+}
+
+function wantsWebResearch(text: string) {
+  return /\b(brave|search|research|background research|look me up|look.*up|google)\b/i.test(text);
+}
 
 /** Summarize what enrichment wrote so the agent can confirm with the builder. */
 function formatProfileWritebackNote(builder: any, projects: any[]): string {
@@ -725,7 +755,7 @@ Summary: ${highlights}]`;
         if (writeResult.newLinks.github && !followUp.sources.includes('github')) followUp.sources.push('github');
         if (writeResult.newLinks.linkedin && !followUp.sources.includes('linkedin')) followUp.sources.push('linkedin');
       } else {
-        resumeNote = `[system: resume PDF cross-checked — mostly matched existing profile (${writeResult.unchanged.slice(0, 6).join(', ') || 'no major changes'}). Thank them, mention you're aligned, and ask ONE thing still thin in missingFields.]`;
+        resumeNote = `[system: resume PDF cross-checked — mostly matched existing profile (${writeResult.unchanged.slice(0, 6).join(', ') || 'no major changes'}). Thank them, mention you're aligned, and ask ONE under-supported thing from missingFields.]`;
       }
     } catch (err) {
       resumeNote = `[system: couldn't read that resume file (${err instanceof Error ? err.message : 'parse error'}). Ask them to resend a text-based PDF (not a scanned image-only PDF). Do NOT ask for a resume URL.]`;
@@ -946,16 +976,28 @@ Summary: ${highlights}]`;
 
       case 'run_enrichment': {
         const current = (await reloadBuilder(builderId)) || builder;
-        const plan = planEnrichment(current);
-        const sources = (
-          Array.isArray(args.sources) && args.sources.length ? args.sources : plan.sources.length ? plan.sources : ['github', 'linkedin']
-        ) as EnrichmentSource[];
+        const fullRun = wantsFullEnrichment(userText);
+        const plan = planEnrichment(current, { includeCompleted: fullRun });
+        const requested = (Array.isArray(args.sources) ? args.sources : [])
+          .filter((s): s is EnrichmentSource => typeof s === 'string') as EnrichmentSource[];
+        const sources = uniqueSources(
+          fullRun
+            ? [...plan.sources, ...requested]
+            : requested.length
+              ? requested
+              : plan.sources.length
+                ? plan.sources
+                : ['github', 'linkedin'].filter((s) => Boolean((current.links || {})[s])) as EnrichmentSource[]
+        );
         for (const s of sources) if (!followUp.sources.includes(s)) followUp.sources.push(s);
-        if (sources.some((s) => ['github', 'linkedin', 'devpost'].includes(s))) followUp.research = true;
+        if (fullRun || wantsWebResearch(userText) || sources.some((s) => ['github', 'linkedin', 'devpost'].includes(s))) {
+          followUp.research = true;
+        }
         return {
           success: true,
           scheduled: sources,
           pendingBefore: plan.sources,
+          researchScheduled: followUp.research,
           note: "reply with ONE casual line — don't mention scraping/enrichment. Findings come next turn to surprise them.",
         };
       }
@@ -1148,7 +1190,7 @@ Summary: ${highlights}]`;
   const inboundUserTurns = (claim.messages || []).filter((m: any) => m.direction === 'inbound').length;
   const founderReadyNote =
     snapshot.publicProfileReadiness?.ready && !isFollowup && !params.intro && !params.trialAssigned && !params.hired
-      ? `\n[system: public profile is founder-ready (score ${snapshot.publicProfileReadiness.score}). If they've confirmed details, call finalize_profile and send_profile_link.]`
+      ? `\n[system: public profile is founder-ready (score ${snapshot.publicProfileReadiness.score}). If it has founderHighlights/something special, tell them they can view it in their builder dashboard at devlabs.club. If they've confirmed details, call finalize_profile and send_profile_link.]`
       : snapshot.publicProfileReadiness?.blockers?.length && inboundUserTurns >= 2
         ? `\n[system: public profile NOT ready (score ${snapshot.publicProfileReadiness.score}) — blockers: ${snapshot.publicProfileReadiness.blockers.join('; ')}. Run polish_profile after links land; do NOT send_profile_link yet.]`
         : '';
@@ -1181,7 +1223,7 @@ Summary: ${highlights}]`;
   );
   const shouldAskResume = isFollowup && !params.resume?.text && profileStillThin && !alreadySentResume;
   const resumeAskSuffix = shouldAskResume
-    ? `\nProfile is still thin on work history/projects/skills. After you react to findings, end with ONE casual ask: "got a resume pdf? just drop it here — i'll cross-check it against what we already pulled and fill the gaps." Don't make it sound like homework.`
+    ? `\nProfile still needs more work history/projects/skills before founders can read it confidently. After you react to findings, end with ONE casual ask: "got a resume pdf? just drop it here — i'll cross-check it against what we already pulled and fill the gaps." Don't make it sound like homework.`
     : '';
 
   const followupTurnNote = isFollowup
@@ -1284,6 +1326,28 @@ Write the notification YOURSELF in 2-4 SHORT bubbles (blank line between each), 
   // Guarantee the profile link goes out on finalize.
   if (finalizeCalled && !replies.some((r) => r.includes(profileLink))) {
     replies.push(`here's your profile: ${profileLink}`);
+  }
+
+  const dashboardUrl = builderDashboardUrl(runtime);
+  const alreadyToldDashboardReady = Boolean(claim.metadata?.dashboardProfileReadyNotifiedAt);
+  const canSendDashboardReadyNote = !params.kickoff && !params.intro && !params.trialAssigned && !params.hired;
+  if (!alreadyToldDashboardReady && canSendDashboardReadyNote) {
+    const finalBuilder = (await reloadBuilder(builderId)) || builder;
+    const finalProjects = await getProjects(builderId);
+    const finalStatus = enrichmentStatusForAgent(finalBuilder, finalProjects);
+    const founderHighlights = finalStatus.enrichment?.founderHighlights || [];
+    const isFounderReady = Boolean(finalStatus.publicProfileReadiness?.ready && founderHighlights.length > 0);
+    const alreadyMentionedDashboard = replies.some((reply) => /builder dashboard|devlabs\.club|\/builder\/home/i.test(reply));
+
+    if (isFounderReady) {
+      if (!alreadyMentionedDashboard) {
+        replies.push(`your profile is founder-ready now — you can view it in your builder dashboard: ${dashboardUrl}`);
+      }
+      claim.metadata = {
+        ...(claim.metadata || {}),
+        dashboardProfileReadyNotifiedAt: new Date(),
+      };
+    }
   }
 
   // Auto-capture durable facts so we never re-ask (belt-and-suspenders to remember_fact).

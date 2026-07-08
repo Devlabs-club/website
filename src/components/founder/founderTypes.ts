@@ -91,6 +91,14 @@ export type FullCandidate = {
   founderClarityLabel: string | null;
   proofStrengthLabel: string;
   builderVerificationLabel: string;
+  founderSignals?: Array<{
+    label: string;
+    detail: string;
+    category: 'shipping' | 'leadership' | 'work' | 'public_presence' | 'hackathon' | 'communication' | 'proof';
+    source: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
+  founderHighlights?: Array<{ title: string; detail: string; source: string }>;
   whyTheyMatch: string | null;
   riskFlags: string[];
   recommendedNextStep: string;

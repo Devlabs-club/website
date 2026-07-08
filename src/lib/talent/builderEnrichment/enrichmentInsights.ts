@@ -1,5 +1,6 @@
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { rememberBuilderFact, type MemoryRef } from '@/lib/talent/builderAgentMemory';
+import type { DeepResearchResult } from '@/lib/talent/builderDeepResearch';
 import type { SourceEnrichmentResult } from './types';
 
 export type FounderHighlight = {
@@ -25,6 +26,70 @@ function addHighlight(
   list.push({ title: title.trim(), detail: detail.trim(), source });
 }
 
+function addDerivedFounderSignals(builder: any, highlights: FounderHighlight[], seen: Set<string>) {
+  const existing = Array.isArray(builder.enrichmentInsights?.founderHighlights)
+    ? builder.enrichmentInsights.founderHighlights
+    : [];
+  const blob = [
+    builder.headline,
+    builder.bio,
+    builder.universityOrCompany,
+    ...(builder.experiences || []).flatMap((exp: any) => [exp?.title, exp?.company, exp?.description]),
+    ...existing.flatMap((h: any) => [h?.title, h?.detail]),
+    ...highlights.flatMap((h: any) => [h?.title, h?.detail]),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const leadershipExperience = (builder.experiences || []).find((exp: any) =>
+    /founder|co-?founder|president|organizer|captain|community|devlabs/i.test(
+      `${exp?.title || ''} ${exp?.company || ''}`
+    )
+  );
+
+  if (/community|founder|founded|runs|running|organizer|president|club|devlabs|500\+|builders/.test(blob)) {
+    addHighlight(
+      highlights,
+      seen,
+      'Leadership signal',
+      leadershipExperience
+        ? `${leadershipExperience.title || 'Leadership role'} at ${leadershipExperience.company || 'a builder community'} — evidence they can organize people around technical work.`
+        : 'Public evidence points to community building or leadership work alongside technical projects.',
+      leadershipExperience?.source === 'linkedin' ? 'linkedin' : 'profile'
+    );
+  }
+
+  if (builder.links?.twitter || /twitter|x\/|tweet|public voice|posts/.test(blob)) {
+    addHighlight(
+      highlights,
+      seen,
+      'Public technical presence',
+      'Public writing or X/Twitter activity gives founders another read on communication, taste, and momentum.',
+      builder.links?.twitter ? 'twitter' : 'research'
+    );
+  }
+
+  if (builder.links?.portfolio || builder.links?.personalWebsite) {
+    addHighlight(
+      highlights,
+      seen,
+      'Portfolio signal',
+      'Personal site gives founders a fast way to inspect taste, positioning, and shipped work.',
+      'portfolio'
+    );
+  }
+}
+
+function researchHighlightTitle(labelOrDetail: string) {
+  const text = labelOrDetail.toLowerCase();
+  if (/leader|community|founder|co-?founder|organizer|club|devlabs|president/.test(text)) return 'Leadership signal';
+  if (/github|repo|oss|open source|shipped|built|launched|project/.test(text)) return 'Shipping proof';
+  if (/twitter|x\/|post|writing|public|talk|demo/.test(text)) return 'Public technical presence';
+  if (/hackathon|devpost|winner|award/.test(text)) return 'Hackathon proof';
+  return 'Research proof';
+}
+
 /**
  * Store enrichment output in agent memory + founder-facing profile highlights.
  * De-dupes skills, experiences, and proof points across sources.
@@ -34,6 +99,7 @@ export async function persistEnrichmentContext(params: {
   builderId: string;
   sourceResults: SourceEnrichmentResult[];
   builder?: any;
+  research?: DeepResearchResult | null;
 }) {
   const { memRef, builderId, sourceResults } = params;
   const builder = params.builder || (await BuilderProfile.findById(builderId));
@@ -63,9 +129,10 @@ export async function persistEnrichmentContext(params: {
           field: 'bio',
         });
       }
-      if ((profile?.rolePreference || []).length) {
+      const twitterInterests = profile?.rolePreference || [];
+      if (twitterInterests.length) {
         await rememberBuilderFact(memRef, {
-          content: `Twitter interests/skills: ${profile.rolePreference.join(', ')}`,
+          content: `Twitter interests/skills: ${twitterInterests.join(', ')}`,
           kind: 'context',
           field: 'skills',
         });
@@ -257,6 +324,29 @@ export async function persistEnrichmentContext(params: {
     }
   }
 
+  if (params.research) {
+    for (const signal of params.research.signals || []) {
+      const label = String(signal?.label || '').trim();
+      const detail = String(signal?.detail || '').trim();
+      if (!detail) continue;
+      addHighlight(
+        highlights,
+        seenHighlights,
+        label || researchHighlightTitle(detail),
+        detail,
+        signal?.source || 'research'
+      );
+    }
+
+    for (const proof of (params.research.proofPoints || []).slice(0, 4)) {
+      const detail = String(proof || '').trim();
+      if (!detail) continue;
+      addHighlight(highlights, seenHighlights, researchHighlightTitle(detail), detail, 'research');
+    }
+  }
+
+  addDerivedFounderSignals(builder, highlights, seenHighlights);
+
   const shouldSaveHighlights = highlights.length > 0;
   if (!shouldSaveHighlights && !builder.enrichmentInsights?.githubShowcase) return;
 
@@ -291,7 +381,8 @@ export async function persistEnrichmentContext(params: {
       existingStrengths.push({ title: h.title, detail: h.detail });
     }
 
-    builder.profileQuality = { ...quality, strengths: existingStrengths.slice(0, 12) };
+    builder.profileQuality = builder.profileQuality || {};
+    builder.profileQuality.strengths = existingStrengths.slice(0, 12);
   }
 
   await builder.save();
