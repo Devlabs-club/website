@@ -6,107 +6,68 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { colors, fonts } from "../theme";
-import { DisplayText, SceneShell } from "../components/Shared";
+import { brand } from "../theme";
+import {
+  DarkActGlow,
+  DisplayHeadline,
+  Eyebrow,
+  LandingGrid,
+  PopIn,
+  SceneShell,
+  SnapIn,
+} from "../components/Brand";
+import { fontFamily } from "../components/Fonts";
 
 export const Secret: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   const phoneIn = spring({
-    frame: frame - 40,
+    frame: frame - 30,
     fps,
-    config: { damping: 14, stiffness: 120 },
+    config: { damping: 11, stiffness: 220, mass: 0.4 },
   });
 
   const bubble1 = spring({
-    frame: frame - 90,
+    frame: frame - 60,
     fps,
-    config: { damping: 12, stiffness: 140 },
+    config: { damping: 10, stiffness: 260, mass: 0.35 },
   });
 
   const bubble2 = spring({
-    frame: frame - 130,
+    frame: frame - 85,
     fps,
-    config: { damping: 12, stiffness: 140 },
+    config: { damping: 10, stiffness: 260, mass: 0.35 },
   });
 
-  // Warm "room" atmosphere with abstract builder silhouettes
-  const people = [
-    { x: 8, y: 55, w: 90, h: 220, delay: 0 },
-    { x: 18, y: 48, w: 100, h: 260, delay: 8 },
-    { x: 72, y: 52, w: 95, h: 240, delay: 14 },
-    { x: 84, y: 58, w: 85, h: 210, delay: 6 },
-  ];
+  const chips = ["shipping", "demo day", "hackathon", "PR merged"];
 
   return (
-    <SceneShell background="#2a221c">
-      {/* Warm gradient atmosphere */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(ellipse at 30% 40%, #5a3a22 0%, transparent 55%), radial-gradient(ellipse at 70% 70%, #3d2a1c 0%, #1a1410 70%)",
-        }}
-      />
+    <SceneShell background={brand.darkAct} dark>
+      <DarkActGlow />
+      <div style={{ position: "absolute", inset: 0, opacity: 0.35 }}>
+        <LandingGrid />
+      </div>
 
-      {/* Soft light beams */}
-      <div
-        style={{
-          position: "absolute",
-          top: -100,
-          left: "20%",
-          width: 400,
-          height: 800,
-          background:
-            "linear-gradient(180deg, rgba(255,180,100,0.18), transparent)",
-          transform: "rotate(12deg)",
-          filter: "blur(40px)",
-        }}
-      />
-
-      {/* Builder silhouettes */}
-      {people.map((p, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            left: `${p.x}%`,
-            bottom: `${100 - p.y - 20}%`,
-            width: p.w,
-            height: p.h,
-            borderRadius: "40px 40px 12px 12px",
-            background: `linear-gradient(180deg, rgba(255,200,140,${0.08 + i * 0.02}), rgba(0,0,0,0.35))`,
-            opacity: interpolate(frame, [p.delay, p.delay + 25], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            }),
-            transform: `translateY(${Math.sin((frame + i * 20) / 25) * 4}px)`,
-          }}
-        />
-      ))}
-
-      {/* Floating "shipping" chips */}
-      {["shipping", "demo day", "hackathon", "PR merged"].map((label, i) => (
+      {chips.map((label, i) => (
         <div
           key={label}
           style={{
             position: "absolute",
-            left: `${12 + i * 18}%`,
-            top: `${22 + (i % 2) * 12}%`,
+            left: `${10 + i * 20}%`,
+            top: `${18 + (i % 2) * 10}%`,
             padding: "8px 14px",
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.08)",
             border: "1px solid rgba(255,200,140,0.25)",
+            background: "rgba(255,255,255,0.06)",
             color: "rgba(255,230,200,0.85)",
-            fontSize: 16,
+            fontFamily: fontFamily.sans,
+            fontSize: 14,
             fontWeight: 650,
-            opacity: interpolate(frame, [20 + i * 12, 40 + i * 12], [0, 1], {
+            opacity: interpolate(frame, [8 + i * 8, 22 + i * 8], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             }),
-            transform: `translateY(${Math.sin((frame + i * 15) / 20) * 6}px)`,
+            transform: `translateY(${Math.sin((frame + i * 12) / 18) * 5}px)`,
           }}
         >
           {label}
@@ -118,77 +79,50 @@ export const Secret: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "flex-start",
-          paddingTop: 72,
+          paddingTop: 64,
         }}
       >
-        <div
-          style={{
-            opacity: interpolate(frame, [0, 20], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            }),
-            textAlign: "center",
-            marginBottom: 36,
-          }}
-        >
-          <DisplayText size={48} color={colors.cream}>
+        <SnapIn>
+          <Eyebrow>the moat</Eyebrow>
+          <DisplayHeadline size={52} color={brand.white} style={{ marginTop: 16 }}>
             Seen in the room.
-          </DisplayText>
-          <DisplayText size={48} color={colors.orangeSoft} style={{ marginTop: 6 }}>
+          </DisplayHeadline>
+          <DisplayHeadline size={52} color={brand.orange} style={{ marginTop: 6 }}>
             Not scraped off a resume.
-          </DisplayText>
-        </div>
+          </DisplayHeadline>
+        </SnapIn>
 
-        {/* Phone */}
         <div
           style={{
+            marginTop: 40,
             opacity: interpolate(phoneIn, [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(phoneIn, [0, 1], [50, 0])}px) scale(${interpolate(phoneIn, [0, 1], [0.92, 1])})`,
-            width: 340,
-            height: 620,
-            borderRadius: 40,
+            transform: `translateY(${interpolate(phoneIn, [0, 1], [40, 0])}px) scale(${interpolate(phoneIn, [0, 1], [0.9, 1])})`,
+            width: 320,
+            height: 580,
+            borderRadius: 36,
             background: "#111",
-            border: "3px solid #3a3a3a",
+            border: "2px solid rgba(255,255,255,0.12)",
+            padding: 14,
             boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
-            padding: 18,
-            display: "flex",
-            flexDirection: "column",
           }}
         >
-          <div
-            style={{
-              height: 28,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <div
-              style={{
-                width: 90,
-                height: 10,
-                borderRadius: 999,
-                background: "#222",
-              }}
-            />
-          </div>
           <div
             style={{
               flex: 1,
-              background: "#0b0b0b",
+              height: "100%",
+              background: "#0a0a0a",
               borderRadius: 28,
-              padding: 18,
+              padding: 16,
               display: "flex",
               flexDirection: "column",
-              gap: 12,
+              gap: 10,
             }}
           >
             <div
               style={{
                 textAlign: "center",
-                color: "#888",
-                fontSize: 14,
+                color: "rgba(255,255,255,0.4)",
+                fontSize: 12,
                 fontWeight: 600,
                 marginBottom: 8,
               }}
@@ -199,12 +133,12 @@ export const Secret: React.FC = () => {
             <div
               style={{
                 alignSelf: "flex-start",
-                maxWidth: "88%",
-                background: "#1f1f1f",
+                maxWidth: "90%",
+                background: "#1c1c1c",
                 color: "#eee",
-                padding: "12px 16px",
-                borderRadius: "18px 18px 18px 6px",
-                fontSize: 17,
+                padding: "11px 14px",
+                borderRadius: "16px 16px 16px 4px",
+                fontSize: 15,
                 lineHeight: 1.35,
                 opacity: interpolate(bubble1, [0, 1], [0, 1]),
                 transform: `scale(${interpolate(bubble1, [0, 1], [0.85, 1])})`,
@@ -217,13 +151,12 @@ export const Secret: React.FC = () => {
             <div
               style={{
                 alignSelf: "flex-end",
-                maxWidth: "80%",
-                background: "#0a84ff",
-                color: "#fff",
-                padding: "12px 16px",
-                borderRadius: "18px 18px 6px 18px",
-                fontSize: 17,
-                lineHeight: 1.35,
+                maxWidth: "82%",
+                background: brand.blue,
+                color: brand.white,
+                padding: "11px 14px",
+                borderRadius: "16px 16px 4px 16px",
+                fontSize: 15,
                 opacity: interpolate(bubble2, [0, 1], [0, 1]),
                 transform: `scale(${interpolate(bubble2, [0, 1], [0.85, 1])})`,
                 transformOrigin: "bottom right",
@@ -232,21 +165,17 @@ export const Secret: React.FC = () => {
               sounds good — send it
             </div>
 
-            <div
-              style={{
-                marginTop: "auto",
-                textAlign: "center",
-                color: "rgba(255,255,255,0.45)",
-                fontSize: 13,
-                fontFamily: fonts.sans,
-                opacity: interpolate(frame, [180, 210], [0, 1], {
-                  extrapolateLeft: "clamp",
-                  extrapolateRight: "clamp",
-                }),
-              }}
-            >
-              No forms. No portal. Just text.
-            </div>
+            <PopIn delay={120} style={{ marginTop: "auto", textAlign: "center" }}>
+              <div
+                style={{
+                  fontFamily: fontFamily.sans,
+                  fontSize: 13,
+                  color: "rgba(255,255,255,0.45)",
+                }}
+              >
+                No forms. No portal. Just text.
+              </div>
+            </PopIn>
           </div>
         </div>
       </AbsoluteFill>

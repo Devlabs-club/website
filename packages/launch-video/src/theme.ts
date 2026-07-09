@@ -1,42 +1,68 @@
-export const colors = {
+/** DevLabs landing page design tokens — matches src/pages/index.astro + LandingMarketingStyles */
+export const brand = {
   cream: "#fbf6f3",
-  creamDark: "#f3ebe4",
-  black: "#111111",
-  ink: "#1a1a1a",
-  muted: "#6b6560",
+  creamPanel: "#f4f1ed",
+  creamCard: "#fffaf7",
+  orangeTint: "#fff5ef",
+  black: "#050505",
+  blackSoft: "rgba(5,5,5,0.45)",
+  blackMuted: "rgba(5,5,5,0.62)",
   orange: "#ff7417",
-  orangeSoft: "#ff9a4d",
+  orangeDark: "#bf4f08",
+  orangeGlow: "rgba(255,116,23,0.22)",
+  blue: "#168df7",
+  blueTint: "#cfe6e9",
+  buttonDark: "#2f3432",
+  buttonBorder: "#1f2422",
+  darkAct: "#0d0a09",
+  darkWarm: "#1a0f0a",
+  white: "#ffffff",
+  border: "rgba(5,5,5,0.10)",
+  borderStrong: "rgba(5,5,5,0.15)",
   green: "#1f8a4c",
   amber: "#c47a12",
-  grey: "#d9d2cb",
-  greyDark: "#9a9188",
-  white: "#ffffff",
-  card: "#ffffff",
 } as const;
 
-export const fonts = {
-  display:
-    '"Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
-  sans: '"Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif',
-  mono: '"SF Mono", "JetBrains Mono", Menlo, Consolas, monospace',
+export const type = {
+  /** Landing body — Manrope */
+  sans: "Manrope",
+  /** Editorial display — PP Gatwick (landing hero weight mix) */
+  display: "PP Gatwick",
 } as const;
 
 export const FPS = 30;
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 
-/** Scene lengths in frames @ 30fps — ~75s total */
+/** Faster ~55s cut — 2–4s beats, kinetic typography rhythm */
 export const scenes = {
-  coldOpen: { start: 0, duration: 210 }, // 0:00–0:07
-  enemy: { start: 210, duration: 240 }, // 0:07–0:15
-  turn: { start: 450, duration: 150 }, // 0:15–0:20
-  agent: { start: 600, duration: 330 }, // 0:20–0:31
-  proof: { start: 930, duration: 300 }, // 0:31–0:41
-  trials: { start: 1230, duration: 300 }, // 0:41–0:51
-  os: { start: 1530, duration: 240 }, // 0:51–0:59
-  secret: { start: 1770, duration: 270 }, // 0:59–1:08
-  close: { start: 2040, duration: 210 }, // 1:08–1:15
+  coldOpen: { duration: 180 }, // 6s
+  enemy: { duration: 180 }, // 6s
+  turn: { duration: 120 }, // 4s
+  agent: { duration: 240 }, // 8s
+  proof: { duration: 210 }, // 7s
+  trials: { duration: 180 }, // 6s
+  os: { duration: 180 }, // 6s
+  secret: { duration: 210 }, // 7s
+  close: { duration: 150 }, // 5s
 } as const;
 
-export const TOTAL_FRAMES =
-  scenes.close.start + scenes.close.duration; // 2250 = 75s
+export const TOTAL_FRAMES = Object.values(scenes).reduce(
+  (sum, s) => sum + s.duration,
+  0,
+); // 1650 = 55s
+
+/** Beat map for music sync (seconds) */
+export const beatMap = [
+  { t: 0, label: "intro pulse" },
+  { t: 6, label: "scene 1 hit — ENGINEER strike" },
+  { t: 12, label: "enemy grid drop" },
+  { t: 18, label: "orange wipe / DevLabs reveal" },
+  { t: 22, label: "beat drop — Founder Agent" },
+  { t: 30, label: "cards rank snap" },
+  { t: 36, label: "proof dissolve" },
+  { t: 43, label: "trial generate click" },
+  { t: 49, label: "pipeline glide" },
+  { t: 52, label: "dark act / iMessage" },
+  { t: 55, label: "final CTA resolve" },
+] as const;

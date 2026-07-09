@@ -6,112 +6,93 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { colors, fonts } from "../theme";
-import { DisplayText, OrangeLine, SceneShell, SoftGlow } from "../components/Shared";
+import { brand } from "../theme";
+import {
+  DevLabsLogo,
+  DisplayHeadline,
+  OrangeSquiggle,
+  PrimaryButton,
+  RulerSection,
+  SceneShell,
+  SnapIn,
+} from "../components/Brand";
+import { fontFamily } from "../components/Fonts";
 
 export const Close: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const builderIn = spring({
-    frame: frame - 10,
+  const headline = spring({
+    frame: frame - 6,
     fps,
-    config: { damping: 14, stiffness: 130 },
+    config: { damping: 11, stiffness: 220, mass: 0.4 },
   });
 
-  const lineIn = spring({
-    frame: frame - 45,
+  const cta = spring({
+    frame: frame - 50,
     fps,
-    config: { damping: 16, stiffness: 120 },
-  });
-
-  const ctaIn = spring({
-    frame: frame - 90,
-    fps,
-    config: { damping: 14, stiffness: 140 },
+    config: { damping: 12, stiffness: 200 },
   });
 
   return (
     <SceneShell>
-      <SoftGlow top={-100} left="25%" size={720} opacity={0.18} />
-      <SoftGlow bottom={-80} right={-40} size={500} color="#ffb070" opacity={0.12} />
-
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 24,
-        }}
-      >
-        <div
+      <RulerSection>
+        <AbsoluteFill
           style={{
-            opacity: interpolate(builderIn, [0, 1], [0, 1]),
-            transform: `scale(${interpolate(builderIn, [0, 1], [0.88, 1])})`,
-            textAlign: "center",
-          }}
-        >
-          <DisplayText size={72}>Hire builders,</DisplayText>
-          <DisplayText size={72} style={{ marginTop: 4 }}>
-            not resumes.
-          </DisplayText>
-        </div>
-
-        <div
-          style={{
-            opacity: interpolate(lineIn, [0, 1], [0, 1]),
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
-          <OrangeLine delay={45} width={200} />
-        </div>
-
-        <div
-          style={{
-            opacity: interpolate(ctaIn, [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(ctaIn, [0, 1], [20, 0])}px)`,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 20,
-            marginTop: 12,
+            justifyContent: "center",
+            gap: 28,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 14,
-                background: colors.orange,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: colors.white,
-                fontFamily: fonts.display,
-                fontSize: 30,
-                fontWeight: 800,
-              }}
-            >
-              D
+          <div
+            style={{
+              opacity: interpolate(headline, [0, 1], [0, 1]),
+              transform: `scale(${interpolate(headline, [0, 1], [0.88, 1])})`,
+              textAlign: "center",
+            }}
+          >
+            <DisplayHeadline size={80}>Hire builders,</DisplayHeadline>
+            <div style={{ position: "relative", display: "inline-block" }}>
+              <DisplayHeadline size={80}>not resumes.</DisplayHeadline>
+              <div style={{ marginTop: 8 }}>
+                <OrangeSquiggle width={260} delay={30} />
+              </div>
             </div>
-            <DisplayText size={56}>DevLabs</DisplayText>
           </div>
+
+          <SnapIn delay={50}>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <DevLabsLogo size={56} />
+              <DisplayHeadline size={52}>DevLabs</DisplayHeadline>
+            </div>
+          </SnapIn>
 
           <div
             style={{
-              fontFamily: fonts.sans,
-              fontSize: 28,
-              fontWeight: 600,
-              color: colors.muted,
+              opacity: interpolate(cta, [0, 1], [0, 1]),
+              transform: `translateY(${interpolate(cta, [0, 1], [16, 0])}px)`,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 20,
             }}
           >
-            devlabs.club · start now
+            <PrimaryButton>Try for Free</PrimaryButton>
+            <div
+              style={{
+                fontFamily: fontFamily.sans,
+                fontSize: 22,
+                fontWeight: 600,
+                color: brand.blackSoft,
+              }}
+            >
+              devlabs.club
+            </div>
           </div>
-        </div>
-      </AbsoluteFill>
+        </AbsoluteFill>
+      </RulerSection>
     </SceneShell>
   );
 };

@@ -6,115 +6,89 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { colors, fonts } from "../theme";
-import { DisplayText, OrangeLine, SceneShell, SoftGlow } from "../components/Shared";
+import { brand } from "../theme";
+import {
+  BodyCopy,
+  DevLabsLogo,
+  DisplayHeadline,
+  OrangeSquiggle,
+  OrangeWipe,
+  RulerSection,
+  SceneShell,
+  SnapIn,
+} from "../components/Brand";
 
 export const Turn: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const wipe = interpolate(frame, [0, 28], [0, 1], {
+  const wipe = interpolate(frame, [0, 22], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   const logo = spring({
-    frame: frame - 24,
+    frame: frame - 18,
     fps,
-    config: { damping: 14, stiffness: 130 },
+    config: { damping: 12, stiffness: 200, mass: 0.4 },
   });
 
-  const line = spring({
-    frame: frame - 55,
+  const copy = spring({
+    frame: frame - 40,
     fps,
-    config: { damping: 16, stiffness: 120 },
+    config: { damping: 14, stiffness: 180 },
   });
 
   return (
     <SceneShell>
-      {/* Orange wipe from left */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: colors.orange,
-          transform: `translateX(${interpolate(wipe, [0, 1], [-100, 100])}%)`,
-          zIndex: 2,
-        }}
-      />
-
-      <SoftGlow top={-60} left="30%" size={700} opacity={0.16} />
-
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 28,
-          zIndex: 1,
-        }}
-      >
-        <div
+      <OrangeWipe progress={wipe} />
+      <RulerSection>
+        <AbsoluteFill
           style={{
-            opacity: interpolate(logo, [0, 1], [0, 1]),
-            transform: `scale(${interpolate(logo, [0, 1], [0.85, 1])})`,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 18,
+            justifyContent: "center",
+            gap: 28,
           }}
         >
           <div
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 18,
-              background: colors.orange,
+              opacity: interpolate(logo, [0, 1], [0, 1]),
+              transform: `scale(${interpolate(logo, [0, 1], [0.82, 1])})`,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              color: colors.white,
-              fontFamily: fonts.display,
-              fontSize: 40,
-              fontWeight: 800,
+              gap: 20,
             }}
           >
-            D
+            <DevLabsLogo size={64} />
+            <DisplayHeadline size={96}>DevLabs</DisplayHeadline>
           </div>
-          <DisplayText size={92}>DevLabs</DisplayText>
-        </div>
 
-        <div
-          style={{
-            opacity: interpolate(line, [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(line, [0, 1], [20, 0])}px)`,
-            textAlign: "center",
-            maxWidth: 1100,
-          }}
-        >
-          <DisplayText size={48} weight={650}>
-            We don&apos;t match.
-          </DisplayText>
-          <DisplayText size={48} weight={650} style={{ marginTop: 8 }}>
-            We rank what they&apos;ve built.
-          </DisplayText>
-          <div style={{ marginTop: 28, display: "flex", justifyContent: "center" }}>
-            <OrangeLine delay={70} width={220} />
-          </div>
           <div
             style={{
-              marginTop: 28,
-              fontFamily: fonts.sans,
-              fontSize: 30,
-              color: colors.muted,
-              fontWeight: 500,
+              opacity: interpolate(copy, [0, 1], [0, 1]),
+              transform: `translateY(${interpolate(copy, [0, 1], [24, 0])}px)`,
+              textAlign: "center",
             }}
           >
-            A hiring OS — built on proof of work.
+            <DisplayHeadline size={52} weight={800}>
+              We don&apos;t match.
+            </DisplayHeadline>
+            <div style={{ marginTop: 8, position: "relative", display: "inline-block" }}>
+              <DisplayHeadline size={52} weight={800}>
+                We rank what they&apos;ve built.
+              </DisplayHeadline>
+              <div style={{ marginTop: 8 }}>
+                <OrangeSquiggle width={340} delay={55} />
+              </div>
+            </div>
+            <BodyCopy size={26} style={{ marginTop: 24 }}>
+              A hiring OS — built on proof of work.
+            </BodyCopy>
           </div>
-        </div>
-      </AbsoluteFill>
+        </AbsoluteFill>
+      </RulerSection>
     </SceneShell>
   );
 };

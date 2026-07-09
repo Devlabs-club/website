@@ -6,8 +6,15 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { colors, fonts } from "../theme";
-import { DisplayText, SceneShell, SoftGlow } from "../components/Shared";
+import { brand } from "../theme";
+import {
+  BodyCopy,
+  DisplayHeadline,
+  OrangeSquiggle,
+  RulerSection,
+  SceneShell,
+  SnapIn,
+} from "../components/Brand";
 
 export const ColdOpen: React.FC = () => {
   const frame = useCurrentFrame();
@@ -16,137 +23,135 @@ export const ColdOpen: React.FC = () => {
   const engineerIn = spring({
     frame,
     fps,
-    config: { damping: 16, stiffness: 120 },
+    config: { damping: 12, stiffness: 200, mass: 0.4 },
   });
 
-  const strikeProgress = interpolate(frame, [55, 78], [0, 1], {
+  const strike = interpolate(frame, [38, 52], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const shatter = interpolate(frame, [78, 100], [0, 1], {
+  const shatter = interpolate(frame, [52, 68], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
   const builderIn = spring({
-    frame: frame - 95,
+    frame: frame - 62,
     fps,
-    config: { damping: 12, stiffness: 140, mass: 0.55 },
+    config: { damping: 10, stiffness: 260, mass: 0.35 },
   });
 
-  const particles = Array.from({ length: 14 }, (_, i) => {
-    const angle = (i / 14) * Math.PI * 2;
-    const dist = 80 + (i % 4) * 40;
+  const subIn = spring({
+    frame: frame - 95,
+    fps,
+    config: { damping: 14, stiffness: 160 },
+  });
+
+  const particles = Array.from({ length: 16 }, (_, i) => {
+    const angle = (i / 16) * Math.PI * 2;
+    const dist = 60 + (i % 5) * 35;
     return {
       x: Math.cos(angle) * dist * shatter,
-      y: Math.sin(angle) * dist * shatter - shatter * 30,
-      rot: (i * 37) * shatter,
-      opacity: interpolate(shatter, [0, 0.3, 1], [0, 1, 0]),
+      y: Math.sin(angle) * dist * shatter,
+      rot: i * 29 * shatter,
+      opacity: interpolate(shatter, [0, 0.25, 1], [0, 1, 0]),
     };
   });
 
   return (
     <SceneShell>
-      <SoftGlow top={-80} left={-60} size={640} opacity={0.14} />
-      <SoftGlow bottom={-120} right={-40} size={520} color="#ffb070" opacity={0.12} />
-      <AbsoluteFill
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          gap: 28,
-        }}
-      >
-        <div style={{ position: "relative", height: 140, width: 900 }}>
-          {/* ENGINEER */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: interpolate(engineerIn, [0, 1], [0, 1]) * (1 - shatter),
-              transform: `scale(${interpolate(engineerIn, [0, 1], [0.92, 1])}) translateY(${shatter * -20}px)`,
-            }}
-          >
-            <DisplayText size={120} weight={800}>
-              ENGINEER
-            </DisplayText>
-            <div
-              style={{
-                position: "absolute",
-                left: "12%",
-                right: "12%",
-                height: 8,
-                background: colors.orange,
-                borderRadius: 999,
-                transformOrigin: "left center",
-                transform: `scaleX(${strikeProgress})`,
-                top: "52%",
-              }}
-            />
-          </div>
-
-          {/* Shatter particles */}
-          {particles.map((p, i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                width: 18 + (i % 3) * 8,
-                height: 10,
-                background: i % 2 === 0 ? colors.ink : colors.orange,
-                opacity: p.opacity,
-                transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`,
-                borderRadius: 2,
-              }}
-            />
-          ))}
-
-          {/* BUILDER */}
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              opacity: interpolate(builderIn, [0, 1], [0, 1]),
-              transform: `scale(${interpolate(builderIn, [0, 1], [0.8, 1])})`,
-            }}
-          >
-            <DisplayText size={120} weight={800} color={colors.ink}>
-              BUILDER
-            </DisplayText>
-          </div>
-        </div>
-
-        <div
+      <RulerSection>
+        <AbsoluteFill
           style={{
-            opacity: interpolate(frame, [130, 160], [0, 1], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            }),
-            transform: `translateY(${interpolate(frame, [130, 160], [16, 0], {
-              extrapolateLeft: "clamp",
-              extrapolateRight: "clamp",
-            })}px)`,
-            fontFamily: fonts.sans,
-            fontSize: 34,
-            color: colors.muted,
-            fontWeight: 500,
-            maxWidth: 900,
-            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 32,
           }}
         >
-          You&apos;re not hiring a title. You&apos;re hiring someone who ships.
-        </div>
-      </AbsoluteFill>
+          <div style={{ position: "relative", height: 130, width: 920 }}>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: interpolate(engineerIn, [0, 1], [0, 1]) * (1 - shatter),
+                transform: `scale(${interpolate(engineerIn, [0, 1], [0.88, 1])})`,
+              }}
+            >
+              <DisplayHeadline size={108} weight={800}>
+                ENGINEER
+              </DisplayHeadline>
+              <div
+                style={{
+                  position: "absolute",
+                  left: "8%",
+                  right: "8%",
+                  height: 6,
+                  background: brand.orange,
+                  top: "54%",
+                  transformOrigin: "left center",
+                  transform: `scaleX(${strike})`,
+                }}
+              />
+            </div>
+
+            {particles.map((p, i) => (
+              <div
+                key={i}
+                style={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  width: 14 + (i % 4) * 6,
+                  height: 8,
+                  background: i % 2 ? brand.orange : brand.black,
+                  opacity: p.opacity,
+                  transform: `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg)`,
+                }}
+              />
+            ))}
+
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: interpolate(builderIn, [0, 1], [0, 1]),
+                transform: `scale(${interpolate(builderIn, [0, 1], [0.75, 1])})`,
+              }}
+            >
+              <DisplayHeadline size={108} weight={800}>
+                BUILDER
+              </DisplayHeadline>
+            </div>
+          </div>
+
+          <SnapIn delay={95}>
+            <div style={{ textAlign: "center" }}>
+              <BodyCopy size={32} color={brand.blackMuted}>
+                You&apos;re not hiring a title.
+              </BodyCopy>
+              <BodyCopy size={32} weight={700} color={brand.black} style={{ marginTop: 4 }}>
+                You&apos;re hiring someone who{" "}
+                <span style={{ position: "relative", display: "inline-block" }}>
+                  ships
+                  <div style={{ position: "absolute", left: 0, bottom: -4 }}>
+                    <OrangeSquiggle width={120} delay={110} />
+                  </div>
+                </span>
+                .
+              </BodyCopy>
+            </div>
+          </SnapIn>
+        </AbsoluteFill>
+      </RulerSection>
     </SceneShell>
   );
 };

@@ -12,6 +12,7 @@
   "dependencies": {
     "@remotion/bundler": "4.0.487",
     "@remotion/cli": "4.0.487",
+    "@remotion/google-fonts": "4.0.487",
     "@remotion/media-utils": "4.0.487",
     "@remotion/renderer": "4.0.487",
     "react": "19.2.3",
