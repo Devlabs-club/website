@@ -34,3 +34,7 @@ local/
 
 .env
 .env*.local
+
+# Remotion render output
+packages/launch-video/out/
+packages/launch-video/node_modules/
