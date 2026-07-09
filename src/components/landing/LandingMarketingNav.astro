@@ -1,0 +1,49 @@
+---
+import { tryForFreeHref } from "../../lib/productCta";
+
+interface Props {
+  active?: "sponsor" | "events" | "about";
+}
+
+const { active } = Astro.props;
+
+const links = [
+  { id: "sponsor" as const, label: "Sponsor", href: "/sponsor" },
+  { id: "events" as const, label: "Events", href: "/events" },
+  { id: "about" as const, label: "Our Story", href: "/about" },
+];
+---
+
+<header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
+  <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
+    <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
+  </a>
+
+  <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
+    {links.map((link) => (
+      <a
+        href={link.href}
+        class:list={[
+          "transition-colors hover:text-[#ff7417]",
+          active === link.id ? "text-[#ff7417]" : "",
+        ]}
+      >
+        {link.label}
+      </a>
+    ))}
+    <a
+      href={tryForFreeHref}
+      class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
+    >
+      <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
+      <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
+      <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
+      <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
+      Hire now
+    </a>
+  </nav>
+
+  <a href={tryForFreeHref} class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">
+    Hire now
+  </a>
+</header>

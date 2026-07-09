@@ -1,0 +1,184 @@
+<style is:global>
+  .landing-page {
+    font-family: Manrope, system-ui, sans-serif;
+    letter-spacing: 0;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(5, 5, 5, 0.024) 0,
+        rgba(5, 5, 5, 0.024) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(5, 5, 5, 0.022) 0,
+        rgba(5, 5, 5, 0.022) 1px,
+        transparent 1px,
+        transparent 24px
+      );
+  }
+
+  .ruler-section {
+    position: relative;
+    background-image:
+      linear-gradient(to right, rgba(5, 5, 5, 0.032) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center top;
+  }
+
+  .ruler-section::before,
+  .ruler-section::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    z-index: 0;
+    width: 100vw;
+    height: 1px;
+    transform: translateX(-50%);
+    background: rgba(5, 5, 5, 0.1);
+    pointer-events: none;
+  }
+
+  .ruler-section::before {
+    top: 0;
+  }
+
+  .ruler-section::after {
+    bottom: 0;
+  }
+
+  .ruler-rails {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    z-index: 0;
+    width: min(calc(100% - 3rem), 80rem);
+    transform: translateX(-50%);
+    border-inline: 1px solid rgba(5, 5, 5, 0.08);
+    pointer-events: none;
+  }
+
+  .ruler-rails::before,
+  .ruler-rails::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: 1px;
+    background: rgba(5, 5, 5, 0.055);
+  }
+
+  .ruler-rails::before {
+    left: 25%;
+  }
+
+  .ruler-rails::after {
+    right: 25%;
+  }
+
+  .ascii-star {
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ascii-wave {
+    display: block;
+    pointer-events: none;
+    z-index: 0;
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, #000 46%, transparent 82%);
+    mask-image: radial-gradient(ellipse at center, #000 0%, #000 46%, transparent 82%);
+  }
+
+  .selection-dot {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border: 3px solid #168df7;
+    border-radius: 999px;
+    background: #fbf6f3;
+    z-index: 30;
+  }
+
+  .corner-square,
+  .selection-square {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #168df7;
+    background: #fbf6f3;
+    z-index: 30;
+  }
+
+  .dark-act {
+    background-color: #0d0a09;
+    background-image:
+      linear-gradient(180deg, #2c1608 0, #1a0f0a 200px, rgba(13, 10, 9, 0) 560px),
+      radial-gradient(ellipse at 50% 2%, rgba(255, 116, 23, 0.12), transparent 52%),
+      radial-gradient(ellipse at 80% 92%, rgba(22, 141, 247, 0.06), transparent 60%),
+      repeating-linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.018) 0,
+        rgba(255, 255, 255, 0.018) 1px,
+        transparent 1px,
+        transparent 26px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.016) 0,
+        rgba(255, 255, 255, 0.016) 1px,
+        transparent 1px,
+        transparent 26px
+      );
+  }
+
+  .dark-glow {
+    width: min(80%, 70rem);
+    height: 280px;
+    top: 40px;
+    background: radial-gradient(
+      ellipse at 50% 30%,
+      rgba(255, 140, 50, 0.55) 0%,
+      rgba(200, 80, 20, 0.28) 34%,
+      rgba(120, 50, 12, 0.12) 56%,
+      transparent 74%
+    );
+    filter: blur(64px);
+  }
+
+  .dark-wave {
+    mix-blend-mode: screen;
+    opacity: 0.62;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 84%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, #000 20%, #000 84%, transparent 100%);
+  }
+
+  .footer-cta {
+    background: radial-gradient(120% 130% at 50% 50%, #33220f 0%, #271907 52%, #1a1004 100%);
+  }
+
+  [data-fluid-panel] {
+    position: relative;
+  }
+
+  @media (max-width: 639px) {
+    .hero-star-left {
+      left: -7rem !important;
+      top: 5rem !important;
+      width: 14rem !important;
+      height: 14rem !important;
+    }
+
+    .hero-star-right {
+      right: -4rem !important;
+      top: 5rem !important;
+      width: 12rem !important;
+      height: 12rem !important;
+    }
+
+    .ruler-rails {
+      display: none;
+    }
+  }
+</style>

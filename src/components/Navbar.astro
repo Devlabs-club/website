@@ -1,5 +1,6 @@
 ---
 import AuthControlsAstro from "./AuthControlsAstro.astro";
+import { tryForFreeHref } from "../lib/productCta";
 
 const hideTicker = Astro.url.pathname.startsWith("/momentum");
 const tickerItems = Array(8).fill(null);
@@ -156,7 +157,7 @@ const tickerItems = Array(8).fill(null);
         data-section="sponsor">sponsor</a
       >
       <a
-        href="https://cal.com/geekydan/15min?overlayCalendar=true"
+        href={tryForFreeHref}
         class="nav-link relative z-10 text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium px-3 py-1"
         data-section="clientform">find talent</a
       >
@@ -245,7 +246,7 @@ const tickerItems = Array(8).fill(null);
           data-section="sponsor">sponsor</a
         >
         <a
-          href="https://cal.com/geekydan/15min?overlayCalendar=true"
+          href={tryForFreeHref}
           class="block text-white/80 hover:text-white transition-colors duration-200 ease-in-out text-sm font-medium py-2 px-3 rounded-lg hover:bg-white/10"
           data-section="clientform">find talent</a
         >

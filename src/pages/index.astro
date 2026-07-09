@@ -3,11 +3,11 @@ export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
 import PricingSection from "../components/PricingSection.astro";
+import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import { tryForFreeHref } from "../lib/productCta";
 
-// Primary CTA target. Temporarily pointing "Hire now" / "start now" at the
-// booking call instead of the product signup.
-// Original product redirect: "/auth/signup"
-const ctaHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
+const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
+const ctaHref = tryForFreeHref;
 
 const navLinks = [
   { label: "Sponsor", href: "/sponsor" },
@@ -227,18 +227,32 @@ const testimonials = [
         actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
       </h1>
 
-      <a
-        href={ctaHref}
+      <div
         data-hero-cta
-        class="hero-start-cta group relative z-10 mt-8 inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+        class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
       >
-        <canvas
-          class="hero-start-cta-ripple absolute inset-0 h-full w-full"
-          data-ascii-ripple="compact"
-          aria-hidden="true"
-        ></canvas>
-        <span class="relative z-10">start now</span>
-      </a>
+        <a
+          href={tryForFreeHref}
+          class="hero-start-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+        >
+          <canvas
+            class="hero-start-cta-ripple absolute inset-0 h-full w-full"
+            data-ascii-ripple="compact"
+            aria-hidden="true"
+          ></canvas>
+          <span class="relative z-10">Try for Free</span>
+        </a>
+        <a
+          href={bookCallHref}
+          class="hero-book-call-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-9 text-sm font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.06)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-white hover:text-[#bf4f08] hover:shadow-[0_16px_36px_rgba(255,116,23,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+        >
+          Book a Call
+          <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
 
       <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
         <div class="relative min-h-[520px] overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[390px] lg:min-h-[475px]">
@@ -905,17 +919,9 @@ const testimonials = [
     </section>
     */}
 
-    <!-- Dark cinematic close: testimonials → split CTA → final CTA → footer -->
-    <div class="dark-act relative isolate -mt-[1px] overflow-hidden text-white">
-      <!-- warm blurred glow that hugs the curved boundary -->
-      <div class="dark-glow pointer-events-none absolute left-1/2 top-0 z-[1] -translate-x-1/2" aria-hidden="true"></div>
-      <!-- downward parabolic curve: cream fills above the curve, dark below -->
-      <svg class="dark-curve pointer-events-none absolute inset-x-0 top-0 z-[2] h-[120px] w-full sm:h-[170px]" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0,0 H1440 V52 Q720,200 0,52 Z" fill="#fbf6f3"></path>
-      </svg>
-      <canvas class="ascii-wave dark-wave absolute inset-0 h-full w-full" data-ascii-wave aria-hidden="true"></canvas>
-
-      <section class="relative px-5 pb-20 pt-40 sm:px-8 sm:pb-28 sm:pt-52 lg:px-10">
+    <!-- Dark cinematic close: testimonials → footer -->
+    <LandingDarkClose ctaHref={ctaHref}>
+      <section class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
         <div class="relative z-10 mx-auto w-full max-w-7xl">
           <div class="mx-auto max-w-4xl text-center">
             <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">proof, not promises</p>
@@ -956,51 +962,7 @@ const testimonials = [
           </div>
         </div>
       </section>
-
-      <footer class="relative px-5 pb-10 pt-8 sm:px-8 sm:pb-12 lg:px-10">
-        <div class="relative z-10 mx-auto w-full max-w-7xl">
-          <div data-fluid-panel class="footer-cta relative isolate flex min-h-[22rem] items-center justify-center overflow-hidden rounded-[22px] px-5 py-12 shadow-[0_36px_100px_rgba(0,0,0,0.45)] sm:min-h-[27rem] sm:rounded-[32px] sm:px-10 sm:py-20">
-            <img src="/landing/footer-bg.png" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
-            <!-- subtle legibility wash over the bright image -->
-            <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_78%_at_50%_40%,rgba(40,12,2,0.28),transparent_68%)]" aria-hidden="true"></div>
-
-            <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-2 text-center">
-              <img src="/logo.png" alt="DevLabs" class="h-11 w-11 object-contain brightness-0 invert" />
-              <h2 class="mt-6 text-[clamp(2.25rem,12vw,4rem)] font-black leading-[0.98] text-white drop-shadow-[0_2px_18px_rgba(40,12,2,0.35)]">
-                Stop hiring from resumes
-              </h2>
-              <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/82">
-                Tell us who you need and get a proof-backed shortlist of builders who have already shipped — ready to start this week.
-              </p>
-              <a href={ctaHref} class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
-                Hire with proof
-                <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="m12 5 7 7-7 7"></path>
-                </svg>
-              </a>
-            </div>
-
-          </div>
-
-          <div class="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-3">
-              <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain" />
-              <span class="text-sm font-bold text-white/65">© {new Date().getFullYear()} DevLabs</span>
-            </div>
-            <div class="flex flex-wrap gap-x-7 gap-y-2 text-sm font-semibold text-white/55">
-              <a href="/auth/signup" class="transition hover:text-[#ff7417]">Hire talent</a>
-              <a href="/get-hired" class="transition hover:text-[#ff7417]">Join as builder</a>
-              <a href="/events" class="transition hover:text-[#ff7417]">Events</a>
-              <a href="/sponsor" class="transition hover:text-[#ff7417]">Sponsor</a>
-              <a href="/momentum" class="transition hover:text-[#ff7417]">Momentum</a>
-              <a href="/about" class="transition hover:text-[#ff7417]">Our story</a>
-              <a href="/discord" class="transition hover:text-[#ff7417]">Discord</a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </LandingDarkClose>
   </main>
 </Layout>
 
@@ -1439,89 +1401,8 @@ const testimonials = [
   }
 
   function createFluidScrollPanels() {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    );
-    const panels = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-fluid-panel]"),
-    );
-
-    if (!panels.length) return () => {};
-
-    const clamp = (value: number, min: number, max: number) =>
-      Math.max(min, Math.min(max, value));
-
-    let animationFrame = 0;
-    let resizeObserver: ResizeObserver | null = null;
-
-    function resetPanel(panel: HTMLElement) {
-      panel.style.removeProperty("--fluid-y");
-      panel.style.removeProperty("--fluid-scale");
-      panel.style.removeProperty("--fluid-opacity");
-      panel.style.removeProperty("--fluid-blur");
-      panel.style.removeProperty("--fluid-shadow");
-    }
-
-    function update() {
-      animationFrame = 0;
-
-      if (prefersReducedMotion.matches) {
-        panels.forEach(resetPanel);
-        return;
-      }
-
-      const viewportHeight = Math.max(window.innerHeight, 1);
-      const focusY = viewportHeight * 0.52;
-      const motionRange = viewportHeight * 0.78;
-      const moveAmount = window.innerWidth < 720 ? 18 : 42;
-
-      panels.forEach((panel) => {
-        const rect = panel.getBoundingClientRect();
-        const panelFocus = rect.top + rect.height * 0.44;
-        const distance = clamp((panelFocus - focusY) / motionRange, -1.25, 1.25);
-        const presence = clamp(1 - Math.abs(distance) * 0.74, 0, 1);
-        const easedPresence = 1 - Math.pow(1 - presence, 3);
-        const direction = distance < 0 ? -1 : 1;
-        const softenedDistance =
-          direction * Math.pow(Math.abs(distance), 0.84);
-        const y = softenedDistance * moveAmount * (1 - easedPresence * 0.18);
-        const scale = 0.972 + easedPresence * 0.028;
-        const opacity = 0.74 + easedPresence * 0.26;
-        const blur = (1 - easedPresence) * 0.35;
-        const shadow = easedPresence * 0.12;
-
-        panel.style.setProperty("--fluid-y", `${y.toFixed(2)}px`);
-        panel.style.setProperty("--fluid-scale", scale.toFixed(4));
-        panel.style.setProperty("--fluid-opacity", opacity.toFixed(3));
-        panel.style.setProperty("--fluid-blur", `${blur.toFixed(2)}px`);
-        panel.style.setProperty("--fluid-shadow", shadow.toFixed(3));
-      });
-    }
-
-    function scheduleUpdate() {
-      if (!animationFrame) {
-        animationFrame = requestAnimationFrame(update);
-      }
-    }
-
-    scheduleUpdate();
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate);
-    prefersReducedMotion.addEventListener("change", scheduleUpdate);
-
-    if ("ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(scheduleUpdate);
-      panels.forEach((panel) => resizeObserver?.observe(panel));
-    }
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-      prefersReducedMotion.removeEventListener("change", scheduleUpdate);
-      resizeObserver?.disconnect();
-      panels.forEach(resetPanel);
-    };
+    // Disabled: per-panel blur/opacity/transform on scroll caused layout thrash and jitter.
+    return () => {};
   }
 
   const cleanups = [
@@ -1603,7 +1484,7 @@ const testimonials = [
         opacity: 0,
         duration: 0.8,
         ease: "power3.out",
-        scrollTrigger: { trigger: el, start: "top 86%" },
+        scrollTrigger: { trigger: el, start: "top 86%", once: true },
       });
     });
 
@@ -1616,7 +1497,7 @@ const testimonials = [
         duration: 0.8,
         ease: "power3.out",
         stagger: 0.12,
-        scrollTrigger: { trigger: group, start: "top 82%" },
+        scrollTrigger: { trigger: group, start: "top 82%", once: true },
       });
     });
   }
@@ -1857,41 +1738,7 @@ const testimonials = [
   }
 
   [data-fluid-panel] {
-    --fluid-y: 0px;
-    --fluid-scale: 1;
-    --fluid-opacity: 1;
-    --fluid-blur: 0px;
-    --fluid-shadow: 0;
     position: relative;
-    transform: translate3d(0, var(--fluid-y), 0) scale(var(--fluid-scale));
-    transform-origin: center center;
-    opacity: var(--fluid-opacity);
-    filter: blur(var(--fluid-blur));
-    will-change: transform, opacity, filter;
-    backface-visibility: hidden;
-  }
-
-  [data-fluid-panel]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 8;
-    border-radius: inherit;
-    box-shadow: 0 32px 120px rgba(5, 5, 5, var(--fluid-shadow));
-    opacity: var(--fluid-shadow);
-    pointer-events: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    [data-fluid-panel] {
-      transform: none;
-      opacity: 1;
-      filter: none;
-    }
-
-    [data-fluid-panel]::after {
-      display: none;
-    }
   }
 
   @media (max-width: 639px) {
@@ -1924,11 +1771,16 @@ const testimonials = [
       margin-top: 2.5rem !important;
     }
 
-    .hero-start-cta {
+    [data-hero-cta] {
       margin-top: 1.5rem !important;
+      gap: 0.65rem !important;
+    }
+
+    .hero-start-cta,
+    .hero-book-call-cta {
       min-width: 9.75rem !important;
       height: 3.05rem !important;
-      padding-inline: 2rem !important;
+      padding-inline: 1.65rem !important;
     }
 
     [data-hero-card] > div {
@@ -1979,16 +1831,6 @@ const testimonials = [
       letter-spacing: 0 !important;
     }
 
-    [data-fluid-panel] {
-      transform: none !important;
-      opacity: 1 !important;
-      filter: none !important;
-    }
-
-    [data-fluid-panel]::after {
-      display: none;
-    }
-
     .ruler-rails {
       width: calc(100% - 2.5rem);
     }
@@ -2008,7 +1850,6 @@ const testimonials = [
       linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
     background-size: 40px 40px;
     background-position: center top;
-    background-attachment: fixed;
   }
 
   .ruler-section::before,

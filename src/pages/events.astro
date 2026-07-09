@@ -2,6 +2,11 @@
 export const prerender = true;
 
 import Layout from '../layouts/Layout.astro';
+import LandingMarketingNav from '../components/landing/LandingMarketingNav.astro';
+import LandingAsciiStars from '../components/landing/LandingAsciiStars.astro';
+import LandingDarkClose from '../components/landing/LandingDarkClose.astro';
+import LandingAsciiInit from '../components/landing/LandingAsciiInit.astro';
+import LandingMarketingStyles from '../components/landing/LandingMarketingStyles.astro';
 
 // Event data (detailed view)
 const events = [
@@ -107,34 +112,18 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
 ---
 
 <Layout title="Events - DevLabs Signature Experiences" hideNavbar hideFooter skipPageLoader skipParallax>
-    <main class="devlabs-paper min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-        <!-- Nav -->
-        <header class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-            <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
-                <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
-            </a>
-            <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
-                <a href="/sponsor" class="transition-colors hover:text-[#ff7417]">Sponsor</a>
-                <a href="/events" class="text-[#ff7417]">Events</a>
-                <a href="/about" class="transition-colors hover:text-[#ff7417]">Our Story</a>
-                <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black">
-                    <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-                    <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-                    <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-                    <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-                    Hire now
-                </a>
-            </nav>
-            <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">Hire now</a>
-        </header>
+    <LandingMarketingStyles />
+    <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+        <LandingMarketingNav active="events" />
 
         <!-- Hero -->
-        <section class="ruler-section relative mx-auto w-full max-w-7xl px-6 pb-20 pt-16 sm:px-8 lg:px-10">
+        <section class="hero-section ruler-section relative mx-auto w-full max-w-7xl overflow-hidden px-6 pb-20 pt-16 sm:px-8 lg:px-10">
+            <LandingAsciiStars />
             <div class="ruler-rails" aria-hidden="true"></div>
             <div class="relative z-10 max-w-4xl">
                 <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">devlabs events</p>
-                <h1 class="mt-6 text-[clamp(2.4rem,9vw,5.6rem)] font-black leading-[0.96] tracking-[-0.05em] text-black">
-                    Where builders <span class="text-[#ff7417]">go big</span>.
+                <h1 class="mt-6 text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
+                    Where builders <span class="font-extrabold text-[#ff7417]">go big</span>.
                 </h1>
                 <p class="mt-7 max-w-2xl text-[clamp(1.05rem,1.8vw,1.4rem)] font-medium leading-relaxed text-black/62">
                     From 48-hour hackathons to month-long hacker houses — these are the rooms
@@ -151,7 +140,7 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                     <!-- Image frame -->
                     <div class="w-full lg:w-5/12">
                         <div class="relative">
-                            <div class="relative aspect-[4/5] overflow-hidden border-[3px] border-black bg-[#cfe6e9]">
+                            <div class="relative aspect-[4/5] overflow-hidden rounded-[22px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)]">
                                 {event.imageBg && (
                                     <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style={`background-image: url('${event.imageBg}')`}></div>
                                 )}
@@ -172,11 +161,10 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
                                     {event.name}
                                 </span>
                             </div>
-                            <!-- corner squares -->
-                            <span class="corner-square -left-2 -top-2"></span>
-                            <span class="corner-square -right-2 -top-2"></span>
-                            <span class="corner-square -bottom-2 -left-2"></span>
-                            <span class="corner-square -bottom-2 -right-2"></span>
+                            <span class="selection-dot left-4 top-4"></span>
+                            <span class="selection-dot right-4 top-4"></span>
+                            <span class="selection-dot bottom-4 left-4"></span>
+                            <span class="selection-dot bottom-4 right-4"></span>
                         </div>
                     </div>
 
@@ -246,92 +234,8 @@ partners: ['/sponsors/loloft.png', '/sponsors/azvc.png', '/sponsors/phxventures.
             ))}
         </div>
 
-        <!-- Closing CTA (dark act) -->
-        <section class="relative bg-[#0d0a09] px-5 py-24 text-white sm:px-8 sm:py-32 lg:px-10">
-            <div class="mx-auto flex max-w-3xl flex-col items-center text-center">
-                <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">come build with us</p>
-                <h2 class="mt-6 text-[clamp(2.25rem,9vw,4.5rem)] font-black leading-[0.98] text-white">
-                    The next room is filling up.
-                </h2>
-                <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/75">
-                    Whether you're hiring builders or want to back the next cohort — there's a seat for you.
-                </p>
-                <div class="mt-9 flex flex-col gap-4 sm:flex-row">
-                    <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="group inline-flex items-center justify-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] transition hover:bg-[#ff7417] hover:text-white">
-                        Hire with proof
-                        <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 12h14"></path>
-                            <path d="m12 5 7 7-7 7"></path>
-                        </svg>
-                    </a>
-                    <a href="/sponsor" class="inline-flex items-center justify-center rounded-full border border-white/25 px-7 py-3.5 text-base font-black text-white/80 transition hover:border-white hover:text-white">
-                        Sponsor an event
-                    </a>
-                </div>
-            </div>
-        </section>
+        <LandingDarkClose />
     </main>
+
+    <LandingAsciiInit />
 </Layout>
-
-<style>
-    .devlabs-paper {
-        font-family: Manrope, system-ui, sans-serif;
-        letter-spacing: 0;
-    }
-
-    .ruler-section {
-        position: relative;
-    }
-
-    .ruler-section::before,
-    .ruler-section::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        z-index: 0;
-        width: 100vw;
-        height: 1px;
-        transform: translateX(-50%);
-        background: rgba(5, 5, 5, 0.1);
-        pointer-events: none;
-    }
-
-    .ruler-section::before { top: 0; }
-    .ruler-section::after { bottom: 0; }
-
-    .ruler-rails {
-        position: absolute;
-        inset-block: 0;
-        left: 50%;
-        z-index: 0;
-        width: min(calc(100% - 3rem), 80rem);
-        transform: translateX(-50%);
-        border-inline: 1px solid rgba(5, 5, 5, 0.08);
-        pointer-events: none;
-    }
-
-    .ruler-rails::before,
-    .ruler-rails::after {
-        content: "";
-        position: absolute;
-        inset-block: 0;
-        width: 1px;
-        background: rgba(5, 5, 5, 0.055);
-    }
-
-    .ruler-rails::before { left: 25%; }
-    .ruler-rails::after { right: 25%; }
-
-    .corner-square {
-        position: absolute;
-        width: 18px;
-        height: 18px;
-        border: 3px solid #168df7;
-        background: #fbf6f3;
-        z-index: 30;
-    }
-
-    @media (max-width: 640px) {
-        .ruler-rails { display: none; }
-    }
-</style>
