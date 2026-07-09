@@ -584,7 +584,7 @@ export const BuilderHome: React.FC = () => {
                 ) : null
               }
             />
-            <div className="px-5 py-8 sm:px-7 sm:py-10">
+            <div className="px-4 py-6 sm:px-6 sm:py-8 lg:overflow-hidden lg:px-8 lg:py-6">
               {!hasProfile ? (
                 <div className="font-manrope mx-auto max-w-3xl">
                   <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">Not live yet</p>

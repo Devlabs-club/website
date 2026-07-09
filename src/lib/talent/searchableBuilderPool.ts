@@ -13,6 +13,8 @@ export const SEARCHABLE_VISIBILITY_STATUSES = ['public', 'matched_only', null];
 export const BUILDER_SEARCH_SELECT = [
   'name',
   'headline',
+  'bio',
+  'skills',
   'rolePreference',
   'preferredWorkType',
   'links',

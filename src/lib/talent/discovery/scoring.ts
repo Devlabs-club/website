@@ -7,6 +7,7 @@ import {
   scoreRoleAwareSkillFit,
   type RoleSkillTiers,
 } from './roleSkillTiers';
+import { buildRequirementFindings, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -103,6 +104,7 @@ export function scoreBuilderFromProfile(params: {
   const profileQuality = scoreProfileQuality(builder);
   const startupReadiness = scoreStartupReadiness(builder, projects);
   const missingEvidencePenalty = scoreMissingEvidence(builder, projects, opportunity);
+  const founderPreferenceFit = scoreFounderPreferenceFit(opportunity, builder, projects);
 
   return {
     deterministicSkillFit,
@@ -110,7 +112,7 @@ export function scoreBuilderFromProfile(params: {
     semanticProjectFit: 0,
     proofStrength,
     contributionClarity,
-    founderPreferenceFit: 0,
+    founderPreferenceFit,
     hireTypeFit,
     availabilityFit,
     profileQuality,
@@ -233,10 +235,11 @@ export function buildCandidateExplanation(params: {
   searchStrategy: { proofSignals: string[] };
   roleSkillTiers?: RoleSkillTiers;
 }): CandidateExplanation {
-  const { builder, projects, components, roleSkillTiers } = params;
-  const tiers = roleSkillTiers || buildRoleSkillTiers(params.opportunity);
+  const { builder, projects, components, opportunity, roleSkillTiers } = params;
+  const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
   const tokens = collectBuilderSkillTokens(builder, projects);
   const primaryHits = matchedSkills(tiers.primarySkills, tokens);
+  const requirementFindings = buildRequirementFindings(opportunity, builder, projects);
   const strongestSignals: string[] = [];
   const concerns: string[] = [];
   const missingEvidence: string[] = [];
@@ -248,8 +251,16 @@ export function buildCandidateExplanation(params: {
   if (components.proofStrength >= 0.6) strongestSignals.push('Has verified proof-of-work with links');
   if (components.contributionClarity >= 0.6) strongestSignals.push('Clear personal contribution on projects');
   if (components.startupReadiness >= 0.6) strongestSignals.push('Strong shipped-project proof');
+  if (components.founderPreferenceFit >= 0.75) strongestSignals.push('Matches founder search requirements');
   if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
   else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
+
+  const metRequirements = requirementFindings.filter((finding) => finding.met === 'yes');
+  if (metRequirements.length) {
+    strongestSignals.push(
+      `Requirements met: ${metRequirements.slice(0, 2).map((finding) => finding.text).join('; ')}`
+    );
+  }
 
   if (projects.length > 0) {
     const best = projects[0];
@@ -264,6 +275,14 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
   if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
+  const unmetMust = requirementFindings.filter(
+    (finding) => finding.met === 'no' && opportunity.searchRequirements?.some(
+      (req: any) => req.text === finding.text && req.importance === 'must'
+    )
+  );
+  if (unmetMust.length) {
+    concerns.push(`Missing must-have: ${unmetMust.slice(0, 2).map((finding) => finding.text).join('; ')}`);
+  }
 
   if (!builder.links?.github) missingEvidence.push('No GitHub link');
   if (!projects.length) missingEvidence.push('No projects');
@@ -278,10 +297,11 @@ export function buildCandidateExplanation(params: {
     : 'send_trial';
 
   return {
-    strongestSignals: strongestSignals.slice(0, 4),
+    strongestSignals: strongestSignals.slice(0, 5),
     concerns: concerns.slice(0, 3),
     missingEvidence: missingEvidence.slice(0, 3),
-    bestUseCase: deriveBestUseCase(builder, projects, params.opportunity),
+    requirementFindings: requirementFindings.length ? requirementFindings : undefined,
+    bestUseCase: deriveBestUseCase(builder, projects, opportunity),
     recommendedAction,
   };
 }
