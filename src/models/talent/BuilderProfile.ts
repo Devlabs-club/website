@@ -139,6 +139,12 @@ const BuilderProfileSchema = new mongoose.Schema(
     enrichmentInsights: {
       founderHighlights: [{ title: String, detail: String, source: String }],
       sourcesCompleted: [{ source: String, completedAt: Date, projectCount: Number, profileFields: [String] }],
+      activeProgress: {
+        stage: { type: String, default: null },
+        label: { type: String, default: null },
+        detail: { type: String, default: null },
+        updatedAt: { type: Date, default: null },
+      },
       githubShowcase: {
         featuredCount: { type: Number, default: 0 },
         additionalProjectCount: { type: Number, default: 0 },

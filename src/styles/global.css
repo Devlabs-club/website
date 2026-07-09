@@ -238,6 +238,23 @@
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
+  .builder-enrichment-overlay {
+    isolation: isolate;
+  }
+
+  .builder-enrichment-backdrop {
+    -webkit-backdrop-filter: blur(28px) saturate(1.2);
+    backdrop-filter: blur(28px) saturate(1.2);
+  }
+
+  .builder-enrichment-scrim {
+    background: linear-gradient(
+      180deg,
+      rgb(251 246 243 / 0.42) 0%,
+      rgb(255 255 255 / 0.58) 100%
+    );
+  }
+
   .builder-messages-stage {
     position: relative;
     overflow: hidden;
