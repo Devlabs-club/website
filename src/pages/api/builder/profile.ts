@@ -94,7 +94,8 @@ async function bestEffortEnrichment(
   builderId: string,
   builderEmail: string,
   sources: Array<'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio'>,
-  runtime?: ReturnType<typeof runtimeEnvFromLocals>
+  runtime?: ReturnType<typeof runtimeEnvFromLocals>,
+  options?: { research?: boolean }
 ) {
   const uniqueSources = [...new Set(sources)];
   if (!uniqueSources.length) return null;
@@ -105,6 +106,7 @@ async function bestEffortEnrichment(
       builderId,
       memRef: { builderId, builderEmail },
       sources: uniqueSources,
+      research: options?.research ?? false,
       runtime,
       deferExperiences: false,
     });
@@ -112,6 +114,43 @@ async function bestEffortEnrichment(
     console.error('[builder/profile] enrichment failed', { builderId, error });
     return { error: error instanceof Error ? error.message : 'enrichment_failed' };
   }
+}
+
+type ProfileEnrichmentSource = 'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio';
+
+function readNormalizedProofLinks(links: Record<string, unknown> | null | undefined) {
+  const raw = links || {};
+  return {
+    linkedin: normalizeUrl(raw.linkedin),
+    github: normalizeUrl(raw.github),
+    devpost: normalizeUrl(raw.devpost),
+    portfolio: normalizeUrl(raw.portfolio ?? raw.personalWebsite),
+  };
+}
+
+function enrichmentSourcesForSave(params: {
+  previousLinks: ReturnType<typeof readNormalizedProofLinks>;
+  nextLinks: ReturnType<typeof readNormalizedProofLinks>;
+  resumeUploaded: boolean;
+  isInitialProfile: boolean;
+}): ProfileEnrichmentSource[] {
+  if (params.isInitialProfile) {
+    const sources: ProfileEnrichmentSource[] = [];
+    if (params.nextLinks.linkedin) sources.push('linkedin');
+    if (params.nextLinks.github) sources.push('github');
+    if (params.nextLinks.devpost) sources.push('devpost');
+    if (params.nextLinks.portfolio) sources.push('portfolio');
+    if (params.resumeUploaded) sources.push('resume');
+    return sources;
+  }
+
+  const sources: ProfileEnrichmentSource[] = [];
+  if (params.resumeUploaded) sources.push('resume');
+  if (params.nextLinks.linkedin && params.nextLinks.linkedin !== params.previousLinks.linkedin) sources.push('linkedin');
+  if (params.nextLinks.github && params.nextLinks.github !== params.previousLinks.github) sources.push('github');
+  if (params.nextLinks.devpost && params.nextLinks.devpost !== params.previousLinks.devpost) sources.push('devpost');
+  if (params.nextLinks.portfolio && params.nextLinks.portfolio !== params.previousLinks.portfolio) sources.push('portfolio');
+  return [...new Set(sources)];
 }
 
 export const GET: APIRoute = async ({ request, locals, url }) => {
@@ -264,6 +303,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   profile.links = profile.links || {};
+  const previousProofLinks = readNormalizedProofLinks(profile.links);
   const linkUpdates: Record<string, string | null> = {
     linkedin: normalizeUrl(body.linkedin ?? body.linkedIn),
     github: normalizeUrl(body.github),
@@ -311,11 +351,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (experiences.length) profile.experiences = experiences;
   }
 
-  const sources: Array<'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio'> = [];
-  if (profile.links.linkedin) sources.push('linkedin');
-  if (profile.links.github) sources.push('github');
-  if (profile.links.devpost) sources.push('devpost');
-  if (profile.links.portfolio || profile.links.personalWebsite) sources.push('portfolio');
+  const nextProofLinks = readNormalizedProofLinks(profile.links);
+  let enrichmentSources = enrichmentSourcesForSave({
+    previousLinks: previousProofLinks,
+    nextLinks: nextProofLinks,
+    resumeUploaded: false,
+    isInitialProfile: !existingProfile,
+  });
 
   if (resumeFile) {
     if (resumeFile.type !== 'application/pdf') {
@@ -328,7 +370,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     try {
       const resumeUrl = await uploadResumeToCloudinary(buffer, `${profile._id}-${Date.now()}`);
       profile.links.resume = resumeUrl;
-      sources.push('resume');
+      if (!enrichmentSources.includes('resume')) enrichmentSources.push('resume');
       await profile.save();
       await parseAndExtractResume(buffer, String(profile._id));
     } catch (error) {
@@ -358,12 +400,15 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   await profile.save();
-  const enrichment = await bestEffortEnrichment(
-    String(profile._id),
-    userEmail,
-    sources,
-    runtimeEnvFromLocals(locals)
-  );
+  const enrichment = enrichmentSources.length
+    ? await bestEffortEnrichment(
+        String(profile._id),
+        userEmail,
+        enrichmentSources,
+        runtimeEnvFromLocals(locals),
+        { research: !existingProfile }
+      )
+    : null;
   await refreshBuilderScores(profile._id, { skipEmbeddings: true }).catch((error) =>
     console.error('[builder/profile] score refresh failed', error)
   );
