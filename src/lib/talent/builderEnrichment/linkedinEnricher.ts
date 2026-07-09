@@ -44,10 +44,17 @@ function mapVoyagerToDraft(
       school: entry.school?.trim() || null,
       degree: entry.degree?.trim() || null,
       field: entry.field?.trim() || null,
+      dateRange: entry.dateRange || null,
+      startDateLabel: entry.startDateLabel || null,
+      endDateLabel: entry.endDateLabel || null,
+      graduationYear: entry.graduationYear || null,
+      schoolLogoUrl: entry.schoolLogoUrl || null,
+      schoolLinkedInUrl: entry.schoolLinkedInUrl || null,
       source: 'linkedin',
     }))
     .filter((entry) => entry.school || entry.degree || entry.field)
     .slice(0, 6);
+  const graduationYear = education.find((entry) => entry.graduationYear)?.graduationYear || null;
   const university =
     education[0]?.school ||
     voyager.positions[0]?.company ||
@@ -91,6 +98,7 @@ function mapVoyagerToDraft(
     avatarUrl: voyager.photoUrl || null,
     location: voyager.location || null,
     universityOrCompany: university,
+    graduationYear,
     education,
     experiences,
     skills: voyager.skills.slice(0, 24),
@@ -107,7 +115,7 @@ Return strict JSON:
   "universityOrCompany": "string | null",
   "graduationYear": "number | null",
   "experiences": [{"title": "string | null", "company": "string | null", "dateRange": "string | null", "description": "string | null", "isCurrent": "boolean"}],
-  "education": [{"school": "string | null", "degree": "string | null", "field": "string | null"}],
+  "education": [{"school": "string | null", "degree": "string | null", "field": "string | null", "dateRange": "string | null", "graduationYear": number | null}],
   "skills": ["string"]
 }
 Use only facts present in the text.`;
@@ -161,6 +169,8 @@ async function refineWithLlm(rawText: string, draft: EnrichedProfileDraft): Prom
             school: typeof entry?.school === 'string' ? entry.school : null,
             degree: typeof entry?.degree === 'string' ? entry.degree : null,
             field: typeof entry?.field === 'string' ? entry.field : null,
+            dateRange: typeof entry?.dateRange === 'string' ? entry.dateRange : null,
+            graduationYear: typeof entry?.graduationYear === 'number' ? entry.graduationYear : null,
             source: 'linkedin',
           }))
           .filter((entry) => entry.school || entry.degree || entry.field)
@@ -193,14 +203,23 @@ function profileDraftFromCdpArtifact(artifact: any, linkedinUrl: string): Enrich
     : Array.isArray(artifact?.extracted?.experiences)
       ? artifact.extracted.experiences
       : undefined;
-  const education = Array.isArray(artifact?.extracted?.education) ? artifact.extracted.education : undefined;
+  const education = Array.isArray(push.education?.$each)
+    ? push.education.$each
+    : Array.isArray(artifact?.extracted?.educationEntries)
+      ? artifact.extracted.educationEntries
+      : Array.isArray(artifact?.extracted?.education)
+        ? artifact.extracted.education
+        : undefined;
+  const educationGraduationYear = education
+    ?.map((entry: any) => Number(entry?.graduationYear || entry?.endYear || String(entry?.endDateLabel || entry?.dateRange || '').match(/\b(19|20)\d{2}\b/)?.[0]))
+    .find((year: number) => Number.isFinite(year));
 
   return {
     headline: typeof set.headline === 'string' ? set.headline : null,
     bio: typeof set.bio === 'string' ? set.bio : null,
     avatarUrl: artifact?.extracted?.cdpExtraction?.photo?.imageUrl || null,
     location: typeof set.location === 'string' ? set.location : null,
-    graduationYear: typeof set.graduationYear === 'number' ? set.graduationYear : null,
+    graduationYear: typeof set.graduationYear === 'number' ? set.graduationYear : educationGraduationYear || null,
     rolePreference: eachValues(addToSet.rolePreference).slice(0, 20),
     skills: eachValues(addToSet.skills).length
       ? eachValues(addToSet.skills)
@@ -253,7 +272,11 @@ async function enrichFromRemoteCdp(
       artifactPath: result.summary?.outputPath || null,
       profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
       extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
-      extractedEducationCount: Array.isArray(extracted.education) ? extracted.education.length : 0,
+      extractedEducationCount: Array.isArray(extracted.educationEntries)
+        ? extracted.educationEntries.length
+        : Array.isArray(extracted.education)
+          ? extracted.education.length
+          : 0,
       warnings: artifact?.warnings || extracted?.warnings || [],
     },
   };
@@ -367,7 +390,11 @@ export async function probeLinkedInProfile(
           summary: remote.summary,
           profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
           extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
-          extractedEducationCount: Array.isArray(extracted.education) ? extracted.education.length : 0,
+          extractedEducationCount: Array.isArray(extracted.educationEntries)
+            ? extracted.educationEntries.length
+            : Array.isArray(extracted.education)
+              ? extracted.education.length
+              : 0,
           warnings: remote.artifact?.warnings || extracted?.warnings || [],
         },
       };

@@ -171,6 +171,7 @@ const testimonials = [
   hideFooter
   skipPageLoader
   skipParallax
+  skipSmoothScroll
 >
   <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
     <header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
@@ -1438,97 +1439,10 @@ const testimonials = [
     };
   }
 
-  function createFluidScrollPanels() {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    );
-    const panels = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-fluid-panel]"),
-    );
-
-    if (!panels.length) return () => {};
-
-    const clamp = (value: number, min: number, max: number) =>
-      Math.max(min, Math.min(max, value));
-
-    let animationFrame = 0;
-    let resizeObserver: ResizeObserver | null = null;
-
-    function resetPanel(panel: HTMLElement) {
-      panel.style.removeProperty("--fluid-y");
-      panel.style.removeProperty("--fluid-scale");
-      panel.style.removeProperty("--fluid-opacity");
-      panel.style.removeProperty("--fluid-blur");
-      panel.style.removeProperty("--fluid-shadow");
-    }
-
-    function update() {
-      animationFrame = 0;
-
-      if (prefersReducedMotion.matches) {
-        panels.forEach(resetPanel);
-        return;
-      }
-
-      const viewportHeight = Math.max(window.innerHeight, 1);
-      const focusY = viewportHeight * 0.52;
-      const motionRange = viewportHeight * 0.78;
-      const moveAmount = window.innerWidth < 720 ? 18 : 42;
-
-      panels.forEach((panel) => {
-        const rect = panel.getBoundingClientRect();
-        const panelFocus = rect.top + rect.height * 0.44;
-        const distance = clamp((panelFocus - focusY) / motionRange, -1.25, 1.25);
-        const presence = clamp(1 - Math.abs(distance) * 0.74, 0, 1);
-        const easedPresence = 1 - Math.pow(1 - presence, 3);
-        const direction = distance < 0 ? -1 : 1;
-        const softenedDistance =
-          direction * Math.pow(Math.abs(distance), 0.84);
-        const y = softenedDistance * moveAmount * (1 - easedPresence * 0.18);
-        const scale = 0.972 + easedPresence * 0.028;
-        const opacity = 0.74 + easedPresence * 0.26;
-        const blur = (1 - easedPresence) * 0.35;
-        const shadow = easedPresence * 0.12;
-
-        panel.style.setProperty("--fluid-y", `${y.toFixed(2)}px`);
-        panel.style.setProperty("--fluid-scale", scale.toFixed(4));
-        panel.style.setProperty("--fluid-opacity", opacity.toFixed(3));
-        panel.style.setProperty("--fluid-blur", `${blur.toFixed(2)}px`);
-        panel.style.setProperty("--fluid-shadow", shadow.toFixed(3));
-      });
-    }
-
-    function scheduleUpdate() {
-      if (!animationFrame) {
-        animationFrame = requestAnimationFrame(update);
-      }
-    }
-
-    scheduleUpdate();
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate);
-    prefersReducedMotion.addEventListener("change", scheduleUpdate);
-
-    if ("ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(scheduleUpdate);
-      panels.forEach((panel) => resizeObserver?.observe(panel));
-    }
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-      prefersReducedMotion.removeEventListener("change", scheduleUpdate);
-      resizeObserver?.disconnect();
-      panels.forEach(resetPanel);
-    };
-  }
-
   const cleanups = [
     ...canvases.map((canvas) => createStarAsciiRenderer(canvas)),
     ...waveCanvases.map((canvas) => createAsciiWave(canvas)),
     ...rippleCanvases.map((canvas) => createAsciiRipple(canvas)),
-    createFluidScrollPanels(),
   ];
 
   window.addEventListener("pagehide", () => {
@@ -1857,29 +1771,7 @@ const testimonials = [
   }
 
   [data-fluid-panel] {
-    --fluid-y: 0px;
-    --fluid-scale: 1;
-    --fluid-opacity: 1;
-    --fluid-blur: 0px;
-    --fluid-shadow: 0;
     position: relative;
-    transform: translate3d(0, var(--fluid-y), 0) scale(var(--fluid-scale));
-    transform-origin: center center;
-    opacity: var(--fluid-opacity);
-    filter: blur(var(--fluid-blur));
-    will-change: transform, opacity, filter;
-    backface-visibility: hidden;
-  }
-
-  [data-fluid-panel]::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 8;
-    border-radius: inherit;
-    box-shadow: 0 32px 120px rgba(5, 5, 5, var(--fluid-shadow));
-    opacity: var(--fluid-shadow);
-    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {

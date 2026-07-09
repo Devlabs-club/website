@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import { FounderRail } from "@/components/founder/FounderRail";
 import {
@@ -19,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { BuilderProfileView, fetchBuilderProfile, type BuilderProfile } from "@/components/founder/BuilderFullProfilePage";
+import { gmailThreadSearchUrl } from "@/lib/talent/emailThreadLinks";
 import { FounderUpgradeModal } from "@/components/founder/FounderUpgradeModal";
 import type { PlanId } from "@/components/founder/FounderBillingCard";
 
@@ -46,6 +48,7 @@ type Job = {
 type Experience = {
   title: string;
   company: string;
+  companyLogoUrl?: string | null;
   employmentType?: string | null;
   dateRange?: string | null;
   isCurrent?: boolean;
@@ -93,6 +96,8 @@ type Recommendation = {
   location?: string | null;
   matchScore?: number;
   matchLabel?: string;
+  domainSkillsMatched?: string[];
+  availabilityNote?: string;
   topSkills?: string[];
   proofStrengthLabel?: string;
   builderVerificationLabel?: string;
@@ -118,6 +123,10 @@ type Recommendation = {
   links?: BuilderLinks;
   matchStatus?: string;
   introRequested?: boolean;
+  threadId?: string | null;
+  builderEmail?: string | null;
+  hasBuilderReply?: boolean;
+  lastEmailPreview?: string | null;
   callCompletedAt?: string | null;
   trialProject?: TrialProject | null;
   teasers?: {
@@ -211,7 +220,7 @@ function interviewLabel(rec: Recommendation) {
 function outreachStatusLabel(rec: Recommendation) {
   switch (rec.matchStatus) {
     case "intro_requested":
-      return "Waiting";
+      return rec.hasBuilderReply ? "Replied" : "Waiting";
     case "builder_interested":
       return rec.callCompletedAt ? "Awaiting Decision" : "Ready";
     case "interviewing":
@@ -246,7 +255,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
-  const [rightPane, setRightPane] = useState<"editor" | Bucket | "chat">("editor");
+  const [rightPane, setRightPane] = useState<"editor" | Bucket | "chat">(() => {
+    if (typeof window === "undefined") return "editor";
+    return new URLSearchParams(window.location.search).get("pane") === "chat" ? "chat" : "editor";
+  });
   const [previousPane, setPreviousPane] = useState<"editor" | Bucket>("editor");
   const [profile, setProfile] = useState<BuilderProfile | null>(null);
   const [profileRec, setProfileRec] = useState<Recommendation | null>(null);
@@ -273,6 +285,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     setRightPane("chat");
   };
 
+  const revealRecommendations = () => {
+    setRightPane("recommended");
+  };
+
   const openChatWithDraft = (draft: string) => {
     setMessage(draft);
     goToChat();
@@ -292,7 +308,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           setJob(data.job);
           const recs = data.recommendations || [];
           setRecommendations(recs);
-          if (recs.length > 0) {
+          const startPane = new URLSearchParams(window.location.search).get("pane");
+          if (startPane === "chat") {
+            setRightPane("chat");
+          } else if (recs.length > 0) {
             setRightPane("recommended");
           }
         } else {
@@ -431,7 +450,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         appendAssistantMessages(data.message || "Updated.");
         // When the agent actually runs the search, jump to the builders tab and load results.
         if (data.searchRan) {
-          setRightPane("recommended");
+          revealRecommendations();
           void loadRecommendations();
         }
       } else {
@@ -462,7 +481,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           return;
         }
         setRecommendations(data.recommendations || []);
-        setRightPane("recommended");
+        revealRecommendations();
       }
       else setError(data.error || "Could not search builders.");
     } catch {
@@ -564,7 +583,16 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     const data = await res.json().catch(() => ({}));
     if (data.success) {
       setRecommendations((prev) =>
-        prev.map((rec) => (rec.builderId === builderId ? { ...rec, introRequested: true, matchStatus: "intro_requested" } : rec))
+        prev.map((rec) =>
+          rec.builderId === builderId
+            ? {
+                ...rec,
+                introRequested: true,
+                matchStatus: data.matchStatus || "intro_requested",
+                threadId: data.threadId || rec.threadId,
+              }
+            : rec
+        )
       );
     } else if (res.status === 402 && data.upgradeTarget) {
       setUpgradeModal({ open: true, upgradeTarget: data.upgradeTarget, reason: data.error });
@@ -599,6 +627,22 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       }
       return { ...prev, loading: false, error: data.error || "Could not generate a trial draft." };
     });
+  };
+
+  const openGmailThreadForRec = (rec: Recommendation) => {
+    const url = gmailThreadSearchUrl({
+      threadId: rec.threadId,
+      builderEmail: rec.builderEmail,
+      builderName: rec.name,
+      roleTitle: roleLabel,
+      founderEmail: user?.email,
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const openWorkTrialFromOutreach = async (rec: Recommendation) => {
+    setRightPane("trial");
+    await openSendTrialDialog(rec);
   };
 
   const saveAndSendTrial = async () => {
@@ -726,6 +770,29 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     } else {
       setDialog((prev) => (prev && prev.kind === "hire" ? { ...prev, submitting: false, error: data.error || "Could not hire this builder." } : prev));
     }
+  };
+
+  const hireFromTrial = async (rec: Recommendation) => {
+    if (actionBusy) return;
+    if (!(await hasLifecycleAccess())) {
+      setUpgradeModal({ open: true, upgradeTarget: "growth", reason: "Unlock Growth to manage trial outcomes." });
+      return;
+    }
+    setActionBusy(rec.builderId);
+    const { res, data } = await callAgentAction("hire_builder", {
+      opportunityId: roleId,
+      builderId: rec.builderId,
+      skipTrial: true,
+      note: "Marked hired from the Trial tab.",
+    });
+    if (data.success) {
+      setRecommendations((prev) => prev.map((r) => (r.builderId === rec.builderId ? { ...r, matchStatus: "hired" } : r)));
+    } else if (res.status === 402 && data.upgradeTarget) {
+      setUpgradeModal({ open: true, upgradeTarget: data.upgradeTarget, reason: data.error });
+    } else {
+      setError(data.error || "Could not move this builder to Hired.");
+    }
+    setActionBusy(null);
   };
 
   const openScheduleDialog = (rec: Recommendation) => {
@@ -902,7 +969,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       >
         <p className="text-sm font-semibold text-black">Add your scheduling link</p>
         <p className="mt-2 text-sm text-black/55">
-          Add a Cal.com or Calendly link before inviting builders — it's what gets sent to them over iMessage so they can book an interview.
+          Add a Cal.com or Calendly link before inviting builders. It gets included in the intro email so they can book an interview.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <button
@@ -1143,15 +1210,17 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
               <div className="flex-1 space-y-4 overflow-y-auto p-5">
                 {chat.map((item, index) =>
                   item.role === "founder" ? (
-                    <div key={index} className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl border border-[#ece7e1] bg-[#fffcfa] px-4 py-2.5 text-sm text-black/80">
+                    <div key={index} className="flex justify-end">
+                      <div className="max-w-[82%] rounded-[22px] rounded-br-md bg-[#ec9149] px-4 py-2.5 text-sm font-medium leading-relaxed text-white shadow-[0_8px_22px_rgba(236,145,73,0.18)]">
                         {item.content}
                       </div>
                     </div>
                   ) : (
-                    <p key={index} className="max-w-[92%] text-sm leading-relaxed text-black/70">
-                      {item.content}
-                    </p>
+                    <div key={index} className="flex justify-start">
+                      <div className="max-w-[82%] rounded-[22px] rounded-bl-md border border-[#ece7e1] bg-[#f5f1ec] px-4 py-2.5 text-sm leading-relaxed text-black/75">
+                        {item.content}
+                      </div>
+                    </div>
                   )
                 )}
                 <div ref={chatEndRef} />
@@ -1297,7 +1366,13 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
             )}
 
             {rightPane === "editor" ? (
-              <div className="mx-auto max-w-4xl">
+              <motion.div
+                key="editor"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="mx-auto max-w-4xl"
+              >
                 {recommendations.length > 0 && (
                   <button
                     type="button"
@@ -1357,9 +1432,15 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ) : rightPane === "recommended" ? (
-              <div className="mx-auto max-w-4xl space-y-3">
+              <motion.div
+                key="recommended"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                className="mx-auto max-w-4xl space-y-3"
+              >
                 {searching && buckets.recommended.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#e3ddd4] p-10 text-center text-sm text-black/45">
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -1382,10 +1463,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                     />
                   ))
                 )}
-              </div>
+              </motion.div>
             ) : rightPane === "outreach" ? (
               <PipelineTable
-                columns={["Builder", "Response", "Interview", "Status", "Action"]}
+                columns={["Builder", "Response", "Status", "Action"]}
                 rows={buckets.outreach}
                 emptyLabel="No builders in outreach yet. Invite someone from Recommended to start."
                 renderRow={(rec) => {
@@ -1398,49 +1479,24 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                           <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} /> {badge.label}
                         </span>
                       </td>
-                      <td className="py-4 text-sm text-black/55">{interviewLabel(rec)}</td>
                       <td className="py-4 text-sm text-black/55">{outreachStatusLabel(rec)}</td>
                       <td className="py-4">
-                        {rec.matchStatus === "builder_interested" || rec.matchStatus === "interviewing" ? (
-                          <div className="flex flex-wrap gap-2">
-                            {rec.matchStatus === "builder_interested" && (
-                              <button
-                                type="button"
-                                onClick={() => openScheduleDialog(rec)}
-                                className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
-                              >
-                                Schedule Interview
-                              </button>
-                            )}
-                            {rec.matchStatus === "interviewing" && !rec.callCompletedAt && (
-                              <button
-                                type="button"
-                                onClick={() => void markCallComplete(rec)}
-                                disabled={actionBusy === rec.builderId}
-                                className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7] disabled:opacity-50"
-                              >
-                                {actionBusy === rec.builderId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Mark call complete"}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => void openSendTrialDialog(rec)}
-                              className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36]"
-                            >
-                              Send Trial
-                            </button>
-                          </div>
-                        ) : (
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() =>
-                              openChatWithDraft(`Help me follow up with ${rec.name} about the ${roleLabel} role — they're currently at "${outreachStatusLabel(rec)}".`)
-                            }
+                            onClick={() => openGmailThreadForRec(rec)}
                             className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
                           >
-                            Continue in chat
+                            Reply from your inbox
                           </button>
-                        )}
+                          <button
+                            type="button"
+                            onClick={() => void openWorkTrialFromOutreach(rec)}
+                            className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36]"
+                          >
+                            Generate work trial
+                          </button>
+                        </div>
                       </td>
                     </>
                   );
@@ -1466,33 +1522,42 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                         {rec.matchStatus === "offer" ? "Approved — ready to hire" : TRIAL_STATUS_LABELS[statusKey] || statusKey}
                       </td>
                       <td className="py-4">
-                        {rec.matchStatus === "offer" ? (
+                        <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
-                            onClick={() => openHireDialog(rec)}
-                            className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36]"
-                          >
-                            Hire
-                          </button>
-                        ) : statusKey === "submitted" ? (
-                          <button
-                            type="button"
-                            onClick={() => openReviewDialog(rec)}
-                            className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36]"
-                          >
-                            Review Submission
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openChatWithDraft(`Help me with ${rec.name}'s trial for the ${roleLabel} role — the trial "${trial?.title || ""}" is currently "${TRIAL_STATUS_LABELS[statusKey] || statusKey}".`)
-                            }
+                            onClick={() => openGmailThreadForRec(rec)}
                             className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
                           >
-                            Continue in chat
+                            Thread
                           </button>
-                        )}
+                          {statusKey === "submitted" ? (
+                            <button
+                              type="button"
+                              onClick={() => openReviewDialog(rec)}
+                              className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36]"
+                            >
+                              Review Submission
+                            </button>
+                          ) : rec.matchStatus !== "offer" ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openChatWithDraft(`Help me with ${rec.name}'s trial for the ${roleLabel} role — the trial "${trial?.title || ""}" is currently "${TRIAL_STATUS_LABELS[statusKey] || statusKey}".`)
+                              }
+                              className="inline-flex h-8 items-center rounded-lg border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
+                            >
+                              Continue in chat
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => (rec.matchStatus === "offer" ? openHireDialog(rec) : void hireFromTrial(rec))}
+                            disabled={actionBusy === rec.builderId}
+                            className="inline-flex h-8 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white hover:bg-[#dd7f36] disabled:opacity-50"
+                          >
+                            {actionBusy === rec.builderId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Hire"}
+                          </button>
+                        </div>
                       </td>
                     </>
                   );
@@ -1694,7 +1759,7 @@ const RecommendationCard: React.FC<{
   const points = proofPoints(rec);
   const founderSignals = (rec.founderSignals || []).slice(0, 4);
   const primaryProject = strongestProject(rec);
-  const visibleSkills = (rec.topSkills || []).slice(0, 5);
+  const visibleSkills = (rec.domainSkillsMatched?.length ? rec.domainSkillsMatched : rec.topSkills || []).slice(0, 5);
   const hasTrace = Boolean(rec.teasers?.agentTrace);
   const traceLocked = Boolean(rec.teasers?.agentTrace?.locked);
   const proofLabel = rec.proofStrengthLabel || (projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"}` : "Profile proof");
@@ -1723,7 +1788,10 @@ const RecommendationCard: React.FC<{
               <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-black/40">
                 {rec.location ? <span>{rec.location}</span> : null}
                 {currentExperience?.company ? (
-                  <span>
+                  <span className="inline-flex items-center gap-1.5">
+                    {currentExperience.companyLogoUrl ? (
+                      <img src={currentExperience.companyLogoUrl} alt="" className="h-4 w-4 rounded object-cover" />
+                    ) : null}
                     {currentExperience.company}
                     {currentExperience.isCurrent ? " · Present" : ""}
                   </span>
@@ -1793,12 +1861,17 @@ const RecommendationCard: React.FC<{
 
         <div className="flex flex-col gap-3 rounded-xl border border-[#ece7e1] bg-[#fffcfa] p-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Fit score</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Skill fit</p>
             <div className="mt-1 flex items-end gap-1">
               <span className="text-3xl font-semibold text-black">{Math.round(rec.matchScore || 0)}</span>
               <span className="pb-1 text-sm font-medium text-black/45">%</span>
             </div>
           </div>
+          {rec.availabilityNote ? (
+            <p className="text-[11px] font-medium text-black/50">
+              {rec.availabilityNote}
+            </p>
+          ) : null}
 
           {hasTrace ? (
             <button

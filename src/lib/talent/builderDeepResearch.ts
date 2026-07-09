@@ -18,6 +18,7 @@ export type DeepResearchResult = {
     github?: string | null;
   };
   citations: string[];
+  searchProviders?: Array<'brave' | 'exa'>;
   twitterPosts?: Array<{ url: string; text: string; likes: number }>;
 };
 
@@ -95,48 +96,65 @@ function guessPersonalSite(url: string, builder: any): string | null {
 }
 
 async function gatherSearchResults(builder: any, runtime?: RuntimeEnv): Promise<{
-  results: Array<{ title: string | null; url: string; highlights: string[] }>;
+  results: Array<{ title: string | null; url: string; highlights: string[]; provider?: 'brave' | 'exa' }>;
   via: 'brave' | 'exa' | 'both' | 'none';
+  searchProviders: Array<'brave' | 'exa'>;
 }> {
-  const mapped: Array<{ title: string | null; url: string; highlights: string[] }> = [];
+  const braveEnabled = hasBraveSearchConfig(runtime);
+  const exaEnabled = hasExaConfig(runtime);
+  const searchProviders: Array<'brave' | 'exa'> = [];
+  if (braveEnabled) searchProviders.push('brave');
+  if (exaEnabled) searchProviders.push('exa');
+
+  const [braveBundle, exaResults] = await Promise.all([
+    braveEnabled
+      ? braveDiscoverBuilderUrls(builder, { count: 8, runtime })
+      : Promise.resolve({ results: [], urls: [] }),
+    exaEnabled
+      ? exaSearch(buildSearchQuery(builder), { numResults: 5 }, runtime).catch((err) => {
+          console.warn('[deepResearch] exa search failed', err);
+          return [] as ExaResult[];
+        })
+      : Promise.resolve([] as ExaResult[]),
+  ]);
+
+  const mapped: Array<{ title: string | null; url: string; highlights: string[]; provider?: 'brave' | 'exa' }> = [];
   let via: 'brave' | 'exa' | 'both' | 'none' = 'none';
 
-  if (hasBraveSearchConfig(runtime)) {
-    const { results } = await braveDiscoverBuilderUrls(builder, { count: 8, runtime });
-    if (results.length) {
-      via = 'brave';
-      mapped.push(
-        ...results.map((r) => ({
-          title: r.title,
-          url: r.url,
-          highlights: r.description ? [r.description] : [],
-        }))
-      );
-    }
+  if (braveBundle.results.length) {
+    via = 'brave';
+    mapped.push(
+      ...braveBundle.results.map((r) => ({
+        title: r.title,
+        url: r.url,
+        highlights: r.description ? [r.description] : [],
+        provider: 'brave' as const,
+      }))
+    );
   }
 
-  if (hasExaConfig(runtime)) {
-    let exaResults: ExaResult[] = [];
-    try {
-      exaResults = await exaSearch(buildSearchQuery(builder), { numResults: 5 }, runtime);
-    } catch (err) {
-      console.warn('[deepResearch] exa search failed', err);
-    }
-    if (exaResults.length) {
-      via = via === 'brave' ? 'both' : 'exa';
-      for (const r of exaResults) {
-        if (!mapped.some((m) => m.url === r.url)) {
-          mapped.push({ title: r.title, url: r.url, highlights: r.highlights });
-        }
+  if (exaResults.length) {
+    via = via === 'brave' ? 'both' : 'exa';
+    for (const r of exaResults) {
+      if (!mapped.some((m) => m.url === r.url)) {
+        mapped.push({ title: r.title, url: r.url, highlights: r.highlights, provider: 'exa' });
       }
     }
   }
 
-  return { results: mapped.slice(0, 10), via };
+  console.info('[deepResearch] web search', {
+    providers: searchProviders,
+    braveResults: braveBundle.results.length,
+    exaResults: exaResults.length,
+    merged: mapped.length,
+    via,
+  });
+
+  return { results: mapped.slice(0, 12), via, searchProviders };
 }
 
 /**
- * Deep-research a builder from PUBLIC signals — Brave Search (preferred) + Exa fallback,
+ * Deep-research a builder from PUBLIC signals — Brave Search + Exa (both when configured),
  * recursive markdown crawl on top URLs, and Twitter API posts when configured.
  */
 export async function deepResearchBuilder(params: {
@@ -151,8 +169,11 @@ export async function deepResearchBuilder(params: {
   if (!hasBraveSearchConfig(runtime) && !hasExaConfig(runtime)) return EMPTY;
 
   const fingerprint = buildIdentityFingerprint(builder, projects);
-  const { results, via } = await gatherSearchResults(builder, runtime);
-  if (!results.length) return EMPTY;
+  const { results, via, searchProviders } = await gatherSearchResults(builder, runtime);
+  if (!results.length) {
+    console.warn('[deepResearch] no web search results', { searchProviders });
+    return { ...EMPTY, searchProviders };
+  }
 
   const citations = results.map((r) => r.url).filter(Boolean).slice(0, 8);
 
@@ -265,6 +286,7 @@ Return STRICT JSON:
       : [],
     discoveredLinks,
     citations,
+    searchProviders,
     twitterPosts,
   };
 

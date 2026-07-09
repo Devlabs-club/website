@@ -9,6 +9,7 @@ import ProjectRecord from '@/models/talent/ProjectRecord';
 import MatchRecord from '@/models/talent/MatchRecord';
 import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
 import { getFounderEntitlements } from '@/lib/billing/entitlements';
+import { repairShortlistMissingBuilders } from '@/lib/talent/shortlistRepair';
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -48,9 +49,26 @@ async function loadJob(identity: { email: string }, id: string) {
   return JobPosting.findOne({ _id: id, founderEmail: identity.email });
 }
 
-async function loadRecommendations(job: any, entitlements: Awaited<ReturnType<typeof getFounderEntitlements>>['entitlements']) {
-  const shortlist = await Shortlist.findOne({ opportunityId: String(job._id) }).lean();
+async function loadRecommendations(
+  job: any,
+  entitlements: Awaited<ReturnType<typeof getFounderEntitlements>>['entitlements'],
+  identity: { email: string },
+) {
+  let shortlist = await Shortlist.findOne({ opportunityId: String(job._id) }).lean();
   if (!shortlist) return [];
+
+  const expectedLimit = job.profileLimitApplied ?? entitlements.profileLimitPerRole;
+  if (expectedLimit !== null && expectedLimit !== undefined) {
+    shortlist = await repairShortlistMissingBuilders({
+      shortlist,
+      opportunity: job,
+      founderEmail: identity.email,
+      entitlements,
+      BuilderProfile,
+      ProjectRecord,
+    });
+  }
+
   const candidates = await buildFullCandidatesForShortlist(shortlist, job, {
     BuilderProfile,
     ProjectRecord,
@@ -70,7 +88,7 @@ export const GET: APIRoute = async ({ request, locals, params }) => {
   if (!job) return errorJson('Role not found.', 404);
 
   const { entitlements } = await getFounderEntitlements(identity);
-  const recommendations = await loadRecommendations(job, entitlements);
+  const recommendations = await loadRecommendations(job, entitlements, identity);
   return okJson({ job: serializeJob(job), recommendations });
 };
 

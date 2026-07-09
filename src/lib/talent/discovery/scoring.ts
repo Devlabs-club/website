@@ -1,4 +1,12 @@
 import type { RankingWeights } from './strategy';
+import {
+  buildRoleSkillTiers,
+  matchedSkills,
+  collectBuilderSkillTokens,
+  scoreDomainProofStrength,
+  scoreRoleAwareSkillFit,
+  type RoleSkillTiers,
+} from './roleSkillTiers';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -81,11 +89,14 @@ export function scoreBuilderFromProfile(params: {
   mustHaveSignals: string[];
   proofSignals: string[];
   founderMemoryContext?: string;
+  roleSkillTiers?: RoleSkillTiers;
 }): CandidateScoreComponents {
-  const { builder, projects, opportunity, mustHaveSignals } = params;
+  const { builder, projects, opportunity, mustHaveSignals, roleSkillTiers } = params;
+  const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
 
-  const deterministicSkillFit = scoreDeterministicSkill(builder, projects, opportunity, mustHaveSignals);
-  const proofStrength = scoreProofStrength(projects);
+  const deterministicSkillFit = scoreRoleAwareSkillFit(tiers, builder, projects, mustHaveSignals);
+  const domainProof = scoreDomainProofStrength(tiers, projects);
+  const proofStrength = Math.min(1, scoreProofStrength(projects) * 0.45 + domainProof * 0.55);
   const contributionClarity = scoreContributionClarity(projects);
   const hireTypeFit = scoreHireTypeFit(builder, opportunity);
   const availabilityFit = scoreAvailabilityFit(builder, opportunity);
@@ -116,30 +127,6 @@ function norm(s: string): string {
 
 function normalizeSkillTerm(input: string): string {
   return norm(input).replace(/\s+/g, ' ');
-}
-
-function scoreDeterministicSkill(builder: any, projects: any[], opportunity: any, mustHaveSignals: string[]): number {
-  const required: string[] = [
-    ...(opportunity.skillsNeeded || []),
-    ...(opportunity.roleType || []),
-    ...mustHaveSignals,
-  ].map(normalizeSkillTerm);
-
-  if (!required.length) return 0.5;
-
-  const builderSkills = new Set<string>([
-    ...(builder.rolePreference || []).map((s: string) => normalizeSkillTerm(s)),
-    ...projects.flatMap((p: any) => (p.techStack || []).map((s: string) => normalizeSkillTerm(s))),
-  ]);
-
-  let matched = 0;
-  for (const req of required) {
-    if ([...builderSkills].some((skill) => skill === req || skill.includes(req) || req.includes(skill))) {
-      matched++;
-    }
-  }
-
-  return Math.min(1, matched / Math.max(required.length, 1));
 }
 
 function scoreProofStrength(projects: any[]): number {
@@ -198,17 +185,14 @@ function scoreHireTypeFit(builder: any, opportunity: any): number {
 
 function scoreAvailabilityFit(builder: any, opportunity: any): number {
   const avail = builder.availability || {};
-  if (!avail.availableNow) return 0.1;
-
-  let score = 0.6;
-  if (avail.availableNow) score += 0.3;
+  let score = avail.availableNow ? 0.85 : 0.5;
 
   const locationPref = opportunity.locationPreference || '';
   const remoteOk = !locationPref || /remote/i.test(locationPref);
   const builderRemote = avail.remotePreference;
-  if (!remoteOk && builderRemote === 'remote') score -= 0.2;
+  if (!remoteOk && builderRemote === 'remote') score -= 0.1;
 
-  return Math.max(0, Math.min(1, score));
+  return Math.max(0.35, Math.min(1, score));
 }
 
 function scoreProfileQuality(builder: any): number {
@@ -221,12 +205,11 @@ function scoreProfileQuality(builder: any): number {
 function scoreStartupReadiness(builder: any, projects: any[]): number {
   let score = 0;
 
-  if (projects.length >= 2) score += 0.2;
-  if (projects.some((p: any) => p.links?.github || p.links?.demo)) score += 0.2;
-  if (builder.availability?.availableNow) score += 0.2;
-  if (builder.links?.github) score += 0.15;
+  if (projects.length >= 2) score += 0.25;
+  if (projects.some((p: any) => p.links?.github || p.links?.demo || p.links?.devpost)) score += 0.25;
+  if (builder.links?.github) score += 0.2;
   if ((builder.rolePreference || []).length >= 2) score += 0.15;
-  if (builder.headline && builder.headline.length > 20) score += 0.1;
+  if (builder.headline && builder.headline.length > 20) score += 0.15;
 
   return Math.min(1, score);
 }
@@ -248,27 +231,38 @@ export function buildCandidateExplanation(params: {
   components: CandidateScoreComponents;
   opportunity: any;
   searchStrategy: { proofSignals: string[] };
+  roleSkillTiers?: RoleSkillTiers;
 }): CandidateExplanation {
-  const { builder, projects, components } = params;
+  const { builder, projects, components, roleSkillTiers } = params;
+  const tiers = roleSkillTiers || buildRoleSkillTiers(params.opportunity);
+  const tokens = collectBuilderSkillTokens(builder, projects);
+  const primaryHits = matchedSkills(tiers.primarySkills, tokens);
   const strongestSignals: string[] = [];
   const concerns: string[] = [];
   const missingEvidence: string[] = [];
 
+  if (primaryHits.length) {
+    strongestSignals.push(`Core role skills: ${primaryHits.slice(0, 4).join(', ')}`);
+  }
   if (components.deterministicSkillFit >= 0.7) strongestSignals.push('Strong skill match for required stack');
   if (components.proofStrength >= 0.6) strongestSignals.push('Has verified proof-of-work with links');
   if (components.contributionClarity >= 0.6) strongestSignals.push('Clear personal contribution on projects');
-  if (components.startupReadiness >= 0.6) strongestSignals.push('Available and startup-ready');
-  if (components.availabilityFit >= 0.8) strongestSignals.push('Available now with sufficient hours');
+  if (components.startupReadiness >= 0.6) strongestSignals.push('Strong shipped-project proof');
+  if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
+  else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
 
   if (projects.length > 0) {
     const best = projects[0];
     if (best.projectName) strongestSignals.push(`Relevant project: ${best.projectName}`);
   }
 
+  if (tiers.requiresPrimaryMatch && primaryHits.length === 0) {
+    concerns.push('No direct match on core role-domain skills');
+  }
   if (components.deterministicSkillFit < 0.4) concerns.push('Skill match below threshold for required stack');
   if (components.proofStrength < 0.4) concerns.push('Limited proof-of-work visibility');
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
-  if (components.availabilityFit < 0.3) concerns.push('Availability may not meet role needs');
+  if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
 
   if (!builder.links?.github) missingEvidence.push('No GitHub link');

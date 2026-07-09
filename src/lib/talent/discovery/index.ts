@@ -8,10 +8,12 @@ import {
   type ScoredCandidate,
   type CandidateScoreComponents,
 } from './scoring';
+import { builderHasPrimaryDomainMatch } from './roleSkillTiers';
 import { buildSearchQualityReport, type SearchQualityReport } from './searchQuality';
 import { rerankTopCandidates } from './rerank';
 import { adjustWeightsFromFeedback, type CandidateFeedbackRecord } from './feedback';
 import { buildSemanticScoreMap, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
+import { isTalentSemanticScoringEnabled } from './semanticConfig';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -23,6 +25,7 @@ export type DiscoveryInput = {
   enableLlmRerank?: boolean;
   generateReply?: (systemPrompt: string, userPrompt: string) => Promise<string>;
   semanticScores?: SemanticScoreMap;
+  skipSemanticScoring?: boolean;
   limit?: number;
 };
 
@@ -51,6 +54,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     enableLlmRerank = false,
     generateReply,
     semanticScores: providedSemanticScores,
+    skipSemanticScoring = false,
     limit = 12,
   } = input;
 
@@ -64,25 +68,33 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     strategy = { ...strategy, weights: adjustWeightsFromFeedback(strategy.weights, feedbackHistory) };
   }
 
-  // Stage 3a: semantic similarity via stored embeddings (OpenRouter text-embedding-3-small)
+  // Stage 3a: optional semantic similarity — skipped when index retrieval already narrowed the pool.
   let semanticScores = providedSemanticScores || new Map<string, { profileScore: number; projectScore: number }>();
-  if (!providedSemanticScores) {
+  const shouldRunSemantic =
+    !skipSemanticScoring &&
+    !providedSemanticScores &&
+    isTalentSemanticScoringEnabled() &&
+    builders.length > 0 &&
+    builders.length <= 40;
+
+  if (shouldRunSemantic) {
     try {
       semanticScores = await Promise.race([
         buildSemanticScoreMap({
-          queries: [strategy.primaryQuery, ...strategy.expandedQueries.slice(0, 2)],
+          queries: [strategy.primaryQuery, ...strategy.expandedQueries.slice(0, 1)],
           minSimilarity: 0.25,
         }),
         new Promise<Map<string, { profileScore: number; projectScore: number }>>((resolve) =>
-          setTimeout(() => resolve(new Map()), 5000)
+          setTimeout(() => resolve(new Map()), 2500)
         ),
       ]);
     } catch (error) {
       console.warn('[founder-discovery] semantic scoring skipped', {
         error: error instanceof Error ? error.message : String(error),
       });
-      // embeddings unavailable or slow — proceed with deterministic scores only
     }
+  } else if (!providedSemanticScores) {
+    semanticScores = new Map();
   }
 
   // Stage 3b: score all builders
@@ -97,6 +109,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       opportunity,
       mustHaveSignals: strategy.mustHaveSignals,
       proofSignals: strategy.proofSignals,
+      roleSkillTiers: strategy.roleSkillTiers,
     });
 
     // Inject semantic scores if available
@@ -109,7 +122,14 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     const overallFit = computeOverallFit(components, strategy.weights);
     const matchLabel = scoreMatchLabel(overallFit);
     const confidence = scoreConfidence(components);
-    const explanation = buildCandidateExplanation({ builder, projects, components, opportunity, searchStrategy: strategy });
+    const explanation = buildCandidateExplanation({
+      builder,
+      projects,
+      components,
+      opportunity,
+      searchStrategy: strategy,
+      roleSkillTiers: strategy.roleSkillTiers,
+    });
 
     const sources: string[] = ['deterministic_keyword'];
     if (sem?.profileScore && sem.profileScore > 0.3) sources.push('semantic_profile');
@@ -150,7 +170,18 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     finalCandidates = allScored;
   }
 
-  const returnedCandidates = finalCandidates.slice(0, limit);
+  const tiers = strategy.roleSkillTiers;
+  const primaryMatched = finalCandidates.filter((candidate) =>
+    builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects)
+  );
+  const primaryFallback = finalCandidates.filter((candidate) =>
+    !builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects)
+  );
+  const rankedForReturn = tiers.requiresPrimaryMatch && primaryMatched.length > 0
+    ? [...primaryMatched, ...primaryFallback]
+    : finalCandidates;
+
+  const returnedCandidates = rankedForReturn.slice(0, limit);
 
   // Stage 6: search quality report for the shortlist founders actually see
   const searchQuality = buildSearchQualityReport({

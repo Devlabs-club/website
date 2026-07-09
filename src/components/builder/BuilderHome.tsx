@@ -4,13 +4,13 @@ import {
   CheckCircle2,
   ExternalLink,
   Loader2,
-  MessageSquareText,
   ShieldCheck,
   TerminalSquare,
 } from 'lucide-react';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
-import { BuilderHighlightsSection } from './BuilderHighlightsSection';
 import BuilderImessageHandoff from './BuilderImessageHandoff';
+import BuilderProfileIntakeForm from './BuilderProfileIntakeForm';
+import BuilderProfileEditor from './BuilderProfileEditor';
 import AgentTraceSetup from './AgentTraceSetup';
 import BuilderShell, { builderNavIcons, type BuilderSection } from './BuilderShell';
 import type { MessageDelivery } from './AgentTraceSetup';
@@ -21,6 +21,8 @@ type ProfileResponse = {
   basics?: { name?: string; email?: string | null; avatarUrl?: string | null };
   phone?: string | null;
   phoneVerified?: boolean;
+  imessageEnabled?: boolean;
+  imessagePhoneVerified?: boolean;
   phoneVerificationPending?: boolean;
   agentWrapped?: {
     builderId: string;
@@ -47,7 +49,8 @@ async function logout() {
   }
 }
 
-function defaultSection(verified: boolean, traceUploaded: boolean, hasProfile: boolean): BuilderSection {
+function defaultSection(verified: boolean, traceUploaded: boolean, hasProfile: boolean, imessageEnabled: boolean): BuilderSection {
+  if (!imessageEnabled && !hasProfile) return 'overview';
   if (!verified) return 'messages';
   if (!traceUploaded) return 'wrapped';
   if (hasProfile) return 'overview';
@@ -69,11 +72,11 @@ type NextAction = {
   icon: React.ReactNode;
 };
 
-function getSetupSteps(verified: boolean, traceUploaded: boolean, profileVisible: boolean): SetupStep[] {
+function getSetupSteps(verified: boolean, traceUploaded: boolean, profileVisible: boolean, imessageEnabled: boolean): SetupStep[] {
   return [
-    { key: 'verify', label: 'Verify', done: verified },
+    { key: 'verify', label: imessageEnabled ? 'Verify' : 'Required links', done: imessageEnabled ? verified : profileVisible },
     { key: 'wrapped', label: 'Agent Wrapped', done: traceUploaded },
-    { key: 'profile', label: 'Profile', done: profileVisible },
+    { key: 'profile', label: imessageEnabled ? 'Profile' : 'Review', done: profileVisible },
   ];
 }
 
@@ -82,14 +85,25 @@ function getNextAction(
   traceUploaded: boolean,
   profileVisible: boolean,
   hasProfile: boolean,
+  imessageEnabled: boolean,
 ): NextAction | null {
-  if (!verified) {
+  if (imessageEnabled && !verified) {
     return {
       section: 'messages',
       stepLabel: 'Step 1 of 3',
       title: 'Verify your phone',
       description: 'Open iMessage and send the pre-filled text. No codes — takes about 30 seconds.',
       cta: 'Verify in Messages',
+      icon: <ShieldCheck className="h-5 w-5" />,
+    };
+  }
+  if (!hasProfile) {
+    return {
+      section: 'messages',
+      stepLabel: 'Step 1 of 3',
+      title: 'Complete your builder profile',
+      description: 'Add LinkedIn, GitHub, Devpost, portfolio, and resume before the rest of the dashboard unlocks.',
+      cta: 'Add required fields',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
@@ -109,10 +123,12 @@ function getNextAction(
       stepLabel: 'Step 3 of 3',
       title: hasProfile ? 'Finish your profile' : 'Build your profile',
       description: hasProfile
-        ? 'Your profile is taking shape. Review it and keep chatting with the DevLabs agent in Messages.'
-        : 'Reply to the DevLabs agent in Messages. Your proof-of-work profile will appear as you go.',
-      cta: hasProfile ? 'View profile' : 'Open Messages',
-      icon: <MessageSquareText className="h-5 w-5" />,
+        ? imessageEnabled
+          ? 'Your profile is taking shape. Review it and keep chatting with the DevLabs agent in Messages.'
+          : 'Your profile is taking shape. Review the enriched fields and edit any job descriptions that need cleanup.'
+        : 'Complete the profile form so your proof-of-work profile can be enriched.',
+      cta: hasProfile ? 'View profile' : 'Open form',
+      icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
   return null;
@@ -169,6 +185,7 @@ function BuilderOverview({
   hasProfile,
   profile,
   wrappedPublicUrl,
+  imessageEnabled,
   onNavigate,
 }: {
   verified: boolean;
@@ -177,12 +194,20 @@ function BuilderOverview({
   hasProfile: boolean;
   profile: BuilderProfileView | null;
   wrappedPublicUrl?: string;
+  imessageEnabled: boolean;
   onNavigate: (section: BuilderSection) => void;
 }) {
-  const steps = getSetupSteps(verified, traceUploaded, profileVisible);
-  const next = getNextAction(verified, traceUploaded, profileVisible, hasProfile);
+  const steps = getSetupSteps(verified, traceUploaded, profileVisible, imessageEnabled);
+  const next = getNextAction(verified, traceUploaded, profileVisible, hasProfile, imessageEnabled);
   const allDone = !next;
   const completedCount = steps.filter((s) => s.done).length;
+  const requiredFields = [
+    'LinkedIn profile',
+    'GitHub profile',
+    'Devpost profile',
+    'Portfolio website',
+    'Resume PDF',
+  ];
 
   return (
     <>
@@ -190,8 +215,8 @@ function BuilderOverview({
         title="Overview"
         subtitle={
           allDone
-            ? 'All setup steps are complete. Founders can see your profile and Agent Wrapped summary.'
-            : 'Track your builder setup and finish the remaining steps so founders can discover and reach you.'
+        ? 'All setup steps are complete. Founders can see your profile and Agent Wrapped summary.'
+        : 'Track your builder setup and finish the remaining steps so founders can discover and reach you.'
         }
         actions={
           allDone ? (
@@ -230,6 +255,19 @@ function BuilderOverview({
             {next.cta}
             <ArrowUpRight className="h-4 w-4" />
           </button>
+          {!hasProfile ? (
+            <div className="mt-6 border-t border-[#ff7417]/20 pt-5">
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#bf4f08]">Required to continue</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {requiredFields.map((field) => (
+                  <div key={field} className="flex items-center gap-2 border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/60">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fff5ef] text-[0.62rem] font-extrabold text-[#bf4f08]">!</span>
+                    {field}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
@@ -253,8 +291,6 @@ function BuilderOverview({
           ) : null}
         </div>
       )}
-
-      <BuilderHighlightsPanel profile={profile} onOpenProfile={() => onNavigate('profile')} />
 
       <ul className="mt-8 divide-y divide-black/10 border-t border-black/10">
         {steps.map((step) => (
@@ -281,71 +317,6 @@ function BuilderOverview({
       </ul>
       </div>
     </>
-  );
-}
-
-function BuilderHighlightsPanel({
-  profile,
-  onOpenProfile,
-  showAction = true,
-}: {
-  profile: BuilderProfileView | null;
-  onOpenProfile: () => void;
-  showAction?: boolean;
-}) {
-  const highlights = (profile?.founderHighlights || []).filter((item) => item?.title && item?.detail);
-  const githubShowcase = profile?.githubShowcase;
-  const hasGithubDepth = Boolean((githubShowcase?.reposScanned || 0) > 0 || (githubShowcase?.additionalProjectCount || 0) > 0);
-  const hasConnectedSources = Boolean(profile && Object.values(profile.links || {}).some(Boolean));
-
-  if (!profile) return null;
-
-  return (
-    <section className="mt-8 border border-[#ff7417]/20 bg-[#fffaf7] p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.18em] text-[#bf4f08]">Founder highlights</p>
-          <h2 className="mt-2 text-lg font-extrabold tracking-[-0.02em] text-[#050505]">What founders will notice first</h2>
-          <p className="mt-1 max-w-xl text-sm leading-6 text-black/55">
-            Evidence-backed signals pulled from your links, projects, and public profile.
-          </p>
-        </div>
-        {showAction ? (
-          <button
-            type="button"
-            onClick={onOpenProfile}
-            className="builder-outline-button inline-flex h-9 shrink-0 items-center justify-center gap-1.5 px-3 text-xs font-extrabold"
-          >
-            Review profile
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
-        ) : null}
-      </div>
-
-      {highlights.length ? (
-        <div className="mt-4">
-          <BuilderHighlightsSection highlights={highlights} defaultVisible={4} variant="panel" />
-        </div>
-      ) : (
-        <div className="mt-5 border border-dashed border-[#ff7417]/25 bg-white p-4">
-          <p className="text-sm font-extrabold text-[#050505]">Founder highlights are being built</p>
-          <p className="mt-1 text-sm leading-6 text-black/55">
-            {hasConnectedSources
-              ? 'Connected sources are already on the profile. The agent should synthesize and save founder-facing highlights as enrichment finishes.'
-              : 'The agent will show the strongest founder-facing signals here once it has links, projects, or resume evidence to synthesize.'}
-          </p>
-        </div>
-      )}
-
-      {hasGithubDepth ? (
-        <p className="mt-4 text-sm leading-6 text-black/55">
-          GitHub depth: {githubShowcase?.reposScanned || 'multiple'} repos scanned
-          {(githubShowcase?.additionalProjectCount || 0) > 0
-            ? `, with ${githubShowcase?.additionalProjectCount} additional shipped projects beyond the featured set.`
-            : '.'}
-        </p>
-      ) : null}
-    </section>
   );
 }
 
@@ -387,6 +358,7 @@ export const BuilderHome: React.FC = () => {
       const json: ProfileResponse = await res.json();
       setData(json);
       const isVerified = Boolean(json.phoneVerified);
+      const imessageEnabled = json.imessageEnabled !== false;
       setVerified(isVerified);
       let uploaded = false;
       if (isVerified && json.agentWrapped?.builderId) {
@@ -407,7 +379,7 @@ export const BuilderHome: React.FC = () => {
 
       if (!sectionInitializedRef.current) {
         sectionInitializedRef.current = true;
-        setActiveSection(defaultSection(isVerified, uploaded, Boolean(json.profile)));
+        setActiveSection(defaultSection(isVerified, uploaded, Boolean(json.profile), imessageEnabled));
       }
     } catch {
       setData({ success: false, error: 'Could not load your profile.' });
@@ -445,6 +417,7 @@ export const BuilderHome: React.FC = () => {
   const avatarInitial = (builderName || 'B').slice(0, 1).toUpperCase();
   const hasProfile = Boolean(profile);
   const profileVisible = hasProfile && verified;
+  const imessageEnabled = data?.imessageEnabled !== false;
 
   const navGroups = useMemo(
     () => [
@@ -463,19 +436,8 @@ export const BuilderHome: React.FC = () => {
             key: 'wrapped' as const,
             label: 'Agent Wrapped',
             icon: builderNavIcons.wrapped,
-            disabled: !verified,
+            disabled: !verified || !hasProfile,
             badge: traceUploaded ? 'Done' : verified ? 'Setup' : undefined,
-          },
-        ],
-      },
-      {
-        title: 'Connect',
-        items: [
-          {
-            key: 'messages' as const,
-            label: 'Messages',
-            icon: builderNavIcons.messages,
-            badge: verified ? 'Verified' : 'Required',
           },
         ],
       },
@@ -512,11 +474,29 @@ export const BuilderHome: React.FC = () => {
             hasProfile={hasProfile}
             profile={profile}
             wrappedPublicUrl={data.agentWrapped?.publicUrl}
+            imessageEnabled={imessageEnabled}
             onNavigate={setActiveSection}
           />
         );
 
       case 'messages':
+        if (!imessageEnabled) {
+          return (
+            <>
+              <PageHeader
+                title="Builder profile setup"
+                subtitle="Add your profile links and upload a resume. DevLabs will auto-fill the profile from those sources."
+              />
+              <BuilderProfileIntakeForm
+                profile={profile}
+                onSaved={async () => {
+                  await loadProfile();
+                  setActiveSection('profile');
+                }}
+              />
+            </>
+          );
+        }
         return (
           <div className="builder-messages-stage relative flex min-h-[calc(100vh-3.5rem)] flex-col">
             <div className="relative z-10 flex flex-1 items-center px-5 py-10 sm:px-7 sm:py-14">
@@ -590,7 +570,11 @@ export const BuilderHome: React.FC = () => {
           <>
             <PageHeader
               title="Profile"
-              subtitle="This is what founders see when they browse builders on DevLabs. To update it, text the DevLabs agent in Messages."
+              subtitle={
+                imessageEnabled
+                  ? 'This is what founders see when they browse builders on DevLabs. To update it, text the DevLabs agent in Messages.'
+                  : 'View and edit the generated founder-facing fields directly here.'
+              }
               actions={
                 hasProfile ? (
                   <span className="inline-flex items-center gap-1.5 border border-[#ff7417]/30 bg-[#fff5ef] px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-[#bf4f08]">
@@ -608,18 +592,24 @@ export const BuilderHome: React.FC = () => {
                   <p className="mt-2 max-w-lg text-sm leading-6 text-black/50">
                     {verified
                       ? 'DevLabs texted you in Messages. Reply there and your profile will appear here as the agent builds it.'
-                      : 'Verify your phone first, then chat with the DevLabs agent to build your proof-of-work profile.'}
+                      : imessageEnabled
+                        ? 'Verify your phone first, then chat with the DevLabs agent to build your proof-of-work profile.'
+                        : 'Complete the profile setup form to build your proof-of-work profile.'}
                   </p>
                   <button
                     type="button"
                     onClick={() => setActiveSection('messages')}
                     className="builder-primary-button mt-6 inline-flex h-9 items-center px-4 text-xs font-extrabold  tracking-[0.08em]"
                   >
-                    {verified ? 'Open Messages' : 'Verify phone'}
+                    {imessageEnabled ? (verified ? 'Open Messages' : 'Verify phone') : 'Open form'}
                   </button>
                 </div>
               ) : (
-                <BuilderProfilePreview profile={profile!} />
+                imessageEnabled ? (
+                  <BuilderProfilePreview profile={profile!} />
+                ) : (
+                  <BuilderProfileEditor profile={profile!} basics={data.basics} onSaved={loadProfile} />
+                )
               )}
             </div>
           </>

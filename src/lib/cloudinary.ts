@@ -46,6 +46,30 @@ export async function uploadResumeToCloudinary(buffer: Buffer, filename: string)
   });
 }
 
+export async function uploadBuilderAvatarToCloudinary(buffer: Buffer, filename: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'image',
+        public_id: `builders/avatars/${filename.replace(/\.[^/.]+$/, '')}`,
+        folder: 'builders/avatars',
+        overwrite: true,
+        transformation: [
+          { width: 512, height: 512, crop: 'fill', gravity: 'face:auto' },
+          { quality: 'auto', fetch_format: 'auto' },
+        ],
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(result!.secure_url);
+        }
+      }
+    ).end(buffer);
+  });
+}
+
 
 
 export async function deleteResumeFromCloudinary(resumeUrl: string): Promise<boolean> {

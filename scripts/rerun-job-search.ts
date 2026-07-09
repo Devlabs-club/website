@@ -6,13 +6,14 @@ import 'dotenv/config';
 import mongoose from 'mongoose';
 import { connectAdminDB } from '../src/lib/mongodb';
 import JobPosting from '../src/models/founder/JobPosting';
-import BuilderProfile from '../src/models/talent/BuilderProfile';
-import ProjectRecord from '../src/models/talent/ProjectRecord';
 import { buildSearchStrategy } from '../src/lib/talent/discovery/strategy';
 import { runFounderDiscoveryPipeline } from '../src/lib/talent/discovery/index';
-import { searchTalentSearchIndex } from '../src/lib/talent/searchIndex';
 import { persistDiscoveryCandidates } from '../src/lib/talent/founderSearchPersist';
 import { getFounderEntitlements } from '../src/lib/billing/entitlements';
+import { shapeJobForTalentPool } from '../src/lib/founderAgent/jobShaping';
+import { retrieveRoleShapedBuilderPool } from '../src/lib/talent/roleShapedRetrieval';
+import BuilderProfile from '../src/models/talent/BuilderProfile';
+import ProjectRecord from '../src/models/talent/ProjectRecord';
 
 async function main() {
   const jobId = process.argv[2];
@@ -35,41 +36,54 @@ async function main() {
   const identity = { founderId: String(user._id), email: founderEmail, name: user.name };
   const { entitlements } = await getFounderEntitlements(identity as any);
   const oppPlain = job.toObject();
+
+  const shaped = await shapeJobForTalentPool({
+    title: oppPlain.title || oppPlain.roleTitle,
+    description: oppPlain.description,
+    builderWillDo: oppPlain.builderWillDo,
+    skillsNeeded: oppPlain.skillsNeeded,
+    niceToHaveSkills: oppPlain.niceToHaveSkills,
+    requirements: [...(oppPlain.requirements || [])],
+    responsibilities: oppPlain.responsibilities || oppPlain.deliverables,
+    companyContext: [oppPlain.company, oppPlain.industry].filter(Boolean).join(' '),
+  });
+
+  Object.assign(job, {
+    originalSkillsNeeded: shaped.originalSkillsNeeded,
+    skillsNeeded: shaped.skillsNeeded,
+    niceToHaveSkills: shaped.niceToHaveSkills,
+    matchingSkills: shaped.matchingSkills,
+    poolFitMetadata: shaped.poolFitMetadata,
+  });
+  Object.assign(oppPlain, {
+    originalSkillsNeeded: shaped.originalSkillsNeeded,
+    skillsNeeded: shaped.skillsNeeded,
+    niceToHaveSkills: shaped.niceToHaveSkills,
+    matchingSkills: shaped.matchingSkills,
+    poolFitMetadata: shaped.poolFitMetadata,
+  });
+
+  const profileLimit = oppPlain.profileLimitApplied ?? entitlements.profileLimitPerRole ?? 5;
   const strategy = buildSearchStrategy({
     opportunity: oppPlain,
     founderId: identity.founderId,
     searchMode: 'balanced',
   });
 
-  const indexTerms = [
-    strategy.primaryQuery,
-    ...strategy.expandedQueries,
-    ...(oppPlain.searchRequirements || []).map((r: any) => r.text),
-    ...(oppPlain.matchingSkills || []),
-  ];
+  console.log('Role domain strategy:', {
+    primaryQuery: strategy.primaryQuery,
+    roleSkillTiers: strategy.roleSkillTiers,
+    skillsNeeded: oppPlain.skillsNeeded,
+    originalSkillsNeeded: oppPlain.originalSkillsNeeded,
+  });
 
-  const indexResult = await searchTalentSearchIndex({ terms: indexTerms, limit: 80 });
-  let builders = indexResult.builders;
-  let projectsByBuilder = indexResult.projectsByBuilder;
-
-  if (!builders.length) {
-    builders = await BuilderProfile.find({
-      verificationStatus: { $ne: 'rejected' },
-      visibilityStatus: { $ne: 'hidden' },
-    })
-      .limit(350)
-      .lean();
-    const builderIds = builders.map((b: any) => b._id);
-    const projects = builderIds.length
-      ? await ProjectRecord.find({ builderId: { $in: builderIds } }).limit(1200).lean()
-      : [];
-    projectsByBuilder = new Map<string, any[]>();
-    for (const project of projects) {
-      const key = String(project.builderId);
-      if (!projectsByBuilder.has(key)) projectsByBuilder.set(key, []);
-      projectsByBuilder.get(key)!.push(project);
-    }
-  }
+  const { builders, projectsByBuilder } = await retrieveRoleShapedBuilderPool({
+    opportunity: oppPlain,
+    founderId: identity.founderId,
+    profileLimit,
+    BuilderProfile,
+    ProjectRecord,
+  });
 
   const result = await runFounderDiscoveryPipeline({
     opportunity: oppPlain,
@@ -77,21 +91,24 @@ async function main() {
     builders,
     projectsByBuilder,
     searchMode: 'balanced',
-    limit: entitlements.profileLimitPerRole ?? 50,
+    skipSemanticScoring: true,
+    limit: profileLimit,
   });
 
-  const limitedCandidates = result.candidates.slice(0, entitlements.profileLimitPerRole ?? 5);
+  const limitedCandidates = result.candidates.slice(0, profileLimit);
   const limitedResult = { ...result, candidates: limitedCandidates };
 
   await persistDiscoveryCandidates({
     result: limitedResult,
     opportunityId: String(job._id),
+    opportunity: oppPlain,
     founderEmail,
     entitlements,
   });
 
   job.status = 'shortlisted';
   job.lastSearchAt = new Date();
+  job.profileLimitApplied = profileLimit;
   await job.save();
 
   console.log(
@@ -101,6 +118,9 @@ async function main() {
       name: c.builder?.name,
       score: Math.round(c.overallFit * 100),
       label: c.matchLabel,
+      skillFit: Number(c.components.deterministicSkillFit.toFixed(3)),
+      proof: Number(c.components.proofStrength.toFixed(3)),
+      rolePrefs: (c.builder?.rolePreference || []).slice(0, 5),
     }))
   );
 }

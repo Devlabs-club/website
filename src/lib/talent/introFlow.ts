@@ -4,49 +4,40 @@ import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
-import {
-  builderDashboardLink,
-  createNotification,
-  founderDashboardLink,
-} from '@/lib/talent/notifications';
+import CompanyProfile from '@/models/founder/CompanyProfile';
+import { builderDashboardLink, createNotification, founderDashboardLink } from '@/lib/talent/notifications';
+import { sendThreadRelayEmail } from '@/lib/talent/talentEmail';
+import { renderThreadEmailText } from '@/lib/talent/threadEmailTemplate';
+import { getOrCreateThread, seedThreadFromIntro } from '@/lib/talent/messageFlow';
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 
-/**
- * Text the builder on iMessage that a founder is interested.
- *
- * The message itself is written by the iMessage builder agent — the same one that
- * runs the rest of the builder's conversation — so it's fully personalized from
- * that builder's memory + profile, not a fixed template. Best-effort: only fires
- * when we have a verified phone for them; the in-app notification is the source
- * of truth, this is the delightful surprise ping.
- */
-async function pingBuilderInterestOverImessage(params: {
+/** Seed the Gmail thread and send intro + founder confirmation emails. */
+export async function deliverIntroRequest(params: {
+  intro: { _id: { toString(): string }; opportunityId: unknown; builderId: unknown; founderEmail: string; founderName?: string | null; introMessage?: string | null };
   builderId: string;
   builderEmail: string;
   founderName: string;
+  founderEmail: string;
   roleTitle: string;
   company: string;
-  introRequestId: string;
-  opportunityId?: string;
-  schedulingLink?: string | null;
+  opportunityId: string;
 }) {
-  try {
-    const { notifyBuilderOfIntro } = await import('@/lib/builderClaim');
-    await notifyBuilderOfIntro({
-      builderId: params.builderId,
-      builderEmail: params.builderEmail,
-      founderName: params.founderName,
-      company: params.company,
-      roleTitle: params.roleTitle,
-      schedulingLink: params.schedulingLink ?? null,
-      opportunityId: params.opportunityId ?? null,
-      introRequestId: params.introRequestId,
-    });
-  } catch (err) {
-    console.error('[introFlow] iMessage interest ping failed', err);
-  }
+  const thread = await seedThreadFromIntro(params.intro);
+  await notifyBuilderIntroReceived({
+    builderId: params.builderId,
+    builderEmail: params.builderEmail,
+    founderName: params.founderName,
+    founderEmail: params.founderEmail,
+    roleTitle: params.roleTitle,
+    company: params.company,
+    introRequestId: String(params.intro._id),
+    opportunityId: params.opportunityId,
+    threadId: String(thread._id),
+  });
+  return thread;
 }
 
+/** Email the builder about a new intro and seed the founder's Gmail thread. */
 export async function notifyBuilderIntroReceived(params: {
   builderId: string;
   builderEmail: string;
@@ -56,6 +47,7 @@ export async function notifyBuilderIntroReceived(params: {
   company: string;
   introRequestId: string;
   opportunityId?: string;
+  threadId?: string | null;
 }) {
   // Resolve the founder's Cal.com/Calendly link so the builder can book the
   // interview straight from the iMessage ping. Best-effort — missing it just
@@ -74,8 +66,109 @@ export async function notifyBuilderIntroReceived(params: {
     }
   }
 
-  // Surprise the builder on iMessage (best-effort, non-blocking on the notification).
-  void pingBuilderInterestOverImessage({ ...params, schedulingLink });
+  let founderBio: string | null = null;
+  let companySummary: string | null = null;
+  let website: string | null = null;
+  if (params.founderEmail) {
+    try {
+      const [founderProfile, companyProfile] = await Promise.all([
+        FounderProfile.findOne({ founderEmail: params.founderEmail.toLowerCase() }).lean(),
+        CompanyProfile.findOne({ founderEmail: params.founderEmail.toLowerCase() }).lean(),
+      ]);
+      founderBio = (founderProfile as any)?.founderBio || null;
+      companySummary = (companyProfile as any)?.description || (founderProfile as any)?.startupSummary || null;
+      website = (companyProfile as any)?.website || (founderProfile as any)?.companyWebsite || null;
+    } catch (err) {
+      console.error('[introFlow] founder/company brief lookup failed', err);
+    }
+  }
+
+  const intro = (await IntroRequest.findById(params.introRequestId).select('introMessage').lean()) as any;
+  const introMessage =
+    intro?.introMessage ||
+    `${params.founderName} invited you to discuss ${params.roleTitle} at ${params.company}.`;
+
+  const emailSubject = `${params.founderName} invited you to ${params.roleTitle} at ${params.company}`;
+  const emailContext = {
+    kind: 'intro' as const,
+    founderName: params.founderName,
+    roleTitle: params.roleTitle,
+    company: params.company,
+    introMessage,
+    founderBio,
+    companySummary,
+    website,
+    schedulingLink,
+  };
+
+  const builderProfile = (await BuilderProfile.findById(params.builderId).select('name').lean()) as any;
+  const builderName = builderProfile?.name || params.builderEmail.split('@')[0] || 'the builder';
+
+  if (params.threadId && params.founderEmail) {
+    const thread =
+      (await MessageThread.findById(params.threadId)) ||
+      (await getOrCreateThread({
+        opportunityId: params.opportunityId || '',
+        builderId: params.builderId,
+        founderEmail: params.founderEmail,
+        founderName: params.founderName,
+        introRequestId: params.introRequestId,
+        builderEmail: params.builderEmail,
+      }));
+
+    thread.emailSubject = emailSubject;
+    await thread.save();
+
+    const tracking = {
+      threadId: String(thread._id),
+      introRequestId: params.introRequestId,
+      opportunityId: params.opportunityId,
+      builderId: params.builderId,
+      founderEmail: params.founderEmail,
+      metadata: { roleTitle: params.roleTitle, company: params.company },
+    };
+
+    await sendThreadRelayEmail({
+      thread,
+      senderRole: 'founder',
+      recipientRole: 'builder',
+      recipientEmail: params.builderEmail,
+      recipientName: builderName,
+      context: emailContext,
+      plainText: renderThreadEmailText(emailContext),
+      source: 'dashboard_intro',
+      setAsRoot: true,
+      emailSubject,
+      tracking,
+    }).catch((err) => console.error('[introFlow] builder intro email failed', err));
+
+    await sendThreadRelayEmail({
+      thread,
+      senderRole: 'system',
+      recipientRole: 'founder',
+      recipientEmail: params.founderEmail,
+      recipientName: params.founderName,
+      fromDisplayName: 'DevLabs Intros',
+      context: {
+        kind: 'founder_seed',
+        founderName: params.founderName,
+        builderName,
+        roleTitle: params.roleTitle,
+        company: params.company,
+      },
+      plainText: [
+        `You requested an intro to ${builderName}.`,
+        '',
+        `We'll keep this Gmail thread updated when ${builderName} replies.`,
+        '',
+        `Builder: ${builderName}`,
+        `Role: ${params.roleTitle} at ${params.company}`,
+      ].join('\n'),
+      source: 'dashboard_intro_confirmation',
+      emailSubject,
+      tracking,
+    }).catch((err) => console.error('[introFlow] founder seed email failed', err));
+  }
 
   return createNotification({
     recipientType: 'builder',
@@ -87,6 +180,7 @@ export async function notifyBuilderIntroReceived(params: {
     link: builderDashboardLink('messages', { introId: params.introRequestId }),
     entityType: 'IntroRequest',
     entityId: params.introRequestId,
+    sendEmail: false,
   });
 }
 
@@ -151,8 +245,8 @@ export async function respondToIntro(params: {
     opportunityId: intro.opportunityId,
     builderId: intro.builderId,
   });
-  const builder = await BuilderProfile.findById(intro.builderId).select('name email').lean();
-  const opportunity = await Opportunity.findById(intro.opportunityId).lean();
+  const builder = (await BuilderProfile.findById(intro.builderId).select('name email').lean()) as any;
+  const opportunity = (await Opportunity.findById(intro.opportunityId).lean()) as any;
   const builderName = builder?.name || 'Builder';
   const roleTitle = opportunity?.roleTitle || 'role';
   const company = opportunity?.company || 'startup';
@@ -245,10 +339,10 @@ export async function notifyFounderOfBuilderInterest(params: {
   intro.founderNotifiedOfInterestAt = new Date();
   await intro.save();
 
-  const [builder, opportunity] = await Promise.all([
+  const [builder, opportunity] = (await Promise.all([
     BuilderProfile.findById(intro.builderId).select('name').lean(),
     Opportunity.findById(intro.opportunityId).lean(),
-  ]);
+  ])) as any[];
   const builderName = builder?.name || 'Builder';
   const roleTitle = opportunity?.roleTitle || 'your role';
 
@@ -261,6 +355,7 @@ export async function notifyFounderOfBuilderInterest(params: {
     link: founderDashboardLink({ builderId: String(intro.builderId), opportunityId: String(intro.opportunityId) }),
     entityType: 'IntroRequest',
     entityId: String(intro._id),
+    sendEmail: false,
   });
 
   return { intro, notified: true };

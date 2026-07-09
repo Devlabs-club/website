@@ -333,6 +333,16 @@ const customPricingSteps = [
     try {
       link.setAttribute("aria-busy", "true");
       link.classList.add("pointer-events-none", "opacity-75");
+      const authResponse = await fetch("/api/auth/me", {
+        method: "GET",
+        credentials: "include",
+      });
+      const authData = await authResponse.json().catch(() => ({}));
+      const accountType = authData?.user?.accountType || authData?.user?.role;
+      if (!authResponse.ok || !authData.success || accountType !== "founder") {
+        window.location.href = fallback;
+        return true;
+      }
       const response = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

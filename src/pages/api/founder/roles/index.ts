@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     metadata: { source: 'quick_role_intake' },
   });
 
-  return okJson({ jobId: String(job._id), next: `/founder/roles/${String(job._id)}` });
+  return okJson({ jobId: String(job._id), next: `/founder/roles/${String(job._id)}?pane=chat` });
 };
 
 export const prerender = false;

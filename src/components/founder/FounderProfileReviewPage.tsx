@@ -159,7 +159,7 @@ export const FounderProfileReviewPage: React.FC = () => {
               placeholder="https://cal.com/yourname or https://calendly.com/yourname"
             />
             <p className="text-xs text-muted-foreground">
-              Required. We send this to builders over iMessage when you request an intro, so they can
+              Required. We send this to builders over email when you request an intro, so they can
               book an interview with you directly. Cal.com or Calendly only.
             </p>
           </div>

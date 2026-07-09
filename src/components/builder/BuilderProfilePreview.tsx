@@ -1,6 +1,7 @@
 import React from "react";
 import { ExternalLink } from "lucide-react";
-import { BuilderHighlightsSection } from "./BuilderHighlightsSection";
+import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
+import BuilderEnrichmentInsights from "./BuilderEnrichmentInsights";
 
 export type BuilderProfileView = {
   id?: string;
@@ -11,10 +12,23 @@ export type BuilderProfileView = {
   avatarUrl?: string | null;
   location?: string | null;
   universityOrCompany?: string | null;
+  graduationYear?: number | null;
+  education?: Array<{
+    school?: string | null;
+    degree?: string | null;
+    field?: string | null;
+    dateRange?: string | null;
+    startDateLabel?: string | null;
+    endDateLabel?: string | null;
+    graduationYear?: number | null;
+    schoolLogoUrl?: string | null;
+    schoolLinkedInUrl?: string | null;
+  }>;
   rolePreference?: string[];
   skills?: string[];
+  workAuthorization?: string | null;
   preferredWorkType?: string[];
-  experiences?: Array<{ title: string; company: string; dateRange?: string; description?: string; skills?: string[] }>;
+  experiences?: Array<{ title: string; company: string; companyLogoUrl?: string | null; companyLinkedInUrl?: string | null; dateRange?: string; description?: string; skills?: string[] }>;
   projects?: Array<{
     id?: string;
     projectName: string;
@@ -28,7 +42,25 @@ export type BuilderProfileView = {
   }>;
   links?: Record<string, string | null>;
   verificationStatus?: string;
+  visibilityStatus?: string;
   founderHighlights?: Array<{ title?: string; detail?: string; source?: string }>;
+  enrichmentSources?: Array<{ source: string; projectCount?: number }>;
+  inferredTechStack?: string[];
+  totalProjectCount?: number;
+  insightProjects?: Array<{
+    id?: string;
+    projectName: string;
+    description?: string | null;
+    builderContribution?: string | null;
+    techStack?: string[];
+    source?: string;
+  }>;
+  profileQuality?: {
+    overallScore?: number;
+    label?: string | null;
+    oneLineSummary?: string | null;
+    strengths?: Array<{ title: string; detail: string }>;
+  };
   githubShowcase?: { featuredCount?: number; additionalProjectCount?: number; reposScanned?: number };
 };
 
@@ -47,15 +79,15 @@ const linkLabel = (key: string) => {
 
 export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; showHighlights?: boolean }> = ({
   profile,
-  showHighlights = true,
 }) => {
   const skills = [...new Set([...(profile.skills || []), ...(profile.preferredWorkType || [])])].slice(0, 16);
   const experiences = (profile.experiences || []).slice(0, 5);
+  const education = (profile.education || []).slice(0, 3);
   const projects = (profile.projects || []).slice(0, 3);
   const linkEntries = Object.entries(profile.links || {}).filter(([, href]) => Boolean(href));
   const additionalGithubProjects = profile.githubShowcase?.additionalProjectCount || 0;
   const reposScanned = profile.githubShowcase?.reposScanned || 0;
-  const highlights = (profile.founderHighlights || []).filter((item) => item?.title && item?.detail).slice(0, 6);
+  const displaySkills = (profile.inferredTechStack?.length ? profile.inferredTechStack : skills).slice(0, 16);
 
   const githubShowcaseNote =
     additionalGithubProjects > 0 ? (
@@ -67,6 +99,8 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; show
 
   return (
     <div className="builder-profile-preview font-manrope mx-auto w-full max-w-3xl">
+      <BuilderEnrichmentInsights profile={profile} />
+
       <header className="border-b border-black/10 pb-8">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="flex min-w-0 items-start gap-5">
@@ -116,16 +150,10 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; show
         ) : null}
       </header>
 
-      {showHighlights && highlights.length > 0 ? (
-        <PreviewSection label="Why this builder stands out">
-          <BuilderHighlightsSection highlights={highlights} defaultVisible={4} />
-        </PreviewSection>
-      ) : null}
-
       <PreviewSection label="Skills">
-        {skills.length ? (
+        {displaySkills.length ? (
           <div className="flex flex-wrap gap-2">
-            {skills.map((skill) => (
+            {displaySkills.map((skill) => (
               <span
                 key={skill}
                 className="rounded-full border border-black/10 bg-[#fbf6f3]/86 px-3 py-1.5 text-xs font-semibold text-black/65"
@@ -139,6 +167,12 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; show
         )}
         {githubShowcaseNote ? <div className="mt-4">{githubShowcaseNote}</div> : null}
       </PreviewSection>
+
+      {profile.workAuthorization ? (
+        <PreviewSection label="Visa / work authorization">
+          <p className="text-sm leading-6 text-black/60">{profile.workAuthorization}</p>
+        </PreviewSection>
+      ) : null}
 
       {(profile.rolePreference?.length ?? 0) > 0 ? (
         <PreviewSection label="Open to">
@@ -155,20 +189,64 @@ export const BuilderProfilePreview: React.FC<{ profile: BuilderProfileView; show
         </PreviewSection>
       ) : null}
 
+      {education.length ? (
+        <PreviewSection label="Education">
+          <div className="space-y-3">
+            {education.map((entry, index) => {
+              const date = entry.dateRange || entry.endDateLabel || (entry.graduationYear ? `Class of ${entry.graduationYear}` : null);
+              return (
+                <div key={`${entry.school}-${index}`} className="rounded-2xl border border-black/8 bg-[#fffcfa] p-4">
+                  <div className="flex items-start gap-3">
+                    {entry.schoolLogoUrl ? (
+                      <img src={entry.schoolLogoUrl} alt={`${entry.school || 'School'} logo`} className="h-10 w-10 shrink-0 rounded-xl border border-black/10 bg-white object-cover" />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-xs font-extrabold text-black/35">
+                        {(entry.school || '?').slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-extrabold text-[#050505]">{entry.school || 'School'}</p>
+                      {[entry.degree, entry.field].filter(Boolean).length ? (
+                        <p className="mt-1 text-sm leading-6 text-black/55">{[entry.degree, entry.field].filter(Boolean).join(' · ')}</p>
+                      ) : null}
+                      {date ? <p className="mt-1 text-xs font-semibold text-black/40">{date}</p> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </PreviewSection>
+      ) : null}
+
       <PreviewSection label="Experience">
         {experiences.length ? (
           <div className="space-y-3">
-            {experiences.map((exp, index) => (
+            {experiences.map((exp, index) => {
+              const logoUrl = resolveCompanyLogoUrl(exp.company, exp.companyLogoUrl, exp.companyLinkedInUrl);
+              return (
               <div key={`${exp.company}-${index}`} className="rounded-2xl border border-black/8 bg-[#fffcfa] p-4">
-                <p className="text-sm font-extrabold text-[#050505]">
-                  {exp.title} · {exp.company}
-                </p>
-                {exp.dateRange ? <p className="mt-1 text-xs font-semibold text-black/40">{exp.dateRange}</p> : null}
+                <div className="flex items-start gap-3">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt={`${exp.company} logo`} className="h-10 w-10 shrink-0 rounded-xl border border-black/10 bg-white object-cover" />
+                  ) : (
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-black/10 bg-white text-xs font-extrabold text-black/35">
+                      {(exp.company || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-extrabold text-[#050505]">
+                      {exp.title} · {exp.company}
+                    </p>
+                    {exp.dateRange ? <p className="mt-1 text-xs font-semibold text-black/40">{exp.dateRange}</p> : null}
+                  </div>
+                </div>
                 {exp.description ? (
                   <p className="mt-2 text-sm leading-6 text-black/55">{exp.description}</p>
                 ) : null}
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-sm leading-6 text-black/45">No experience added yet.</p>

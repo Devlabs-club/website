@@ -39,17 +39,12 @@ values in Vercel; do not commit secret values.
 - `GITHUB_TOKEN`
 - `LINKEDIN_SCRAPER_URL`
 - `LINKEDIN_SCRAPER_SECRET`
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_VERIFY_SERVICE_SID`
 - `AGENTPHONE_API_KEY`, `AGENTPHONE_FROM_NUMBER`, `AGENTPHONE_WEBHOOK_SECRET`
 - `EXA_API_KEY`
 - `OPENROUTER_API_KEY`
 
 Optional or fallback variables:
 
-- `TWILIO_API_KEY_SID`
-- `TWILIO_API_KEY_SECRET`
 - `OPENROUTER_MODEL_CHAT`
 - `OPENROUTER_MODEL_EMBEDDING`
 - `OPENROUTER_HTTP_REFERER`
@@ -63,10 +58,6 @@ The LinkedIn scraper should point at the remote scraper service:
 ```text
 https://enrich-scraper-production.up.railway.app
 ```
-
-The app prefers `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` for Twilio Verify
-when both account credentials and API key credentials are configured. API key
-credentials are used only as a fallback.
 
 ## Production Smoke Checks
 

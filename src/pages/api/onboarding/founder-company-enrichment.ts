@@ -9,6 +9,7 @@ import {
 } from '@/lib/remoteLinkedInScraper';
 import FounderProfile from '@/models/talent/FounderProfile';
 import CompanyProfile from '@/models/founder/CompanyProfile';
+import { deepResearchCompany } from '@/lib/talent/founderCompanyDeepResearch';
 
 export const prerender = false;
 
@@ -113,6 +114,35 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { summary, artifact } = await runCompanyScript(scriptArgs, runtime);
     const company = artifact?.company || {};
     const name = cleanString(company.name) || companyName || 'My company';
+    const website = cleanString(company.website);
+    const linkedInUrl = cleanString(company.linkedInUrl);
+
+    let description =
+      cleanString(company.about) || cleanString(company.description) || '';
+    let researchHighlights: string[] = [];
+
+    try {
+      const research = await deepResearchCompany({
+        name,
+        website,
+        linkedInUrl,
+        runtime,
+      });
+      if (research.description) {
+        description = research.description;
+        if (research.whatTheyBuild && !description.toLowerCase().includes(research.whatTheyBuild.toLowerCase().slice(0, 20))) {
+          description = `${description} ${research.whatTheyBuild}`.trim();
+        }
+      }
+      researchHighlights = research.highlights;
+      console.info('[founder-company-enrichment] deep research', {
+        providers: research.searchProviders,
+        highlights: researchHighlights.length,
+        citations: research.citations.length,
+      });
+    } catch (researchErr) {
+      console.warn('[founder-company-enrichment] deep research skipped', researchErr);
+    }
 
     await CompanyProfile.findOneAndUpdate(
       { founderId: String(user._id) },
@@ -121,18 +151,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
           founderId: String(user._id),
           founderEmail: user.email,
           name,
-          website: cleanString(company.website),
+          website,
           location: cleanString(company.location) || cleanString(company.headquarters),
-          description: cleanString(company.about) || cleanString(company.description),
+          description,
           industry: cleanString(company.industry),
           metadata: {
             logoUrl: cleanString(company.logoUrl) || cleanString(chosen?.companyLogoUrl),
-            linkedInUrl: cleanString(company.linkedInUrl),
+            linkedInUrl,
             companyUsername,
             companySize: cleanString(company.companySize),
             headquarters: cleanString(company.headquarters),
             founded: cleanString(company.founded),
             specialties: cleanString(company.specialties),
+            researchHighlights,
             warnings: artifact?.warnings || [],
             artifactPath: summary?.outputPath || null,
           },
@@ -147,12 +178,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
         $set: {
           company: name,
           companyWebsite: cleanString(company.website),
-          startupSummary: cleanString(company.about) || cleanString(company.description),
+          startupSummary: description,
           industry: cleanString(company.industry),
           enrichmentStatus: artifact?.warnings?.length ? 'partial' : 'complete',
           enrichedAt: new Date(),
         },
-        $addToSet: { enrichmentSources: 'company_linkedin_about' },
+        $addToSet: { enrichmentSources: { $each: ['company_linkedin_about', 'company_deep_research'] } },
       },
       { new: true }
     );
@@ -164,9 +195,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       cdp,
       company: {
         name,
-        website: cleanString(company.website),
+        website,
         location: cleanString(company.location) || cleanString(company.headquarters),
-        description: cleanString(company.about) || cleanString(company.description),
+        description,
         logoUrl: cleanString(company.logoUrl) || cleanString(chosen?.companyLogoUrl),
       },
       warnings: artifact?.warnings || [],

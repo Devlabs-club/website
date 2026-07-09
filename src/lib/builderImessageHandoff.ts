@@ -100,6 +100,38 @@ export function buildImessageHandoffUrls(params: { token: string; runtime?: Runt
   };
 }
 
+/** JSON payload for claim / signup iMessage handoff API routes. */
+export async function buildClaimHandoffResponse(params: {
+  email: string;
+  name?: string;
+  builderId?: string;
+  phoneVerified?: boolean;
+  runtime?: RuntimeEnv;
+}) {
+  const signed = createImessageVerifyToken(
+    {
+      email: params.email,
+      name: params.name,
+      builderId: params.builderId,
+    },
+    params.runtime
+  );
+  const handoff = buildImessageHandoffUrls({ token: signed, runtime: params.runtime });
+
+  return {
+    success: true as const,
+    builderName: params.name || params.email.split('@')[0],
+    builderEmail: params.email,
+    phoneVerified: Boolean(params.phoneVerified),
+    messageBody: handoff.messageBody,
+    imessageUrl: handoff.imessageUrl,
+    smsUrl: handoff.smsUrl,
+    agentPhone: handoff.phone,
+    imessageAddress: handoff.imessageAddress,
+    agentContact: handoff.contact?.address || handoff.phone || handoff.imessageAddress || null,
+  };
+}
+
 /** True when the inbound looks like our verification handshake (not ongoing chat). */
 export function isVerificationHandshake(body: string) {
   const text = String(body || '').trim().toLowerCase();

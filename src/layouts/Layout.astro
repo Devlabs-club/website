@@ -15,6 +15,7 @@ interface Props {
   hideFooter?: boolean;
   skipPageLoader?: boolean;
   skipParallax?: boolean;
+  skipSmoothScroll?: boolean;
 }
 
 const {
@@ -27,6 +28,7 @@ const {
   hideFooter = false,
   skipPageLoader = false,
   skipParallax = false,
+  skipSmoothScroll = false,
 } = Astro.props;
 
 // Absolute URL required for Twitter/OG image crawlers - relative paths don't work.
@@ -57,7 +59,7 @@ const metaKeywords = keywords ?? defaultKeywords;
 ---
 
 <!doctype html>
-<html lang="en" class="scroll-smooth">
+<html lang="en" class:list={[!skipSmoothScroll && "scroll-smooth"]}>
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={metaDescription} />

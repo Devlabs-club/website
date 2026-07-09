@@ -46,8 +46,8 @@ import {
   markNotificationRead,
 } from '@/lib/talent/notifications';
 import {
+  deliverIntroRequest,
   getBuilderIntroInbox,
-  notifyBuilderIntroReceived,
   respondToIntro,
 } from '@/lib/talent/introFlow';
 import {
@@ -72,8 +72,6 @@ import {
   getFounderThreads,
   getOrCreateThread,
   getThreadMessages,
-  seedThreadFromIntro,
-  sendThreadMessage,
 } from '@/lib/talent/messageFlow';
 import { sendTalentEmail, dashboardDeepLink } from '@/lib/talent/talentEmail';
 import { handleJobAction, runFounderAgentChat } from '@/lib/founderAgent/service';
@@ -867,19 +865,24 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
         Opportunity.findById(opportunityId).lean(),
       ]);
 
+      let threadId: string | null = null;
       if (builderDoc?.email) {
-        await notifyBuilderIntroReceived({
+        const thread = await deliverIntroRequest({
+          intro,
           builderId,
           builderEmail: builderDoc.email,
           founderName: founderName || email.split('@')[0],
           founderEmail: email,
           roleTitle: opportunityDoc?.roleTitle || 'Role',
           company: opportunityDoc?.company || 'Startup',
-          introRequestId: String(intro._id),
+          opportunityId,
+        }).catch((err) => {
+          console.error('[actionsHandler] deliver intro failed', err);
+          return null;
         });
+        threadId = thread ? String(thread._id) : null;
       }
 
-      await seedThreadFromIntro(intro);
       await recordUsageEvent({
         identity: lifecycle.identity,
         eventType: 'intro_requested',
@@ -896,6 +899,7 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
           introMessage: intro.introMessage,
         },
         matchStatus: match.status,
+        threadId,
       });
     }
 
@@ -1609,34 +1613,7 @@ export const postAgentAction: APIRoute = async ({ request, locals }) => {
     }
 
     if (action === 'send_message') {
-      const threadId = String(payload?.threadId || '').trim();
-      const body = String(payload?.body || payload?.message || '').trim();
-      if (!threadId || !body) return bad('threadId and body are required');
-
-      const founderResolved = await resolveAuthedFounder(request, runtime);
-      if (!('error' in founderResolved)) {
-        const lifecycle = await requireLifecycleAccess(founderResolved);
-        if (!lifecycle.ok) return billingBad(lifecycle.denied);
-        const result = await sendThreadMessage({
-          threadId,
-          senderType: 'founder',
-          senderEmail: founderResolved.email,
-          body,
-        });
-        if ('error' in result && result.error) return bad(result.error, result.status || 400);
-        return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
-      }
-
-      const builderResolved = await resolveAuthedBuilder(request, runtime);
-      if ('error' in builderResolved) return bad('Please log in to continue.', 401);
-      const result = await sendThreadMessage({
-        threadId,
-        senderType: 'builder',
-        senderEmail: builderResolved.builder.email,
-        body,
-      });
-      if ('error' in result && result.error) return bad(result.error, result.status || 400);
-      return ok({ message: 'Message sent.', thread: result.thread, messageDoc: result.message });
+      return bad('In-app messaging is disabled. Reply in Gmail to continue the conversation.', 410);
     }
 
     // ── Phase 8: Candidate Feedback ──────────────────────────────────────────

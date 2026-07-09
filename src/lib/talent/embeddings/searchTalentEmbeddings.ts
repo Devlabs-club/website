@@ -1,5 +1,6 @@
 import TalentEmbedding from '@/models/talent/TalentEmbedding';
 import { generateEmbedding } from './embedTalentEntity';
+import { isTalentSemanticScoringEnabled, talentEmbeddingScanLimit } from '@/lib/talent/discovery/semanticConfig';
 
 export type SemanticSearchResult = {
   entityId: string;
@@ -29,16 +30,20 @@ export async function searchBuilderEmbeddings(params: {
   minSimilarity?: number;
 }): Promise<SemanticSearchResult[]> {
   const { query, limit = 20, minSimilarity = 0.3 } = params;
+  if (!isTalentSemanticScoringEnabled()) return [];
 
   const queryEmbedding = await generateEmbedding(query);
   if (!queryEmbedding) return [];
 
+  const scanLimit = talentEmbeddingScanLimit();
   const allEmbeddings = await TalentEmbedding.find({
     entityType: 'builder_profile',
     embedding: { $exists: true, $not: { $size: 0 } },
   })
     .select('entityId builderId embedding text')
-    .maxTimeMS(5000)
+    .sort({ updatedAt: -1 })
+    .limit(scanLimit)
+    .maxTimeMS(3000)
     .lean();
 
   if (!allEmbeddings.length) return [];
@@ -64,16 +69,20 @@ export async function searchProjectEmbeddings(params: {
   minSimilarity?: number;
 }): Promise<SemanticSearchResult[]> {
   const { query, limit = 30, minSimilarity = 0.3 } = params;
+  if (!isTalentSemanticScoringEnabled()) return [];
 
   const queryEmbedding = await generateEmbedding(query);
   if (!queryEmbedding) return [];
 
+  const scanLimit = talentEmbeddingScanLimit();
   const allEmbeddings = await TalentEmbedding.find({
     entityType: 'project',
     embedding: { $exists: true, $not: { $size: 0 } },
   })
     .select('entityId builderId embedding text')
-    .maxTimeMS(5000)
+    .sort({ updatedAt: -1 })
+    .limit(scanLimit)
+    .maxTimeMS(3000)
     .lean();
 
   if (!allEmbeddings.length) return [];

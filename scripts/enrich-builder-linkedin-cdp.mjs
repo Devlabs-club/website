@@ -143,6 +143,7 @@ const projection = {
   rolePreference: 1,
   preferredWorkType: 1,
   experiences: 1,
+  education: 1,
   links: 1,
   availability: 1,
   hiringIntent: 1,
@@ -186,6 +187,7 @@ const projection = {
   rolePreference: 1,
   preferredWorkType: 1,
   experiences: 1,
+  education: 1,
   links: 1,
   availability: 1,
   hiringIntent: 1,
@@ -321,6 +323,11 @@ function linkedInExperienceDetailsUrl(profileUrl) {
   return match ? `https://www.linkedin.com/in/${match[1]}/details/experience/` : null;
 }
 
+function linkedInEducationDetailsUrl(profileUrl) {
+  const match = String(profileUrl || '').match(/linkedin\.com\/in\/([^/?#]+)/i);
+  return match ? `https://www.linkedin.com/in/${match[1]}/details/education/` : null;
+}
+
 async function scrollAndExpandPage(session) {
   await session.send('Runtime.evaluate', {
     expression: `(async () => {
@@ -357,6 +364,7 @@ function applyDomToCdpResult(result, dom) {
   result.finalUrl = dom.url;
   result.rawText = dom.text || '';
   result.experienceEntries = dom.experienceEntries || [];
+  result.educationEntries = dom.educationEntries || [];
   result.companyLinks = dom.companyLinks || [];
   result.skillLabels = dom.skillLabels || [];
   result.photo.candidates = dom.candidates || [];
@@ -405,6 +413,29 @@ function linkedInDomExtractionExpression(builderName) {
 
         if (/media\.licdn\.com/i.test(src)) score += 20;
         if (/company|logo|organization/i.test(`${alt} ${className} ${src}`)) score += 45;
+        if (/profile-displayphoto|avatar|member/i.test(`${alt} ${className} ${src}`)) score -= 45;
+        if (Math.abs(width - height) <= Math.max(width, height) * 0.25) score += 15;
+        if (width >= 40 && height >= 40) score += 15;
+        if (rect.width >= 32 && rect.height >= 32 && rect.width <= 96 && rect.height <= 96) score += 10;
+        if (!src || src.startsWith('data:')) score -= 100;
+
+        return { src, alt, width, height, score };
+      }).filter((img) => img.src && img.score > 0).sort((a, b) => b.score - a.score);
+
+      return images[0] || null;
+    };
+    const imageForSchool = (item) => {
+      const images = Array.from(item.querySelectorAll('img')).map((img) => {
+        const rect = img.getBoundingClientRect();
+        const src = img.currentSrc || img.src || '';
+        const alt = img.alt || '';
+        const className = typeof img.className === 'string' ? img.className : '';
+        const width = img.naturalWidth || img.width || rect.width || 0;
+        const height = img.naturalHeight || img.height || rect.height || 0;
+        let score = 0;
+
+        if (/media\.licdn\.com/i.test(src)) score += 20;
+        if (/school|university|college|logo|organization/i.test(`${alt} ${className} ${src}`)) score += 45;
         if (/profile-displayphoto|avatar|member/i.test(`${alt} ${className} ${src}`)) score -= 45;
         if (Math.abs(width - height) <= Math.max(width, height) * 0.25) score += 15;
         if (width >= 40 && height >= 40) score += 15;
@@ -521,6 +552,56 @@ function linkedInDomExtractionExpression(builderName) {
       if (entries.length) return entries;
       return segmentExperienceLines(experienceSection).slice(0, 12);
     };
+    const findEducationSection = () => {
+      const byId = document.getElementById('education');
+      if (byId) return byId.closest('section') || byId.parentElement?.closest('section') || byId.parentElement;
+
+      for (const section of document.querySelectorAll('section')) {
+        const heading = section.querySelector('h2, h3, span.visually-hidden, div.pvs-header__title, div.text-heading-large');
+        const label = String(heading?.textContent || section.innerText?.slice(0, 80) || '').trim();
+        if (/^education\\b/i.test(label) || /\\nEducation\\n/i.test(`\\n${label}\\n`)) return section;
+      }
+
+      for (const el of document.querySelectorAll('[data-view-name*="education" i], [componentkey*="Education"]')) {
+        const host = el.closest('section') || el.closest('div.scaffold-finite-scroll');
+        if (host) return host;
+      }
+      return null;
+    };
+    const extractEducationEntries = () => {
+      const educationSection = findEducationSection();
+      if (!educationSection) return [];
+      const itemSelectors = [
+        'li.pvs-list__paged-list-item',
+        'li.artdeco-list__item',
+        'div.pvs-list__paged-list-item',
+        'div[data-view-name="profile-component-entity"]',
+        'li.pvs-list__item--line-separated',
+      ];
+      let itemNodes = [];
+      for (const selector of itemSelectors) {
+        const found = Array.from(educationSection.querySelectorAll(selector));
+        if (found.length > itemNodes.length) itemNodes = found;
+      }
+      if (!itemNodes.length && educationSection.querySelector('ul')) {
+        itemNodes = Array.from(educationSection.querySelector('ul').children).filter((node) => node.matches?.('li'));
+      }
+
+      return itemNodes.map((item, index) => {
+        const lines = cleanLines(item.innerText).filter((line) => !/^Education$/i.test(line));
+        const logo = imageForSchool(item);
+        const schoolLinkedInUrl = Array.from(item.querySelectorAll('a[href*="/school/"], a[href*="/company/"]'))
+          .map((anchor) => absolutize(anchor.getAttribute('href')))
+          .find(Boolean) || null;
+        return {
+          index,
+          lines,
+          text: lines.join('\\n'),
+          schoolLinkedInUrl,
+          logo,
+        };
+      }).filter((entry) => entry.lines.length >= 1).slice(0, 8);
+    };
     const extractSkillLabels = () => {
       const skillsSection = Array.from(document.querySelectorAll('section')).find((section) => {
         const head = cleanLines(section.innerText).slice(0, 4).join('\\n');
@@ -608,6 +689,7 @@ function linkedInDomExtractionExpression(builderName) {
       url: location.href,
       text,
       experienceEntries: extractExperienceEntries(),
+      educationEntries: extractEducationEntries(),
       skillLabels: extractSkillLabels(),
       companyLinks: collectCompanyLinks(),
       candidates,
@@ -628,6 +710,7 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     finalUrl: null,
     rawText: '',
     experienceEntries: [],
+    educationEntries: [],
     companyLinks: [],
     skillLabels: [],
     photo: {
@@ -643,6 +726,7 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
   let session;
   const profileUrl = normalizeLinkedInProfileUrl(url);
   const experienceDetailsUrl = linkedInExperienceDetailsUrl(profileUrl);
+  const educationDetailsUrl = linkedInEducationDetailsUrl(profileUrl);
 
   try {
     target = await createCdpTarget(cdpUrl, 'about:blank');
@@ -672,6 +756,23 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
           experienceEntries: detailsDom.experienceEntries?.length
             ? detailsDom.experienceEntries
             : dom.experienceEntries,
+        };
+        applyDomToCdpResult(result, dom);
+      }
+    }
+
+    if (educationDetailsUrl) {
+      await session.send('Page.navigate', { url: educationDetailsUrl });
+      await sleep(Math.max(Math.floor(waitMs * 0.8), 10000));
+      await scrollAndExpandPage(session);
+      const educationDom = await evaluateLinkedInDom(session, builder.name);
+      if ((educationDom.educationEntries || []).length || /education/i.test(educationDom.text || '')) {
+        dom = {
+          ...dom,
+          text: `${dom.text || ''}\n${educationDom.text || ''}`.trim(),
+          educationEntries: educationDom.educationEntries?.length
+            ? educationDom.educationEntries
+            : dom.educationEntries,
         };
         applyDomToCdpResult(result, dom);
       }
@@ -758,7 +859,8 @@ function extractLinkedInData(rawText, builder, cdpExtraction) {
   const headlineCandidate = nameIndex >= 0 ? lines.slice(nameIndex + 1).find((line) => {
     return line.length <= 180 && !looksLikeLocation(line) && !/^(· 1st|1st|2nd|3rd|contact info|followers|connections|\d+ connections)$/i.test(line);
   }) : null;
-  const years = extractYears(`${allText}\n${builder.graduationYear || ''}`);
+  const educationEntries = parseEducationEntries(cdpExtraction, builder, educationLines);
+  const years = extractYears(`${allText}\n${builder.graduationYear || ''}\n${educationEntries.map((entry) => entry.graduationYear || entry.dateRange || '').join('\n')}`);
   const inferredGraduationYear = builder.graduationYear || years.find((year) => year >= CURRENT_YEAR) || null;
   const currentExperience = inferCurrentExperience(experienceLines);
   const openSignal = /\b(open to work|looking for roles|looking for opportunities|open to networking|seeking internship|seeking full[- ]time|actively looking|i'm looking for)\b/i.test(allText);
@@ -786,6 +888,7 @@ function extractLinkedInData(rawText, builder, cdpExtraction) {
         : []
     ),
     education: educationLines.slice(0, 60),
+    educationEntries,
     skills: (() => {
       const domSkills = Array.isArray(cdpExtraction.skillLabels) ? cdpExtraction.skillLabels : [];
       const parsedSkills = extractSkills(skillsLines, lines);
@@ -883,6 +986,22 @@ function normalizeExperienceLines(lines) {
     .filter((line) => !/^… more$/i.test(line));
 }
 
+function compactToken(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function logoForName(logo, name) {
+  if (!logo?.src || !name) return null;
+  const nameKey = compactToken(name);
+  const altKey = compactToken(logo.alt || '');
+  const srcKey = compactToken(logo.src || '');
+  if (!nameKey) return null;
+  if (altKey.includes(nameKey) || nameKey.includes(altKey)) return logo;
+  const meaningful = nameKey.length >= 4 ? nameKey : null;
+  if (meaningful && srcKey.includes(meaningful)) return logo;
+  return null;
+}
+
 function slugFromCompanyUrl(url) {
   const match = String(url || '').match(/\/company\/([^/?#]+)/i);
   return match ? match[1] : null;
@@ -927,6 +1046,7 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
   }
 
   const dateParts = splitDateRange(lines[dateIndex]);
+  const logo = logoForName(rawEntry.logo, company);
   const afterDate = lines.slice(dateIndex + 1);
   const location = afterDate.find(looksLikeExperienceLocation) || null;
   const descriptionLines = afterDate
@@ -947,7 +1067,7 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
   return {
     title: title.slice(0, 140),
     company: company.slice(0, 140),
-    companyLogoUrl: rawEntry.logo?.src || null,
+    companyLogoUrl: logo?.src || null,
     companyUsername,
     companyLinkedInUrl,
     employmentType,
@@ -1091,9 +1211,119 @@ function parseExperienceEntries(cdpExtraction, builder, experienceLines = []) {
     .slice(0, 12);
 }
 
+function looksLikeEducationDate(line) {
+  return /\b(19[8-9][0-9]|20[0-4][0-9])\b/.test(String(line || ''));
+}
+
+function parseEducationEntry(rawEntry, builder) {
+  const lines = normalizeExperienceLines(rawEntry.lines || [])
+    .filter((line) => !/^education$/i.test(line))
+    .filter((line) => !/^show all/i.test(line));
+  if (!lines.length) return null;
+
+  const school = lines[0] || null;
+  if (!school) return null;
+  const dateLine = lines.find(looksLikeEducationDate) || null;
+  const dateParts = splitDateRange(dateLine || '');
+  const graduationYear = dateLine
+    ? Number(String(dateLine).match(/\b(19|20)\d{2}\b/g)?.slice(-1)[0] || NaN)
+    : null;
+  const middle = lines.slice(1).filter((line) => line !== dateLine);
+  const degree = middle[0] || null;
+  const field = middle[1] || null;
+  const sourceId = `linkedin:education:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${school}-${dateLine || rawEntry.index}`)}`;
+  const logo = logoForName(rawEntry.logo, school);
+
+  return {
+    school: school.slice(0, 180),
+    degree: degree ? degree.slice(0, 180) : null,
+    field: field ? field.slice(0, 180) : null,
+    dateRange: dateLine,
+    startDateLabel: dateParts.startDateLabel,
+    endDateLabel: dateParts.endDateLabel || dateLine,
+    graduationYear: Number.isFinite(graduationYear) ? graduationYear : null,
+    schoolLogoUrl: logo?.src || null,
+    schoolLinkedInUrl: rawEntry.schoolLinkedInUrl || null,
+    source: 'linkedin',
+    sourceId,
+    importedAt: new Date().toISOString(),
+  };
+}
+
+function parseEducationEntries(cdpExtraction, builder, educationLines = []) {
+  const fromDom = (cdpExtraction.educationEntries || [])
+    .map((entry) => parseEducationEntry(entry, builder))
+    .filter(Boolean);
+  if (fromDom.length) return fromDom.slice(0, 8);
+
+  const entries = [];
+  const firstDateIndex = educationLines.findIndex(looksLikeEducationDate);
+  const existingSchool = String(builder.universityOrCompany || '').trim();
+  if (existingSchool && firstDateIndex > 0) {
+    const degreeLine = educationLines
+      .slice(0, firstDateIndex)
+      .find((line) => /\b(b\.?s\.?|bachelor|master|phd|degree|computer science|engineering|business)\b/i.test(line));
+    const dateLine = educationLines[firstDateIndex];
+    const dateParts = splitDateRange(dateLine || '');
+    const graduationYear = dateLine
+      ? Number(String(dateLine).match(/\b(19|20)\d{2}\b/g)?.slice(-1)[0] || NaN)
+      : null;
+    entries.push({
+      school: existingSchool.slice(0, 180),
+      degree: degreeLine ? degreeLine.slice(0, 180) : null,
+      field: null,
+      dateRange: dateLine || null,
+      startDateLabel: dateParts.startDateLabel,
+      endDateLabel: dateParts.endDateLabel || dateLine || null,
+      graduationYear: Number.isFinite(graduationYear) ? graduationYear : null,
+      schoolLogoUrl: null,
+      schoolLinkedInUrl: null,
+      source: 'linkedin',
+      sourceId: `linkedin:education:text:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${existingSchool}-${dateLine || ''}`)}`,
+      importedAt: new Date().toISOString(),
+    });
+  }
+
+  const schoolLine = educationLines.find((line) => /university|college|school|institute|academy/i.test(line)) ||
+    educationLines.find((line) => {
+      const text = String(line || '').trim();
+      return text.length >= 3 &&
+        text.length <= 140 &&
+        !looksLikeEducationDate(text) &&
+        !/^(education|show all|show more|activities and societies|grade:|degree|field of study)$/i.test(text) &&
+        !/\b(bachelor|master|phd|associate|computer science|business|engineering)\b/i.test(text);
+    });
+  if (!schoolLine) return entries.slice(0, 8);
+  const schoolIndex = educationLines.findIndex((line) => line === schoolLine);
+  const dateLine = schoolIndex >= 0
+    ? educationLines.slice(schoolIndex + 1).find(looksLikeEducationDate) || educationLines.find(looksLikeEducationDate) || null
+    : educationLines.find(looksLikeEducationDate) || null;
+  const dateParts = splitDateRange(dateLine || '');
+  const graduationYear = dateLine
+    ? Number(String(dateLine).match(/\b(19|20)\d{2}\b/g)?.slice(-1)[0] || NaN)
+    : null;
+  entries.push({
+    school: schoolLine.slice(0, 180),
+    degree: null,
+    field: null,
+    dateRange: dateLine,
+    startDateLabel: dateParts.startDateLabel,
+    endDateLabel: dateParts.endDateLabel || dateLine,
+    graduationYear: Number.isFinite(graduationYear) ? graduationYear : null,
+    schoolLogoUrl: null,
+    schoolLinkedInUrl: null,
+    source: 'linkedin',
+    sourceId: `linkedin:education:text:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${schoolLine}-${dateLine || ''}`)}`,
+    importedAt: new Date().toISOString(),
+  });
+  return entries
+    .filter((entry, index, arr) => arr.findIndex((candidate) => candidate.sourceId === entry.sourceId) === index)
+    .slice(0, 8);
+}
+
 function buildBio(builder, extracted) {
   const role = extracted.headline || (extracted.skills[0] ? `${extracted.skills[0]} builder` : 'builder');
-  const school = builder.universityOrCompany || extracted.education.find((line) => /university|college|school|asu/i.test(line));
+  const school = builder.universityOrCompany || extracted.educationEntries?.[0]?.school || extracted.education.find((line) => /university|college|school|asu/i.test(line));
   const skills = extracted.skills.slice(0, 5).join(', ');
   const projectHint = extracted.projects.slice(0, 2).join('; ');
   const parts = [`${builder.name} is a ${role} focused on turning technical ideas into shipped products.`];
@@ -1182,11 +1412,18 @@ function buildProposedDiff(builder, extracted) {
   else if (builder.graduationYear) skipped.push({ field: 'graduationYear', reason: 'Existing value present; not overwriting.' });
 
   if (!builder.universityOrCompany) {
-    const school = extracted.education.find((line) => /university|college|school|asu/i.test(line));
+    const school = extracted.educationEntries?.[0]?.school || extracted.education.find((line) => /university|college|school|asu/i.test(line));
     if (school) setValue(proposed, 'universityOrCompany', school.slice(0, 160), 'Inferred from LinkedIn education section.');
   } else {
     skipped.push({ field: 'universityOrCompany', reason: 'Existing value present; not overwriting.' });
   }
+
+  const existingEducationIds = new Set((builder.education || []).map((entry) => String(entry?.sourceId || `${entry?.school || ''}-${entry?.dateRange || entry?.graduationYear || ''}`).toLowerCase()).filter(Boolean));
+  const newEducation = (extracted.educationEntries || []).filter((entry) => {
+    const key = String(entry.sourceId || `${entry.school || ''}-${entry.dateRange || entry.graduationYear || ''}`).toLowerCase();
+    return key && !existingEducationIds.has(key);
+  });
+  pushEach(proposed, 'education', newEducation, 'LinkedIn education cards extracted through Chrome CDP, including school, logo, dates, and graduation year.');
 
   const existingRoles = new Set((builder.rolePreference || []).map((role) => String(role).toLowerCase()));
   addSet(proposed, 'rolePreference', inferRolePreferences(extracted).filter((role) => !existingRoles.has(role.toLowerCase())), 'LinkedIn-derived role/skill labels; internship/full-time is intentionally excluded.');
@@ -1302,6 +1539,7 @@ async function processBuilder(builder, context, args) {
     proposedAddToSetFields: Object.keys(output.proposedMongoUpdate.$addToSet || {}),
     proposedPushFields: Object.keys(output.proposedMongoUpdate.$push || {}),
     extractedExperienceCount: extracted.experiences.length,
+    extractedEducationCount: extracted.educationEntries.length,
     skipped: output.skipped,
   };
 }
@@ -1326,6 +1564,7 @@ async function processLinkedInUrl(args) {
     rolePreference: [],
     preferredWorkType: [],
     experiences: [],
+    education: [],
     links: { linkedin: linkedInUrl },
     availability: {},
     hiringIntent: {},
@@ -1380,6 +1619,7 @@ async function processLinkedInUrl(args) {
     proposedAddToSetFields: Object.keys(output.proposedMongoUpdate.$addToSet || {}),
     proposedPushFields: Object.keys(output.proposedMongoUpdate.$push || {}),
     extractedExperienceCount: extracted.experiences.length,
+    extractedEducationCount: extracted.educationEntries.length,
     skipped: output.skipped,
   };
 }

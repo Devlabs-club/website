@@ -1,4 +1,5 @@
 import ProjectRecord from '@/models/talent/ProjectRecord';
+import BuilderProfile from '@/models/talent/BuilderProfile';
 import {
   extractResumeData,
   mapResumeExtractionToDraft,

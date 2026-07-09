@@ -2,7 +2,6 @@ import React from 'react';
 import {
   LayoutDashboard,
   LogOut,
-  MessageSquareText,
   TerminalSquare,
   UserRound,
 } from 'lucide-react';
@@ -70,13 +69,19 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
             >
               <LogOut className="h-3.5 w-3.5" />
             </button>
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden border border-black/10 bg-white text-xs font-extrabold text-[#ff7417]">
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden border border-black/10 bg-white text-xs font-extrabold text-[#ff7417] transition-colors hover:border-[#ff7417]/40 hover:bg-[#fff5ef]"
+              aria-label="Log out"
+              title="Log out"
+            >
               {avatarUrl ? (
                 <img src={avatarUrl} alt={builderName} className="h-full w-full object-cover" />
               ) : (
                 avatarInitial
               )}
-            </div>
+            </button>
             <button
               type="button"
               onClick={onLogout}
@@ -130,11 +135,21 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
             ))}
           </nav>
 
-          <div className="border-t border-black/10 px-4 py-4">
-            <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-black/35">Proof-of-work</p>
-            <p className="mt-1.5 text-xs leading-5 text-black/45">
-              Verify, connect agent traces, and keep your founder-facing profile current through Messages.
-            </p>
+          <div className="border-t border-black/10 px-3 py-3">
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-white/70"
+              title="Log out"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border border-black/10 bg-white text-xs font-extrabold text-[#ff7417]">
+                {avatarUrl ? <img src={avatarUrl} alt={builderName} className="h-full w-full object-cover" /> : avatarInitial}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-extrabold text-[#050505]">{builderName}</span>
+                <span className="mt-0.5 block text-[0.62rem] font-bold uppercase tracking-[0.12em] text-black/35">Log out</span>
+              </span>
+            </button>
           </div>
         </aside>
 
@@ -170,7 +185,6 @@ export const builderNavIcons = {
   overview: <LayoutDashboard className="h-4 w-4" />,
   profile: <UserRound className="h-4 w-4" />,
   wrapped: <TerminalSquare className="h-4 w-4" />,
-  messages: <MessageSquareText className="h-4 w-4" />,
 };
 
 export default BuilderShell;

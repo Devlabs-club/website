@@ -36,18 +36,35 @@ function normalizeEducationEntry(entry: any) {
   const school = typeof entry?.school === 'string' ? entry.school.trim() : '';
   const degree = typeof entry?.degree === 'string' ? entry.degree.trim() : '';
   const field = typeof entry?.field === 'string' ? entry.field.trim() : '';
+  const dateRange = typeof entry?.dateRange === 'string' ? entry.dateRange.trim() : '';
+  const startDateLabel = typeof entry?.startDateLabel === 'string' ? entry.startDateLabel.trim() : '';
+  const endDateLabel = typeof entry?.endDateLabel === 'string' ? entry.endDateLabel.trim() : '';
+  const schoolLogoUrl = typeof entry?.schoolLogoUrl === 'string' ? entry.schoolLogoUrl.trim() : '';
+  const schoolLinkedInUrl = typeof entry?.schoolLinkedInUrl === 'string' ? entry.schoolLinkedInUrl.trim() : '';
+  const sourceId = typeof entry?.sourceId === 'string' ? entry.sourceId.trim() : '';
+  const graduationYear =
+    typeof entry?.graduationYear === 'number'
+      ? entry.graduationYear
+      : Number(String(entry?.endYear || entry?.endDateLabel || entry?.dateRange || '').match(/\b(19|20)\d{2}\b/)?.[0] || NaN);
   if (!school && !degree && !field) return null;
   return {
     school: school || null,
     degree: degree || null,
     field: field || null,
+    dateRange: dateRange || null,
+    startDateLabel: startDateLabel || null,
+    endDateLabel: endDateLabel || null,
+    graduationYear: Number.isFinite(graduationYear) ? graduationYear : null,
+    schoolLogoUrl: schoolLogoUrl || null,
+    schoolLinkedInUrl: schoolLinkedInUrl || null,
     source: typeof entry?.source === 'string' && entry.source.trim() ? entry.source.trim() : 'linkedin',
+    sourceId: sourceId || null,
     importedAt: entry?.importedAt || new Date(),
   };
 }
 
 function educationKey(entry: any) {
-  return [entry?.school, entry?.degree, entry?.field]
+  return [entry?.sourceId || '', entry?.school, entry?.degree, entry?.field, entry?.dateRange || entry?.graduationYear]
     .map((value) => String(value || '').trim().toLowerCase())
     .join('|');
 }
@@ -63,6 +80,62 @@ function mergeEducation(existing: any[] = [], incoming: any[] = []) {
     if (normalized) merged.set(educationKey(normalized), normalized);
   }
   return Array.from(merged.values()).slice(0, 8);
+}
+
+function looksLikeEducationDateText(value: unknown) {
+  return /\b(19[8-9][0-9]|20[0-4][0-9])\b/.test(String(value || ''));
+}
+
+function splitEducationDateRange(value: unknown) {
+  const text = String(value || '').trim();
+  const [start, end] = text.split(/\s+[–-]\s+/).map((part) => part?.trim()).filter(Boolean);
+  return {
+    dateRange: text || null,
+    startDateLabel: start || null,
+    endDateLabel: end || text || null,
+    graduationYear: Number(String(end || text || '').match(/\b(19|20)\d{2}\b/)?.[0] || NaN),
+  };
+}
+
+function educationEntriesFromLinkedIn(builder: any, proposed: any, extracted: any) {
+  const fromProposed = Array.isArray(proposed.$push?.education?.$each) ? proposed.$push.education.$each : [];
+  const fromExtracted = Array.isArray(extracted.educationEntries)
+    ? extracted.educationEntries
+    : Array.isArray(extracted.education)
+      ? extracted.education
+      : [];
+  const entries = [...fromProposed, ...fromExtracted];
+  const lines = Array.isArray(extracted.education) ? extracted.education.map(String) : [];
+  const existingSchool = typeof builder?.universityOrCompany === 'string' ? builder.universityOrCompany.trim() : '';
+  const firstDateIndex = lines.findIndex(looksLikeEducationDateText);
+  const hasExistingSchool = existingSchool
+    ? entries.some((entry) => String(entry?.school || '').trim().toLowerCase() === existingSchool.toLowerCase())
+    : true;
+
+  if (existingSchool && !hasExistingSchool && firstDateIndex > 0) {
+    const degreeLine = lines
+      .slice(0, firstDateIndex)
+      .find((line) => /\b(b\.?s\.?|bachelor|master|phd|degree|computer science|engineering|business)\b/i.test(line));
+    const date = splitEducationDateRange(lines[firstDateIndex]);
+    entries.unshift({
+      school: existingSchool,
+      degree: degreeLine || null,
+      field: null,
+      dateRange: date.dateRange,
+      startDateLabel: date.startDateLabel,
+      endDateLabel: date.endDateLabel,
+      graduationYear: Number.isFinite(date.graduationYear) ? date.graduationYear : null,
+      schoolLogoUrl: null,
+      schoolLinkedInUrl: null,
+      source: 'linkedin',
+      sourceId: `linkedin:education:${String(builder?.links?.linkedin || builder?.name || 'builder')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')}:${existingSchool.toLowerCase().replace(/[^a-z0-9]+/g, '-')}:${String(date.dateRange || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      importedAt: new Date(),
+    });
+  }
+
+  return entries.slice(0, 8);
 }
 
 function normalizeExperienceEntry(entry: any, index = 0) {
@@ -179,6 +252,11 @@ export async function applyProfileDraft(
       builder.education = nextEducation;
       updated.push('education');
     }
+    const firstGraduationYear = nextEducation.find((entry) => entry.graduationYear)?.graduationYear;
+    if (firstGraduationYear && !builder.graduationYear) {
+      builder.graduationYear = firstGraduationYear;
+      updated.push('graduationYear');
+    }
     const firstSchool = nextEducation.find((entry) => entry.school)?.school;
     if (firstSchool && (overwrite || isEmpty(builder.universityOrCompany))) {
       builder.universityOrCompany = firstSchool;
@@ -275,7 +353,11 @@ export async function applyLinkedInCdpToBuilder(
         ? proposed.$set.graduationYear
         : typeof extracted.inferredGraduationYear === 'number'
           ? extracted.inferredGraduationYear
-          : null,
+          : (Array.isArray(extracted.educationEntries) || Array.isArray(extracted.education))
+            ? (Array.isArray(extracted.educationEntries) ? extracted.educationEntries : extracted.education)
+                .map((entry: any) => Number(entry?.graduationYear || entry?.endYear || String(entry?.endDateLabel || entry?.dateRange || '').match(/\b(19|20)\d{2}\b/)?.[0]))
+                .find((year: number) => Number.isFinite(year)) || null
+            : null,
     universityOrCompany:
       typeof proposed.$set?.universityOrCompany === 'string' ? proposed.$set.universityOrCompany : null,
     skills: [
@@ -284,6 +366,7 @@ export async function applyLinkedInCdpToBuilder(
     ],
     rolePreference: eachMongoValues(proposed.$addToSet?.rolePreference),
     experiences: Array.isArray(extracted.experiences) ? extracted.experiences : [],
+    education: educationEntriesFromLinkedIn(builder, proposed, extracted),
     links: { linkedin: linkedinUrl },
   };
 

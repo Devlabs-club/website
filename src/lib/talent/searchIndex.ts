@@ -455,6 +455,13 @@ export async function backfillTalentSearchIndex(params: { limit?: number; batchS
   return { processed, updated };
 }
 
+export async function backfillTalentSearchIndexWithRefresh(params: { limit?: number; batchSize?: number } = {}) {
+  const result = await backfillTalentSearchIndex(params);
+  const { scheduleTalentPoolSkillIndexRefresh } = await import('@/lib/talent/talentPoolSkillIndex');
+  scheduleTalentPoolSkillIndexRefresh();
+  return result;
+}
+
 export async function searchTalentSearchIndex(params: {
   terms: string[];
   limit?: number;
@@ -495,10 +502,28 @@ export async function searchTalentSearchIndex(params: {
     existing.score += Number(row.weight || 1) + Math.min(8, Number(row.evidenceScore || 0));
     candidateScores.set(id, existing);
   }
-  const topBuilderIds = [...candidateScores.values()]
-    .sort((a, b) => b.score - a.score)
+  const rankedCandidates = [...candidateScores.values()].sort((a, b) => b.score - a.score);
+  const candidateIdBatch = rankedCandidates
+    .slice(0, Math.min(rankedCandidates.length, limit * 4))
+    .map((entry) => entry.builderId);
+  const liveProfiles = candidateIdBatch.length
+    ? await BuilderProfile.find({
+        _id: { $in: candidateIdBatch },
+        verificationStatus: { $in: SEARCHABLE_BUILDER_STATUSES },
+        visibilityStatus: { $in: SEARCHABLE_VISIBILITY_STATUSES },
+      })
+      .select('_id')
+      .maxTimeMS(3000)
+      .lean()
+    : [];
+  const liveIdSet = new Set(liveProfiles.map((profile: any) => String(profile._id)));
+  const topBuilderIds = rankedCandidates
+    .filter((entry) => liveIdSet.has(String(entry.builderId)))
     .slice(0, limit)
     .map((entry) => entry.builderId);
+  if (!topBuilderIds.length) {
+    return { indexed, builders: [] as any[], projectsByBuilder: new Map<string, any[]>(), durationMs: Date.now() - startedAt };
+  }
 
   const docs = await collection
     .find(

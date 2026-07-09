@@ -206,7 +206,7 @@ export async function runEnrichmentPipeline(params: {
 
   let researchSummary = '';
   let researchResult: DeepResearchResult | null = null;
-  if (params.research) {
+  if (params.research !== false) {
     const projects = await getProjects(params.builderId);
     const research = await deepResearchBuilder({
       builder,
@@ -254,6 +254,30 @@ export async function runEnrichmentPipeline(params: {
         kind: 'context',
         field: 'proof',
       });
+    }
+
+    if (researchResult?.searchProviders?.length || researchSummary) {
+      const latest = await reloadBuilder(params.builderId);
+      if (latest) {
+        latest.enrichmentInsights = latest.enrichmentInsights || {};
+        const existing = Array.isArray(latest.enrichmentInsights.sourcesCompleted)
+          ? latest.enrichmentInsights.sourcesCompleted
+          : [];
+        const withoutResearch = existing.filter((row: any) => row?.source !== 'research');
+        latest.enrichmentInsights.sourcesCompleted = [
+          ...withoutResearch,
+          {
+            source: 'research',
+            completedAt: new Date(),
+            projectCount: 0,
+            profileFields: researchResult?.searchProviders?.length
+              ? [`brave+exa:${researchResult.searchProviders.join('+')}`]
+              : ['web'],
+          },
+        ];
+        latest.enrichmentInsights.updatedAt = new Date();
+        await latest.save();
+      }
     }
   }
 
@@ -384,7 +408,7 @@ export function buildEnrichmentPlaybookHint(builder: any): string {
     '2. When Devpost profile link lands → run_enrichment with [devpost] (scrapes ALL hackathon projects on their profile).',
     '3. When Twitter/X link lands → run_enrichment with [twitter] (voice + posts, NOT projects).',
     '4. When portfolio/personal site lands → run_enrichment with [portfolio] (+ deep_research if the profile still needs more proof).',
-    '5. After core links, run deep_research once for Brave/web proof + discovered links.',
+    '5. After core links, deep research runs automatically (Brave + Exa web search + markdown crawl).',
     '6. BEFORE send_profile_link or finalize_profile → call polish_profile (runs anything still pending).',
     '7. After enrichment lands: confirm LinkedIn work history with ONE yes/no, draft headline/bio from findings, write ALL project contributions in one update_builder_data call.',
     `Completed enrichment: ${completed.length ? completed.join(', ') : 'none yet'}.`,

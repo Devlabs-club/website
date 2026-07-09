@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, MessageCircle, Send } from "lucide-react";
+import { ExternalLink, Loader2, MessageCircle } from "lucide-react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import { FounderRail } from "@/components/founder/FounderRail";
 import { FounderUpgradeModal } from "@/components/founder/FounderUpgradeModal";
 import type { PlanId } from "@/components/founder/FounderBillingCard";
+import { gmailThreadSearchUrl } from "@/lib/talent/emailThreadLinks";
 
 type Thread = {
   _id: string;
@@ -12,6 +13,7 @@ type Thread = {
   founderEmail: string;
   founderName?: string | null;
   builderName?: string | null;
+  builderEmail?: string | null;
   roleTitle?: string | null;
   company?: string | null;
   introStatus?: string | null;
@@ -83,8 +85,6 @@ const FounderConversationsInner: React.FC = () => {
   const [introRequest, setIntroRequest] = useState<IntroRequest | null>(null);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [body, setBody] = useState("");
   const [error, setError] = useState("");
   const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; upgradeTarget: PlanId; reason?: string }>({
     open: false,
@@ -94,6 +94,16 @@ const FounderConversationsInner: React.FC = () => {
   const selectedIdRef = useRef<string | null>(null);
 
   const selected = useMemo(() => threads.find((thread) => thread._id === selectedId) || null, [threads, selectedId]);
+  const gmailUrl = useMemo(() => {
+    if (!selected) return null;
+    return gmailThreadSearchUrl({
+      threadId: selected._id,
+      builderEmail: selected.builderEmail,
+      builderName: selected.builderName,
+      roleTitle: selected.roleTitle,
+      founderEmail: selected.founderEmail,
+    });
+  }, [selected]);
   const initial = (user?.name || user?.email || "F").trim().charAt(0).toUpperCase();
 
   useEffect(() => {
@@ -169,31 +179,6 @@ const FounderConversationsInner: React.FC = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, selectedId]);
 
-  const sendMessage = async () => {
-    if (!selectedId || !body.trim() || sending) return;
-    const messageBody = body.trim();
-    setBody("");
-    setSending(true);
-    const { res, data } = await callAgentAction("send_message", { threadId: selectedId, body: messageBody });
-    if (data.success && data.messageDoc) {
-      setMessages((prev) => [...prev, data.messageDoc]);
-      setThreads((prev) =>
-        prev.map((thread) =>
-          thread._id === selectedId
-            ? { ...thread, lastMessagePreview: messageBody, lastMessageAt: data.messageDoc.createdAt || new Date().toISOString() }
-            : thread
-        )
-      );
-    } else if (res.status === 402 && data.upgradeTarget) {
-      setUpgradeModal({ open: true, upgradeTarget: data.upgradeTarget, reason: data.error });
-      setBody(messageBody);
-    } else {
-      setError(data.error || "Could not send the message.");
-      setBody(messageBody);
-    }
-    setSending(false);
-  };
-
   return (
     <div className="min-h-screen bg-[#f4f4f3] text-foreground">
       <div className="flex min-h-screen">
@@ -202,7 +187,7 @@ const FounderConversationsInner: React.FC = () => {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <p className="text-2xl font-semibold tracking-tight text-black">Conversations</p>
-              <p className="mt-1 text-sm text-black/45">Message builders after intros, trials, and hiring decisions.</p>
+              <p className="mt-1 text-sm text-black/45">Read-only history — reply in Gmail to continue each thread.</p>
             </div>
           </div>
 
@@ -318,29 +303,21 @@ const FounderConversationsInner: React.FC = () => {
                   </div>
 
                   <div className="border-t border-[#ece7e1] bg-white p-4">
-                    <div className="flex items-end gap-3 rounded-2xl border border-[#ece7e1] bg-[#fffcfa] p-2 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                      <textarea
-                        value={body}
-                        onChange={(event) => setBody(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" && !event.shiftKey) {
-                            event.preventDefault();
-                            void sendMessage();
-                          }
-                        }}
-                        rows={2}
-                        placeholder="Write a message to the builder..."
-                        className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-black outline-none placeholder:text-black/35"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => void sendMessage()}
-                        disabled={sending || !body.trim()}
-                        className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[#ec9149] px-4 text-sm font-semibold text-white hover:bg-[#dd7f36] disabled:opacity-50"
-                      >
-                        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                        Send
-                      </button>
+                    <div className="flex flex-col gap-3 rounded-2xl border border-[#ece7e1] bg-[#fffcfa] p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-black/55">
+                        Reply from your inbox. Open the latest DevLabs intro email in Gmail and hit Reply.
+                      </p>
+                      {gmailUrl ? (
+                        <a
+                          href={gmailUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#ec9149] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#dd7f36]"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Reply from your inbox
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </div>
