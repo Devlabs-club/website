@@ -7,6 +7,12 @@ import { persistEnrichmentContext } from '@/lib/talent/builderEnrichment/enrichm
 import { deepResearchBuilder, type DeepResearchResult } from '@/lib/talent/builderDeepResearch';
 import { processGenericLink } from '@/lib/talent/builderLinkProcessor';
 import { reloadBuilder, getProjects, updateBuilderScores, updateLinks } from '@/lib/agent/builderProfileTools';
+import {
+  clearEnrichmentProgress,
+  setEnrichmentProgress,
+  uiStageForSource,
+  type EnrichmentUiStage,
+} from '@/lib/talent/builderEnrichment/progress';
 import type { SourceEnrichmentResult } from './types';
 
 export type EnrichmentPlan = {
@@ -25,7 +31,30 @@ export type PublicProfileReadiness = {
   completedSources: EnrichmentSource[];
 };
 
-const SOURCE_ORDER: EnrichmentSource[] = ['github', 'linkedin', 'devpost', 'portfolio', 'twitter', 'resume'];
+const SOURCE_ORDER: EnrichmentSource[] = ['linkedin', 'github', 'devpost', 'portfolio', 'twitter', 'resume'];
+
+function initialUiStage(sources: EnrichmentSource[]): EnrichmentUiStage {
+  if (sources.includes('linkedin')) return 'linkedin';
+  if (sources.includes('github')) return 'github';
+  return 'research';
+}
+
+async function reportSourceProgress(builderId: string, source: EnrichmentSource, sources: EnrichmentSource[]) {
+  const stage = uiStageForSource(source);
+  if (stage) {
+    await setEnrichmentProgress(builderId, stage);
+    return;
+  }
+  const githubIndex = sources.indexOf('github');
+  const sourceIndex = sources.indexOf(source);
+  if (githubIndex >= 0 && sourceIndex > githubIndex) {
+    await setEnrichmentProgress(builderId, 'github');
+    return;
+  }
+  if (sources.includes('linkedin') && sourceIndex > sources.indexOf('linkedin')) {
+    await setEnrichmentProgress(builderId, 'linkedin');
+  }
+}
 
 function getCompletedSources(builder: any): EnrichmentSource[] {
   const raw = builder?.enrichmentInsights?.sourcesCompleted;
@@ -184,30 +213,34 @@ export async function runEnrichmentPipeline(params: {
   const sources = params.sources?.length ? params.sources : plan.sources;
   const results: SourceEnrichmentResult[] = [];
 
-  if (sources.length) {
-    const res = await enrichBuilderProfile({
-      builderId: params.builderId,
-      sources,
-      runtime: params.runtime,
-      deferExperiences: params.deferExperiences,
-    });
-    results.push(...res.sources);
-  }
+  try {
+    if (sources.length) {
+      await setEnrichmentProgress(params.builderId, initialUiStage(sources));
+      const res = await enrichBuilderProfile({
+        builderId: params.builderId,
+        sources,
+        runtime: params.runtime,
+        deferExperiences: params.deferExperiences,
+        onSourceStart: (source) => reportSourceProgress(params.builderId, source, sources),
+      });
+      results.push(...res.sources);
+    }
 
-  const genericNotes: string[] = [];
-  for (const url of (params.genericLinks || []).slice(0, 3)) {
+    const genericNotes: string[] = [];
+    for (const url of (params.genericLinks || []).slice(0, 3)) {
     try {
       const r = await processGenericLink(builder, url, params.memRef);
       if (r.ok) genericNotes.push(`From ${url}: ${r.summary || r.coolFacts.join('; ')}`);
     } catch {
       genericNotes.push(`Couldn't read ${url}`);
     }
-  }
+    }
 
-  let researchSummary = '';
-  let researchResult: DeepResearchResult | null = null;
-  if (params.research !== false) {
-    const projects = await getProjects(params.builderId);
+    let researchSummary = '';
+    let researchResult: DeepResearchResult | null = null;
+    if (params.research !== false) {
+      await setEnrichmentProgress(params.builderId, 'research');
+      const projects = await getProjects(params.builderId);
     const research = await deepResearchBuilder({
       builder,
       projects,
@@ -244,6 +277,7 @@ export async function runEnrichmentPipeline(params: {
         sources: discoveredSources,
         runtime: params.runtime,
         deferExperiences: params.deferExperiences,
+        onSourceStart: (source) => reportSourceProgress(params.builderId, source, discoveredSources),
       });
       results.push(...res.sources);
     }
@@ -279,9 +313,9 @@ export async function runEnrichmentPipeline(params: {
         await latest.save();
       }
     }
-  }
+    }
 
-  await persistEnrichmentContext({
+    await persistEnrichmentContext({
     memRef: params.memRef,
     builderId: params.builderId,
     sourceResults: results,
@@ -312,6 +346,9 @@ export async function runEnrichmentPipeline(params: {
     results,
     readiness,
   };
+  } finally {
+    await clearEnrichmentProgress(params.builderId);
+  }
 }
 
 /**

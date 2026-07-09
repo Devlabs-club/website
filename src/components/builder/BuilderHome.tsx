@@ -7,6 +7,8 @@ import {
   ShieldCheck,
   TerminalSquare,
 } from 'lucide-react';
+import BuilderProfileEnrichmentOverlay from './BuilderProfileEnrichmentOverlay';
+import type { EnrichmentVisualStage } from './BuilderEnrichmentAsciiVisual';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
 import BuilderImessageHandoff from './BuilderImessageHandoff';
 import BuilderProfileIntakeForm from './BuilderProfileIntakeForm';
@@ -346,7 +348,43 @@ export const BuilderHome: React.FC = () => {
   const [verified, setVerified] = useState(false);
   const [traceUploaded, setTraceUploaded] = useState(false);
   const [activeSection, setActiveSection] = useState<BuilderSection>('overview');
+  const [profileEnriching, setProfileEnriching] = useState(false);
+  const [enrichmentStage, setEnrichmentStage] = useState<EnrichmentVisualStage>('linkedin');
+  const [enrichmentLabel, setEnrichmentLabel] = useState<string | null>(null);
+  const [enrichmentDetail, setEnrichmentDetail] = useState<string | null>(null);
   const sectionInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (!profileEnriching) {
+      setEnrichmentStage('linkedin');
+      setEnrichmentLabel(null);
+      setEnrichmentDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/builder/profile/enrichment-progress', { credentials: 'include' });
+        if (!res.ok || cancelled) return;
+        const json = await res.json();
+        if (json.stage && ['linkedin', 'github', 'research'].includes(json.stage)) {
+          setEnrichmentStage(json.stage as EnrichmentVisualStage);
+          setEnrichmentLabel(typeof json.label === 'string' ? json.label : null);
+          setEnrichmentDetail(typeof json.detail === 'string' ? json.detail : null);
+        }
+      } catch {
+        // Keep showing the last known stage while enrichment runs.
+      }
+    };
+
+    poll();
+    const intervalId = window.setInterval(poll, 500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [profileEnriching]);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -489,6 +527,7 @@ export const BuilderHome: React.FC = () => {
               />
               <BuilderProfileIntakeForm
                 profile={profile}
+                onEnrichmentStateChange={setProfileEnriching}
                 onSaved={async () => {
                   await loadProfile();
                   setActiveSection('profile');
@@ -629,6 +668,15 @@ export const BuilderHome: React.FC = () => {
       avatarInitial={avatarInitial}
       onLogout={logout}
       navGroups={navGroups}
+      contentOverlay={
+        profileEnriching ? (
+          <BuilderProfileEnrichmentOverlay
+            stage={enrichmentStage}
+            label={enrichmentLabel}
+            detail={enrichmentDetail}
+          />
+        ) : null
+      }
     >
       {renderContent()}
     </BuilderShell>

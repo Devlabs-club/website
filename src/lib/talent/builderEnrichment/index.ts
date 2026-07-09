@@ -39,6 +39,7 @@ export async function enrichBuilderProfile(params: {
   /** When true, LinkedIn work history is held back until the agent confirms with the builder. */
   deferExperiences?: boolean;
   runtime?: RuntimeEnv;
+  onSourceStart?: (source: EnrichmentSource) => void | Promise<void>;
 }): Promise<BuilderEnrichmentResult> {
   const builder = await BuilderProfile.findById(params.builderId);
   if (!builder) {
@@ -52,6 +53,7 @@ export async function enrichBuilderProfile(params: {
   let projectsUpdated = 0;
 
   for (const source of sources) {
+    await params.onSourceStart?.(source);
     const enricher = ENRICHERS[source];
     const result = await enricher(builder, { runtime: params.runtime, deferExperiences: params.deferExperiences });
     sourceResults.push(result);

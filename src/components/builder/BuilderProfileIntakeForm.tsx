@@ -1,17 +1,18 @@
 import React, { useMemo, useState } from 'react';
-import { Loader2, Upload, WandSparkles } from 'lucide-react';
+import { Upload, WandSparkles } from 'lucide-react';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 
 type Props = {
   profile: BuilderProfileView | null;
   onSaved: () => Promise<void> | void;
+  onEnrichmentStateChange?: (enriching: boolean) => void;
 };
 
 function profileValue(profile: BuilderProfileView | null, key: string) {
   return profile?.links?.[key] || '';
 }
 
-export default function BuilderProfileIntakeForm({ profile, onSaved }: Props) {
+export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmentStateChange }: Props) {
   const [linkedin, setLinkedin] = useState(profileValue(profile, 'linkedin'));
   const [github, setGithub] = useState(profileValue(profile, 'github'));
   const [devpost, setDevpost] = useState(profileValue(profile, 'devpost'));
@@ -27,6 +28,7 @@ export default function BuilderProfileIntakeForm({ profile, onSaved }: Props) {
 
   const submit = async () => {
     setSaving(true);
+    onEnrichmentStateChange?.(true);
     setError('');
     try {
       const form = new FormData();
@@ -48,6 +50,7 @@ export default function BuilderProfileIntakeForm({ profile, onSaved }: Props) {
       setError(err instanceof Error ? err.message : 'Could not save profile.');
     } finally {
       setSaving(false);
+      onEnrichmentStateChange?.(false);
     }
   };
 
@@ -94,7 +97,7 @@ export default function BuilderProfileIntakeForm({ profile, onSaved }: Props) {
             disabled={saving || !hasRequiredFields}
             className="builder-primary-button mt-6 inline-flex h-12 w-full items-center justify-center gap-2 text-sm font-semibold disabled:opacity-45"
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
+            <WandSparkles className="h-4 w-4" />
             Save and enrich profile
           </button>
         </section>

@@ -31,6 +31,7 @@ interface BuilderShellProps {
   onLogout: () => void;
   children: React.ReactNode;
   navGroups: NavGroup[];
+  contentOverlay?: React.ReactNode;
 }
 
 export const BuilderShell: React.FC<BuilderShellProps> = ({
@@ -42,6 +43,7 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
   onLogout,
   children,
   navGroups,
+  contentOverlay,
 }) => {
   return (
     <div className="builder-dashboard font-manrope min-h-screen text-[#050505]">
@@ -153,7 +155,10 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className={cn('relative min-w-0 flex-1', contentOverlay && 'overflow-hidden')}>
+          {children}
+          {contentOverlay}
+        </main>
       </div>
 
       <nav className="builder-mobile-nav fixed bottom-0 left-0 right-0 z-30 flex border-t border-black/10 bg-[#fbf6f3]/96 backdrop-blur-xl lg:hidden">

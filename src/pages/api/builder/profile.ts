@@ -312,9 +312,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const sources: Array<'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio'> = [];
+  if (profile.links.linkedin) sources.push('linkedin');
   if (profile.links.github) sources.push('github');
   if (profile.links.devpost) sources.push('devpost');
-  if (profile.links.linkedin) sources.push('linkedin');
   if (profile.links.portfolio || profile.links.personalWebsite) sources.push('portfolio');
 
   if (resumeFile) {
@@ -328,7 +328,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     try {
       const resumeUrl = await uploadResumeToCloudinary(buffer, `${profile._id}-${Date.now()}`);
       profile.links.resume = resumeUrl;
-      sources.unshift('resume');
+      sources.push('resume');
       await profile.save();
       await parseAndExtractResume(buffer, String(profile._id));
     } catch (error) {
