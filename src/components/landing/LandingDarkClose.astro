@@ -1,0 +1,33 @@
+---
+import LandingFooter from "./LandingFooter.astro";
+import LandingMarketingStyles from "./LandingMarketingStyles.astro";
+import { tryForFreeHref } from "../../lib/productCta";
+
+interface Props {
+  ctaHref?: string;
+}
+
+const { ctaHref = tryForFreeHref } = Astro.props;
+const hasSlot = Astro.slots.has("default");
+---
+
+<!-- One dark-act shell: cream curve at top, optional slot, then embedded footer (matches landing page). -->
+<div class="dark-act relative isolate -mt-[1px] overflow-hidden text-white">
+  <div class="dark-glow pointer-events-none absolute left-1/2 top-0 z-[1] -translate-x-1/2" aria-hidden="true"></div>
+  <svg
+    class="dark-curve pointer-events-none absolute inset-x-0 top-0 z-[2] h-[120px] w-full sm:h-[170px]"
+    viewBox="0 0 1440 200"
+    preserveAspectRatio="none"
+    aria-hidden="true"
+  >
+    <path d="M0,0 H1440 V52 Q720,200 0,52 Z" fill="#fbf6f3"></path>
+  </svg>
+  <canvas class="ascii-wave dark-wave absolute inset-0 h-full w-full" data-ascii-wave aria-hidden="true"></canvas>
+
+  <div class:list={["relative z-10", !hasSlot && "pt-32 sm:pt-40"]}>
+    <slot />
+    <LandingFooter ctaHref={ctaHref} embedded />
+  </div>
+</div>
+
+<LandingMarketingStyles />

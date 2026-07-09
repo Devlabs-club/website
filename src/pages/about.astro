@@ -2,6 +2,11 @@
 export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
+import LandingMarketingNav from "../components/landing/LandingMarketingNav.astro";
+import LandingAsciiStars from "../components/landing/LandingAsciiStars.astro";
+import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import LandingAsciiInit from "../components/landing/LandingAsciiInit.astro";
+import LandingMarketingStyles from "../components/landing/LandingMarketingStyles.astro";
 
 const timeline = [
   {
@@ -111,42 +116,26 @@ const team = [
 ---
 
 <Layout title="Our Story - DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
-  <main class="devlabs-paper min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-    <!-- Nav -->
-    <header class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
-        <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
-      </a>
-      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
-        <a href="/sponsor" class="transition-colors hover:text-[#ff7417]">Sponsor</a>
-        <a href="/events" class="transition-colors hover:text-[#ff7417]">Events</a>
-        <a href="/about" class="text-[#ff7417]">Our Story</a>
-        <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black">
-          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-          Hire now
-        </a>
-      </nav>
-      <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">Hire now</a>
-    </header>
+  <LandingMarketingStyles />
+  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+    <LandingMarketingNav active="about" />
 
     <!-- Hero -->
-    <section class="ruler-section relative mx-auto w-full max-w-7xl px-6 pb-20 pt-10 sm:px-8 lg:px-10">
+    <section class="hero-section ruler-section relative mx-auto w-full max-w-7xl overflow-hidden px-6 pb-20 pt-10 sm:px-8 lg:px-10">
+      <LandingAsciiStars />
       <div class="ruler-rails" aria-hidden="true"></div>
       <div class="relative z-10 mx-auto max-w-4xl text-center">
         <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
           we help builders go big or get hired
         </p>
-        <h1 class="mt-6 text-[clamp(2.6rem,11vw,6rem)] font-black leading-[0.94] tracking-[-0.05em] text-black">
-          Meet the team
+        <h1 class="mt-6 text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
+          Meet the <span class="font-extrabold">team</span>
         </h1>
       </div>
 
       <!-- Hero video frame -->
       <div class="relative z-10 mx-auto mt-12 w-full max-w-[960px]">
-        <div class="relative overflow-hidden border-[3px] border-[#168df7] bg-[#cfe6e9]">
+        <div class="relative overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)]">
           <div class="relative aspect-video">
             <video
               id="about-hero-video"
@@ -165,10 +154,10 @@ const team = [
             </video>
           </div>
         </div>
-        <span class="selection-dot -left-3 -top-3"></span>
-        <span class="selection-dot -right-3 -top-3"></span>
-        <span class="selection-dot -bottom-3 -left-3"></span>
-        <span class="selection-dot -bottom-3 -right-3"></span>
+        <span class="selection-dot left-7 top-7"></span>
+        <span class="selection-dot right-7 top-7"></span>
+        <span class="selection-dot bottom-7 left-7"></span>
+        <span class="selection-dot bottom-7 right-7"></span>
       </div>
     </section>
 
@@ -307,29 +296,10 @@ const team = [
       </div>
     </section>
 
-    <!-- Closing CTA (dark act) -->
-    <section class="relative bg-[#0d0a09] px-5 py-24 text-white sm:px-8 sm:py-32 lg:px-10">
-      <div class="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">want to chat?</p>
-        <h2 class="mt-6 text-[clamp(2.25rem,9vw,4.5rem)] font-black leading-[0.98] text-white">
-          Let's build something.
-        </h2>
-        <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/75">
-          Grab 30 minutes with the DevLabs team — whether you're hiring, sponsoring, or just curious.
-        </p>
-        <a
-          href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
-          class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] transition hover:bg-[#ff7417] hover:text-white"
-        >
-          Book a call
-          <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14"></path>
-            <path d="m12 5 7 7-7 7"></path>
-          </svg>
-        </a>
-      </div>
-    </section>
+    <LandingDarkClose />
   </main>
+
+  <LandingAsciiInit />
 
   <script>
     const byId = (id: string) => document.getElementById(id);
@@ -359,67 +329,3 @@ const team = [
     bind("timeline-next-mobile", 1);
   </script>
 </Layout>
-
-<style>
-  .devlabs-paper {
-    font-family: Manrope, system-ui, sans-serif;
-    letter-spacing: 0;
-  }
-
-  .ruler-section {
-    position: relative;
-  }
-
-  .ruler-section::before,
-  .ruler-section::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    z-index: 0;
-    width: 100vw;
-    height: 1px;
-    transform: translateX(-50%);
-    background: rgba(5, 5, 5, 0.1);
-    pointer-events: none;
-  }
-
-  .ruler-section::before { top: 0; }
-  .ruler-section::after { bottom: 0; }
-
-  .ruler-rails {
-    position: absolute;
-    inset-block: 0;
-    left: 50%;
-    z-index: 0;
-    width: min(calc(100% - 3rem), 80rem);
-    transform: translateX(-50%);
-    border-inline: 1px solid rgba(5, 5, 5, 0.08);
-    pointer-events: none;
-  }
-
-  .ruler-rails::before,
-  .ruler-rails::after {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    width: 1px;
-    background: rgba(5, 5, 5, 0.055);
-  }
-
-  .ruler-rails::before { left: 25%; }
-  .ruler-rails::after { right: 25%; }
-
-  .selection-dot {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    border: 3px solid #168df7;
-    border-radius: 999px;
-    background: #fbf6f3;
-    z-index: 20;
-  }
-
-  @media (max-width: 640px) {
-    .ruler-rails { display: none; }
-  }
-</style>

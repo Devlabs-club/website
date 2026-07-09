@@ -3,6 +3,12 @@ export const prerender = true;
 
 import Layout from "../layouts/Layout.astro";
 import CompanyMarquee from "../components/CompanyMarquee.astro";
+import LandingMarketingNav from "../components/landing/LandingMarketingNav.astro";
+import LandingAsciiStars from "../components/landing/LandingAsciiStars.astro";
+import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import LandingAsciiInit from "../components/landing/LandingAsciiInit.astro";
+import LandingMarketingStyles from "../components/landing/LandingMarketingStyles.astro";
+import { tryForFreeHref } from "../lib/productCta";
 
 const benefits = [
   {
@@ -66,48 +72,32 @@ const partnerStats = [
 ---
 
 <Layout title="Sponsor DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
-  <main class="devlabs-paper min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-    <!-- Nav -->
-    <header class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
-        <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
-      </a>
-      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
-        <a href="/sponsor" class="text-[#ff7417]">Sponsor</a>
-        <a href="/events" class="transition-colors hover:text-[#ff7417]">Events</a>
-        <a href="/about" class="transition-colors hover:text-[#ff7417]">Our Story</a>
-        <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black">
-          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-          Hire now
-        </a>
-      </nav>
-      <a href="https://cal.com/geekydan/15min?overlayCalendar=true" class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">Hire now</a>
-    </header>
+  <LandingMarketingStyles />
+  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+    <LandingMarketingNav active="sponsor" />
 
     <!-- Hero -->
-    <section class="ruler-section relative mx-auto w-full max-w-7xl px-6 pb-20 pt-16 sm:px-8 lg:px-10">
+    <section class="sponsor-hero hero-section ruler-section relative mx-auto w-full max-w-7xl overflow-hidden px-6 pb-12 pt-16 sm:px-8 lg:px-10">
+      <LandingAsciiStars />
       <div class="ruler-rails" aria-hidden="true"></div>
       <div class="relative z-10 max-w-4xl">
         <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
           partner with devlabs
         </p>
-        <h1 class="mt-6 text-[clamp(2.4rem,9vw,5.6rem)] font-black leading-[0.96] tracking-[-0.05em] text-black">
+        <h1 class="mt-6 text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
           Back the builders who
-          <span class="text-[#ff7417]">actually ship</span>.
+          <span class="font-extrabold">actually ship</span>.
         </h1>
-        <p class="mt-7 max-w-2xl text-[clamp(1.05rem,1.8vw,1.4rem)] font-medium leading-relaxed text-black/62">
+        <p class="mt-7 max-w-2xl text-[clamp(1.05rem,1.8vw,1.4rem)] font-medium leading-relaxed text-black/45">
           Help us build the launchpad for the next 100 student founders. Sponsors
           don't just get a logo on a banner — they get first access to proof-backed
           builders before anyone else does.
         </p>
 
-        <div class="mt-9 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div class="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
           <a
             href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry"
-            class="group inline-flex h-[3.35rem] items-center justify-center gap-3 rounded-full bg-[#ff7417] px-8 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(255,116,23,0.22)] transition hover:-translate-y-0.5 hover:bg-black"
+            class="group inline-flex h-[3.35rem] items-center justify-center gap-3 rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-8 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:shadow-[0_16px_36px_rgba(255,116,23,0.2)]"
           >
             Become a partner
             <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
@@ -116,18 +106,18 @@ const partnerStats = [
             </svg>
           </a>
           <a
-            href="https://cal.com/bhoomi-sanjay-sahajsinghani-ttgehs/30min?"
-            class="inline-flex h-[3.35rem] items-center justify-center gap-2 rounded-full border-2 border-black px-8 text-base font-extrabold text-black transition hover:bg-black hover:text-white"
+            href={tryForFreeHref}
+            class="inline-flex h-[3.35rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-8 text-base font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.05)] transition hover:-translate-y-0.5 hover:border-black hover:bg-white"
           >
-            Book a call
+            Try for free
           </a>
         </div>
       </div>
 
       <!-- Proof strip -->
-      <div class="relative z-10 mt-16 grid grid-cols-2 border border-black/12 bg-[#fffaf7] lg:grid-cols-4">
+      <div class="relative z-10 mt-14 grid grid-cols-2 border border-black/10 bg-[#f4f1ed]/70 backdrop-blur-[2px] lg:grid-cols-4">
         {partnerStats.map((stat, i) => (
-          <div class={`relative border-black/12 p-6 sm:p-8 ${i % 2 === 0 ? "border-r" : ""} ${i < 2 ? "border-b lg:border-b-0" : ""} ${i !== 3 ? "lg:border-r" : ""}`}>
+          <div class={`relative p-6 sm:p-8 ${i % 2 === 0 ? "border-r border-black/10" : ""} ${i < 2 ? "border-b border-black/10 lg:border-b-0" : ""} ${i !== 3 ? "lg:border-r lg:border-black/10" : ""}`}>
             <p class="text-[clamp(2rem,4vw,3rem)] font-black leading-none tracking-[-0.05em] text-black">{stat.value}</p>
             <p class="mt-3 text-xs font-extrabold uppercase tracking-[0.16em] text-black/45">{stat.label}</p>
           </div>
@@ -136,11 +126,13 @@ const partnerStats = [
     </section>
 
     <!-- Trusted by marquee -->
-    <section class="ruler-section relative bg-[#fbf6f3] py-12">
-      <p class="mb-2 text-center text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
-        trusted by industry leaders
-      </p>
-      <CompanyMarquee className="py-2" showTitle={false} />
+    <section class="relative mx-auto w-full max-w-7xl px-6 py-10 sm:px-8 lg:px-10">
+      <div class="border border-black/10 bg-[#f4f1ed]/55 px-2 py-6 sm:py-8">
+        <p class="mb-4 text-center text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
+          trusted by industry leaders
+        </p>
+        <CompanyMarquee className="py-1" showTitle={false} lightBackground />
+      </div>
     </section>
 
     <!-- Why sponsor -->
@@ -170,130 +162,56 @@ const partnerStats = [
       </div>
     </section>
 
-    <!-- Testimonials -->
-    <section class="relative mx-auto w-full max-w-7xl px-6 py-20 sm:px-8 lg:px-10">
-      <div class="max-w-3xl">
-        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">social proof</p>
-        <h2 class="mt-6 text-[clamp(2rem,6vw,3.6rem)] font-black leading-[0.98] tracking-[-0.05em] text-black">
-          From industry giants to rising startups.
-        </h2>
-      </div>
+    <!-- Dark close: testimonials flow into footer (single dark-act, no cream bar gap) -->
+    <LandingDarkClose>
+      <section class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
+        <div class="relative z-10 mx-auto w-full max-w-7xl">
+          <div class="mx-auto max-w-4xl text-center">
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">social proof</p>
+            <h2 class="mx-auto mt-6 max-w-3xl text-[clamp(2rem,6vw,3.6rem)] font-black leading-[0.98] tracking-[-0.05em] text-white">
+              From industry giants to rising startups.
+            </h2>
+          </div>
 
-      <div class="mt-12 grid gap-4 sm:gap-6 lg:grid-cols-3">
-        {testimonials.map((t) => (
-          <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-black/12 bg-[#fffaf7] p-7">
-            <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
-            <div class="flex items-start justify-between gap-5">
-              <span class="inline-flex h-12 items-center">
-                <img src={t.logo} alt={t.logoAlt} loading="lazy" class="max-h-10 w-auto object-contain" />
-              </span>
-              <span class="text-5xl font-black leading-none text-[#ff7417]/25">“</span>
-            </div>
-            <blockquote class="mt-8 text-lg font-semibold leading-relaxed text-black/80">
-              {t.quote}
-            </blockquote>
-            <figcaption class="mt-8 flex items-center gap-4 border-t border-black/10 pt-5">
-              <img src={t.avatar} alt={t.name} loading="lazy" class="h-14 w-14 shrink-0 border border-[#ff7417]/45 object-cover" />
-              <span class="min-w-0">
-                <span class="block truncate text-sm font-black text-black">{t.name}</span>
-                <span class="block text-xs font-semibold leading-snug text-black/55">{t.role}</span>
-              </span>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-    </section>
-
-    <!-- Closing CTA (dark act) -->
-    <section class="relative bg-[#0d0a09] px-5 py-24 text-white sm:px-8 sm:py-32 lg:px-10">
-      <div class="mx-auto flex max-w-3xl flex-col items-center text-center">
-        <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">let's build together</p>
-        <h2 class="mt-6 text-[clamp(2.25rem,9vw,4.5rem)] font-black leading-[0.98] text-white">
-          Fund the next 100 founders.
-        </h2>
-        <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/75">
-          Support student founders, hackers, and creators building the next big
-          thing — before the rest of the world notices.
-        </p>
-        <div class="mt-9 flex flex-col gap-4 sm:flex-row">
-          <a href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry" class="group inline-flex items-center justify-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] transition hover:bg-[#ff7417] hover:text-white">
-            Become a partner
-            <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12h14"></path>
-              <path d="m12 5 7 7-7 7"></path>
-            </svg>
-          </a>
-          <a href="mailto:people@devlabs.club?subject=Sponsorship%20Inquiry" class="inline-flex items-center justify-center rounded-full border border-white/25 px-7 py-3.5 text-base font-black text-white/80 transition hover:border-white hover:text-white">
-            Prefer email? Write us.
-          </a>
+          <div class="mt-12 grid gap-4 sm:gap-6 lg:grid-cols-3">
+            {testimonials.map((t) => (
+              <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-7 backdrop-blur-sm sm:min-h-[21rem]">
+                <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
+                <div class="flex items-start justify-between gap-5">
+                  <span class="inline-flex h-12 max-w-full items-center rounded-full border border-white/10 bg-white/[0.04] px-4 sm:min-w-[14rem]">
+                    <img src={t.logo} alt={t.logoAlt} loading="lazy" class="max-h-8 w-auto object-contain brightness-0 invert opacity-80" />
+                  </span>
+                  <span class="text-5xl font-black leading-none text-[#ff7417]/22">“</span>
+                </div>
+                <blockquote class="mt-8 text-lg font-semibold leading-relaxed text-white/88 sm:text-xl">
+                  {t.quote}
+                </blockquote>
+                <figcaption class="mt-8 flex items-center gap-4 border-t border-white/10 pt-5">
+                  <img src={t.avatar} alt={t.name} loading="lazy" class="h-14 w-14 shrink-0 border border-[#ff7417]/45 object-cover shadow-[0_0_0_4px_rgba(255,116,23,0.08)] sm:h-16 sm:w-16" />
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-black text-white">{t.name}</span>
+                    <span class="block text-xs font-semibold leading-snug text-white/52">{t.role}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </LandingDarkClose>
   </main>
+
+  <LandingAsciiInit />
 </Layout>
 
 <style>
-  .devlabs-paper {
-    font-family: Manrope, system-ui, sans-serif;
-    letter-spacing: 0;
+  .sponsor-hero :global(.ascii-star) {
+    opacity: 0.32;
   }
 
-  .ruler-section {
-    position: relative;
-  }
-
-  .ruler-section::before,
-  .ruler-section::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    z-index: 0;
-    width: 100vw;
-    height: 1px;
-    transform: translateX(-50%);
-    background: rgba(5, 5, 5, 0.1);
-    pointer-events: none;
-  }
-
-  .ruler-section::before {
-    top: 0;
-  }
-
-  .ruler-section::after {
-    bottom: 0;
-  }
-
-  .ruler-rails {
-    position: absolute;
-    inset-block: 0;
-    left: 50%;
-    z-index: 0;
-    width: min(calc(100% - 3rem), 80rem);
-    transform: translateX(-50%);
-    border-inline: 1px solid rgba(5, 5, 5, 0.08);
-    pointer-events: none;
-  }
-
-  .ruler-rails::before,
-  .ruler-rails::after {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    width: 1px;
-    background: rgba(5, 5, 5, 0.055);
-  }
-
-  .ruler-rails::before {
-    left: 25%;
-  }
-
-  .ruler-rails::after {
-    right: 25%;
-  }
-
-  @media (max-width: 640px) {
-    .ruler-rails {
-      display: none;
+  @media (max-width: 639px) {
+    .sponsor-hero :global(.ascii-star) {
+      opacity: 0.22;
     }
   }
 </style>

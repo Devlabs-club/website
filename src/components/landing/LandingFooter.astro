@@ -1,0 +1,106 @@
+---
+import { tryForFreeHref } from "../../lib/productCta";
+
+interface Props {
+  ctaHref?: string;
+  /** When true, render only the footer block (for use inside an existing dark-act). */
+  embedded?: boolean;
+}
+
+const { ctaHref = tryForFreeHref, embedded = false } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+{embedded ? (
+  <footer class="relative px-5 pb-10 pt-8 sm:px-8 sm:pb-12 lg:px-10">
+    <div class="relative z-10 mx-auto w-full max-w-7xl">
+      <div data-fluid-panel class="footer-cta relative isolate flex min-h-[22rem] items-center justify-center overflow-hidden rounded-[22px] px-5 py-12 shadow-[0_36px_100px_rgba(0,0,0,0.45)] sm:min-h-[27rem] sm:rounded-[32px] sm:px-10 sm:py-20">
+        <img src="/landing/footer-bg.png" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_78%_at_50%_40%,rgba(40,12,2,0.28),transparent_68%)]" aria-hidden="true"></div>
+
+        <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-2 text-center">
+          <img src="/logo.png" alt="DevLabs" class="h-11 w-11 object-contain brightness-0 invert" />
+          <h2 class="mt-6 text-[clamp(2.25rem,12vw,4rem)] font-black leading-[0.98] text-white drop-shadow-[0_2px_18px_rgba(40,12,2,0.35)]">
+            Stop hiring from resumes
+          </h2>
+          <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/82">
+            Tell us who you need and get a proof-backed shortlist of builders who have already shipped — ready to start this week.
+          </p>
+          <a href={ctaHref} class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
+            Hire with proof
+            <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain" />
+          <span class="text-sm font-bold text-white/65">© {year} DevLabs</span>
+        </div>
+        <div class="flex flex-wrap gap-x-7 gap-y-2 text-sm font-semibold text-white/55">
+          <a href="/auth/signup" class="transition hover:text-[#ff7417]">Hire talent</a>
+          <a href="/get-hired" class="transition hover:text-[#ff7417]">Join as builder</a>
+          <a href="/events" class="transition hover:text-[#ff7417]">Events</a>
+          <a href="/sponsor" class="transition hover:text-[#ff7417]">Sponsor</a>
+          <a href="/momentum" class="transition hover:text-[#ff7417]">Momentum</a>
+          <a href="/about" class="transition hover:text-[#ff7417]">Our story</a>
+          <a href="/discord" class="transition hover:text-[#ff7417]">Discord</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+) : (
+<div class="dark-act relative isolate -mt-[1px] overflow-hidden text-white">
+  <div class="dark-glow pointer-events-none absolute left-1/2 top-0 z-[1] -translate-x-1/2" aria-hidden="true"></div>
+  <svg class="dark-curve pointer-events-none absolute inset-x-0 top-0 z-[2] h-[120px] w-full sm:h-[170px]" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,0 H1440 V52 Q720,200 0,52 Z" fill="#fbf6f3"></path>
+  </svg>
+  <canvas class="ascii-wave dark-wave absolute inset-0 h-full w-full" data-ascii-wave aria-hidden="true"></canvas>
+
+  <footer class="relative px-5 pb-10 pt-8 sm:px-8 sm:pb-12 lg:px-10">
+    <div class="relative z-10 mx-auto w-full max-w-7xl">
+      <div data-fluid-panel class="footer-cta relative isolate flex min-h-[22rem] items-center justify-center overflow-hidden rounded-[22px] px-5 py-12 shadow-[0_36px_100px_rgba(0,0,0,0.45)] sm:min-h-[27rem] sm:rounded-[32px] sm:px-10 sm:py-20">
+        <img src="/landing/footer-bg.png" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
+        <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_72%_78%_at_50%_40%,rgba(40,12,2,0.28),transparent_68%)]" aria-hidden="true"></div>
+
+        <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center px-2 text-center">
+          <img src="/logo.png" alt="DevLabs" class="h-11 w-11 object-contain brightness-0 invert" />
+          <h2 class="mt-6 text-[clamp(2.25rem,12vw,4rem)] font-black leading-[0.98] text-white drop-shadow-[0_2px_18px_rgba(40,12,2,0.35)]">
+            Stop hiring from resumes
+          </h2>
+          <p class="mx-auto mt-5 max-w-md text-[clamp(0.98rem,1.4vw,1.18rem)] font-medium leading-relaxed text-white/82">
+            Tell us who you need and get a proof-backed shortlist of builders who have already shipped — ready to start this week.
+          </p>
+          <a href={ctaHref} class="group mt-9 inline-flex items-center gap-3 rounded-full bg-white px-7 py-3.5 text-base font-black text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white">
+            Hire with proof
+            <svg class="h-4 w-4 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-3">
+          <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain" />
+          <span class="text-sm font-bold text-white/65">© {year} DevLabs</span>
+        </div>
+        <div class="flex flex-wrap gap-x-7 gap-y-2 text-sm font-semibold text-white/55">
+          <a href="/auth/signup" class="transition hover:text-[#ff7417]">Hire talent</a>
+          <a href="/get-hired" class="transition hover:text-[#ff7417]">Join as builder</a>
+          <a href="/events" class="transition hover:text-[#ff7417]">Events</a>
+          <a href="/sponsor" class="transition hover:text-[#ff7417]">Sponsor</a>
+          <a href="/momentum" class="transition hover:text-[#ff7417]">Momentum</a>
+          <a href="/about" class="transition hover:text-[#ff7417]">Our story</a>
+          <a href="/discord" class="transition hover:text-[#ff7417]">Discord</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>
+)}

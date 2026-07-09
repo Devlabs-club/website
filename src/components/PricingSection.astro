@@ -1,12 +1,13 @@
 ---
-const founderHomePath = "/founder/home";
+import { founderAuthSignupHref, FOUNDER_HOME_PATH } from "../lib/productCta";
+
+const founderHomePath = FOUNDER_HOME_PATH;
 const checkoutTarget = (plan: "growth" | "custom", interval?: "monthly" | "yearly") => {
   const params = new URLSearchParams({ checkout_plan: plan });
   if (interval) params.set("checkout_interval", interval);
   return `${founderHomePath}?${params.toString()}`;
 };
-const authTarget = (target: string) =>
-  `/auth/signup?redirect=${encodeURIComponent(`/auth/select-role?redirect=${encodeURIComponent(target)}`)}`;
+const authTarget = (target: string) => founderAuthSignupHref(target);
 
 const plans = [
   {

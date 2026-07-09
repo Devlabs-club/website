@@ -4,9 +4,15 @@
 interface Props {
   className?: string;
   showTitle?: boolean;
+  /** Darken logos for cream/light page backgrounds (matches landing logo grid). */
+  lightBackground?: boolean;
 }
 
-const { className, showTitle = true } = Astro.props;
+const { className, showTitle = true, lightBackground = false } = Astro.props;
+
+const logoImgClass = lightBackground
+  ? "h-10 w-auto max-w-[9.5rem] object-contain opacity-55 grayscale brightness-0 transition-all duration-500 group-hover:opacity-90"
+  : "h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110";
 
 const companies = [
   //deepmind
@@ -93,7 +99,7 @@ const companies = [
 ];
 ---
 
-<div class={`w-full py-12 relative overflow-hidden ${className}`}>
+<div class:list={["w-full py-12 relative overflow-hidden", className, lightBackground && "marquee-light"]}>
   {
     showTitle && (
       <div class="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/3 to-transparent pointer-events-none" />
@@ -132,7 +138,7 @@ const companies = [
             <img
               src={company.logo}
               alt={company.alt}
-              class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
+              class={logoImgClass}
               loading="lazy"
             />
           </a>
@@ -151,7 +157,7 @@ const companies = [
             <img
               src={company.logo}
               alt={company.alt}
-              class="h-10 w-auto opacity-70 group-hover:opacity-100 transition-all duration-500 hover:scale-110"
+              class={logoImgClass}
               loading="lazy"
             />
           </a>
@@ -199,6 +205,10 @@ const companies = [
   /* Add subtle shadow to logo containers */
   .group:hover {
     filter: drop-shadow(0 8px 32px rgba(249, 115, 22, 0.15));
+  }
+
+  .marquee-light .group:hover {
+    filter: drop-shadow(0 6px 18px rgba(5, 5, 5, 0.12));
   }
 
   /* Clean logos without filters */
