@@ -33,7 +33,7 @@ function norm(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-function normalizeSkillTerm(input: string) {
+export function normalizeSkillTerm(input: string) {
   const lower = norm(input);
   if (lower === 'reactjs') return 'react';
   if (lower === 'react native') return 'react native';
@@ -104,17 +104,9 @@ export function buildRoleSkillTiers(opportunity: {
   };
 }
 
-export function collectBuilderSkillTokens(builder: any, projects: any[]) {
-  const tokens = new Set<string>();
-  for (const skill of builder?.rolePreference || []) tokens.add(normalizeSkillTerm(String(skill)));
-  for (const skill of builder?.preferredWorkType || []) tokens.add(normalizeSkillTerm(String(skill)));
-  for (const project of projects) {
-    for (const skill of project?.techStack || []) tokens.add(normalizeSkillTerm(String(skill)));
-    for (const tag of project?.contributionTags || []) tokens.add(normalizeSkillTerm(String(tag)));
-  }
-  if (builder?.headline) tokens.add(norm(String(builder.headline)));
-  return tokens;
-}
+import { collectBuilderSkillTokens } from '@/lib/talent/searchTokens';
+
+export { collectBuilderSkillTokens };
 
 export function matchedSkills(required: string[], tokens: Set<string>) {
   return required.filter((skill) => [...tokens].some((token) => skillsMatch(token, skill)));
