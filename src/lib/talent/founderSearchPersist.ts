@@ -3,6 +3,11 @@ import Shortlist from '@/models/talent/Shortlist';
 import type { DiscoveryResult } from '@/lib/talent/discovery/index';
 import { buildMatchEvidenceFromExplanation } from '@/lib/talent/matchEvidence';
 import { entitlementSnapshot, type FounderEntitlements } from '@/lib/billing/entitlements';
+import {
+  buildRoleSkillTiers,
+  collectBuilderSkillTokens,
+  matchedSkills,
+} from '@/lib/talent/discovery/roleSkillTiers';
 
 function logFounderSearchPersist(event: string, meta: Record<string, unknown> = {}) {
   console.info(`[founder-search-persist] ${event}`, meta);
@@ -11,11 +16,13 @@ function logFounderSearchPersist(event: string, meta: Record<string, unknown> = 
 export async function persistDiscoveryCandidates(params: {
   result: DiscoveryResult;
   opportunityId: string;
+  opportunity?: any;
   founderEmail: string;
   unlockShortlist?: boolean;
   entitlements?: FounderEntitlements;
 }) {
-  const { result, opportunityId, founderEmail, unlockShortlist = true, entitlements } = params;
+  const { result, opportunityId, opportunity, founderEmail, unlockShortlist = true, entitlements } = params;
+  const roleTiers = opportunity ? buildRoleSkillTiers(opportunity) : null;
   const startedAt = Date.now();
   const candidatePayloads = result.candidates.map((candidate) => ({
     builderId: candidate.builderId,
@@ -62,12 +69,20 @@ export async function persistDiscoveryCandidates(params: {
 
   const candidatesWithIds: Record<string, unknown>[] = result.candidates.map((candidate) => {
     const match = matchByBuilder.get(String(candidate.builderId));
+    const domainSkillsMatched = roleTiers
+      ? matchedSkills(
+          roleTiers.primarySkills,
+          collectBuilderSkillTokens(candidate.builder, candidate.projects || [])
+        ).slice(0, 6)
+      : [];
     return {
       builderId: candidate.builderId,
       matchRecordId: match?._id || null,
       matchLabel: candidate.matchLabel,
       matchScore: Math.round(candidate.overallFit * 100),
-      topSkills: candidate.builder.rolePreference?.slice(0, 4) || [],
+      topSkills: domainSkillsMatched.length
+        ? domainSkillsMatched
+        : candidate.builder.rolePreference?.slice(0, 4) || [],
       proofSummary: candidate.explanation.strongestSignals[0] || '',
       whyTheyMatch: candidate.explanation.strongestSignals.join('; '),
       requirementFindings: candidate.explanation.requirementFindings || [],

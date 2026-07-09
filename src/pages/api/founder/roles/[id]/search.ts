@@ -9,6 +9,7 @@ import ProjectRecord from '@/models/talent/ProjectRecord';
 import MatchRecord from '@/models/talent/MatchRecord';
 import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
 import { getFounderEntitlements } from '@/lib/billing/entitlements';
+import { repairShortlistMissingBuilders } from '@/lib/talent/shortlistRepair';
 
 /** Run the talent discovery pipeline for a role and return ranked builders. */
 export const POST: APIRoute = async ({ request, locals, params }) => {
@@ -35,8 +36,21 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
   }
 
   const job = await JobPosting.findOne({ _id: id, founderEmail: identity.email });
-  const shortlist = await Shortlist.findOne({ opportunityId: id }).lean();
+  let shortlist = await Shortlist.findOne({ opportunityId: id }).lean();
   const { entitlements } = await getFounderEntitlements(identity);
+  if (shortlist && job) {
+    const expectedLimit = job.profileLimitApplied ?? entitlements.profileLimitPerRole;
+    if (expectedLimit !== null && expectedLimit !== undefined) {
+      shortlist = await repairShortlistMissingBuilders({
+        shortlist,
+        opportunity: job,
+        founderEmail: identity.email,
+        entitlements,
+        BuilderProfile,
+        ProjectRecord,
+      });
+    }
+  }
   const recommendations = shortlist
     ? (await buildFullCandidatesForShortlist(shortlist, job, {
         BuilderProfile,

@@ -47,7 +47,7 @@ export default function FounderCandidateCard({
           </span>
           <span className="block text-[10px] text-white/45 uppercase tracking-wider">Best fit</span>
           <span className="block text-xs text-white/70 max-w-[140px]">
-            {candidate.topSkills.slice(0, 2).join(' · ') || candidate.headline || '—'}
+            {(candidate.domainSkillsMatched?.length ? candidate.domainSkillsMatched : candidate.topSkills).slice(0, 2).join(' · ') || candidate.headline || '—'}
           </span>
         </div>
       </div>
@@ -78,8 +78,12 @@ export default function FounderCandidateCard({
       ) : null}
 
       <div className="text-sm text-white/70">
+        <span className="text-white/45 text-xs uppercase tracking-wider">Skill fit · </span>
+        {candidate.matchLabel || 'Match'} ({Math.round(candidate.matchScore || 0)}%)
+      </div>
+      <div className="text-sm text-white/60">
         <span className="text-white/45 text-xs uppercase tracking-wider">Availability · </span>
-        {candidate.availability.availableNow ? 'Available now' : 'Limited availability'}
+        {candidate.availability?.availableNow ? 'Available now' : 'Not confirmed — ask in intro'}
       </div>
 
       {candidate.workTypes.length > 0 ? (

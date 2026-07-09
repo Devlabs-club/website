@@ -6,8 +6,9 @@ import JobPosting from '@/models/founder/JobPosting';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
 import IntroRequest from '@/models/talent/IntroRequest';
-import { notifyBuilderIntroReceived } from '@/lib/talent/introFlow';
-import { seedThreadFromIntro } from '@/lib/talent/messageFlow';
+import MatchRecord from '@/models/talent/MatchRecord';
+import { deliverIntroRequest } from '@/lib/talent/introFlow';
+import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 import { canUseLifecycle, entitlementErrorResponse, getFounderEntitlements, recordUsageEvent } from '@/lib/billing/entitlements';
 
 /** Founder invites a recommended builder to a role (creates an intro request). */
@@ -59,12 +60,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
     (typeof body.message === 'string' && body.message.trim()) ||
     `${identity.founderName} would like to talk to you about ${roleTitle} at ${company}.`;
 
+  const match = await MatchRecord.findOne({ opportunityId: jobId, builderId });
+  if (match) {
+    syncMatchPipelineStatus(match, 'intro_requested');
+    await match.save();
+  }
+
   const intro = await IntroRequest.findOneAndUpdate(
     { opportunityId: jobId, builderId },
     {
       $setOnInsert: {
         opportunityId: jobId,
         builderId,
+        matchRecordId: match?._id || null,
         founderEmail: identity.email,
         founderName: identity.founderName,
         introMessage,
@@ -74,20 +82,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
     { upsert: true, new: true }
   );
 
+  let threadId: string | null = null;
   if ((builder as any).email) {
-    await notifyBuilderIntroReceived({
+    const thread = await deliverIntroRequest({
+      intro,
       builderId,
       builderEmail: (builder as any).email,
       founderName: identity.founderName,
       founderEmail: identity.email,
       roleTitle,
       company,
-      introRequestId: String(intro._id),
       opportunityId: jobId,
-    }).catch((err) => console.error('[founder/invite] notify failed', err));
+    }).catch((err) => {
+      console.error('[founder/invite] deliver intro failed', err);
+      return null;
+    });
+    threadId = thread ? String(thread._id) : null;
   }
-
-  await seedThreadFromIntro(intro);
 
   await recordUsageEvent({
     identity,
@@ -98,7 +109,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     metadata: { source: 'founder_invite_api' },
   });
 
-  return okJson({ introId: String(intro._id), status: intro.status });
+  return okJson({
+    introId: String(intro._id),
+    threadId,
+    status: intro.status,
+    matchStatus: match?.status || 'intro_requested',
+  });
 };
 
 export const prerender = false;

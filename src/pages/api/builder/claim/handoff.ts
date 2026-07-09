@@ -3,14 +3,14 @@ import { connectAdminDB } from '@/lib/mongodb';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { verifyClaimToken } from '@/lib/messaging/claimToken';
-import { createImessageVerifyToken, buildImessageHandoffUrls } from '@/lib/builderImessageHandoff';
+import { buildClaimHandoffResponse } from '@/lib/builderImessageHandoff';
 import { findClaimByRawToken } from '@/lib/builderClaim';
 
 function json(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 }
 
-/** GET — iMessage handoff for email-invite flow (?t=signedToken). */
+/** GET — iMessage handoff for signed email links (`?t=`) or raw claim tokens in the path. */
 export const GET: APIRoute = async ({ url, params, locals }) => {
   const runtime = runtimeEnvFromLocals(locals);
   const signedFromQuery = url.searchParams.get('t') || '';
@@ -48,27 +48,17 @@ export const GET: APIRoute = async ({ url, params, locals }) => {
     phoneVerified = Boolean((builder as any)?.phoneVerifiedAt);
   }
 
-  const signed = createImessageVerifyToken(
-    {
-      email,
-      name: name || (builder as any)?.name,
-      builderId: builderId || ((builder as any)?._id ? String((builder as any)._id) : undefined),
-    },
-    runtime
-  );
-  const handoff = buildImessageHandoffUrls({ token: signed, runtime });
+  const body = await buildClaimHandoffResponse({
+    email,
+    name: name || (builder as any)?.name,
+    builderId: builderId || ((builder as any)?._id ? String((builder as any)._id) : undefined),
+    phoneVerified,
+    runtime,
+  });
 
   return json({
-    success: true,
-    builderName: (builder as any)?.name || name || email.split('@')[0],
-    builderEmail: email,
-    phoneVerified,
-    messageBody: handoff.messageBody,
-    imessageUrl: handoff.imessageUrl,
-    smsUrl: handoff.smsUrl,
-    agentPhone: handoff.phone,
-    imessageAddress: handoff.imessageAddress,
-    agentContact: handoff.contact?.address || handoff.phone || handoff.imessageAddress || null,
+    ...body,
+    builderName: (builder as any)?.name || body.builderName,
   });
 };
 

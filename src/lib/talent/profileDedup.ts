@@ -67,6 +67,29 @@ function pickString(current: unknown, incoming: unknown) {
   return b.length > a.length ? b : a;
 }
 
+function compactLogo(value: unknown) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+function logoMatchesCompany(logoUrl: unknown, company: unknown) {
+  const logo = compactLogo(logoUrl);
+  const name = compactLogo(company);
+  if (!logo || !name || name.length < 4) return false;
+  return logo.includes(name) || name.includes(logo);
+}
+
+function pickCompanyLogo(current: unknown, incoming: unknown, company: unknown) {
+  const a = typeof current === 'string' ? current.trim() : '';
+  const b = typeof incoming === 'string' ? incoming.trim() : '';
+  if (!a) return b || null;
+  if (!b) return a;
+
+  const aMatches = logoMatchesCompany(a, company);
+  const bMatches = logoMatchesCompany(b, company);
+  if (bMatches && !aMatches) return b;
+  return pickString(a, b);
+}
+
 function pickTitle(current: unknown, incoming: unknown) {
   const a = typeof current === 'string' ? current.trim() : '';
   const b = typeof incoming === 'string' ? incoming.trim() : '';
@@ -135,7 +158,7 @@ function mergeExperience(a: any, b: any) {
     ...b,
     title: pickTitle(a.title, b.title),
     company: pickString(a.company, b.company) || 'Independent',
-    companyLogoUrl: pickString(a.companyLogoUrl, b.companyLogoUrl),
+    companyLogoUrl: pickCompanyLogo(a.companyLogoUrl, b.companyLogoUrl, pickString(a.company, b.company)),
     companyLinkedInUrl: pickString(a.companyLinkedInUrl, b.companyLinkedInUrl),
     employmentType: pickString(a.employmentType, b.employmentType),
     location: pickString(a.location, b.location),

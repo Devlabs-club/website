@@ -1,4 +1,5 @@
-export type HireType = 'full_time' | 'internship' | 'either';
+import { buildRoleSkillTiers } from './roleSkillTiers';
+import type { RoleSkillTiers } from './roleSkillTiers';
 
 export type SearchMode = 'broad' | 'balanced' | 'strict';
 
@@ -62,6 +63,36 @@ export const BACKEND_ENGINEER_WEIGHTS: RankingWeights = {
   missingEvidencePenalty: 0.10,
 };
 
+export const MOBILE_ENGINEER_WEIGHTS: RankingWeights = {
+  deterministicSkillFit: 0.34,
+  semanticRoleFit: 0.12,
+  semanticProjectFit: 0.12,
+  proofStrength: 0.22,
+  contributionClarity: 0.10,
+  founderPreferenceFit: 0.04,
+  hireTypeFit: 0.03,
+  availabilityFit: 0.02,
+  profileQuality: 0.03,
+  startupReadiness: 0.05,
+  negativeSignalPenalty: 0.10,
+  missingEvidencePenalty: 0.05,
+};
+
+export const AI_ENGINEER_WEIGHTS: RankingWeights = {
+  deterministicSkillFit: 0.22,
+  semanticRoleFit: 0.14,
+  semanticProjectFit: 0.14,
+  proofStrength: 0.20,
+  contributionClarity: 0.10,
+  founderPreferenceFit: 0.05,
+  hireTypeFit: 0.03,
+  availabilityFit: 0.04,
+  profileQuality: 0.04,
+  startupReadiness: 0.06,
+  negativeSignalPenalty: 0.10,
+  missingEvidencePenalty: 0.05,
+};
+
 export type SearchStrategy = {
   opportunityId: string;
   founderId: string;
@@ -74,6 +105,7 @@ export type SearchStrategy = {
   semanticConcepts: string[];
   searchMode: SearchMode;
   weights: RankingWeights;
+  roleSkillTiers: RoleSkillTiers;
   createdBy: 'agent' | 'founder';
   createdAt: Date;
 };
@@ -83,6 +115,7 @@ export type OpportunityInput = {
   roleTitle?: string | null;
   builderWillDo?: string | null;
   skillsNeeded?: string[] | null;
+  originalSkillsNeeded?: string[] | null;
   niceToHaveSkills?: string[] | null;
   requirements?: string[] | null;
   searchRequirements?: Array<{ text?: string | null; importance?: 'must' | 'nice' | string | null }> | null;
@@ -108,11 +141,15 @@ export function buildSearchStrategy(params: {
   const niceToHave = opportunity.niceToHaveSkills ?? [];
   const requirementTexts = normalizeRequirementTexts(opportunity);
 
+  const roleSkillTiers = buildRoleSkillTiers(opportunity);
+  const coreSkills = opportunity.originalSkillsNeeded?.length
+    ? opportunity.originalSkillsNeeded
+    : skills;
   const primaryQuery = [roleTitle, builderWillDo, ...requirementTexts.slice(0, 2)].filter(Boolean).join(' — ');
 
-  const expandedQueries = buildExpandedQueries(roleTitle, builderWillDo, skills, requirementTexts);
-  const mustHaveSignals = skills.slice(0, 5);
-  const niceToHaveSignals = niceToHave.slice(0, 5);
+  const expandedQueries = buildExpandedQueries(roleTitle, builderWillDo, coreSkills, requirementTexts);
+  const mustHaveSignals = roleSkillTiers.primarySkills.slice(0, 8);
+  const niceToHaveSignals = uniqueList([...niceToHave, ...roleSkillTiers.secondarySkills]).slice(0, 8);
   const proofSignals = buildProofSignals(roleTitle, skills, builderWillDo, requirementTexts);
   const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo, requirementTexts);
   const negativeSignals: string[] = [];
@@ -131,6 +168,7 @@ export function buildSearchStrategy(params: {
     semanticConcepts,
     searchMode,
     weights,
+    roleSkillTiers,
     createdBy: 'agent',
     createdAt: new Date(),
   };
@@ -243,12 +281,20 @@ function buildSemanticConcepts(roleTitle: string, skills: string[], builderWillD
   return Array.from(concepts).slice(0, 8);
 }
 
+function uniqueList(values: Array<string | null | undefined>) {
+  return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
+}
+
 function selectWeights(roleTitle: string, hireType: string, searchMode: SearchMode): RankingWeights {
   const lower = roleTitle.toLowerCase();
+  const isMobile = /mobile|ios|android|flutter|react native|swift|expo/i.test(lower);
+  const isAI = /ai|llm|machine learning|ml engineer/i.test(lower);
   const isBackendHeavy = /backend|infrastructure|devops|data engineer|platform/i.test(lower);
   const isMVP = /mvp|prototype|sprint|rapid|hackathon/i.test(lower);
 
-  let base = isBackendHeavy ? BACKEND_ENGINEER_WEIGHTS
+  let base = isMobile ? MOBILE_ENGINEER_WEIGHTS
+    : isAI ? AI_ENGINEER_WEIGHTS
+    : isBackendHeavy ? BACKEND_ENGINEER_WEIGHTS
     : isMVP ? MVP_SPRINT_WEIGHTS
     : DEFAULT_WEIGHTS;
 

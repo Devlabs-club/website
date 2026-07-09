@@ -1,6 +1,13 @@
 import { mapTrialProjectFromMatch, normalizeTrialProject, trialProjectToSummary } from '@/lib/talent/founderTrialProject';
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
+import {
+  buildRoleSkillTiers,
+  collectBuilderSkillTokens,
+  matchedSkills,
+} from '@/lib/talent/discovery/roleSkillTiers';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
+import MessageThread from '@/models/talent/MessageThread';
+import Message from '@/models/talent/Message';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import type { FounderEntitlements } from '@/lib/billing/entitlements';
 
@@ -867,8 +874,24 @@ export async function buildFullCandidateCard(params: {
   opportunity: any;
   hidden?: boolean;
   agentWrapped?: { report?: AgentWrappedReport } | null;
+  threadId?: string | null;
+  builderEmail?: string | null;
+  hasBuilderReply?: boolean;
+  lastEmailPreview?: string | null;
 }) {
-  const { builder, projects, match, shortlistCandidate, opportunity, hidden, agentWrapped } = params;
+  const {
+    builder,
+    projects,
+    match,
+    shortlistCandidate,
+    opportunity,
+    hidden,
+    agentWrapped,
+    threadId = null,
+    builderEmail = null,
+    hasBuilderReply = false,
+    lastEmailPreview = null,
+  } = params;
   const teaserMode = opportunity?.visibilityMode === 'teaser' || opportunity?.traceAccess === 'teaser' || opportunity?.introAccess === 'locked';
   const traceLocked = opportunity?.traceAccess !== 'full';
   const availability = builder.availability || {};
@@ -877,6 +900,11 @@ export async function buildFullCandidateCard(params: {
       ['admin_verified', 'founder_verified', 'peer_confirmed', 'builder_confirmed'].indexOf(s);
     return rank(b.verificationStatus || '') - rank(a.verificationStatus || '');
   });
+  const roleTiers = buildRoleSkillTiers(opportunity);
+  const domainSkillsMatched = matchedSkills(
+    roleTiers.primarySkills,
+    collectBuilderSkillTokens(builder, sortedProjects)
+  ).slice(0, 6);
 
   const relevantProjects = sortedProjects.slice(0, 4).map(mapProjectForFounder);
   const founderSignals = buildFounderSignals(builder, sortedProjects, match, shortlistCandidate);
@@ -919,12 +947,16 @@ export async function buildFullCandidateCard(params: {
     },
     workTypes: Array.isArray(builder.preferredWorkType) ? builder.preferredWorkType : [],
     experiences: Array.isArray(builder.experiences) ? builder.experiences.slice(0, 5) : [],
-    topSkills: shortlistCandidate?.topSkills?.length
-      ? shortlistCandidate.topSkills
-      : [
-          ...(builder.rolePreference || []),
-          ...projects.flatMap((p: any) => p.techStack || []).slice(0, 4),
-        ].slice(0, 8),
+    topSkills: domainSkillsMatched.length
+      ? domainSkillsMatched
+      : shortlistCandidate?.topSkills?.length
+        ? shortlistCandidate.topSkills
+        : [
+            ...(builder.rolePreference || []),
+            ...projects.flatMap((p: any) => p.techStack || []).slice(0, 4),
+          ].slice(0, 8),
+    domainSkillsMatched,
+    availabilityNote: availability.availableNow ? 'Available now' : 'Availability not confirmed',
     founderClarityLabel: founderClarityLabel(builder),
     proofStrengthLabel: proofStrengthLabel(builder),
     builderVerificationLabel: verificationLabelForStatus(builder.verificationStatus, 'builder'),
@@ -947,6 +979,10 @@ export async function buildFullCandidateCard(params: {
     callCompletedAt: match?.callCompletedAt
       ? new Date(match.callCompletedAt).toISOString()
       : null,
+    threadId,
+    builderEmail,
+    hasBuilderReply,
+    lastEmailPreview,
   };
 
   if (!teaserMode) {
@@ -1068,13 +1104,19 @@ export async function buildFullCandidatesForShortlist(
   const candidateEntries = shortlist.candidates || [];
   const builderIds = candidateEntries.map((c: any) => c.builderId);
 
-  const [builders, projects, matches] = await Promise.all([
+  const [builders, projects, matches, threads] = await Promise.all([
     deps.BuilderProfile.find({ _id: { $in: builderIds } }).lean(),
     deps.ProjectRecord.find({ builderId: { $in: builderIds } }).lean(),
     deps.MatchRecord.find({
       opportunityId: shortlist.opportunityId,
       builderId: { $in: builderIds },
     }).lean(),
+    MessageThread.find({
+      opportunityId: shortlist.opportunityId,
+      builderId: { $in: builderIds },
+    })
+      .select('_id builderId lastMessageAt lastMessagePreview')
+      .lean(),
   ]);
 
   const builderById = new Map(builders.map((b: any) => [String(b._id), b]));
@@ -1085,6 +1127,22 @@ export async function buildFullCandidatesForShortlist(
     projectsByBuilder.get(key)!.push(p);
   }
   const matchByBuilder = new Map(matches.map((m: any) => [String(m.builderId), m]));
+  const threadByBuilder = new Map(threads.map((t: any) => [String(t.builderId), t]));
+  const threadIds = threads.map((t: any) => t._id);
+  const builderReplyCounts = threadIds.length
+    ? await Message.aggregate([
+        {
+          $match: {
+            threadId: { $in: threadIds },
+            senderType: 'builder',
+          },
+        },
+        { $group: { _id: '$threadId', count: { $sum: 1 } } },
+      ])
+    : [];
+  const builderRepliesByThread = new Map(
+    builderReplyCounts.map((row: any) => [String(row._id), row.count as number])
+  );
   const entitlementAccess = options?.entitlements;
 
   const wrappedDocs = builderIds.length
@@ -1104,6 +1162,9 @@ export async function buildFullCandidatesForShortlist(
       const builder = builderById.get(builderId);
       if (!builder) return null;
       const wrappedDoc = wrappedByBuilder.get(builderId);
+      const thread = threadByBuilder.get(builderId);
+      const threadId = thread?._id ? String(thread._id) : null;
+      const builderReplyCount = threadId ? builderRepliesByThread.get(threadId) || 0 : 0;
       return buildFullCandidateCard({
         builder,
         projects: projectsByBuilder.get(builderId) || [],
@@ -1119,6 +1180,10 @@ export async function buildFullCandidatesForShortlist(
         },
         hidden: hiddenSet.has(builderId),
         agentWrapped: wrappedDoc?.report ? { report: wrappedDoc.report as AgentWrappedReport } : null,
+        threadId,
+        builderEmail: builder.email || null,
+        hasBuilderReply: builderReplyCount > 0,
+        lastEmailPreview: thread?.lastMessagePreview || null,
       });
     }));
 

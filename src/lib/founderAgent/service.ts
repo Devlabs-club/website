@@ -37,6 +37,13 @@ import {
   getFounderUsage,
   recordUsageEvent,
 } from '@/lib/billing/entitlements';
+import {
+  BUILDER_SEARCH_SELECT,
+  hydrateSearchableBuilderPool,
+  profileLimitPoolTarget,
+  projectEvidenceSortScore,
+  searchableBuilderFilter,
+} from '@/lib/talent/searchableBuilderPool';
 
 const User: any = mongoose.models.User;
 
@@ -255,40 +262,8 @@ const TOOLS: ToolDefinition[] = [
   },
 ];
 
-const SEARCHABLE_BUILDER_STATUSES = [
-  'imported_unverified',
-  'builder_confirmed',
-  'peer_confirmed',
-  'admin_verified',
-  'founder_verified',
-];
-
-const SEARCHABLE_VISIBILITY_STATUSES = ['public', 'matched_only', null];
-
-const BUILDER_SEARCH_SELECT = [
-  'name',
-  'headline',
-  'rolePreference',
-  'preferredWorkType',
-  'links',
-  'availability',
-  'hiringIntent',
-  'profileCompletion',
-  'profileQuality',
-  'verificationStatus',
-  'visibilityStatus',
-  'universityOrCompany',
-  'education',
-  'experiences',
-  'updatedAt',
-].join(' ');
-
 function buildSearchableBuilderFilter(extra: Record<string, unknown> = {}) {
-  return {
-    verificationStatus: { $in: SEARCHABLE_BUILDER_STATUSES },
-    visibilityStatus: { $in: SEARCHABLE_VISIBILITY_STATUSES },
-    ...extra,
-  };
+  return searchableBuilderFilter(extra);
 }
 
 function escapeRegex(value: string) {
@@ -364,17 +339,6 @@ async function retrieveKeywordBuilderCandidates(opportunity: any, strategy: Retu
     projectHits: projectHits.length,
     durationMs: Date.now() - startedAt,
   };
-}
-
-function projectEvidenceSortScore(project: any) {
-  let score = 0;
-  if (['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified'].includes(project?.verificationStatus)) score += 4;
-  if (project?.links?.github) score += 3;
-  if (project?.links?.demo || project?.links?.devpost) score += 3;
-  if (project?.builderContribution && String(project.builderContribution).length > 30) score += 2;
-  if (Array.isArray(project?.techStack) && project.techStack.length > 0) score += 1;
-  if (project?.description && String(project.description).length > 50) score += 1;
-  return score;
 }
 
 function okJson(data: unknown, status = 200) {
@@ -952,7 +916,9 @@ async function runSearchForJob(
   const { entitlements } = await getFounderEntitlements(identity);
   const oppPlain = typeof job.toObject === 'function' ? job.toObject() : job;
   const jobId = String(oppPlain._id || job._id || '');
-  const candidateResultLimit = entitlements.profileLimitPerRole ?? 50;
+  const profileLimit = entitlements.profileLimitPerRole ?? 50;
+  const candidateResultLimit = profileLimit;
+  const poolTarget = profileLimitPoolTarget(entitlements.profileLimitPerRole);
   logFounderAgent('search_talent:start', {
     founderId: identity.founderId,
     founderEmail: identity.email,
@@ -960,7 +926,7 @@ async function runSearchForJob(
     title: oppPlain.title || oppPlain.roleTitle,
     searchMode,
   });
-  if (!Array.isArray(oppPlain.matchingSkills) || oppPlain.matchingSkills.length === 0) {
+  if (!Array.isArray(oppPlain.matchingSkills) || oppPlain.matchingSkills.length === 0 || options.force) {
     logFounderAgent('search_talent:shape_job:start', { jobId });
     const shaped = await shapeJobForTalentPool({
       title: oppPlain.title || oppPlain.roleTitle,
@@ -973,7 +939,7 @@ async function runSearchForJob(
         ...searchRequirementTexts(oppPlain.searchRequirements),
       ],
       responsibilities: oppPlain.responsibilities || oppPlain.deliverables,
-      companyContext: [oppPlain.company, oppPlain.startupSummary, oppPlain.industry].filter(Boolean).join(' '),
+      companyContext: [oppPlain.company, oppPlain.industry].filter(Boolean).join(' '),
     });
     Object.assign(job, {
       originalSkillsNeeded: shaped.originalSkillsNeeded,
@@ -985,7 +951,7 @@ async function runSearchForJob(
     await job.save();
     Object.assign(oppPlain, {
       originalSkillsNeeded: shaped.originalSkillsNeeded,
-      skillsNeeded: shaped.matchingSkills.length ? shaped.matchingSkills : shaped.skillsNeeded,
+      skillsNeeded: shaped.skillsNeeded,
       niceToHaveSkills: shaped.niceToHaveSkills,
       matchingSkills: shaped.matchingSkills,
       poolFitMetadata: shaped.poolFitMetadata,
@@ -1079,6 +1045,23 @@ async function runSearchForJob(
     });
   } catch (error) {
     logFounderAgentError('search_talent:index_retrieval:error', error, { jobId });
+  }
+
+  if (builders.length > 0) {
+    const hydrated = await hydrateSearchableBuilderPool({
+      seedBuilders: builders,
+      targetPoolSize: poolTarget,
+      BuilderProfile,
+      ProjectRecord,
+    });
+    builders = hydrated.builders;
+    projectsByBuilder = hydrated.projectsByBuilder;
+    allProjects = hydrated.allProjects;
+    logFounderAgent('search_talent:index_hydrate:done', {
+      jobId,
+      hydratedBuilderCount: builders.length,
+      poolTarget,
+    });
   }
 
   if (!builders.length) {
@@ -1226,6 +1209,23 @@ async function runSearchForJob(
     for (const projects of projectsByBuilder.values()) {
       projects.sort((a, b) => projectEvidenceSortScore(b) - projectEvidenceSortScore(a));
     }
+
+    if (builders.length < poolTarget) {
+      const hydrated = await hydrateSearchableBuilderPool({
+        seedBuilders: builders,
+        targetPoolSize: poolTarget,
+        BuilderProfile,
+        ProjectRecord,
+      });
+      builders = hydrated.builders;
+      projectsByBuilder = hydrated.projectsByBuilder;
+      allProjects = hydrated.allProjects;
+      logFounderAgent('search_talent:fallback_hydrate:done', {
+        jobId,
+        hydratedBuilderCount: builders.length,
+        poolTarget,
+      });
+    }
   }
 
   const feedbackDocs = await CandidateFeedback.find({
@@ -1262,6 +1262,7 @@ async function runSearchForJob(
           generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 900 })
       : undefined,
     semanticScores,
+    skipSemanticScoring: retrievalMode === 'search_index' || Boolean(semanticScores.size),
     limit: candidateResultLimit,
   });
   const limitedCandidates = applyCandidateLimit(result.candidates, entitlements);
@@ -1296,6 +1297,7 @@ async function runSearchForJob(
   const { shortlistDoc } = await persistDiscoveryCandidates({
     result: limitedResult,
     opportunityId: String(job._id),
+    opportunity: oppPlain,
     founderEmail: identity.email,
     entitlements,
   });
@@ -2111,19 +2113,52 @@ export async function getFounderAgentChatState(identity: FounderIdentity, params
 }
 
 /**
- * Bucket a per-status match count map into the pipeline stages shown on the
- * founder home role tiles. Statuses are cumulative — a hired builder was also
- * contacted and accepted — so later stages roll up into the earlier ones.
+ * Pipeline counts for builders on the role shortlist only (non-cumulative stages).
+ * Avoids inflating "Recommended" with every match record ever written during search/backfill.
  */
-function pipelineCountsFromStatusMap(statusCounts: Record<string, number>) {
-  const sum = (keys: string[]) => keys.reduce((total, key) => total + (statusCounts[key] || 0), 0);
+function pipelineCountsForShortlist(
+  statusCounts: Record<string, number>,
+  shortlist: { candidates?: unknown[]; totalMatches?: number; strongMatchCount?: number } | null | undefined
+) {
+  const n = (key: string) => statusCounts[key] || 0;
+  const shortlistSize = shortlist?.totalMatches ?? (Array.isArray(shortlist?.candidates) ? shortlist.candidates.length : 0);
+  const inPipeline =
+    n('intro_requested') +
+    n('builder_interested') +
+    n('interviewing') +
+    n('trial') +
+    n('offer') +
+    n('hired');
+
   return {
-    recommended: sum(['generated', 'approved', 'intro_requested', 'builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
-    contacted: sum(['intro_requested', 'builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
-    accepted: sum(['builder_interested', 'interviewing', 'trial', 'offer', 'hired']),
-    trial: sum(['trial']),
-    hired: sum(['hired']),
+    recommended: Math.max(shortlistSize - inPipeline, n('generated') + n('approved')),
+    strongMatches: shortlist?.strongMatchCount ?? 0,
+    contacted: n('intro_requested'),
+    accepted: n('builder_interested') + n('interviewing'),
+    trial: n('trial') + n('offer'),
+    hired: n('hired'),
   };
+}
+
+function roleStatusPresentation(status: string | null | undefined, hasSearchResults: boolean) {
+  const key = String(status || 'draft');
+  if (!hasSearchResults) {
+    return { label: 'Setting up', tone: 'neutral' as const };
+  }
+  switch (key) {
+    case 'hired':
+      return { label: 'Hired', tone: 'success' as const };
+    case 'interviewing':
+      return { label: 'Interviewing', tone: 'active' as const };
+    case 'shortlisted':
+      return { label: 'Review builders', tone: 'active' as const };
+    case 'matching':
+      return { label: 'Sourcing', tone: 'active' as const };
+    case 'closed':
+      return { label: 'Closed', tone: 'neutral' as const };
+    default:
+      return { label: 'In progress', tone: 'active' as const };
+  }
 }
 
 export async function getFounderJobs(identity: FounderIdentity) {
@@ -2142,11 +2177,21 @@ export async function getFounderJobs(identity: FounderIdentity) {
     getFounderUsage(identity),
   ]);
 
-  // Real pipeline counts per role, aggregated from the match records.
+  // Shortlist + pipeline counts scoped to builders the founder actually sees.
   const jobIds = jobs.map((job: any) => job._id);
-  const matchCounts = jobIds.length
+  const shortlists = jobIds.length
+    ? await Shortlist.find({ opportunityId: { $in: jobIds } })
+      .select('opportunityId candidates totalMatches strongMatchCount profileLimitApplied previewGeneratedAt')
+      .lean()
+    : [];
+  const shortlistByJob = new Map(shortlists.map((shortlist: any) => [String(shortlist.opportunityId), shortlist]));
+  const shortlistBuilderIds = shortlists.flatMap((shortlist: any) =>
+    (shortlist.candidates || []).map((candidate: any) => candidate.builderId).filter(Boolean)
+  );
+
+  const matchCounts = jobIds.length && shortlistBuilderIds.length
     ? await MatchRecord.aggregate([
-        { $match: { opportunityId: { $in: jobIds } } },
+        { $match: { opportunityId: { $in: jobIds }, builderId: { $in: shortlistBuilderIds } } },
         { $group: { _id: { opportunityId: '$opportunityId', status: '$status' }, count: { $sum: 1 } } },
       ])
     : [];
@@ -2159,10 +2204,18 @@ export async function getFounderJobs(identity: FounderIdentity) {
   }
 
   return {
-    jobs: jobs.map((job: any) => ({
-      ...serializeJob(job),
-      pipeline: pipelineCountsFromStatusMap(statusByJob.get(String(job._id)) || {}),
-    })),
+    jobs: jobs.map((job: any) => {
+      const shortlist = shortlistByJob.get(String(job._id));
+      const hasSearchResults = Boolean(shortlist?.previewGeneratedAt);
+      return {
+        ...serializeJob(job),
+        statusPresentation: roleStatusPresentation(job.status, hasSearchResults),
+        recommendationLimit: job.profileLimitApplied ?? shortlist?.profileLimitApplied ?? null,
+        strongMatchCount: shortlist?.strongMatchCount ?? 0,
+        lastSearchAt: job.lastSearchAt || shortlist?.previewGeneratedAt || null,
+        pipeline: pipelineCountsForShortlist(statusByJob.get(String(job._id)) || {}, shortlist),
+      };
+    }),
     sessions: sessions.map(serializeSession),
     company: serializeCompany(company),
     billing: {

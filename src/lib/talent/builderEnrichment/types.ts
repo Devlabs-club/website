@@ -51,7 +51,14 @@ export type EnrichedProfileDraft = {
     school?: string | null;
     degree?: string | null;
     field?: string | null;
+    dateRange?: string | null;
+    startDateLabel?: string | null;
+    endDateLabel?: string | null;
+    graduationYear?: number | null;
+    schoolLogoUrl?: string | null;
+    schoolLinkedInUrl?: string | null;
     source?: string | null;
+    sourceId?: string | null;
   }>;
   links?: {
     github?: string | null;

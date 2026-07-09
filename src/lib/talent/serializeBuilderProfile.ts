@@ -12,7 +12,23 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
     return confB - confA;
   });
   const featuredProjects = sortedProjects.slice(0, 3);
+  const insightProjects = sortedProjects.slice(0, 6);
   const additionalGithubProjects = Number(githubShowcase.additionalProjectCount || 0);
+  const inferredTechStack = mergeStringList(
+    [],
+    [
+      ...(profile.skills || []),
+      ...displayProjects.flatMap((project: any) => project.techStack || []),
+      ...(profile.experiences || []).flatMap((experience: any) => experience.skills || []),
+    ]
+  ).slice(0, 24);
+  const enrichmentSources = (profile.enrichmentInsights?.sourcesCompleted || [])
+    .map((row: any) => ({
+      source: String(row?.source || ''),
+      projectCount: typeof row?.projectCount === 'number' ? row.projectCount : 0,
+    }))
+    .filter((row: { source: string }) => row.source);
+  const profileQuality = profile.profileQuality || {};
 
   return {
     id: String(profile._id),
@@ -23,16 +39,32 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
     bio: profile.bio || null,
     location: profile.location || null,
     universityOrCompany: profile.universityOrCompany || null,
+    graduationYear: profile.graduationYear || null,
     education: profile.education || [],
     experiences: mergeExperiences(profile.experiences || [], []),
     rolePreference: mergeStringList(profile.rolePreference || [], []),
     skills: mergeStringList(profile.skills || [], []),
+    workAuthorization: profile.workAuthorization || null,
     preferredWorkType: mergeStringList(profile.preferredWorkType || [], []),
     links: profile.links || {},
     availability: profile.availability || {},
     verificationStatus: profile.verificationStatus || 'imported_unverified',
     visibilityStatus: profile.visibilityStatus || 'matched_only',
     founderHighlights: profile.enrichmentInsights?.founderHighlights || [],
+    enrichmentSources,
+    inferredTechStack,
+    totalProjectCount: displayProjects.length,
+    profileQuality: {
+      overallScore: Number(profileQuality.overallScore || 0),
+      label: profileQuality.label || null,
+      oneLineSummary: profileQuality.oneLineSummary || null,
+      strengths: Array.isArray(profileQuality.strengths)
+        ? profileQuality.strengths
+            .filter((item: any) => item?.title && item?.detail)
+            .map((item: any) => ({ title: String(item.title), detail: String(item.detail) }))
+            .slice(0, 8)
+        : [],
+    },
     githubShowcase: {
       featuredCount: featuredProjects.length,
       additionalProjectCount: additionalGithubProjects,
@@ -49,6 +81,14 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
       source: project.source || 'manual',
       sourceId: project.sourceId || null,
       verificationStatus: project.verificationStatus,
+    })),
+    insightProjects: insightProjects.map((project) => ({
+      id: String(project._id),
+      projectName: project.projectName,
+      description: project.description || null,
+      builderContribution: project.builderContribution || null,
+      techStack: project.techStack || [],
+      source: project.source || 'manual',
     })),
   };
 }

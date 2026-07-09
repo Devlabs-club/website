@@ -27,7 +27,17 @@ export type LinkedInVoyagerProfile = {
     description?: string;
     isCurrent?: boolean;
   }>;
-  education: Array<{ school?: string; degree?: string; field?: string }>;
+  education: Array<{
+    school?: string;
+    degree?: string;
+    field?: string;
+    dateRange?: string;
+    startDateLabel?: string;
+    endDateLabel?: string;
+    graduationYear?: number;
+    schoolLogoUrl?: string;
+    schoolLinkedInUrl?: string;
+  }>;
   rawText: string;
 };
 
@@ -399,6 +409,8 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
     }
 
     if (type.includes('Education') || (typeof node.schoolName === 'string' && node.degreeName !== undefined)) {
+      const dates = readDateRange(node);
+      const graduationYear = dates.endDateLabel?.match(/\b(19|20)\d{2}\b/)?.[0];
       education.push({
         school:
           (typeof node.schoolName === 'string' && node.schoolName) ||
@@ -407,6 +419,15 @@ function pickProfileFields(data: any, vanityName: string): Partial<LinkedInVoyag
             : undefined),
         degree: typeof node.degreeName === 'string' ? node.degreeName : undefined,
         field: typeof node.fieldOfStudy === 'string' ? node.fieldOfStudy : undefined,
+        dateRange: dates.dateRange,
+        startDateLabel: dates.startDateLabel,
+        endDateLabel: dates.endDateLabel,
+        graduationYear: graduationYear ? Number(graduationYear) : undefined,
+        schoolLogoUrl: findLinkedInImageUrl(node) || undefined,
+        schoolLinkedInUrl:
+          typeof (node.school as Record<string, unknown> | undefined)?.universalName === 'string'
+            ? `https://www.linkedin.com/school/${String((node.school as Record<string, unknown>).universalName)}/`
+            : undefined,
       });
     }
   }
@@ -437,7 +458,9 @@ function profileToRawText(profile: LinkedInVoyagerProfile): string {
     );
   }
   for (const e of profile.education) {
-    lines.push(`Education: ${[e.school, e.degree, e.field].filter(Boolean).join(' — ')}`);
+    lines.push(
+      `Education: ${[e.school, e.degree, e.field].filter(Boolean).join(' — ')}${e.dateRange ? ` (${e.dateRange})` : ''}`
+    );
   }
   return lines.join('\n').slice(0, 8000);
 }

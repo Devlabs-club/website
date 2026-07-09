@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MessageSquare, Send, Loader2, Check, X } from 'lucide-react';
+import { MessageSquare, Loader2, Check, X, Mail } from 'lucide-react';
 
 type Thread = {
   _id: string;
@@ -43,9 +43,7 @@ export default function MessagesPanel({
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreadId || null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [introRequest, setIntroRequest] = useState<IntroRequestInfo | null>(null);
-  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [introBusy, setIntroBusy] = useState(false);
   const [declineReason, setDeclineReason] = useState('');
   const [showDecline, setShowDecline] = useState(false);
@@ -164,31 +162,6 @@ export default function MessagesPanel({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, introRequest]);
-
-  const sendMessage = async () => {
-    const body = input.trim();
-    if (!body || !activeThreadId || sending) return;
-    setSending(true);
-    setInput('');
-    try {
-      const res = await fetch('/api/agent/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'send_message',
-          payload: { threadId: activeThreadId, body },
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        await loadMessages(activeThreadId);
-        await loadThreads();
-      }
-    } finally {
-      setSending(false);
-    }
-  };
 
   const activeThread = threads.find((t) => t._id === activeThreadId);
   const pendingIntro =
@@ -351,22 +324,13 @@ export default function MessagesPanel({
               })}
               <div ref={bottomRef} />
             </div>
-            <div className="p-4 border-t border-white/10 flex gap-2">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                placeholder="Type a message..."
-                className="flex-1 rounded-xl bg-[#0e1012] border border-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/35 focus:outline-none focus:border-[#fa7d22]/40"
-              />
-              <button
-                type="button"
-                onClick={sendMessage}
-                disabled={sending || !input.trim()}
-                className="px-4 py-2.5 rounded-xl bg-[#fa7d22] text-black font-semibold disabled:opacity-50"
-              >
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
+            <div className="p-4 border-t border-white/10">
+              <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/65 flex items-start gap-3">
+                <Mail className="w-4 h-4 shrink-0 mt-0.5 text-[#fa7d22]" />
+                <p>
+                  Reply in the Gmail thread from your invite email to continue this conversation with the founder.
+                </p>
+              </div>
             </div>
           </>
         ) : (

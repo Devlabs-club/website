@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import FounderContextIntroModals from "@/components/founder/FounderContextIntroModals";
 import { FounderRail } from "@/components/founder/FounderRail";
+import { FounderRoleTile, type FounderRoleTileData } from "@/components/founder/FounderRoleTile";
 import { FounderUpgradeModal } from "@/components/founder/FounderUpgradeModal";
 import type { PlanId } from "@/components/founder/FounderBillingCard";
 import {
-  ArrowRight,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -13,31 +13,7 @@ import {
   Plus,
 } from "lucide-react";
 
-type Role = {
-  id: string;
-  title?: string;
-  roleTitle?: string;
-  status?: string;
-  skillsNeeded?: string[];
-  updatedAt?: string;
-  createdAt?: string;
-  jobType?: string | null;
-  workType?: string | null;
-  seniority?: string | null;
-  timeline?: string | null;
-  salary?: string | null;
-  budget?: string | null;
-  workMode?: string | null;
-  location?: string | null;
-  locationPreference?: string | null;
-  pipeline?: {
-    recommended: number;
-    contacted: number;
-    accepted: number;
-    trial: number;
-    hired: number;
-  };
-};
+type Role = FounderRoleTileData;
 
 type Question = {
   key: "role" | "techStack" | "compensation";
@@ -141,6 +117,18 @@ const FounderHomeInner: React.FC = () => {
   // Show the "how DevLabs works" intro on top of the home screen until completed.
   useEffect(() => {
     if (!loading && user && user.onboardingStatus && user.onboardingStatus !== "complete") {
+      const params = new URLSearchParams(window.location.search);
+      const hasCheckoutIntent = params.get("checkout_plan") === "growth" || params.get("checkout_plan") === "custom";
+      const onboardingRoutes: Record<string, string> = {
+        linkedin: "/founder/onboarding/linkedin",
+        profile: "/founder/onboarding/linkedin?step=profile",
+        company: "/founder/onboarding/linkedin?step=experiences",
+      };
+      const next = onboardingRoutes[user.onboardingStatus];
+      if (next && !hasCheckoutIntent) {
+        window.location.href = next;
+        return;
+      }
       setShowIntro(true);
     }
   }, [loading, user]);
@@ -313,80 +301,27 @@ const FounderHomeInner: React.FC = () => {
           </section>
         ) : mode === "list" ? (
           <section className="relative z-10 mx-auto w-full max-w-[1220px] px-6 py-8 sm:px-8">
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-black">Roles Created</h2>
-                <div className="mt-6 inline-flex overflow-hidden rounded-xl border border-[#ece7e1] bg-[#fdfaf7] p-1 text-sm font-semibold">
-                  <button type="button" className="rounded-lg bg-white px-6 py-2 text-black shadow-[0_1px_2px_rgba(16,24,40,0.04)]">Active</button>
-                  <button type="button" className="rounded-lg px-6 py-2 text-black/45">Paused</button>
-                </div>
+                <h2 className="text-xl font-bold tracking-tight text-black">Your roles</h2>
+                <p className="mt-1 text-sm text-black/50">
+                  {roles.length} active {roles.length === 1 ? "search" : "searches"} · pick up where you left off
+                </p>
               </div>
               <button
                 type="button"
                 onClick={startNewRole}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-black/70 transition hover:text-[#ec9149]"
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-[#ec9149] px-4 text-sm font-bold text-white transition hover:bg-[#dd7f36]"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 New Search
               </button>
             </div>
 
-            <div className="divide-y divide-[#ece7e1] border-y border-[#ece7e1]">
-              {roles.map((role) => {
-                const meta = [
-                  role.jobType || role.workType || role.seniority,
-                  role.timeline,
-                  role.salary || role.budget,
-                  role.workMode || role.location || role.locationPreference,
-                ]
-                  .map((value) => (value ? String(value).trim() : ""))
-                  .filter(Boolean)
-                  .join("  ·  ");
-                const pipeline = role.pipeline;
-                const stats = pipeline
-                  ? [
-                      `${pipeline.recommended} Recommended`,
-                      `${pipeline.contacted} Contacted`,
-                      `${pipeline.accepted} Accepted`,
-                      `${pipeline.trial} Trial`,
-                      `${pipeline.hired} Hired`,
-                    ]
-                  : [];
-                const created = role.createdAt || role.updatedAt;
-                const createdLabel = created
-                  ? (() => {
-                      const d = new Date(created);
-                      return Number.isNaN(d.getTime())
-                        ? ""
-                        : `${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}  ·  ${d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" })}`;
-                    })()
-                  : "";
-                return (
-                  <a
-                    key={role.id}
-                    href={`/founder/roles/${role.id}`}
-                    className="group grid gap-4 px-0 py-6 transition hover:bg-[#fdfaf7] md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:px-6"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold text-black">{role.title || role.roleTitle || "Untitled role"}</p>
-                      {meta && <p className="mt-1 truncate text-xs text-black/42">{meta}</p>}
-                      {stats.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {stats.map((label) => (
-                            <span key={label} className="rounded-lg border border-[#ece7e1] bg-[#f3ede4] px-2.5 py-1 text-[10px] text-black/50">
-                              {label}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    {createdLabel && <p className="text-xs text-black/34 md:justify-self-end">{createdLabel}</p>}
-                    <span className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-[#f3ede4] px-4 text-xs font-semibold text-black transition group-hover:bg-[#ec9149] group-hover:text-white">
-                      View <ArrowRight className="h-3.5 w-3.5" />
-                    </span>
-                  </a>
-                );
-              })}
+            <div className="grid gap-4">
+              {roles.map((role) => (
+                <FounderRoleTile key={role.id} role={role} />
+              ))}
             </div>
           </section>
         ) : (

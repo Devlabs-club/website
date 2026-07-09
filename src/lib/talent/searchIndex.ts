@@ -4,6 +4,12 @@ import ProjectRecord from '@/models/talent/ProjectRecord';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import TalentSearchIndex from '@/models/talent/TalentSearchIndex';
 import TalentSearchKey from '@/models/talent/TalentSearchKey';
+import {
+  collectBuilderSearchProfile,
+  expandSearchTerms,
+  normalizeSearchTerm,
+  uniqueSearchTerms,
+} from '@/lib/talent/searchTokens';
 
 const SEARCHABLE_BUILDER_STATUSES = [
   'imported_unverified',
@@ -18,6 +24,8 @@ const SEARCHABLE_VISIBILITY_STATUSES = ['public', 'matched_only', null];
 const BUILDER_INDEX_SELECT = [
   'name',
   'headline',
+  'bio',
+  'skills',
   'rolePreference',
   'preferredWorkType',
   'links',
@@ -29,6 +37,8 @@ const BUILDER_INDEX_SELECT = [
   'visibilityStatus',
   'universityOrCompany',
   'education',
+  'experiences',
+  'enrichmentInsights',
   'updatedAt',
 ].join(' ');
 
@@ -69,45 +79,20 @@ const QUERY_STOP_TERMS = new Set([
   'work',
 ]);
 
-function normalizeTerm(value: unknown) {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9+#.]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function compactText(value: unknown, max = 240) {
   const text = typeof value === 'string' ? value.trim() : '';
   return text ? text.slice(0, max) : null;
 }
 
-function unique(values: unknown[], max = 80) {
-  return [...new Set(values.map(normalizeTerm).filter(Boolean))].slice(0, max);
-}
-
-function expandTerms(values: unknown[], max = 120) {
-  const terms = new Set<string>();
-  for (const value of values) {
-    const normalized = normalizeTerm(value);
-    if (!normalized) continue;
-    terms.add(normalized);
-    for (const part of normalized.split(' ')) {
-      if (part.length >= 2) terms.add(part);
-    }
-  }
-  return [...terms].slice(0, max);
-}
-
 function buildQueryTerms(values: unknown[]) {
   const exactTerms = [...new Set(
     values
-      .map(normalizeTerm)
+      .map(normalizeSearchTerm)
       .filter((term) => term.length >= 2 && term.length <= 48)
       .filter((term) => !QUERY_STOP_TERMS.has(term))
   )].slice(0, 40);
 
-  const expanded = expandTerms(values, 80);
+  const expanded = expandSearchTerms(values, 80);
   const selective = expanded.filter((term) => !QUERY_STOP_TERMS.has(term) && term.length >= 2);
   const tokenTerms = selective.length >= 3 ? selective : expanded;
   return [...new Set([...exactTerms, ...tokenTerms])].slice(0, 60);
@@ -167,11 +152,11 @@ function buildBuilderSnapshot(doc: any) {
 }
 
 function relevanceScore(doc: any, terms: string[]) {
-  const termSet = new Set(terms.map(normalizeTerm).filter(Boolean));
+  const termSet = new Set(terms.map(normalizeSearchTerm).filter(Boolean));
   const scoreArray = (values: string[] = [], weight: number) => {
     let score = 0;
     for (const value of values) {
-      const normalized = normalizeTerm(value);
+      const normalized = normalizeSearchTerm(value);
       if (termSet.has(normalized)) score += weight;
     }
     return score;
@@ -179,6 +164,13 @@ function relevanceScore(doc: any, terms: string[]) {
 
   return (
     scoreArray(doc.normalizedSkills, 6) +
+    scoreArray(doc.normalizedExperienceCompanies, 8) +
+    scoreArray(doc.normalizedExperienceTitles, 6) +
+    scoreArray(doc.normalizedEducationSchools, 7) +
+    scoreArray(doc.normalizedEnrichmentSignals, 5) +
+    scoreArray(doc.normalizedHighlightTerms, 6) +
+    scoreArray(doc.normalizedBioKeywords, 4) +
+    scoreArray(doc.normalizedRoleDomains, 5) +
     scoreArray(doc.normalizedProjectTech, 5) +
     scoreArray(doc.normalizedContributionTags, 3) +
     scoreArray(doc.searchTerms, 2) +
@@ -189,8 +181,12 @@ function relevanceScore(doc: any, terms: string[]) {
 
 function buildSearchKeyRows(payload: any) {
   const rows = new Map<string, { term: string; builderId: any; kind: string; weight: number; evidenceScore: number; indexedAt: Date }>();
-  const add = (term: string, kind: 'skill' | 'project_tech' | 'contribution' | 'text', weight: number) => {
-    const normalized = normalizeTerm(term);
+  const add = (
+    term: string,
+    kind: 'skill' | 'project_tech' | 'contribution' | 'experience' | 'education' | 'enrichment' | 'highlight' | 'bio' | 'domain' | 'text',
+    weight: number
+  ) => {
+    const normalized = normalizeSearchTerm(term);
     if (!normalized || normalized.length > 80) return;
     const existing = rows.get(normalized);
     if (!existing || existing.weight < weight) {
@@ -206,6 +202,13 @@ function buildSearchKeyRows(payload: any) {
   };
 
   for (const term of payload.normalizedSkills || []) add(term, 'skill', 6);
+  for (const term of payload.normalizedExperienceCompanies || []) add(term, 'experience', 8);
+  for (const term of payload.normalizedExperienceTitles || []) add(term, 'experience', 6);
+  for (const term of payload.normalizedEducationSchools || []) add(term, 'education', 7);
+  for (const term of payload.normalizedEnrichmentSignals || []) add(term, 'enrichment', 5);
+  for (const term of payload.normalizedHighlightTerms || []) add(term, 'highlight', 6);
+  for (const term of payload.normalizedBioKeywords || []) add(term, 'bio', 4);
+  for (const term of payload.normalizedRoleDomains || []) add(term, 'domain', 5);
   for (const term of payload.normalizedProjectTech || []) add(term, 'project_tech', 5);
   for (const term of payload.normalizedContributionTags || []) add(term, 'contribution', 3);
   for (const term of payload.searchTerms || []) add(term, 'text', 2);
@@ -270,23 +273,31 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
     .map(buildProjectSnapshot)
     .sort((a, b) => b.evidenceScore - a.evidenceScore);
   const projectSnapshots = sortedProjects.slice(0, 8);
-  const normalizedSkills = unique(builder.rolePreference || [], 40);
-  const normalizedProjectTech = unique(projects.flatMap((project) => project.techStack || []), 60);
-  const normalizedContributionTags = unique(projects.flatMap((project) => project.contributionTags || []), 60);
-  const educationTerms = (builder.education || []).flatMap((entry: any) => [
-    entry.school,
-    entry.degree,
-    entry.field,
-  ]);
+  const profile = collectBuilderSearchProfile(builder, projects);
+  const normalizedSkills = profile.skills;
+  const normalizedExperienceCompanies = profile.experienceCompanies;
+  const normalizedExperienceTitles = profile.experienceTitles;
+  const normalizedEducationSchools = profile.educationSchools;
+  const normalizedEnrichmentSignals = profile.enrichmentTitles;
+  const normalizedHighlightTerms = profile.highlightTerms;
+  const normalizedBioKeywords = profile.bioKeywords;
+  const normalizedRoleDomains = profile.roleDomains;
+  const normalizedProjectTech = uniqueSearchTerms(projects.flatMap((project) => project.techStack || []), 60);
+  const normalizedContributionTags = uniqueSearchTerms(projects.flatMap((project) => project.contributionTags || []), 60);
   const wrappedLanguages = (agentWrappedReport?.languages || []).map((item: any) => item?.name).filter(Boolean);
   const wrappedFrameworks = (agentWrappedReport?.frameworks || []).map((item: any) => item?.name).filter(Boolean);
   const wrappedAgents = agentWrappedReport?.sourceCoverage?.agents || [];
-  const searchTerms = expandTerms([
-    ...(builder.rolePreference || []),
-    ...(builder.preferredWorkType || []),
+  const searchTerms = expandSearchTerms([
+    ...profile.skills,
+    ...profile.experienceCompanies,
+    ...profile.experienceTitles,
+    ...profile.educationSchools,
+    ...profile.enrichmentTitles,
+    ...profile.highlightTerms,
+    ...profile.bioKeywords,
+    ...profile.experiencePhrases,
     builder.headline,
-    builder.universityOrCompany,
-    ...educationTerms,
+    builder.bio,
     builder.profileQuality?.oneLineSummary,
     agentWrappedReport?.archetype,
     agentWrappedReport?.founderRead?.summary,
@@ -302,7 +313,7 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
       ...(project.techStack || []),
       ...(project.contributionTags || []),
     ]),
-  ]);
+  ], 120);
 
   return {
     builderId: builder._id,
@@ -312,6 +323,13 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
     universityOrCompany: builder.universityOrCompany || null,
     education: (builder.education || []).slice(0, 6),
     normalizedSkills,
+    normalizedExperienceCompanies,
+    normalizedExperienceTitles,
+    normalizedEducationSchools,
+    normalizedEnrichmentSignals,
+    normalizedHighlightTerms,
+    normalizedBioKeywords,
+    normalizedRoleDomains,
     normalizedProjectTech,
     normalizedContributionTags,
     searchTerms,
@@ -455,6 +473,13 @@ export async function backfillTalentSearchIndex(params: { limit?: number; batchS
   return { processed, updated };
 }
 
+export async function backfillTalentSearchIndexWithRefresh(params: { limit?: number; batchSize?: number } = {}) {
+  const result = await backfillTalentSearchIndex(params);
+  const { scheduleTalentPoolSkillIndexRefresh } = await import('@/lib/talent/talentPoolSkillIndex');
+  scheduleTalentPoolSkillIndexRefresh();
+  return result;
+}
+
 export async function searchTalentSearchIndex(params: {
   terms: string[];
   limit?: number;
@@ -495,10 +520,28 @@ export async function searchTalentSearchIndex(params: {
     existing.score += Number(row.weight || 1) + Math.min(8, Number(row.evidenceScore || 0));
     candidateScores.set(id, existing);
   }
-  const topBuilderIds = [...candidateScores.values()]
-    .sort((a, b) => b.score - a.score)
+  const rankedCandidates = [...candidateScores.values()].sort((a, b) => b.score - a.score);
+  const candidateIdBatch = rankedCandidates
+    .slice(0, Math.min(rankedCandidates.length, limit * 4))
+    .map((entry) => entry.builderId);
+  const liveProfiles = candidateIdBatch.length
+    ? await BuilderProfile.find({
+        _id: { $in: candidateIdBatch },
+        verificationStatus: { $in: SEARCHABLE_BUILDER_STATUSES },
+        visibilityStatus: { $in: SEARCHABLE_VISIBILITY_STATUSES },
+      })
+      .select('_id')
+      .maxTimeMS(3000)
+      .lean()
+    : [];
+  const liveIdSet = new Set(liveProfiles.map((profile: any) => String(profile._id)));
+  const topBuilderIds = rankedCandidates
+    .filter((entry) => liveIdSet.has(String(entry.builderId)))
     .slice(0, limit)
     .map((entry) => entry.builderId);
+  if (!topBuilderIds.length) {
+    return { indexed, builders: [] as any[], projectsByBuilder: new Map<string, any[]>(), durationMs: Date.now() - startedAt };
+  }
 
   const docs = await collection
     .find(

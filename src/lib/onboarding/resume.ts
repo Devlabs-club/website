@@ -12,8 +12,8 @@ export type ResumeAccountType = 'founder' | 'builder' | null | undefined;
 /** onboardingStatus -> onboarding page, in flow order. */
 const FOUNDER_STEP_ROUTES: Record<string, string> = {
   linkedin: '/founder/onboarding/linkedin',
-  profile: '/founder/onboarding/profile',
-  company: '/founder/onboarding/company',
+  profile: '/founder/onboarding/linkedin?step=profile',
+  company: '/founder/onboarding/linkedin?step=experiences',
   context: '/founder/onboarding/context',
   complete: '/founder/home',
 };

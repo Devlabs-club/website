@@ -14,7 +14,8 @@ const SOURCE_LABELS: Record<string, string> = {
   personalwebsite: 'Website',
   twitter: 'X',
   resume: 'Resume',
-  research: 'Research',
+  research: 'Web research',
+  web: 'Web research',
   profile: 'Profile',
 };
 

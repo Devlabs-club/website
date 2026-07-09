@@ -75,6 +75,8 @@ export type FullCandidate = {
   };
   workTypes: string[];
   topSkills: string[];
+  domainSkillsMatched?: string[];
+  availabilityNote?: string;
   experiences?: Array<{
     title?: string;
     company?: string;

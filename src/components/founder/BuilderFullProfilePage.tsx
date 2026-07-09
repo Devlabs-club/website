@@ -9,10 +9,21 @@ export type BuilderProfile = {
   headline?: string | null;
   bio?: string | null;
   location?: string | null;
+  graduationYear?: number | null;
+  education?: Array<{
+    school?: string | null;
+    degree?: string | null;
+    field?: string | null;
+    dateRange?: string | null;
+    endDateLabel?: string | null;
+    graduationYear?: number | null;
+    schoolLogoUrl?: string | null;
+    schoolLinkedInUrl?: string | null;
+  }>;
   rolePreference?: string[];
   skills?: string[];
   preferredWorkType?: string[];
-  experiences?: Array<{ title: string; company: string; dateRange?: string; description?: string; skills?: string[] }>;
+  experiences?: Array<{ title: string; company: string; companyLogoUrl?: string | null; dateRange?: string; description?: string; skills?: string[] }>;
   projects?: Array<{ id: string; projectName: string; description?: string; techStack?: string[]; links?: Record<string, string | null> }>;
   links?: Record<string, string | null>;
   founderHighlights?: Array<{ title?: string; detail?: string; source?: string }>;
@@ -131,6 +142,49 @@ export const BuilderProfileView: React.FC<{
         ) : null}
       </Section>
 
+      {(profile.education || []).length > 0 ? (
+        <Section title="Education" founder={founder}>
+          <div className="space-y-3">
+            {(profile.education || []).slice(0, 3).map((entry, index) => {
+              const date = entry.dateRange || entry.endDateLabel || (entry.graduationYear ? `Class of ${entry.graduationYear}` : null);
+              return (
+                <div
+                  key={`${entry.school}-${index}`}
+                  className={`rounded-2xl p-4 ${founder ? "border border-[#ece7e1] bg-[#fffcfa]" : "border border-border"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    {entry.schoolLogoUrl ? (
+                      <img
+                        src={entry.schoolLogoUrl}
+                        alt={`${entry.school || "School"} logo`}
+                        className={`h-10 w-10 shrink-0 rounded-xl object-cover ${founder ? "border border-[#ece7e1] bg-white" : "border border-border bg-muted"}`}
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${
+                          founder ? "border border-[#ece7e1] bg-white text-black/35" : "border border-border bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {(entry.school || "?").slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className={`font-semibold ${founder ? "text-black" : "font-medium"}`}>{entry.school || "School"}</p>
+                      {[entry.degree, entry.field].filter(Boolean).length ? (
+                        <p className={`mt-1 text-sm ${founder ? "text-black/60" : "text-muted-foreground"}`}>
+                          {[entry.degree, entry.field].filter(Boolean).join(" · ")}
+                        </p>
+                      ) : null}
+                      {date ? <p className={`mt-1 text-xs ${founder ? "text-black/50" : "text-muted-foreground"}`}>{date}</p> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      ) : null}
+
       <Section title="Experience" founder={founder}>
         <div className="space-y-3">
           {(profile.experiences || []).map((exp, index) => (
@@ -138,12 +192,31 @@ export const BuilderProfileView: React.FC<{
               key={`${exp.company}-${index}`}
               className={`rounded-2xl p-4 ${founder ? "border border-[#ece7e1] bg-[#fffcfa]" : "border border-border"}`}
             >
-              <p className={`font-semibold ${founder ? "text-black" : "font-medium"}`}>
-                {exp.title} · {exp.company}
-              </p>
-              {exp.dateRange ? (
-                <p className={`mt-1 text-xs ${founder ? "text-black/50" : "text-muted-foreground"}`}>{exp.dateRange}</p>
-              ) : null}
+              <div className="flex items-start gap-3">
+                {exp.companyLogoUrl ? (
+                  <img
+                    src={exp.companyLogoUrl}
+                    alt={`${exp.company || "Company"} logo`}
+                    className={`h-10 w-10 shrink-0 rounded-xl object-cover ${founder ? "border border-[#ece7e1] bg-white" : "border border-border bg-muted"}`}
+                  />
+                ) : (
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${
+                      founder ? "border border-[#ece7e1] bg-white text-black/35" : "border border-border bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {(exp.company || "?").slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className={`font-semibold ${founder ? "text-black" : "font-medium"}`}>
+                    {exp.title} · {exp.company}
+                  </p>
+                  {exp.dateRange ? (
+                    <p className={`mt-1 text-xs ${founder ? "text-black/50" : "text-muted-foreground"}`}>{exp.dateRange}</p>
+                  ) : null}
+                </div>
+              </div>
               {exp.description ? (
                 <p className={`mt-2 text-sm leading-relaxed ${founder ? "text-black/65" : "text-muted-foreground"}`}>
                   {exp.description}

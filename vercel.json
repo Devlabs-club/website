@@ -1,4 +1,10 @@
 {
   "installCommand": "SHARP_IGNORE_GLOBAL_LIBVIPS=1 bun install --frozen-lockfile",
-  "buildCommand": "ASTRO_ADAPTER=vercel NODE_OPTIONS=--max-old-space-size=8192 astro build"
+  "buildCommand": "ASTRO_ADAPTER=vercel NODE_OPTIONS=--max-old-space-size=8192 astro build",
+  "rewrites": [
+    {
+      "source": "/email/sendgrid-inbound",
+      "destination": "/api/email/sendgrid-inbound"
+    }
+  ]
 }

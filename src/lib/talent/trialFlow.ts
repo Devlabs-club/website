@@ -2,58 +2,21 @@ import MatchRecord from '@/models/talent/MatchRecord';
 import Opportunity from '@/models/talent/Opportunity';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import Shortlist from '@/models/talent/Shortlist';
+import MessageThread from '@/models/talent/MessageThread';
 import {
   builderDashboardLink,
   createNotification,
   founderDashboardLink,
 } from '@/lib/talent/notifications';
+import { sendThreadRelayEmail } from '@/lib/talent/talentEmail';
+import { renderThreadEmailText } from '@/lib/talent/threadEmailTemplate';
+import { getOrCreateThread } from '@/lib/talent/messageFlow';
 import { syncMatchPipelineStatus } from '@/lib/talent/founderPipeline';
 import { mapTrialProjectFromMatch, normalizeTrialProject } from '@/lib/talent/founderTrialProject';
 
 /**
- * Text the builder that a trial was sent (best-effort, non-blocking on the
- * in-app notification which stays the source of truth) — same pattern as
- * introFlow.ts's pingBuilderInterestOverImessage.
+ * Email the builder that a trial was sent (best-effort alongside the in-app notification).
  */
-async function pingBuilderTrialOverImessage(params: {
-  builderId: string;
-  builderEmail: string;
-  founderName: string;
-  company: string;
-  roleTitle: string;
-  trialTitle: string;
-  goal?: string | null;
-  deliverables?: string[];
-  successCriteria?: string[];
-  timeline?: string | null;
-  deadlineAt?: string | null;
-  opportunityId?: string | null;
-}) {
-  try {
-    const { notifyBuilderOfTrial } = await import('@/lib/builderClaim');
-    await notifyBuilderOfTrial(params);
-  } catch (err) {
-    console.error('[trialFlow] iMessage trial ping failed', err);
-  }
-}
-
-/** Text the builder that they were hired (best-effort, non-blocking). */
-async function pingBuilderHireOverImessage(params: {
-  builderId: string;
-  builderEmail: string;
-  founderName: string;
-  company: string;
-  roleTitle: string;
-  note?: string | null;
-}) {
-  try {
-    const { notifyBuilderOfHire } = await import('@/lib/builderClaim');
-    await notifyBuilderOfHire(params);
-  } catch (err) {
-    console.error('[trialFlow] iMessage hire ping failed', err);
-  }
-}
-
 async function loadFounderMatch(params: {
   opportunityId: string;
   builderId: string;
@@ -75,7 +38,7 @@ async function loadFounderMatch(params: {
     return { error: 'Match or candidate not found', status: 404 as const };
   }
 
-  return { shortlist, opportunity, builder, match };
+  return { shortlist, opportunity: opportunity as any, builder: builder as any, match: match as any };
 }
 
 export async function sendTrialProjectToBuilder(params: {
@@ -122,30 +85,70 @@ export async function sendTrialProjectToBuilder(params: {
     type: 'trial_sent',
     title: 'New trial project',
     body: `You received a trial project: ${draft.title}`,
-    link: builderDashboardLink('trials', { matchId: String(match._id) }),
+    link: builderDashboardLink('home'),
     entityType: 'MatchRecord',
     entityId: String(match._id),
+    sendEmail: false,
   });
 
-  void pingBuilderTrialOverImessage({
-    builderId: String(builder._id),
-    builderEmail: builder.email,
-    founderName: opportunity.founderName || opportunity.founderEmail?.split('@')[0] || 'A founder',
-    company: opportunity.company || 'the startup',
-    roleTitle: opportunity.roleTitle || 'the role',
-    trialTitle: draft.title,
-    goal: draft.goal,
-    deliverables: draft.deliverables,
-    successCriteria: draft.successCriteria,
-    timeline: draft.timeline,
-    deadlineAt: params.deadlineAt.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    }),
-    opportunityId: params.opportunityId,
+  const deadlineLabel = params.deadlineAt.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
+
+  const founderName = opportunity.founderName || opportunity.founderEmail?.split('@')[0] || 'A founder';
+  const roleTitle = opportunity.roleTitle || 'the role';
+  const company = opportunity.company || 'the startup';
+
+  const thread =
+    (await MessageThread.findOne({ opportunityId: params.opportunityId, builderId: params.builderId })) ||
+    (await getOrCreateThread({
+      opportunityId: params.opportunityId,
+      builderId: params.builderId,
+      founderEmail: params.founderEmail,
+      founderName: opportunity.founderName,
+      builderEmail: builder.email,
+    }));
+
+  if (!thread.emailSubject) {
+    thread.emailSubject = `${founderName} invited you to ${roleTitle} at ${company}`;
+    await thread.save();
+  }
+
+  const trialContext = {
+    kind: 'trial' as const,
+    founderName,
+    roleTitle,
+    company,
+    title: draft.title,
+    goal: draft.goal,
+    deliverables: draft.deliverables || [],
+    successCriteria: draft.successCriteria || [],
+    timeline: draft.timeline,
+    deadlineLabel,
+  };
+
+  await sendThreadRelayEmail({
+    thread,
+    senderRole: 'founder',
+    recipientRole: 'builder',
+    recipientEmail: builder.email,
+    recipientName: builder.name,
+    context: trialContext,
+    plainText: renderThreadEmailText(trialContext),
+    source: 'dashboard_trial',
+    emailSubject: thread.emailSubject,
+    tracking: {
+      threadId: String(thread._id),
+      matchRecordId: String(match._id),
+      opportunityId: params.opportunityId,
+      builderId: String(builder._id),
+      founderEmail: params.founderEmail,
+      metadata: { trialTitle: draft.title, emailType: 'work_trial_sent' },
+    },
+  }).catch((err) => console.error('[trialFlow] trial relay email failed', err));
 
   return {
     trialProject: mapTrialProjectFromMatch(match.trialProject),
@@ -187,8 +190,8 @@ export async function submitTrialByBuilder(params: {
   };
   await match.save();
 
-  const opportunity = await Opportunity.findById(params.opportunityId).lean();
-  const builder = await BuilderProfile.findById(params.builderId).lean();
+  const opportunity = (await Opportunity.findById(params.opportunityId).lean()) as any;
+  const builder = (await BuilderProfile.findById(params.builderId).lean()) as any;
 
   if (opportunity?.founderEmail) {
     await createNotification({
@@ -255,8 +258,8 @@ export async function reviewTrialSubmission(params: {
       builderId: String(builder._id),
       type: 'trial_rejected',
       title: 'Trial feedback',
-      body: note || 'Your trial submission was not approved. Check the portal for details.',
-      link: builderDashboardLink('trials', { matchId: String(match._id) }),
+      body: note || 'Your trial submission was not approved. Reply in this email thread if you have questions.',
+      link: builderDashboardLink('home'),
       entityType: 'MatchRecord',
       entityId: String(match._id),
     });
@@ -330,15 +333,6 @@ export async function hireBuilder(params: {
     link: builderDashboardLink('matches'),
     entityType: 'MatchRecord',
     entityId: String(match._id),
-  });
-
-  void pingBuilderHireOverImessage({
-    builderId: String(builder._id),
-    builderEmail: builder.email,
-    founderName: opportunity.founderName || opportunity.founderEmail?.split('@')[0] || 'A founder',
-    company: opportunity.company,
-    roleTitle: opportunity.roleTitle,
-    note: params.note?.trim() || null,
   });
 
   return {

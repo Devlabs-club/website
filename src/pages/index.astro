@@ -171,6 +171,7 @@ const testimonials = [
   hideFooter
   skipPageLoader
   skipParallax
+  skipSmoothScroll
 >
   <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
     <header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
@@ -1400,16 +1401,10 @@ const testimonials = [
     };
   }
 
-  function createFluidScrollPanels() {
-    // Disabled: per-panel blur/opacity/transform on scroll caused layout thrash and jitter.
-    return () => {};
-  }
-
   const cleanups = [
     ...canvases.map((canvas) => createStarAsciiRenderer(canvas)),
     ...waveCanvases.map((canvas) => createAsciiWave(canvas)),
     ...rippleCanvases.map((canvas) => createAsciiRipple(canvas)),
-    createFluidScrollPanels(),
   ];
 
   window.addEventListener("pagehide", () => {
