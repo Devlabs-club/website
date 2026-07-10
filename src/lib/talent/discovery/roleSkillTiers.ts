@@ -150,6 +150,7 @@ export function scoreDomainProofStrength(tiers: RoleSkillTiers, projects: any[])
   if (!projects.length) return 0;
 
   const VERIFIED = new Set(['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified']);
+  const IMPORTED = new Set(['imported_unverified']);
   let best = 0;
 
   for (const project of projects) {
@@ -158,6 +159,7 @@ export function scoreDomainProofStrength(tiers: RoleSkillTiers, projects: any[])
     let score = 0;
     if (domainHits.length) score += 0.35 + Math.min(0.25, domainHits.length * 0.08);
     if (VERIFIED.has(project.verificationStatus)) score += 0.15;
+    else if (IMPORTED.has(project.verificationStatus)) score += 0.08;
     if (project.links?.github) score += 0.1;
     if (project.links?.demo) score += 0.1;
     if (project.links?.devpost) score += 0.2;

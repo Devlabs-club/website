@@ -68,31 +68,33 @@ export const BACKEND_ENGINEER_WEIGHTS: RankingWeights = {
 };
 
 export const MOBILE_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.34,
-  semanticRoleFit: 0.12,
-  semanticProjectFit: 0.12,
-  proofStrength: 0.22,
+  deterministicSkillFit: 0.32,
+  semanticRoleFit: 0.11,
+  semanticProjectFit: 0.11,
+  proofStrength: 0.21,
   contributionClarity: 0.10,
   founderPreferenceFit: 0.04,
   hireTypeFit: 0.03,
   availabilityFit: 0.02,
   profileQuality: 0.03,
   startupReadiness: 0.05,
+  agentTraceFit: 0.05,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
 
 export const AI_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.22,
-  semanticRoleFit: 0.14,
-  semanticProjectFit: 0.14,
-  proofStrength: 0.20,
+  deterministicSkillFit: 0.20,
+  semanticRoleFit: 0.13,
+  semanticProjectFit: 0.13,
+  proofStrength: 0.19,
   contributionClarity: 0.10,
   founderPreferenceFit: 0.05,
   hireTypeFit: 0.03,
   availabilityFit: 0.04,
   profileQuality: 0.04,
   startupReadiness: 0.06,
+  agentTraceFit: 0.05,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
