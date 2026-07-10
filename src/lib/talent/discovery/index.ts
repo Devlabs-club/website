@@ -14,6 +14,13 @@ import { rerankTopCandidates } from './rerank';
 import { adjustWeightsFromFeedback, type CandidateFeedbackRecord } from './feedback';
 import { buildSemanticScoreMap, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { isTalentSemanticScoringEnabled } from './semanticConfig';
+import { buildRequirementFindings } from '@/lib/talent/searchTokens';
+import {
+  applyMustHavePenalties,
+  capOverallFitForMustGate,
+  evaluateMustHaveGate,
+  type MustHaveGateResult,
+} from './mustHaveGate';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -33,6 +40,7 @@ export type DiscoveryInput = {
 export type RankedCandidate = ScoredCandidate & {
   builder: any;
   projects: any[];
+  mustHaveGate: MustHaveGateResult;
 };
 
 export type DiscoveryResult = {
@@ -99,13 +107,13 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     semanticScores = new Map();
   }
 
-  // Stage 3b: score all builders
+  // Stage 3b: score all builders (must-have gate applied before final fit)
   const allScored: RankedCandidate[] = [];
   for (const builder of builders) {
     const builderId = String(builder._id);
     const projects = projectsByBuilder.get(builderId) ?? [];
 
-    const components = scoreBuilderFromProfile({
+    let components = scoreBuilderFromProfile({
       builder,
       projects,
       opportunity,
@@ -116,6 +124,10 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       agentWrappedScore: wrappedByBuilder.get(builderId)?.score ?? null,
     });
 
+    const requirementFindings = buildRequirementFindings(opportunity, builder, projects);
+    const mustHaveGate = evaluateMustHaveGate(opportunity, requirementFindings);
+    components = applyMustHavePenalties(components, mustHaveGate);
+
     // Inject semantic scores if available
     const sem = semanticScores.get(builderId);
     if (sem) {
@@ -123,7 +135,8 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       components.semanticProjectFit = sem.projectScore;
     }
 
-    const overallFit = computeOverallFit(components, strategy.weights);
+    let overallFit = computeOverallFit(components, strategy.weights);
+    overallFit = capOverallFitForMustGate(overallFit, mustHaveGate);
     const matchLabel = scoreMatchLabel(overallFit);
     const confidence = scoreConfidence(components);
     const explanation = buildCandidateExplanation({
@@ -150,11 +163,17 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       retrievalSources: sources,
       builder,
       projects,
+      mustHaveGate,
     });
   }
 
-  // Stage 4: sort by overallFit descending
-  allScored.sort((a, b) => b.overallFit - a.overallFit);
+  // Stage 4: must-passers first, then overallFit descending
+  allScored.sort((a, b) => {
+    if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
+      return a.mustHaveGate.passesMustGate ? -1 : 1;
+    }
+    return b.overallFit - a.overallFit;
+  });
 
   // Stage 5: LLM rerank top 25 if enabled
   let finalCandidates: RankedCandidate[];
@@ -174,6 +193,13 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   } else {
     finalCandidates = allScored;
   }
+
+  finalCandidates.sort((a, b) => {
+    if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
+      return a.mustHaveGate.passesMustGate ? -1 : 1;
+    }
+    return b.overallFit - a.overallFit;
+  });
 
   const tiers = strategy.roleSkillTiers;
   const primaryMatched = finalCandidates.filter((candidate) =>
@@ -206,7 +232,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   };
 }
 
-export { buildSearchStrategy, type SearchStrategy, type SearchMode } from './strategy';
+export { buildSearchStrategy, computeDynamicWeights, type SearchStrategy, type SearchMode } from './strategy';
 export { buildSearchQualityReport, type SearchQualityReport } from './searchQuality';
 export { type ScoredCandidate } from './scoring';
 export { type CandidateFeedbackRecord } from './feedback';

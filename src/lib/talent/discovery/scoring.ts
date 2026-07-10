@@ -7,7 +7,7 @@ import {
   scoreRoleAwareSkillFit,
   type RoleSkillTiers,
 } from './roleSkillTiers';
-import { buildRequirementFindings, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
+import { buildRequirementFindings, getSearchRequirements, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -319,11 +319,12 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
   if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
-  const unmetMust = requirementFindings.filter(
-    (finding) => finding.met === 'no' && opportunity.searchRequirements?.some(
-      (req: any) => req.text === finding.text && req.importance === 'must'
-    )
-  );
+  const unmetMust = requirementFindings.filter((finding) => {
+    if (finding.met !== 'no') return false;
+    return getSearchRequirements(opportunity).some(
+      (requirement) => requirement.text === finding.text && requirement.importance === 'must'
+    );
+  });
   if (unmetMust.length) {
     concerns.push(`Missing must-have: ${unmetMust.slice(0, 2).map((finding) => finding.text).join('; ')}`);
   }
