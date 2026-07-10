@@ -20,6 +20,7 @@ export type CandidateScoreComponents = {
   availabilityFit: number;
   profileQuality: number;
   startupReadiness: number;
+  agentTraceFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
   llmRerankAdjustment: number;
@@ -59,7 +60,8 @@ export function computeOverallFit(components: CandidateScoreComponents, weights:
     components.hireTypeFit * weights.hireTypeFit +
     components.availabilityFit * weights.availabilityFit +
     components.profileQuality * weights.profileQuality +
-    components.startupReadiness * weights.startupReadiness -
+    components.startupReadiness * weights.startupReadiness +
+    components.agentTraceFit * weights.agentTraceFit -
     components.negativeSignalPenalty * weights.negativeSignalPenalty -
     components.missingEvidencePenalty * weights.missingEvidencePenalty +
     components.llmRerankAdjustment;
@@ -91,11 +93,19 @@ export function scoreBuilderFromProfile(params: {
   proofSignals: string[];
   founderMemoryContext?: string;
   roleSkillTiers?: RoleSkillTiers;
+  hasUploadedAgentTrace?: boolean;
+  agentWrappedScore?: number | null;
 }): CandidateScoreComponents {
-  const { builder, projects, opportunity, mustHaveSignals, roleSkillTiers } = params;
+  const {
+    builder,
+    projects,
+    opportunity,
+    mustHaveSignals,
+    roleSkillTiers,
+    hasUploadedAgentTrace,
+    agentWrappedScore,
+  } = params;
   const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
-
-  const deterministicSkillFit = scoreRoleAwareSkillFit(tiers, builder, projects, mustHaveSignals);
   const domainProof = scoreDomainProofStrength(tiers, projects);
   const proofStrength = Math.min(1, scoreProofStrength(projects) * 0.45 + domainProof * 0.55);
   const contributionClarity = scoreContributionClarity(projects);
@@ -105,6 +115,7 @@ export function scoreBuilderFromProfile(params: {
   const startupReadiness = scoreStartupReadiness(builder, projects);
   const missingEvidencePenalty = scoreMissingEvidence(builder, projects, opportunity);
   const founderPreferenceFit = scoreFounderPreferenceFit(opportunity, builder, projects);
+  const agentTraceFit = scoreAgentTraceFit(hasUploadedAgentTrace, agentWrappedScore);
 
   return {
     deterministicSkillFit,
@@ -117,6 +128,7 @@ export function scoreBuilderFromProfile(params: {
     availabilityFit,
     profileQuality,
     startupReadiness,
+    agentTraceFit,
     negativeSignalPenalty: 0,
     missingEvidencePenalty,
     llmRerankAdjustment: 0,
@@ -216,6 +228,15 @@ function scoreStartupReadiness(builder: any, projects: any[]): number {
   return Math.min(1, score);
 }
 
+function scoreAgentTraceFit(hasUploadedAgentTrace?: boolean, agentWrappedScore?: number | null): number {
+  if (!hasUploadedAgentTrace) return 0;
+  let score = 0.65;
+  if (typeof agentWrappedScore === 'number') {
+    score += Math.min(0.35, agentWrappedScore / 100 * 0.35);
+  }
+  return Math.min(1, score);
+}
+
 function scoreMissingEvidence(builder: any, projects: any[], opportunity: any): number {
   let penalty = 0;
 
@@ -252,6 +273,7 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity >= 0.6) strongestSignals.push('Clear personal contribution on projects');
   if (components.startupReadiness >= 0.6) strongestSignals.push('Strong shipped-project proof');
   if (components.founderPreferenceFit >= 0.75) strongestSignals.push('Matches founder search requirements');
+  if (components.agentTraceFit >= 0.6) strongestSignals.push('Verified agent trace uploaded');
   if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
   else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
 

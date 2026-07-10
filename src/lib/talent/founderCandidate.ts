@@ -10,6 +10,7 @@ import MessageThread from '@/models/talent/MessageThread';
 import Message from '@/models/talent/Message';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import type { FounderEntitlements } from '@/lib/billing/entitlements';
+import { buildRoleFitTrace, buildTraceFreshness, type RoleFitTracePayload } from '@/lib/talent/roleFitTrace';
 
 export type AgentTraceTeaserPayload = {
   locked: boolean;
@@ -24,6 +25,15 @@ export type AgentTraceTeaserPayload = {
   bestFitRoles?: string[];
   /** Optional punchy project + tech one-liner — only when proof is genuinely strong. */
   projectHighlight?: string | null;
+  roleFitTrace?: RoleFitTracePayload | null;
+  traceFreshness?: {
+    daysSinceUpload: number;
+    label: string;
+    isFresh: boolean;
+    sessionCount?: number;
+  } | null;
+  visibleRiskFlags?: string[];
+  interviewProbes?: string[];
 };
 export type VerificationLabel =
   | 'Builder Claimed'
@@ -514,13 +524,46 @@ function buildLockedTraceDetails(params: {
   return uniqueStrings([...reportLines, ...profileLines], 4, 120);
 }
 
+function enrichAgentTrace(
+  trace: AgentTraceTeaserPayload,
+  params: {
+    report?: AgentWrappedReport | null;
+    opportunity: any;
+    match?: any;
+    shortlistCandidate?: any;
+    projects: any[];
+    locked: boolean;
+    wrappedDoc?: any;
+  }
+): AgentTraceTeaserPayload {
+  const { report, opportunity, match, shortlistCandidate, projects, locked, wrappedDoc } = params;
+  const roleFitTrace = buildRoleFitTrace({ report, opportunity, match, shortlistCandidate, projects });
+  const traceFreshness = buildTraceFreshness(report, wrappedDoc?.createdAt);
+  const visibleRiskFlags = locked
+    ? (report?.founderRead?.riskFlags || []).slice(0, 1)
+    : (report?.founderRead?.riskFlags || []).slice(0, 3);
+  const interviewProbes = roleFitTrace?.interviewProbes?.length
+    ? roleFitTrace.interviewProbes
+    : undefined;
+
+  return {
+    ...trace,
+    roleFitTrace,
+    traceFreshness,
+    visibleRiskFlags: visibleRiskFlags.length ? visibleRiskFlags : undefined,
+    interviewProbes,
+  };
+}
+
 function buildAgentTraceFromWrapped(
-  agentWrapped: { report?: AgentWrappedReport } | null | undefined,
+  agentWrapped: { report?: AgentWrappedReport; doc?: any } | null | undefined,
   base: any,
   builder: any,
   projects: any[],
   shortlistCandidate: any,
-  locked: boolean
+  locked: boolean,
+  opportunity?: any,
+  match?: any
 ): AgentTraceTeaserPayload | null {
   const report = agentWrapped?.report;
   if (!report || report.source !== 'uploaded_agent_usage') return null;
@@ -534,8 +577,7 @@ function buildAgentTraceFromWrapped(
   const sourceBadges = [...new Set(['Agent Wrapped', ...agents, ...profileBadges])].slice(0, 6);
 
   const visibleInsight = firstSentence(
-    report.founderRead?.summary,
-    report.evidenceHighlights?.[0],
+    report.founderRead?.summary || report.evidenceHighlights?.[0],
     `${report.archetype || 'Builder'} — verified agent usage with ${agents.length || 'multiple'} agent source${agents.length === 1 ? '' : 's'}.`
   );
 
@@ -551,20 +593,31 @@ function buildAgentTraceFromWrapped(
     .filter(Boolean)
     .slice(0, 4) as string[];
 
-  return {
-    locked,
-    label: report.archetype || 'Agent Wrapped uploaded',
-    sourceBadges,
-    visibleInsight,
-    quantifiedSignals,
-    redacted: locked
-      ? buildLockedTraceDetails({ report, projects, base, builder, shortlistCandidate })
-      : [],
-    hasAgentWrapped: true,
-    archetype: report.archetype || null,
-    wrappedScore: typeof report.score === 'number' ? report.score : null,
-    bestFitRoles: (report.founderRead?.bestFitRoles || []).slice(0, 3),
-  };
+  return enrichAgentTrace(
+    {
+      locked,
+      label: report.archetype || 'Agent Wrapped uploaded',
+      sourceBadges,
+      visibleInsight,
+      quantifiedSignals,
+      redacted: locked
+        ? buildLockedTraceDetails({ report, projects, base, builder, match, shortlistCandidate })
+        : [],
+      hasAgentWrapped: true,
+      archetype: report.archetype || null,
+      wrappedScore: typeof report.score === 'number' ? report.score : null,
+      bestFitRoles: (report.founderRead?.bestFitRoles || []).slice(0, 3),
+    },
+    {
+      report,
+      opportunity: opportunity || {},
+      match,
+      shortlistCandidate,
+      projects,
+      locked,
+      wrappedDoc: agentWrapped?.doc,
+    }
+  );
 }
 
 function mergeAgentTraceTeaser(
@@ -591,15 +644,26 @@ function fallbackTeasers(
   builder: any,
   projects: any[],
   shortlistCandidate: any,
-  agentWrapped?: { report?: AgentWrappedReport } | null,
-  traceLocked = true
+  agentWrapped?: { report?: AgentWrappedReport; doc?: any } | null,
+  traceLocked = true,
+  opportunity?: any,
+  match?: any
 ) {
   const verifiedCount = projects.filter((p) => ['admin_verified', 'founder_verified', 'peer_confirmed'].includes(p.verificationStatus)).length;
   const insight = firstSentence(
     base.whyTheyMatch || shortlistCandidate?.proofSummary,
     `${Math.round(base.matchScore || 0)}% match across ${projects.length || 1} proof source${(projects.length || 1) === 1 ? '' : 's'}.`
   );
-  const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+  const wrappedTrace = buildAgentTraceFromWrapped(
+    agentWrapped,
+    base,
+    builder,
+    projects,
+    shortlistCandidate,
+    traceLocked,
+    opportunity,
+    match
+  );
   const profileTrace: AgentTraceTeaserPayload = {
     locked: traceLocked,
     label: wrappedTrace ? 'Profile evidence' : traceLocked ? 'Unlock full trace' : 'Profile trace',
@@ -616,12 +680,21 @@ function fallbackTeasers(
       `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
     ],
     redacted: traceLocked
-      ? buildLockedTraceDetails({ report: agentWrapped?.report, projects, base, builder, shortlistCandidate })
+      ? buildLockedTraceDetails({ report: agentWrapped?.report, projects, base, builder, match, shortlistCandidate })
       : [],
   };
 
+  const mergedTrace = attachProjectHighlight(mergeAgentTraceTeaser(profileTrace, wrappedTrace), projects);
   return {
-    agentTrace: attachProjectHighlight(mergeAgentTraceTeaser(profileTrace, wrappedTrace), projects),
+    agentTrace: enrichAgentTrace(mergedTrace, {
+      report: agentWrapped?.report,
+      opportunity: opportunity || {},
+      match,
+      shortlistCandidate,
+      projects,
+      locked: traceLocked,
+      wrappedDoc: agentWrapped?.doc,
+    }),
     introDraft: {
       locked: true,
       label: 'Open intro draft',
@@ -658,12 +731,21 @@ async function buildLlmTeasers(params: {
   match: any;
   shortlistCandidate: any;
   opportunity: any;
-  agentWrapped?: { report?: AgentWrappedReport } | null;
+  agentWrapped?: { report?: AgentWrappedReport; doc?: any } | null;
   traceLocked?: boolean;
 }) {
   const { base, builder, projects, match, shortlistCandidate, opportunity, agentWrapped, traceLocked = true } = params;
-  const fallback = fallbackTeasers(base, builder, projects, shortlistCandidate, agentWrapped, traceLocked);
-  const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+  const fallback = fallbackTeasers(base, builder, projects, shortlistCandidate, agentWrapped, traceLocked, opportunity, match);
+  const wrappedTrace = buildAgentTraceFromWrapped(
+    agentWrapped,
+    base,
+    builder,
+    projects,
+    shortlistCandidate,
+    traceLocked,
+    opportunity,
+    match
+  );
   if (!hasOpenRouterConfig()) return fallback;
 
   const compactProjects = projects.slice(0, 4).map((project) => ({
@@ -800,10 +882,21 @@ Return only JSON matching the requested shape.`,
         : [],
     };
     return {
-      agentTrace: attachProjectHighlight(
-        mergeAgentTraceTeaser(llmTrace, wrappedTrace),
-        projects,
-        parsed.agentTrace?.projectHighlight
+      agentTrace: enrichAgentTrace(
+        attachProjectHighlight(
+          mergeAgentTraceTeaser(llmTrace, wrappedTrace),
+          projects,
+          parsed.agentTrace?.projectHighlight
+        ),
+        {
+          report: agentWrapped?.report,
+          opportunity,
+          match,
+          shortlistCandidate,
+          projects,
+          locked: traceLocked,
+          wrappedDoc: agentWrapped?.doc,
+        }
       ),
       introDraft: {
         locked: true,
@@ -873,7 +966,7 @@ export async function buildFullCandidateCard(params: {
   shortlistCandidate: any;
   opportunity: any;
   hidden?: boolean;
-  agentWrapped?: { report?: AgentWrappedReport } | null;
+  agentWrapped?: { report?: AgentWrappedReport; doc?: any } | null;
   threadId?: string | null;
   builderEmail?: string | null;
   hasBuilderReply?: boolean;
@@ -986,14 +1079,25 @@ export async function buildFullCandidateCard(params: {
   };
 
   if (!teaserMode) {
-    const wrappedTrace = buildAgentTraceFromWrapped(agentWrapped, base, builder, projects, shortlistCandidate, traceLocked);
+    const wrappedTrace = buildAgentTraceFromWrapped(
+      agentWrapped,
+      base,
+      builder,
+      projects,
+      shortlistCandidate,
+      traceLocked,
+      opportunity,
+      match
+    );
     const agentTrace = wrappedTrace || fallbackTeasers(
       base,
       builder,
       projects,
       shortlistCandidate,
       agentWrapped,
-      false
+      false,
+      opportunity,
+      match
     ).agentTrace;
     return {
       ...base,
@@ -1179,7 +1283,9 @@ export async function buildFullCandidatesForShortlist(
           lifecycleAccess: entitlementAccess?.lifecycleAccess,
         },
         hidden: hiddenSet.has(builderId),
-        agentWrapped: wrappedDoc?.report ? { report: wrappedDoc.report as AgentWrappedReport } : null,
+        agentWrapped: wrappedDoc?.report
+          ? { report: wrappedDoc.report as AgentWrappedReport, doc: wrappedDoc }
+          : null,
         threadId,
         builderEmail: builder.email || null,
         hasBuilderReply: builderReplyCount > 0,

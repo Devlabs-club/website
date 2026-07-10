@@ -14,51 +14,55 @@ export type RankingWeights = {
   availabilityFit: number;
   profileQuality: number;
   startupReadiness: number;
+  agentTraceFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
 };
 
 export const DEFAULT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.15,
-  semanticRoleFit: 0.15,
-  semanticProjectFit: 0.15,
-  proofStrength: 0.15,
+  deterministicSkillFit: 0.14,
+  semanticRoleFit: 0.14,
+  semanticProjectFit: 0.14,
+  proofStrength: 0.14,
   contributionClarity: 0.10,
   founderPreferenceFit: 0.10,
-  hireTypeFit: 0.08,
-  availabilityFit: 0.07,
+  hireTypeFit: 0.07,
+  availabilityFit: 0.06,
   profileQuality: 0.05,
-  startupReadiness: 0.10,
+  startupReadiness: 0.09,
+  agentTraceFit: 0.07,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
 
 export const MVP_SPRINT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.10,
-  semanticRoleFit: 0.10,
-  semanticProjectFit: 0.20,
-  proofStrength: 0.25,
+  deterministicSkillFit: 0.09,
+  semanticRoleFit: 0.09,
+  semanticProjectFit: 0.18,
+  proofStrength: 0.23,
   contributionClarity: 0.10,
   founderPreferenceFit: 0.05,
   hireTypeFit: 0.05,
-  availabilityFit: 0.10,
+  availabilityFit: 0.09,
   profileQuality: 0.05,
-  startupReadiness: 0.15,
+  startupReadiness: 0.13,
+  agentTraceFit: 0.08,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
 
 export const BACKEND_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.20,
-  semanticRoleFit: 0.10,
-  semanticProjectFit: 0.10,
-  proofStrength: 0.25,
-  contributionClarity: 0.20,
+  deterministicSkillFit: 0.18,
+  semanticRoleFit: 0.09,
+  semanticProjectFit: 0.09,
+  proofStrength: 0.23,
+  contributionClarity: 0.18,
   founderPreferenceFit: 0.05,
   hireTypeFit: 0.05,
   availabilityFit: 0.05,
   profileQuality: 0.05,
-  startupReadiness: 0.05,
+  startupReadiness: 0.04,
+  agentTraceFit: 0.06,
   negativeSignalPenalty: 0.15,
   missingEvidencePenalty: 0.10,
 };

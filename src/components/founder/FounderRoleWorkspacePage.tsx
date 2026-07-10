@@ -23,6 +23,9 @@ import { BuilderProfileView, fetchBuilderProfile, type BuilderProfile } from "@/
 import { gmailThreadSearchUrl } from "@/lib/talent/emailThreadLinks";
 import { FounderUpgradeModal } from "@/components/founder/FounderUpgradeModal";
 import type { PlanId } from "@/components/founder/FounderBillingCard";
+import { AgentTraceTeaserSection, type AgentTraceTeaser } from "@/components/founder/AgentTraceTeaserSection";
+import { FounderTraceViewer } from "@/components/founder/FounderTraceViewer";
+import type { AgentWrappedReport } from "@/lib/agentWrapped/types";
 
 type Job = {
   id: string;
@@ -71,20 +74,6 @@ type TrialProject = {
   status?: string | null;
   deadlineAt?: string | null;
   submission?: { videoUrl?: string | null; githubUrl?: string | null; notes?: string | null; submittedAt?: string | null } | null;
-};
-
-type AgentTraceTeaser = {
-  locked: boolean;
-  label: string;
-  sourceBadges: string[];
-  visibleInsight: string;
-  quantifiedSignals?: string[];
-  redacted: string[];
-  hasAgentWrapped?: boolean;
-  archetype?: string | null;
-  wrappedScore?: number | null;
-  bestFitRoles?: string[];
-  projectHighlight?: string | null;
 };
 
 type Recommendation = {
@@ -265,6 +254,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [traceRec, setTraceRec] = useState<Recommendation | null>(null);
+  const [traceReport, setTraceReport] = useState<AgentWrappedReport | null>(null);
+  const [traceLoading, setTraceLoading] = useState(false);
   const [pendingAgentFollowup, setPendingAgentFollowup] = useState("");
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
@@ -524,7 +515,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     return data.entitlements?.traceAccess === "full";
   };
 
-  const openAgentTrace = async (rec: Recommendation) => {
+  const handleTraceExpand = async (rec: Recommendation) => {
     if (!rec.teasers?.agentTrace) return;
     if (rec.teasers.agentTrace.locked || !(await canViewAgentTrace())) {
       setUpgradeModal({
@@ -534,7 +525,25 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       });
       return;
     }
+    void openAgentTrace(rec);
+  };
+
+  const openAgentTrace = async (rec: Recommendation) => {
+    if (!rec.teasers?.agentTrace) return;
     setTraceRec(rec);
+    setTraceReport(null);
+    setTraceLoading(true);
+    try {
+      const res = await fetch(`/api/founder/builders/${rec.builderId}/trace?roleId=${encodeURIComponent(roleId)}`, {
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.report) {
+        setTraceReport(data.report as AgentWrappedReport);
+      }
+    } finally {
+      setTraceLoading(false);
+    }
   };
 
   /** Shared caller for every pipeline action (trial, hire, schedule, reject) — all live behind this one action endpoint. */
@@ -909,9 +918,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   ) : null;
 
   const traceDialog = traceRec?.teasers?.agentTrace ? (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 sm:p-8" onClick={() => setTraceRec(null)}>
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30 p-4 sm:p-8" onClick={() => { setTraceRec(null); setTraceReport(null); }}>
       <div
-        className="flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_24px_70px_rgba(16,24,40,0.15)]"
+        className="flex max-h-full w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_24px_70px_rgba(16,24,40,0.15)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[#ece7e1] p-5">
@@ -920,11 +929,11 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
               {traceRec.teasers.agentTrace.hasAgentWrapped ? "Agent Wrapped Trace" : "Agent Trace"}
             </p>
             <h2 className="mt-1 truncate text-xl font-semibold text-black">{traceRec.name}</h2>
-            <p className="mt-1 line-clamp-2 text-sm text-black/55">{traceRec.headline || traceRec.whyTheyMatch}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-black/55">{traceRec.teasers.agentTrace.archetype || traceRec.headline || traceRec.whyTheyMatch}</p>
           </div>
           <button
             type="button"
-            onClick={() => setTraceRec(null)}
+            onClick={() => { setTraceRec(null); setTraceReport(null); }}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/40 hover:bg-[#fdfaf7] hover:text-black"
             aria-label="Close agent trace"
           >
@@ -932,15 +941,33 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           </button>
         </div>
         <div className="overflow-y-auto p-5">
-          <AgentTraceTeaserSection teaser={traceRec.teasers.agentTrace} />
+          {traceLoading ? (
+            <div className="flex items-center justify-center py-16 text-sm text-black/45">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading trace…
+            </div>
+          ) : traceReport ? (
+            <FounderTraceViewer
+              report={traceReport}
+              roleFitTrace={traceRec.teasers.agentTrace.roleFitTrace}
+              interviewProbes={traceRec.teasers.agentTrace.interviewProbes}
+            />
+          ) : (
+            <>
+              <AgentTraceTeaserSection teaser={traceRec.teasers.agentTrace} />
+              <p className="mt-3 text-xs text-black/45">No verified Agent Wrapped upload yet — showing profile-based estimate.</p>
+            </>
+          )}
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="border-t border-[#ece7e1] pt-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Match</p>
               <p className="mt-1 text-lg font-semibold text-black">{Math.round(traceRec.matchScore || 0)}%</p>
             </div>
             <div className="border-t border-[#ece7e1] pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Proof</p>
-              <p className="mt-1 truncate text-sm font-medium text-black">{traceRec.proofStrengthLabel || "Profile proof"}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Trace alignment</p>
+              <p className="mt-1 text-lg font-semibold text-black">
+                {traceRec.teasers.agentTrace.roleFitTrace?.alignmentScore ?? "—"}%
+              </p>
             </div>
             <div className="border-t border-[#ece7e1] pt-3">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Next step</p>
@@ -1269,7 +1296,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                       rec={rec}
                       inviteBusy={inviteBusy}
                       onOpenProfile={() => void openProfile(rec)}
-                      onOpenTrace={() => void openAgentTrace(rec)}
+                      onOpenTrace={() => void handleTraceExpand(rec)}
                       onInvite={() => void invite(rec.builderId)}
                       onReject={() => void rejectCandidate(rec.builderId)}
                     />
@@ -1457,7 +1484,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                       rec={rec}
                       inviteBusy={inviteBusy}
                       onOpenProfile={() => void openProfile(rec)}
-                      onOpenTrace={() => void openAgentTrace(rec)}
+                      onOpenTrace={() => void handleTraceExpand(rec)}
                       onInvite={() => void invite(rec.builderId)}
                       onReject={() => void rejectCandidate(rec.builderId)}
                     />
@@ -1620,74 +1647,6 @@ const BuilderCell: React.FC<{ rec: Recommendation; onOpenProfile: () => void }> 
   </td>
 );
 
-const AgentTraceTeaserSection: React.FC<{ teaser: AgentTraceTeaser; compact?: boolean }> = ({ teaser, compact }) => (
-  <section className={`rounded-2xl border border-[#ec9149]/30 bg-[#fff7ef] ${compact ? "p-3" : "p-4 mb-6"}`}>
-    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#9a4f0c]">
-        {teaser.hasAgentWrapped ? "Agent Wrapped" : teaser.locked ? "Agent trace preview" : "Agent trace"}
-      </h3>
-      <div className="flex flex-wrap items-center gap-2">
-        {teaser.hasAgentWrapped ? (
-          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
-            Uploaded
-          </span>
-        ) : null}
-        {typeof teaser.wrappedScore === "number" ? (
-          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
-            Founder fit {teaser.wrappedScore}/100
-          </span>
-        ) : null}
-        <span className="text-[10px] font-medium text-black/55">{teaser.label}</span>
-      </div>
-    </div>
-    {teaser.archetype ? (
-      <p className={`mb-2 font-semibold text-black ${compact ? "text-xs" : "text-sm"}`}>{teaser.archetype}</p>
-    ) : null}
-    {teaser.bestFitRoles?.length ? (
-      <p className={`mb-2 text-black/70 ${compact ? "text-[11px]" : "text-xs"}`}>
-        Best fit: {teaser.bestFitRoles.join(" · ")}
-      </p>
-    ) : null}
-    {teaser.projectHighlight ? (
-      <p className={`mb-2 font-medium italic text-[#8a4609] ${compact ? "text-[11px] line-clamp-2" : "text-xs"}`}>
-        {teaser.projectHighlight}
-      </p>
-    ) : null}
-    {teaser.sourceBadges.length > 0 ? (
-      <div className="mb-2 flex flex-wrap gap-1.5">
-        {teaser.sourceBadges.map((badge) => (
-          <span key={badge} className="rounded-md border border-[#ece7e1] bg-white px-2 py-0.5 text-[10px] font-semibold text-black/70">
-            {badge}
-          </span>
-        ))}
-      </div>
-    ) : null}
-    <p className={`leading-relaxed text-black/80 ${compact ? "text-xs line-clamp-3" : "text-sm"}`}>{teaser.visibleInsight}</p>
-    {teaser.quantifiedSignals?.length ? (
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {teaser.quantifiedSignals.map((signal) => (
-          <span
-            key={signal}
-            className="rounded-full border border-[#ec9149]/35 bg-white px-2.5 py-0.5 text-[10px] font-semibold text-[#9a4f0c]"
-          >
-            {signal}
-          </span>
-        ))}
-      </div>
-    ) : null}
-    {teaser.locked && teaser.redacted.length > 0 ? (
-      <div className="mt-2 space-y-1">
-        {teaser.redacted.slice(0, compact ? 2 : 3).map((item) => (
-          <div key={item} className="flex items-center gap-2 text-[11px] text-black/35">
-            <span className="h-1.5 w-1.5 rounded-full bg-black/15" />
-            <span className="blur-[2px] select-none">{item}</span>
-          </div>
-        ))}
-        <p className="pt-1 text-[11px] text-black/45">Upgrade to Growth to unlock the full Agent Wrapped trace.</p>
-      </div>
-    ) : null}
-  </section>
-);
 
 const PipelineTable: React.FC<{
   columns: string[];
@@ -1778,6 +1737,11 @@ const RecommendationCard: React.FC<{
                   {rec.name}
                 </button>
                 {verified && <BadgeCheck className="h-4 w-4 text-[#ec9149]" />}
+                {rec.teasers?.agentTrace?.hasAgentWrapped ? (
+                  <span className="rounded-full border border-[#ec9149]/30 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
+                    Verified trace
+                  </span>
+                ) : null}
                 {rec.matchLabel ? (
                   <span className="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#c56a12]">
                     {rec.matchLabel}
@@ -1800,6 +1764,16 @@ const RecommendationCard: React.FC<{
               </div>
             </div>
           </div>
+
+          {hasTrace && rec.teasers?.agentTrace ? (
+            <div className="mt-3">
+              <AgentTraceTeaserSection
+                teaser={rec.teasers.agentTrace}
+                compact
+                onExpand={onOpenTrace}
+              />
+            </div>
+          ) : null}
 
           {founderSignals.length ? (
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -1877,10 +1851,10 @@ const RecommendationCard: React.FC<{
             <button
               type="button"
               onClick={onOpenTrace}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-[#ec9149]/30 bg-[#fff7ef] px-3 text-xs font-semibold text-[#c56a12] hover:bg-[#ffead8]"
+              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[#ec9149]/30 bg-[#fff7ef] px-3 text-xs font-semibold text-[#c56a12] hover:bg-[#ffead8]"
             >
               <Eye className="h-3.5 w-3.5" />
-              {traceLocked ? "Unlock trace" : "View trace"}
+              {traceLocked ? "Unlock trace" : "Full trace"}
             </button>
           ) : null}
 

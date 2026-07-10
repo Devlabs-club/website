@@ -20,6 +20,7 @@ export type DiscoveryInput = {
   founderId: string;
   builders: any[];
   projectsByBuilder: Map<string, any[]>;
+  wrappedByBuilder?: Map<string, { report?: any; score?: number | null }>;
   searchMode?: SearchMode;
   feedbackHistory?: CandidateFeedbackRecord[];
   enableLlmRerank?: boolean;
@@ -49,6 +50,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     founderId,
     builders,
     projectsByBuilder,
+    wrappedByBuilder = new Map(),
     searchMode = 'balanced',
     feedbackHistory = [],
     enableLlmRerank = false,
@@ -110,6 +112,8 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       mustHaveSignals: strategy.mustHaveSignals,
       proofSignals: strategy.proofSignals,
       roleSkillTiers: strategy.roleSkillTiers,
+      hasUploadedAgentTrace: Boolean(wrappedByBuilder.get(builderId)),
+      agentWrappedScore: wrappedByBuilder.get(builderId)?.score ?? null,
     });
 
     // Inject semantic scores if available
@@ -134,6 +138,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     const sources: string[] = ['deterministic_keyword'];
     if (sem?.profileScore && sem.profileScore > 0.3) sources.push('semantic_profile');
     if (sem?.projectScore && sem.projectScore > 0.3) sources.push('semantic_project');
+    if (wrappedByBuilder.has(builderId)) sources.push('agent_trace');
 
     allScored.push({
       builderId,

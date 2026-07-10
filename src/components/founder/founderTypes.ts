@@ -148,6 +148,22 @@ export type FullCandidate = {
       wrappedScore?: number | null;
       bestFitRoles?: string[];
       projectHighlight?: string | null;
+      roleFitTrace?: {
+        alignmentScore: number;
+        confidence: 'low' | 'moderate' | 'high';
+        relevantSignals: string[];
+        gaps: string[];
+        interviewProbes: string[];
+        roleSummary: string;
+      } | null;
+      traceFreshness?: {
+        daysSinceUpload: number;
+        label: string;
+        isFresh: boolean;
+        sessionCount?: number;
+      } | null;
+      visibleRiskFlags?: string[];
+      interviewProbes?: string[];
     };
     introDraft?: {
       locked: boolean;

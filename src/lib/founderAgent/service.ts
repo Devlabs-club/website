@@ -15,6 +15,7 @@ import Shortlist from '@/models/talent/Shortlist';
 import IntroRequest from '@/models/talent/IntroRequest';
 import CallSchedule from '@/models/talent/CallSchedule';
 import CandidateFeedback from '@/models/talent/CandidateFeedback';
+import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import { canRunPreviewAnyway } from '@/lib/talent/searchReadiness';
 import { runFounderDiscoveryPipeline } from '@/lib/talent/discovery/index';
 import { buildSearchStrategy } from '@/lib/talent/discovery/strategy';
@@ -1240,11 +1241,33 @@ async function runSearchForJob(
     feedbackCount: feedbackDocs.length,
   });
 
+  const builderIdsForWrapped = builders.map((b: any) => b._id);
+  const wrappedDocs = builderIdsForWrapped.length
+    ? await AgentWrappedReportModel.find({
+        builderId: { $in: builderIdsForWrapped },
+        source: 'uploaded_agent_usage',
+      })
+        .select('builderId report.score')
+        .sort({ createdAt: -1 })
+        .lean()
+    : [];
+  const wrappedByBuilder = new Map<string, { report?: any; score?: number | null }>();
+  for (const doc of wrappedDocs) {
+    const key = String(doc.builderId);
+    if (!wrappedByBuilder.has(key)) {
+      wrappedByBuilder.set(key, {
+        report: doc.report,
+        score: typeof doc.report?.score === 'number' ? doc.report.score : null,
+      });
+    }
+  }
+
   const result = await runFounderDiscoveryPipeline({
     opportunity: oppPlain,
     founderId: identity.founderId,
     builders,
     projectsByBuilder,
+    wrappedByBuilder,
     searchMode,
     feedbackHistory: feedbackDocs.map((f: any) => ({
       founderId: f.founderId,
