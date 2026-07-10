@@ -292,6 +292,19 @@ export default function FounderCandidateDrawer({
               {candidate.teasers.agentTrace.archetype ? (
                 <p className="mb-2 text-sm font-semibold text-white">{candidate.teasers.agentTrace.archetype}</p>
               ) : null}
+              {candidate.teasers.agentTrace.roleFitTrace ? (
+                <div className="mb-3 rounded-xl border border-[#fa7d22]/15 bg-black/20 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#ffb580]">For this role</p>
+                    <span className="text-[10px] font-semibold text-[#ffb580]">
+                      {candidate.teasers.agentTrace.roleFitTrace.alignmentScore}% alignment
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-white/70 leading-relaxed">
+                    {candidate.teasers.agentTrace.roleFitTrace.roleSummary}
+                  </p>
+                </div>
+              ) : null}
               {candidate.teasers.agentTrace.bestFitRoles?.length ? (
                 <p className="mb-2 text-xs text-white/55">
                   Best fit: {candidate.teasers.agentTrace.bestFitRoles.join(' · ')}
@@ -328,6 +341,16 @@ export default function FounderCandidateDrawer({
                   </div>
                 ))}
               </div>
+              ) : null}
+              {candidate.teasers.agentTrace.interviewProbes?.length ? (
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Ask in intro</p>
+                  <ul className="mt-2 space-y-1.5">
+                    {candidate.teasers.agentTrace.interviewProbes.slice(0, 2).map((probe) => (
+                      <li key={probe} className="text-xs text-white/65 leading-relaxed">{probe}</li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
             </section>
           ) : null}

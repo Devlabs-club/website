@@ -79,7 +79,7 @@ export async function persistDiscoveryCandidates(params: {
       builderId: candidate.builderId,
       matchRecordId: match?._id || null,
       matchLabel: candidate.matchLabel,
-      matchScore: Math.round(candidate.overallFit * 100),
+      matchScore: Number.isFinite(candidate.overallFit) ? Math.round(candidate.overallFit * 100) : 0,
       topSkills: domainSkillsMatched.length
         ? domainSkillsMatched
         : candidate.builder.rolePreference?.slice(0, 4) || [],

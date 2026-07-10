@@ -66,6 +66,36 @@ export function profileLimitPoolTarget(profileLimit: number | null) {
   return Math.max(profileLimit * 4, 40);
 }
 
+async function loadTopProjectsPerBuilder(
+  ProjectRecord: any,
+  builderIds: mongoose.Types.ObjectId[],
+  perBuilderLimit: number
+) {
+  const grouped = await ProjectRecord.aggregate([
+    { $match: { builderId: { $in: builderIds } } },
+    { $sort: { updatedAt: -1 } },
+    {
+      $group: {
+        _id: '$builderId',
+        projects: { $push: '$$ROOT' },
+      },
+    },
+    {
+      $project: {
+        projects: { $slice: ['$projects', perBuilderLimit] },
+      },
+    },
+  ]).option({ maxTimeMS: 8000 });
+
+  const allProjects: any[] = [];
+  for (const entry of grouped) {
+    for (const project of entry.projects || []) {
+      allProjects.push(project);
+    }
+  }
+  return allProjects;
+}
+
 export async function hydrateSearchableBuilderPool(params: {
   seedBuilders: any[];
   targetPoolSize: number;
@@ -120,11 +150,7 @@ export async function hydrateSearchableBuilderPool(params: {
 
   const builderIds = builders.map((builder) => builder._id);
   const allProjects = builderIds.length
-    ? await ProjectRecord.find({ builderId: { $in: builderIds } })
-      .select(PROJECT_SEARCH_SELECT)
-      .limit(Math.min(800, builderIds.length * 6))
-      .maxTimeMS(5000)
-      .lean()
+    ? await loadTopProjectsPerBuilder(ProjectRecord, builderIds, 8)
     : [];
 
   const projectsByBuilder = new Map<string, any[]>();

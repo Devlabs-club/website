@@ -253,6 +253,14 @@ export function collectBuilderSkillTokens(builder: any, projects: any[] = []) {
   return tokens;
 }
 
+export function getSearchRequirements(opportunity: any): Array<{ text: string; importance: 'must' | 'nice' }> {
+  return normalizeRequirements(opportunity);
+}
+
+export function countMustSearchRequirements(opportunity: any): number {
+  return getSearchRequirements(opportunity).filter((requirement) => requirement.importance === 'must').length;
+}
+
 function normalizeRequirements(opportunity: any): Array<{ text: string; importance: 'must' | 'nice' }> {
   const structured = Array.isArray(opportunity?.searchRequirements)
     ? opportunity.searchRequirements

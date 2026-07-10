@@ -1,3 +1,4 @@
+import { countMustSearchRequirements } from '@/lib/talent/searchTokens';
 import { buildRoleSkillTiers } from './roleSkillTiers';
 import type { RoleSkillTiers } from './roleSkillTiers';
 
@@ -14,84 +15,45 @@ export type RankingWeights = {
   availabilityFit: number;
   profileQuality: number;
   startupReadiness: number;
+  agentTraceFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
 };
 
 export const DEFAULT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.15,
-  semanticRoleFit: 0.15,
-  semanticProjectFit: 0.15,
-  proofStrength: 0.15,
-  contributionClarity: 0.10,
-  founderPreferenceFit: 0.10,
-  hireTypeFit: 0.08,
-  availabilityFit: 0.07,
-  profileQuality: 0.05,
-  startupReadiness: 0.10,
-  negativeSignalPenalty: 0.10,
-  missingEvidencePenalty: 0.05,
-};
-
-export const MVP_SPRINT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.10,
-  semanticRoleFit: 0.10,
-  semanticProjectFit: 0.20,
-  proofStrength: 0.25,
-  contributionClarity: 0.10,
-  founderPreferenceFit: 0.05,
-  hireTypeFit: 0.05,
-  availabilityFit: 0.10,
-  profileQuality: 0.05,
-  startupReadiness: 0.15,
-  negativeSignalPenalty: 0.10,
-  missingEvidencePenalty: 0.05,
-};
-
-export const BACKEND_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.20,
-  semanticRoleFit: 0.10,
-  semanticProjectFit: 0.10,
-  proofStrength: 0.25,
-  contributionClarity: 0.20,
-  founderPreferenceFit: 0.05,
-  hireTypeFit: 0.05,
-  availabilityFit: 0.05,
-  profileQuality: 0.05,
-  startupReadiness: 0.05,
-  negativeSignalPenalty: 0.15,
-  missingEvidencePenalty: 0.10,
-};
-
-export const MOBILE_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.34,
-  semanticRoleFit: 0.12,
-  semanticProjectFit: 0.12,
-  proofStrength: 0.22,
-  contributionClarity: 0.10,
-  founderPreferenceFit: 0.04,
-  hireTypeFit: 0.03,
-  availabilityFit: 0.02,
-  profileQuality: 0.03,
-  startupReadiness: 0.05,
-  negativeSignalPenalty: 0.10,
-  missingEvidencePenalty: 0.05,
-};
-
-export const AI_ENGINEER_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.22,
+  deterministicSkillFit: 0.14,
   semanticRoleFit: 0.14,
   semanticProjectFit: 0.14,
-  proofStrength: 0.20,
+  proofStrength: 0.14,
   contributionClarity: 0.10,
-  founderPreferenceFit: 0.05,
-  hireTypeFit: 0.03,
-  availabilityFit: 0.04,
-  profileQuality: 0.04,
-  startupReadiness: 0.06,
+  founderPreferenceFit: 0.10,
+  hireTypeFit: 0.07,
+  availabilityFit: 0.06,
+  profileQuality: 0.05,
+  startupReadiness: 0.09,
+  agentTraceFit: 0.07,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
+
+const POSITIVE_WEIGHT_KEYS: Array<keyof RankingWeights> = [
+  'deterministicSkillFit',
+  'semanticRoleFit',
+  'semanticProjectFit',
+  'proofStrength',
+  'contributionClarity',
+  'founderPreferenceFit',
+  'hireTypeFit',
+  'availabilityFit',
+  'profileQuality',
+  'startupReadiness',
+  'agentTraceFit',
+];
+
+const PENALTY_WEIGHT_KEYS: Array<keyof RankingWeights> = [
+  'negativeSignalPenalty',
+  'missingEvidencePenalty',
+];
 
 export type SearchStrategy = {
   opportunityId: string;
@@ -154,7 +116,7 @@ export function buildSearchStrategy(params: {
   const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo, requirementTexts);
   const negativeSignals: string[] = [];
 
-  const weights = selectWeights(roleTitle, opportunity.hireType ?? opportunity.workType ?? '', searchMode);
+  const weights = computeDynamicWeights({ opportunity, roleSkillTiers, searchMode });
 
   return {
     opportunityId: oppId,
@@ -285,24 +247,83 @@ function uniqueList(values: Array<string | null | undefined>) {
   return [...new Set(values.map((value) => String(value || '').trim()).filter(Boolean))];
 }
 
-function selectWeights(roleTitle: string, hireType: string, searchMode: SearchMode): RankingWeights {
-  const lower = roleTitle.toLowerCase();
-  const isMobile = /mobile|ios|android|flutter|react native|swift|expo/i.test(lower);
-  const isAI = /ai|llm|machine learning|ml engineer/i.test(lower);
-  const isBackendHeavy = /backend|infrastructure|devops|data engineer|platform/i.test(lower);
-  const isMVP = /mvp|prototype|sprint|rapid|hackathon/i.test(lower);
+function normalizeRankingWeights(weights: RankingWeights): RankingWeights {
+  const normalized = { ...weights };
+  const positiveSum = POSITIVE_WEIGHT_KEYS.reduce((sum, key) => sum + normalized[key], 0);
+  const penaltySum = PENALTY_WEIGHT_KEYS.reduce((sum, key) => sum + normalized[key], 0);
 
-  let base = isMobile ? MOBILE_ENGINEER_WEIGHTS
-    : isAI ? AI_ENGINEER_WEIGHTS
-    : isBackendHeavy ? BACKEND_ENGINEER_WEIGHTS
-    : isMVP ? MVP_SPRINT_WEIGHTS
-    : DEFAULT_WEIGHTS;
-
-  if (searchMode === 'broad') {
-    base = { ...base, deterministicSkillFit: base.deterministicSkillFit * 0.7, proofStrength: base.proofStrength * 0.8 };
-  } else if (searchMode === 'strict') {
-    base = { ...base, deterministicSkillFit: base.deterministicSkillFit * 1.3, proofStrength: base.proofStrength * 1.2 };
+  if (positiveSum > 0) {
+    for (const key of POSITIVE_WEIGHT_KEYS) {
+      normalized[key] = normalized[key] / positiveSum;
+    }
+  }
+  if (penaltySum > 0) {
+    for (const key of PENALTY_WEIGHT_KEYS) {
+      normalized[key] = normalized[key] / penaltySum;
+    }
   }
 
-  return base;
+  return normalized;
+}
+
+function applyDomainNudges(weights: RankingWeights, domain: RoleSkillTiers['domain']): RankingWeights {
+  const next = { ...weights };
+
+  switch (domain) {
+    case 'mobile':
+    case 'frontend':
+      next.deterministicSkillFit += 0.04;
+      next.proofStrength += 0.03;
+      next.semanticProjectFit += 0.02;
+      break;
+    case 'backend':
+      next.proofStrength += 0.05;
+      next.contributionClarity += 0.04;
+      break;
+    case 'ai':
+      next.proofStrength += 0.03;
+      next.semanticProjectFit += 0.04;
+      next.semanticRoleFit += 0.02;
+      break;
+    case 'fullstack':
+      next.proofStrength += 0.03;
+      next.startupReadiness += 0.03;
+      break;
+    case 'design':
+      next.proofStrength += 0.03;
+      next.contributionClarity += 0.03;
+      break;
+    default:
+      break;
+  }
+
+  return next;
+}
+
+export function computeDynamicWeights(params: {
+  opportunity: OpportunityInput;
+  roleSkillTiers: RoleSkillTiers;
+  searchMode: SearchMode;
+}): RankingWeights {
+  const { opportunity, roleSkillTiers, searchMode } = params;
+  let weights: RankingWeights = { ...DEFAULT_WEIGHTS };
+
+  const mustCount = countMustSearchRequirements(opportunity);
+  if (mustCount > 0) {
+    weights.founderPreferenceFit = Math.min(0.32, 0.12 + mustCount * 0.06);
+    weights.negativeSignalPenalty = Math.min(0.18, weights.negativeSignalPenalty + 0.04);
+  }
+
+  weights = applyDomainNudges(weights, roleSkillTiers.domain);
+
+  if (searchMode === 'broad') {
+    weights.deterministicSkillFit *= 0.85;
+    weights.proofStrength *= 0.9;
+  } else if (searchMode === 'strict') {
+    weights.deterministicSkillFit *= 1.12;
+    weights.proofStrength *= 1.08;
+    weights.missingEvidencePenalty *= 1.15;
+  }
+
+  return normalizeRankingWeights(weights);
 }

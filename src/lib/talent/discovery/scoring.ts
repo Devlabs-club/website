@@ -7,7 +7,7 @@ import {
   scoreRoleAwareSkillFit,
   type RoleSkillTiers,
 } from './roleSkillTiers';
-import { buildRequirementFindings, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
+import { buildRequirementFindings, getSearchRequirements, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -20,6 +20,7 @@ export type CandidateScoreComponents = {
   availabilityFit: number;
   profileQuality: number;
   startupReadiness: number;
+  agentTraceFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
   llmRerankAdjustment: number;
@@ -49,21 +50,39 @@ export type ScoredCandidate = {
 };
 
 export function computeOverallFit(components: CandidateScoreComponents, weights: RankingWeights): number {
+  const w = {
+    deterministicSkillFit: weights.deterministicSkillFit ?? 0,
+    semanticRoleFit: weights.semanticRoleFit ?? 0,
+    semanticProjectFit: weights.semanticProjectFit ?? 0,
+    proofStrength: weights.proofStrength ?? 0,
+    contributionClarity: weights.contributionClarity ?? 0,
+    founderPreferenceFit: weights.founderPreferenceFit ?? 0,
+    hireTypeFit: weights.hireTypeFit ?? 0,
+    availabilityFit: weights.availabilityFit ?? 0,
+    profileQuality: weights.profileQuality ?? 0,
+    startupReadiness: weights.startupReadiness ?? 0,
+    agentTraceFit: weights.agentTraceFit ?? 0,
+    negativeSignalPenalty: weights.negativeSignalPenalty ?? 0,
+    missingEvidencePenalty: weights.missingEvidencePenalty ?? 0,
+  };
+
   const raw =
-    components.deterministicSkillFit * weights.deterministicSkillFit +
-    components.semanticRoleFit * weights.semanticRoleFit +
-    components.semanticProjectFit * weights.semanticProjectFit +
-    components.proofStrength * weights.proofStrength +
-    components.contributionClarity * weights.contributionClarity +
-    components.founderPreferenceFit * weights.founderPreferenceFit +
-    components.hireTypeFit * weights.hireTypeFit +
-    components.availabilityFit * weights.availabilityFit +
-    components.profileQuality * weights.profileQuality +
-    components.startupReadiness * weights.startupReadiness -
-    components.negativeSignalPenalty * weights.negativeSignalPenalty -
-    components.missingEvidencePenalty * weights.missingEvidencePenalty +
+    components.deterministicSkillFit * w.deterministicSkillFit +
+    components.semanticRoleFit * w.semanticRoleFit +
+    components.semanticProjectFit * w.semanticProjectFit +
+    components.proofStrength * w.proofStrength +
+    components.contributionClarity * w.contributionClarity +
+    components.founderPreferenceFit * w.founderPreferenceFit +
+    components.hireTypeFit * w.hireTypeFit +
+    components.availabilityFit * w.availabilityFit +
+    components.profileQuality * w.profileQuality +
+    components.startupReadiness * w.startupReadiness +
+    components.agentTraceFit * w.agentTraceFit -
+    components.negativeSignalPenalty * w.negativeSignalPenalty -
+    components.missingEvidencePenalty * w.missingEvidencePenalty +
     components.llmRerankAdjustment;
 
+  if (!Number.isFinite(raw)) return 0;
   return Math.max(0, Math.min(1, raw));
 }
 
@@ -91,10 +110,19 @@ export function scoreBuilderFromProfile(params: {
   proofSignals: string[];
   founderMemoryContext?: string;
   roleSkillTiers?: RoleSkillTiers;
+  hasUploadedAgentTrace?: boolean;
+  agentWrappedScore?: number | null;
 }): CandidateScoreComponents {
-  const { builder, projects, opportunity, mustHaveSignals, roleSkillTiers } = params;
+  const {
+    builder,
+    projects,
+    opportunity,
+    mustHaveSignals,
+    roleSkillTiers,
+    hasUploadedAgentTrace,
+    agentWrappedScore,
+  } = params;
   const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
-
   const deterministicSkillFit = scoreRoleAwareSkillFit(tiers, builder, projects, mustHaveSignals);
   const domainProof = scoreDomainProofStrength(tiers, projects);
   const proofStrength = Math.min(1, scoreProofStrength(projects) * 0.45 + domainProof * 0.55);
@@ -105,6 +133,7 @@ export function scoreBuilderFromProfile(params: {
   const startupReadiness = scoreStartupReadiness(builder, projects);
   const missingEvidencePenalty = scoreMissingEvidence(builder, projects, opportunity);
   const founderPreferenceFit = scoreFounderPreferenceFit(opportunity, builder, projects);
+  const agentTraceFit = scoreAgentTraceFit(hasUploadedAgentTrace, agentWrappedScore);
 
   return {
     deterministicSkillFit,
@@ -117,6 +146,7 @@ export function scoreBuilderFromProfile(params: {
     availabilityFit,
     profileQuality,
     startupReadiness,
+    agentTraceFit,
     negativeSignalPenalty: 0,
     missingEvidencePenalty,
     llmRerankAdjustment: 0,
@@ -135,11 +165,13 @@ function scoreProofStrength(projects: any[]): number {
   if (!projects.length) return 0;
 
   const VERIFIED = new Set(['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified']);
+  const IMPORTED = new Set(['imported_unverified']);
   let score = 0;
 
   for (const p of projects) {
     let projectScore = 0;
     if (VERIFIED.has(p.verificationStatus)) projectScore += 0.3;
+    else if (IMPORTED.has(p.verificationStatus)) projectScore += 0.18;
     if (p.links?.github) projectScore += 0.2;
     if (p.links?.demo || p.links?.devpost) projectScore += 0.2;
     if (p.builderContribution && p.builderContribution.length > 30) projectScore += 0.2;
@@ -155,6 +187,7 @@ function scoreContributionClarity(projects: any[]): number {
   if (!projects.length) return 0;
 
   const VERIFIED = new Set(['builder_confirmed', 'peer_confirmed', 'admin_verified', 'founder_verified']);
+  const IMPORTED = new Set(['imported_unverified']);
   let total = 0;
 
   for (const p of projects) {
@@ -163,6 +196,7 @@ function scoreContributionClarity(projects: any[]): number {
     if (contrib.length > 20) s += 0.4;
     if (contrib.length > 80) s += 0.2;
     if (VERIFIED.has(p.verificationStatus)) s += 0.3;
+    else if (IMPORTED.has(p.verificationStatus)) s += 0.15;
     if (p.problemSolved && p.problemSolved.length > 20) s += 0.1;
     total += Math.min(1, s);
   }
@@ -216,6 +250,15 @@ function scoreStartupReadiness(builder: any, projects: any[]): number {
   return Math.min(1, score);
 }
 
+function scoreAgentTraceFit(hasUploadedAgentTrace?: boolean, agentWrappedScore?: number | null): number {
+  if (!hasUploadedAgentTrace) return 0;
+  let score = 0.65;
+  if (typeof agentWrappedScore === 'number') {
+    score += Math.min(0.35, agentWrappedScore / 100 * 0.35);
+  }
+  return Math.min(1, score);
+}
+
 function scoreMissingEvidence(builder: any, projects: any[], opportunity: any): number {
   let penalty = 0;
 
@@ -252,6 +295,7 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity >= 0.6) strongestSignals.push('Clear personal contribution on projects');
   if (components.startupReadiness >= 0.6) strongestSignals.push('Strong shipped-project proof');
   if (components.founderPreferenceFit >= 0.75) strongestSignals.push('Matches founder search requirements');
+  if (components.agentTraceFit >= 0.6) strongestSignals.push('Verified agent trace uploaded');
   if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
   else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
 
@@ -275,11 +319,12 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
   if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
-  const unmetMust = requirementFindings.filter(
-    (finding) => finding.met === 'no' && opportunity.searchRequirements?.some(
-      (req: any) => req.text === finding.text && req.importance === 'must'
-    )
-  );
+  const unmetMust = requirementFindings.filter((finding) => {
+    if (finding.met !== 'no') return false;
+    return getSearchRequirements(opportunity).some(
+      (requirement) => requirement.text === finding.text && requirement.importance === 'must'
+    );
+  });
   if (unmetMust.length) {
     concerns.push(`Missing must-have: ${unmetMust.slice(0, 2).map((finding) => finding.text).join('; ')}`);
   }
