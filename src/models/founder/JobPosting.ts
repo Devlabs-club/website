@@ -46,6 +46,8 @@ const JobPostingSchema = new mongoose.Schema(
     seniority: { type: String, default: null },
 
     skippedFields: [{ type: String }],
+    /** Compiled expansion of searchRequirements (match tokens + retrieval terms). Invalidated via sourceHash. */
+    searchPlan: { type: mongoose.Schema.Types.Mixed, default: null },
     poolFitMetadata: { type: mongoose.Schema.Types.Mixed, default: null },
     billingPeriodKey: { type: String, default: null, index: true },
     planAtCreation: {

@@ -1,4 +1,5 @@
 import { countMustSearchRequirements } from '@/lib/talent/searchTokens';
+import { getPlanRetrievalTerms, type SearchPlan } from '@/lib/talent/searchPlan';
 import { buildRoleSkillTiers } from './roleSkillTiers';
 import type { RoleSkillTiers } from './roleSkillTiers';
 
@@ -81,6 +82,7 @@ export type OpportunityInput = {
   niceToHaveSkills?: string[] | null;
   requirements?: string[] | null;
   searchRequirements?: Array<{ text?: string | null; importance?: 'must' | 'nice' | string | null }> | null;
+  searchPlan?: SearchPlan | null;
   hireType?: string | null;
   workType?: string | null;
   startupSummary?: string | null;
@@ -102,6 +104,7 @@ export function buildSearchStrategy(params: {
   const skills = opportunity.skillsNeeded ?? [];
   const niceToHave = opportunity.niceToHaveSkills ?? [];
   const requirementTexts = normalizeRequirementTexts(opportunity);
+  const planTerms = getPlanRetrievalTerms(opportunity.searchPlan);
 
   const roleSkillTiers = buildRoleSkillTiers(opportunity);
   const coreSkills = opportunity.originalSkillsNeeded?.length
@@ -109,8 +112,14 @@ export function buildSearchStrategy(params: {
     : skills;
   const primaryQuery = [roleTitle, builderWillDo, ...requirementTexts.slice(0, 2)].filter(Boolean).join(' — ');
 
-  const expandedQueries = buildExpandedQueries(roleTitle, builderWillDo, coreSkills, requirementTexts);
-  const mustHaveSignals = roleSkillTiers.primarySkills.slice(0, 8);
+  const expandedQueries = uniqueList([
+    ...buildExpandedQueries(roleTitle, builderWillDo, coreSkills, requirementTexts),
+    ...planTerms.slice(0, 8),
+  ]).slice(0, 8);
+  const mustHaveSignals = uniqueList([
+    ...roleSkillTiers.primarySkills.slice(0, 8),
+    ...planTerms.slice(0, 6),
+  ]).slice(0, 10);
   const niceToHaveSignals = uniqueList([...niceToHave, ...roleSkillTiers.secondarySkills]).slice(0, 8);
   const proofSignals = buildProofSignals(roleTitle, skills, builderWillDo, requirementTexts);
   const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo, requirementTexts);

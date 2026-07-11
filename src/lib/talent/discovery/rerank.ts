@@ -1,4 +1,6 @@
 import { scoreMatchLabel, type ScoredCandidate } from './scoring';
+import { normalizeRequirements } from '@/lib/talent/searchTokens';
+import type { SearchPlan } from '@/lib/talent/searchPlan';
 
 export type LlmCandidateJudgment = {
   builderId: string;
@@ -16,6 +18,10 @@ export type LlmCandidateJudgment = {
   rerankPenalty: number;
 };
 
+/**
+ * One batched LLM call over the top N candidates (default 12).
+ * SearchPlan already expanded founder requirements; this only nudges edge cases.
+ */
 export async function rerankTopCandidates(params: {
   candidates: ScoredCandidate[];
   opportunity: any;
@@ -23,167 +29,172 @@ export async function rerankTopCandidates(params: {
   generateReply: (systemPrompt: string, userPrompt: string) => Promise<string>;
   limit?: number;
 }): Promise<ScoredCandidate[]> {
-  const { candidates, opportunity, builderMap, generateReply, limit = 25 } = params;
-
+  const { candidates, opportunity, builderMap, generateReply, limit = 12 } = params;
   const top = candidates.slice(0, limit);
-
   if (!top.length) return candidates;
 
-  const judgments = await Promise.allSettled(
-    top.map((candidate) => judgeCandidate({ candidate, opportunity, builderMap, generateReply }))
-  );
-
-  const judgedMap = new Map<string, LlmCandidateJudgment>();
-  for (const result of judgments) {
-    if (result.status === 'fulfilled' && result.value) {
-      judgedMap.set(result.value.builderId, result.value);
-    }
-  }
-
-  return candidates.map((candidate) => {
-    const judgment = judgedMap.get(candidate.builderId);
-    if (!judgment) return candidate;
-
-    const adjustedFit = computeFitWithAdjustment({
-      ...candidate,
-      components: {
-        ...candidate.components,
-        llmRerankAdjustment: judgment.rerankBoost - judgment.rerankPenalty,
-      },
-    });
-
-    const adjusted = {
-      ...candidate,
-      overallFit: adjustedFit,
-      matchLabel: scoreMatchLabel(adjustedFit),
-      components: {
-        ...candidate.components,
-        llmRerankAdjustment: judgment.rerankBoost - judgment.rerankPenalty,
-      },
-      explanation: {
-        ...candidate.explanation,
-        strongestSignals: judgment.evidenceBasedReasoning.length
-          ? judgment.evidenceBasedReasoning
-          : candidate.explanation.strongestSignals,
-        concerns: judgment.risks.length ? judgment.risks : candidate.explanation.concerns,
-        missingEvidence: judgment.missingInformation.length
-          ? judgment.missingInformation
-          : candidate.explanation.missingEvidence,
-        requirementFindings: judgment.requirementFindings.length
-          ? judgment.requirementFindings
-          : candidate.explanation.requirementFindings,
-        recommendedAction: mapJudgmentAction(judgment.recommendedAction),
-      },
-    };
-
-    return adjusted;
-  }).sort((a, b) => {
-    const aFit = computeFitWithAdjustment(a);
-    const bFit = computeFitWithAdjustment(b);
-    return bFit - aFit;
+  const judgments = await judgeCandidatesBatch({
+    candidates: top,
+    opportunity,
+    builderMap,
+    generateReply,
   });
+  const judgedMap = new Map(judgments.map((judgment) => [judgment.builderId, judgment]));
+
+  return candidates
+    .map((candidate) => {
+      const judgment = judgedMap.get(candidate.builderId);
+      if (!judgment) return candidate;
+
+      const adjustedFit = computeFitWithAdjustment({
+        ...candidate,
+        components: {
+          ...candidate.components,
+          llmRerankAdjustment: judgment.rerankBoost - judgment.rerankPenalty,
+        },
+      });
+
+      return {
+        ...candidate,
+        overallFit: adjustedFit,
+        matchLabel: scoreMatchLabel(adjustedFit),
+        components: {
+          ...candidate.components,
+          llmRerankAdjustment: judgment.rerankBoost - judgment.rerankPenalty,
+        },
+        explanation: {
+          ...candidate.explanation,
+          strongestSignals: judgment.evidenceBasedReasoning.length
+            ? judgment.evidenceBasedReasoning
+            : candidate.explanation.strongestSignals,
+          concerns: judgment.risks.length ? judgment.risks : candidate.explanation.concerns,
+          missingEvidence: judgment.missingInformation.length
+            ? judgment.missingInformation
+            : candidate.explanation.missingEvidence,
+          requirementFindings: judgment.requirementFindings.length
+            ? judgment.requirementFindings
+            : candidate.explanation.requirementFindings,
+          recommendedAction: mapJudgmentAction(judgment.recommendedAction),
+        },
+      };
+    })
+    .sort((a, b) => computeFitWithAdjustment(b) - computeFitWithAdjustment(a));
 }
 
-async function judgeCandidate(params: {
-  candidate: ScoredCandidate;
+async function judgeCandidatesBatch(params: {
+  candidates: ScoredCandidate[];
   opportunity: any;
   builderMap: Map<string, { builder: any; projects: any[] }>;
   generateReply: (systemPrompt: string, userPrompt: string) => Promise<string>;
-}): Promise<LlmCandidateJudgment | null> {
-  const { candidate, opportunity, builderMap, generateReply } = params;
-  const data = builderMap.get(candidate.builderId);
-  if (!data) return null;
-
-  const { builder, projects } = data;
+}): Promise<LlmCandidateJudgment[]> {
+  const { candidates, opportunity, builderMap, generateReply } = params;
   const requirements = normalizeRequirements(opportunity);
+  const plan = opportunity?.searchPlan as SearchPlan | undefined;
 
-  const systemPrompt = `You are a hiring intelligence system evaluating builder-to-role fit.
-Evaluate whether this builder is a strong fit for the role. Be evidence-based and honest about risks.
-The founder may include open-ended natural-language requirements like "interned at big tech", "went to Stanford or Yale", or "built a chat feature". Evaluate those requirements from the evidence only. You may expand common categories yourself: "big tech" can include companies like Google, Meta, Apple, Amazon, Microsoft, Netflix, OpenAI, Anthropic, Stripe, or similarly elite technical companies.
-Return strictly valid JSON with keys: fitSummary (string), requirementFindings (array of {text, met: "yes"|"partial"|"no", evidence}), evidenceBasedReasoning (string[]), risks (string[]), missingInformation (string[]), recommendedAction ("intro"|"trial"|"save"|"pass"), rerankBoost (number 0-0.15), rerankPenalty (number 0-0.15).
-For must-have requirements, clear evidence should increase rerankBoost and clear misses should increase rerankPenalty. For nice-to-have requirements, use smaller adjustments. Do not infer a school, employer, or feature unless it appears in the profile, education, experience, project, or link evidence.
-rerankBoost: how much to boost this candidate above their score (0 = no boost, 0.15 = significant boost).
-rerankPenalty: how much to penalize this candidate (0 = no penalty, 0.15 = significant penalty).
-No markdown, just JSON.`;
+  const planBlock = plan?.requirements?.length
+    ? plan.requirements
+        .map(
+          (requirement, index) =>
+            `${index + 1}. [${requirement.importance}] ${requirement.text}\n   mode=${requirement.mode}; matchAnyOf=${requirement.matchAnyOf.slice(0, 12).join(', ')}`
+        )
+        .join('\n')
+    : requirements
+        .map((requirement, index) => `${index + 1}. [${requirement.importance}] ${requirement.text}`)
+        .join('\n');
 
-  const userPrompt = `Role: ${opportunity.roleTitle || 'Unknown'}
-What they will build: ${opportunity.builderWillDo || 'Not specified'}
-Required skills: ${(opportunity.skillsNeeded || []).join(', ') || 'Not specified'}
-Open-ended requirements:
-${requirements.length ? requirements.map((requirement, i) => `${i + 1}. [${requirement.importance}] ${requirement.text}`).join('\n') : 'None'}
-Hire type: ${opportunity.hireType || opportunity.workType || 'Not specified'}
+  const systemPrompt = `You are a hiring intelligence system doing a FINAL nudge pass over shortlisted builders.
+A SearchPlan already expanded founder requirements into concrete match tokens. Deterministic scoring already applied must/nice gates.
+Your job: only adjust for edge cases the token matcher may miss (synonyms, related companies/schools, project evidence phrasing).
+Return strictly valid JSON: {"judgments":[{builderId, fitSummary, requirementFindings:[{text, met:"yes"|"partial"|"no", evidence}], evidenceBasedReasoning:string[], risks:string[], missingInformation:string[], recommendedAction:"intro"|"trial"|"save"|"pass", rerankBoost:number, rerankPenalty:number}]}
+Constraints:
+- rerankBoost and rerankPenalty are each 0-0.12.
+- Prefer small adjustments. Do not invent employers, schools, or projects absent from evidence.
+- Include one judgment object per candidate builderId provided.`;
 
-Builder: ${builder.name || 'Unknown'}
+  const candidateBlocks = candidates.map((candidate, index) => {
+    const data = builderMap.get(candidate.builderId);
+    if (!data) return `${index + 1}. builderId=${candidate.builderId} (missing profile)`;
+    const { builder, projects } = data;
+    return `${index + 1}. builderId=${candidate.builderId}
+Name: ${builder.name || 'Unknown'}
+Score: ${(candidate.overallFit * 100).toFixed(0)}/100
 Headline: ${builder.headline || 'None'}
-Skills/roles: ${(builder.rolePreference || []).join(', ') || 'None listed'}
+Skills: ${(builder.rolePreference || []).slice(0, 10).join(', ') || 'None'}
 Education:
 ${formatEducation(builder)}
 Experience:
 ${formatExperience(builder)}
-Availability: ${builder.availability?.availableNow ? 'Available' : 'Not available'}
+Projects:
+${projects
+  .slice(0, 3)
+  .map(
+    (project: any, projectIndex: number) =>
+      `${projectIndex + 1}. ${project.projectName || 'Unnamed'}: ${String(project.description || '').slice(0, 120)}. Contribution: ${String(project.builderContribution || '').slice(0, 100)}. Stack: ${(project.techStack || []).slice(0, 6).join(', ')}`
+  )
+  .join('\n') || 'None'}`;
+  });
 
-Top projects (up to 3):
-${projects.slice(0, 5).map((p: any, i: number) => `${i + 1}. ${p.projectName || 'Unnamed'}: ${p.description || 'No description'}. Problem: ${p.problemSolved || 'Not stated'}. Contribution: ${p.builderContribution || 'Not stated'}. Stack: ${(p.techStack || []).join(', ')}. Tags: ${(p.contributionTags || []).join(', ') || 'None'}. Links: ${formatLinks(p.links)}. Verified: ${p.verificationStatus || 'unverified'}.`).join('\n')}
+  const userPrompt = `Role: ${opportunity.roleTitle || opportunity.title || 'Unknown'}
+What they will build: ${opportunity.builderWillDo || opportunity.description || 'Not specified'}
+Skills: ${(opportunity.skillsNeeded || []).slice(0, 10).join(', ') || 'Not specified'}
 
-Current deterministic score: ${(candidate.overallFit * 100).toFixed(0)}/100`;
+Compiled requirements:
+${planBlock || 'None'}
+
+Candidates (${candidates.length}):
+${candidateBlocks.join('\n\n')}`;
 
   try {
     const raw = await generateReply(systemPrompt, userPrompt);
     const json = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
     const parsed = JSON.parse(json);
-    return {
-      builderId: candidate.builderId,
-      fitSummary: String(parsed.fitSummary || ''),
-      requirementFindings: Array.isArray(parsed.requirementFindings)
-        ? parsed.requirementFindings
-            .map((finding: any) => ({
-              text: String(finding?.text || '').slice(0, 180),
-              met: finding?.met === 'yes' || finding?.met === 'partial' || finding?.met === 'no'
-                ? finding.met
-                : 'partial',
-              evidence: String(finding?.evidence || '').slice(0, 240),
-            }))
-            .filter((finding: { text: string }) => finding.text)
-            .slice(0, 8)
-        : [],
-      evidenceBasedReasoning: Array.isArray(parsed.evidenceBasedReasoning) ? parsed.evidenceBasedReasoning.slice(0, 4) : [],
-      risks: Array.isArray(parsed.risks) ? parsed.risks.slice(0, 3) : [],
-      missingInformation: Array.isArray(parsed.missingInformation) ? parsed.missingInformation.slice(0, 3) : [],
-      recommendedAction: (['intro', 'trial', 'save', 'pass'].includes(parsed.recommendedAction) ? parsed.recommendedAction : 'save') as LlmCandidateJudgment['recommendedAction'],
-      rerankBoost: Math.min(0.15, Math.max(0, Number(parsed.rerankBoost) || 0)),
-      rerankPenalty: Math.min(0.15, Math.max(0, Number(parsed.rerankPenalty) || 0)),
-    };
-  } catch {
-    return null;
-  }
-}
+    const rows = Array.isArray(parsed?.judgments) ? parsed.judgments : Array.isArray(parsed) ? parsed : [];
+    const allowedIds = new Set(candidates.map((candidate) => candidate.builderId));
 
-function normalizeRequirements(opportunity: any): Array<{ text: string; importance: 'must' | 'nice' }> {
-  const structured = Array.isArray(opportunity.searchRequirements)
-    ? opportunity.searchRequirements
-        .map((requirement: any) => ({
-          text: String(requirement?.text || '').trim(),
-          importance: requirement?.importance === 'nice' ? 'nice' as const : 'must' as const,
-        }))
-        .filter((requirement: { text: string }) => requirement.text)
-    : [];
-  const legacy = Array.isArray(opportunity.requirements)
-    ? opportunity.requirements
-        .map((text: unknown) => ({ text: String(text || '').trim(), importance: 'must' as const }))
-        .filter((requirement: { text: string }) => requirement.text)
-    : [];
-  const seen = new Set<string>();
-  return [...structured, ...legacy].filter((requirement) => {
-    const key = requirement.text.toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 8);
+    return rows
+      .map((row: any): LlmCandidateJudgment | null => {
+        const builderId = String(row?.builderId || '');
+        if (!builderId || !allowedIds.has(builderId)) return null;
+        return {
+          builderId,
+          fitSummary: String(row.fitSummary || '').slice(0, 240),
+          requirementFindings: Array.isArray(row.requirementFindings)
+            ? row.requirementFindings
+                .map((finding: any) => ({
+                  text: String(finding?.text || '').slice(0, 180),
+                  met:
+                    finding?.met === 'yes' || finding?.met === 'partial' || finding?.met === 'no'
+                      ? finding.met
+                      : 'partial',
+                  evidence: String(finding?.evidence || '').slice(0, 240),
+                }))
+                .filter((finding: { text: string }) => finding.text)
+                .slice(0, 8)
+            : [],
+          evidenceBasedReasoning: Array.isArray(row.evidenceBasedReasoning)
+            ? row.evidenceBasedReasoning.map(String).slice(0, 4)
+            : [],
+          risks: Array.isArray(row.risks) ? row.risks.map(String).slice(0, 3) : [],
+          missingInformation: Array.isArray(row.missingInformation)
+            ? row.missingInformation.map(String).slice(0, 3)
+            : [],
+          recommendedAction: (['intro', 'trial', 'save', 'pass'].includes(row.recommendedAction)
+            ? row.recommendedAction
+            : 'save') as LlmCandidateJudgment['recommendedAction'],
+          rerankBoost: Math.min(0.12, Math.max(0, Number(row.rerankBoost) || 0)),
+          rerankPenalty: Math.min(0.12, Math.max(0, Number(row.rerankPenalty) || 0)),
+        };
+      })
+      .filter(Boolean) as LlmCandidateJudgment[];
+  } catch (error) {
+    console.warn('[rerank] batched judgment failed', error instanceof Error ? error.message : error);
+    return [];
+  }
 }
 
 function formatEducation(builder: any): string {
   const rows = (builder.education || [])
-    .slice(0, 5)
+    .slice(0, 4)
     .map((entry: any) => [entry.school, entry.degree, entry.field].filter(Boolean).join(' — '))
     .filter(Boolean)
     .map((line: string, i: number) => `${i + 1}. ${line}`);
@@ -193,28 +204,20 @@ function formatEducation(builder: any): string {
 
 function formatExperience(builder: any): string {
   const rows = (builder.experiences || [])
-    .slice(0, 6)
+    .slice(0, 5)
     .map((entry: any, i: number) => {
       const title = [entry.title, entry.company].filter(Boolean).join(' at ') || 'Role';
-      const details = [
-        entry.dateRange,
-        entry.description,
-        (entry.skills || []).length ? `Skills: ${(entry.skills || []).slice(0, 8).join(', ')}` : null,
-      ].filter(Boolean).join('. ');
+      const details = [entry.dateRange, entry.description ? String(entry.description).slice(0, 100) : null]
+        .filter(Boolean)
+        .join('. ');
       return `${i + 1}. ${title}${details ? ` — ${details}` : ''}`;
     });
   return rows.length ? rows.join('\n') : 'None listed';
 }
 
-function formatLinks(links: any): string {
-  if (!links) return 'None';
-  return ['github', 'demo', 'devpost', 'videoDemo', 'pitchDeck']
-    .map((key) => links[key] ? `${key}: ${links[key]}` : null)
-    .filter(Boolean)
-    .join('; ') || 'None';
-}
-
-function mapJudgmentAction(action: LlmCandidateJudgment['recommendedAction']): ScoredCandidate['explanation']['recommendedAction'] {
+function mapJudgmentAction(
+  action: LlmCandidateJudgment['recommendedAction']
+): ScoredCandidate['explanation']['recommendedAction'] {
   if (action === 'intro') return 'request_intro';
   if (action === 'trial') return 'send_trial';
   if (action === 'pass') return 'reject';
