@@ -44,7 +44,126 @@ const icons = {
     '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
   briefcase:
     '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  linkedin:
+    '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/>',
 };
+
+const companyLogoUrl = (domain: string) =>
+  `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
+
+const roleSearchCardsTop = [
+  {
+    name: "Isha R.",
+    initials: "IR",
+    role: "Full-stack",
+    match: "96%",
+    ship: "9.2",
+    shipped: "7",
+    sources: 4,
+    ex: { label: "ex-Stripe", domain: "stripe.com" },
+    repos: ["stripe-connect", "saas-billing"],
+    activity: [2, 5, 3, 7, 4, 8, 6, 9, 5, 8, 7, 9],
+    sourceKeys: ["github", "globe", "linkedin", "briefcase"],
+  },
+  {
+    name: "Dev P.",
+    initials: "DP",
+    role: "Payments",
+    match: "93%",
+    ship: "8.8",
+    shipped: "5",
+    sources: 3,
+    ex: { label: "ex-Google", domain: "google.com" },
+    repos: ["checkout-kit", "next-pay"],
+    activity: [3, 4, 6, 5, 8, 4, 7, 6, 9, 5, 8, 7],
+    sourceKeys: ["github", "globe", "briefcase"],
+  },
+  {
+    name: "Nora S.",
+    initials: "NS",
+    role: "Backend",
+    match: "91%",
+    ship: "8.6",
+    shipped: "6",
+    sources: 4,
+    ex: { label: "ex-Meta", domain: "meta.com" },
+    repos: ["clerk-subs", "pg-ledger"],
+    activity: [4, 3, 5, 8, 6, 7, 4, 9, 6, 8, 5, 7],
+    sourceKeys: ["github", "linkedin", "globe", "briefcase"],
+  },
+  {
+    name: "Arjun M.",
+    initials: "AM",
+    role: "Frontend",
+    match: "89%",
+    ship: "8.4",
+    shipped: "4",
+    sources: 3,
+    ex: { label: "ex-Apple", domain: "apple.com" },
+    repos: ["market-payouts", "react-shop"],
+    activity: [2, 6, 4, 5, 7, 3, 8, 5, 6, 9, 4, 8],
+    sourceKeys: ["github", "globe", "linkedin"],
+  },
+];
+
+const roleSearchCardsBottom = [
+  {
+    name: "Maya T.",
+    initials: "MT",
+    role: "Full-stack",
+    match: "94%",
+    ship: "9.0",
+    shipped: "8",
+    sources: 4,
+    ex: { label: "ex-Shopify", domain: "shopify.com" },
+    repos: ["stripe-hooks", "supabase-app"],
+    activity: [5, 7, 4, 8, 6, 9, 5, 7, 8, 6, 9, 8],
+    sourceKeys: ["github", "globe", "linkedin", "briefcase"],
+  },
+  {
+    name: "Kai L.",
+    initials: "KL",
+    role: "Backend",
+    match: "92%",
+    ship: "8.7",
+    shipped: "5",
+    sources: 3,
+    ex: { label: "ex-Amazon", domain: "amazon.com" },
+    repos: ["payout-ledger", "fraud-guard"],
+    activity: [3, 5, 7, 4, 6, 8, 5, 9, 4, 7, 6, 8],
+    sourceKeys: ["github", "briefcase", "linkedin"],
+  },
+  {
+    name: "Sam G.",
+    initials: "SG",
+    role: "Frontend",
+    match: "90%",
+    ship: "8.5",
+    shipped: "6",
+    sources: 3,
+    ex: { label: "ex-Airbnb", domain: "airbnb.com" },
+    repos: ["checkout-ux", "conv-lab"],
+    activity: [4, 6, 5, 7, 3, 8, 6, 5, 9, 7, 4, 8],
+    sourceKeys: ["github", "globe", "linkedin"],
+  },
+  {
+    name: "Leah V.",
+    initials: "LV",
+    role: "AI engineer",
+    match: "95%",
+    ship: "9.1",
+    shipped: "4",
+    sources: 4,
+    ex: { label: "ex-OpenAI", domain: "openai.com" },
+    repos: ["match-agent", "eval-harness"],
+    activity: [6, 4, 8, 5, 9, 7, 6, 8, 5, 9, 7, 9],
+    sourceKeys: ["github", "globe", "linkedin", "briefcase"],
+  },
+];
+
+function sourceIconSvg(key: string) {
+  return icons[key as keyof typeof icons] ?? icons.globe;
+}
 
 const evidenceBento = [
   {
@@ -537,45 +656,183 @@ const testimonials = [
     <section class="agent-section pricing-flow-before ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div data-fluid-panel class="role-search-panel relative my-16 min-h-[35rem] overflow-hidden sm:my-24 sm:min-h-[39rem] lg:my-28 lg:min-h-[42rem]">
+        <div data-fluid-panel class="role-search-panel relative my-16 min-h-[38rem] overflow-hidden sm:my-24 sm:min-h-[44rem] lg:my-28 lg:min-h-[48rem]">
           <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fbf6f3] via-[#fbf6f3]/82 to-transparent"></div>
-          <div class="profile-marquee profile-marquee-one absolute top-16 flex gap-6">
-            {[
-              ["Isha R.", "96% match", "Stripe Connect · SaaS billing"],
-              ["Dev P.", "93% match", "Checkout migration · Next.js"],
-              ["Nora S.", "91% match", "Subscriptions · Clerk · Postgres"],
-              ["Arjun M.", "89% match", "Marketplace payouts · React"],
-            ].map(([name, score, proof]) => (
-              <div class="profile-card w-64 shrink-0 border border-black/10 bg-white/78 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-80">
-                <div class="flex items-center justify-between">
-                  <p class="font-black">{name}</p>
-                  <span class="text-xs font-black text-[#bf4f08]">{score}</span>
+          <div class="profile-marquee profile-marquee-one absolute top-10 flex gap-5 sm:top-12 sm:gap-6">
+            {[...roleSearchCardsTop, ...roleSearchCardsTop].map((card) => (
+              <article class="profile-card w-[17.5rem] shrink-0 border border-black/10 bg-white/82 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex min-w-0 items-center gap-2.5">
+                    <div class="grid h-9 w-9 shrink-0 place-items-center bg-[#ff7417] text-[0.7rem] font-extrabold text-white">
+                      {card.initials}
+                    </div>
+                    <div class="min-w-0 text-left">
+                      <p class="truncate text-sm font-black text-black">{card.name}</p>
+                      <p class="mt-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-black/38">
+                        {card.role}
+                      </p>
+                    </div>
+                  </div>
+                  <span class="shrink-0 text-xs font-black text-[#bf4f08]">{card.match}</span>
                 </div>
-                <p class="mt-3 text-sm font-semibold text-black/56">{proof}</p>
-              </div>
+
+                <div class="mt-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.16em] text-black/34">
+                      Ship activity
+                    </p>
+                    <p class="text-[0.58rem] font-bold text-black/34">12w</p>
+                  </div>
+                  <div class="mt-1.5 flex h-8 items-end gap-[3px]" aria-hidden="true">
+                    {card.activity.map((level) => (
+                      <span
+                        class="profile-activity-bar flex-1 rounded-[1px] bg-[#ff7417]"
+                        style={`height: ${18 + level * 7}%; opacity: ${0.22 + level * 0.07}`}
+                      ></span>
+                    ))}
+                  </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-3 gap-2 border-y border-black/[0.07] py-2.5">
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.ship}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Ship</p>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.shipped}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Shipped</p>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.sources}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Sources</p>
+                  </div>
+                </div>
+
+                <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span class="inline-flex items-center gap-1 border border-black/10 bg-[#fbf6f3] px-1.5 py-0.5 text-[0.62rem] font-extrabold text-black/70">
+                    <img
+                      src={companyLogoUrl(card.ex.domain)}
+                      alt=""
+                      width="12"
+                      height="12"
+                      class="h-3 w-3 object-contain"
+                      loading="lazy"
+                    />
+                    {card.ex.label}
+                  </span>
+                  {card.repos.map((repo) => (
+                    <span class="inline-flex max-w-full items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.62rem] font-bold text-black/68">
+                      <svg class="h-3 w-3 shrink-0 text-black/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.github}></svg>
+                      <span class="truncate">{repo}</span>
+                    </span>
+                  ))}
+                </div>
+
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1">
+                    {card.sourceKeys.map((key) => (
+                      <span class="grid h-5 w-5 place-items-center border border-black/8 bg-[#fbf6f3] text-black/55">
+                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
+                      </span>
+                    ))}
+                  </div>
+                  <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-black/34">
+                    Scraped proof
+                  </p>
+                </div>
+              </article>
             ))}
           </div>
 
-          <div class="profile-marquee profile-marquee-two absolute bottom-16 flex gap-6">
-            {[
-              ["Maya T.", "Full-stack", "Stripe webhooks · Supabase"],
-              ["Kai L.", "Backend", "Payout ledgers · fraud checks"],
-              ["Sam G.", "Frontend", "Checkout UX · conversion"],
-              ["Leah V.", "AI engineer", "Matching agents · evals"],
-            ].map(([name, role, proof]) => (
-              <div class="profile-card w-64 shrink-0 border border-black/10 bg-white/78 p-4 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-80">
-                <div class="flex items-center justify-between">
-                  <p class="font-black">{name}</p>
-                  <span class="text-xs font-black text-black/40">{role}</span>
+          <div class="profile-marquee profile-marquee-two absolute bottom-10 flex gap-5 sm:bottom-12 sm:gap-6">
+            {[...roleSearchCardsBottom, ...roleSearchCardsBottom].map((card) => (
+              <article class="profile-card w-[17.5rem] shrink-0 border border-black/10 bg-white/82 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex min-w-0 items-center gap-2.5">
+                    <div class="grid h-9 w-9 shrink-0 place-items-center bg-black text-[0.7rem] font-extrabold text-white">
+                      {card.initials}
+                    </div>
+                    <div class="min-w-0 text-left">
+                      <p class="truncate text-sm font-black text-black">{card.name}</p>
+                      <p class="mt-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-black/38">
+                        {card.role}
+                      </p>
+                    </div>
+                  </div>
+                  <span class="shrink-0 text-xs font-black text-[#bf4f08]">{card.match}</span>
                 </div>
-                <p class="mt-3 text-sm font-semibold text-black/56">{proof}</p>
-              </div>
+
+                <div class="mt-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.16em] text-black/34">
+                      Ship activity
+                    </p>
+                    <p class="text-[0.58rem] font-bold text-black/34">12w</p>
+                  </div>
+                  <div class="mt-1.5 flex h-8 items-end gap-[3px]" aria-hidden="true">
+                    {card.activity.map((level) => (
+                      <span
+                        class="profile-activity-bar flex-1 rounded-[1px] bg-[#ff7417]"
+                        style={`height: ${18 + level * 7}%; opacity: ${0.22 + level * 0.07}`}
+                      ></span>
+                    ))}
+                  </div>
+                </div>
+
+                <div class="mt-3 grid grid-cols-3 gap-2 border-y border-black/[0.07] py-2.5">
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.ship}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Ship</p>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.shipped}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Shipped</p>
+                  </div>
+                  <div class="text-left">
+                    <p class="text-[0.95rem] font-black leading-none tracking-[-0.04em] text-black">{card.sources}</p>
+                    <p class="mt-1 text-[0.58rem] font-bold uppercase tracking-[0.12em] text-black/38">Sources</p>
+                  </div>
+                </div>
+
+                <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                  <span class="inline-flex items-center gap-1 border border-black/10 bg-[#fbf6f3] px-1.5 py-0.5 text-[0.62rem] font-extrabold text-black/70">
+                    <img
+                      src={companyLogoUrl(card.ex.domain)}
+                      alt=""
+                      width="12"
+                      height="12"
+                      class="h-3 w-3 object-contain"
+                      loading="lazy"
+                    />
+                    {card.ex.label}
+                  </span>
+                  {card.repos.map((repo) => (
+                    <span class="inline-flex max-w-full items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.62rem] font-bold text-black/68">
+                      <svg class="h-3 w-3 shrink-0 text-black/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.github}></svg>
+                      <span class="truncate">{repo}</span>
+                    </span>
+                  ))}
+                </div>
+
+                <div class="mt-2.5 flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1">
+                    {card.sourceKeys.map((key) => (
+                      <span class="grid h-5 w-5 place-items-center border border-black/8 bg-[#fbf6f3] text-black/55">
+                        <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
+                      </span>
+                    ))}
+                  </div>
+                  <p class="text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-black/34">
+                    Scraped proof
+                  </p>
+                </div>
+              </article>
             ))}
           </div>
 
           <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#fbf6f3_0%,#fbf6f3_30%,rgba(251,246,243,0.82)_48%,rgba(251,246,243,0.22)_72%,transparent_100%),linear-gradient(90deg,#fbf6f3_0%,rgba(251,246,243,0.18)_22%,rgba(251,246,243,0.18)_78%,#fbf6f3_100%)]"></div>
 
-          <div class="role-search-content relative z-10 mx-auto flex min-h-[35rem] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[39rem] sm:px-8 sm:py-20 lg:min-h-[42rem] lg:py-24">
+          <div class="role-search-content relative z-10 mx-auto flex min-h-[38rem] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[44rem] sm:px-8 sm:py-20 lg:min-h-[48rem] lg:py-24">
             <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
               search by role
             </p>
@@ -588,7 +845,7 @@ const testimonials = [
                   <circle cx="11" cy="11" r="7"></circle>
                   <path d="m21 21-4.3-4.3"></path>
                 </svg>
-                <p class="min-w-0 flex-1 text-sm font-semibold leading-snug text-black min-[380px]:text-base sm:truncate sm:text-[clamp(1.2rem,2vw,1.7rem)]">
+                <p class="min-w-0 flex-1 py-0.5 text-sm font-semibold leading-normal text-black min-[380px]:text-base sm:truncate sm:text-[clamp(1.2rem,2vw,1.7rem)] sm:leading-[1.35]">
                   full stack dev with expertise in payment integration
                 </p>
                 <span class="grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-white sm:h-11 sm:w-11">
@@ -2680,15 +2937,28 @@ const testimonials = [
   }
 
   .profile-marquee-one {
-    animation: profile-marquee-left 24s linear infinite;
+    animation: profile-marquee-left 36s linear infinite;
   }
 
   .profile-marquee-two {
-    animation: profile-marquee-right 28s linear infinite;
+    animation: profile-marquee-right 42s linear infinite;
   }
 
   .profile-card {
     backdrop-filter: blur(12px);
+  }
+
+  .profile-activity-bar {
+    transform-origin: bottom;
+    animation: profile-activity-pulse 3.6s ease-in-out infinite;
+  }
+
+  .profile-card:nth-child(2n) .profile-activity-bar {
+    animation-delay: 0.35s;
+  }
+
+  .profile-card:nth-child(3n) .profile-activity-bar {
+    animation-delay: 0.7s;
   }
 
   .evidence-card {
@@ -2735,21 +3005,31 @@ const testimonials = [
     }
   }
 
+  @keyframes profile-activity-pulse {
+    0%,
+    100% {
+      transform: scaleY(0.92);
+    }
+    50% {
+      transform: scaleY(1.04);
+    }
+  }
+
   @keyframes profile-marquee-left {
     from {
       transform: translateX(2rem);
     }
     to {
-      transform: translateX(-46%);
+      transform: translateX(-50%);
     }
   }
 
   @keyframes profile-marquee-right {
     from {
-      transform: translateX(-42%);
+      transform: translateX(-50%);
     }
     to {
-      transform: translateX(4rem);
+      transform: translateX(2rem);
     }
   }
 
@@ -2840,6 +3120,12 @@ const testimonials = [
 
   @media (prefers-reduced-motion: reduce) {
     .grind-live-dot {
+      animation: none;
+    }
+
+    .profile-marquee-one,
+    .profile-marquee-two,
+    .profile-activity-bar {
       animation: none;
     }
   }
