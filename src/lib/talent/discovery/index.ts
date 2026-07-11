@@ -175,20 +175,20 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     return b.overallFit - a.overallFit;
   });
 
-  // Stage 5: LLM rerank top 25 if enabled
+  // Stage 5: one batched LLM nudge over top 12 (SearchPlan already expanded categories)
   let finalCandidates: RankedCandidate[];
   if (enableLlmRerank && generateReply) {
     const builderMap = new Map(allScored.map((c) => [c.builderId, { builder: c.builder, projects: c.projects }]));
     const reranked = await rerankTopCandidates({
-      candidates: allScored.slice(0, 25),
+      candidates: allScored.slice(0, 12),
       opportunity,
       builderMap,
       generateReply,
-      limit: 25,
+      limit: 12,
     });
     finalCandidates = [
       ...reranked as RankedCandidate[],
-      ...allScored.slice(25),
+      ...allScored.slice(12),
     ];
   } else {
     finalCandidates = allScored;

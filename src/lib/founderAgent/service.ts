@@ -26,6 +26,7 @@ import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
 import { buildFounderPipeline } from '@/lib/talent/founderPipeline';
 import { countUnreadForFounder, getNotificationsForFounder } from '@/lib/talent/notifications';
 import { shapeJobForTalentPool } from '@/lib/founderAgent/jobShaping';
+import { compileSearchPlan, getPlanRetrievalTerms } from '@/lib/talent/searchPlan';
 import { retrieveSemanticBuilderCandidates, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
 import {
@@ -280,6 +281,7 @@ function extractSearchTerms(opportunity: any, strategy: ReturnType<typeof buildS
       ? opportunity.searchRequirements.map((requirement: any) => requirement?.text)
       : []),
     ...(Array.isArray(opportunity.requirements) ? opportunity.requirements : []),
+    ...getPlanRetrievalTerms(opportunity.searchPlan),
     ...strategy.mustHaveSignals,
     ...strategy.niceToHaveSignals,
     ...strategy.semanticConcepts,
@@ -290,7 +292,7 @@ function extractSearchTerms(opportunity: any, strategy: ReturnType<typeof buildS
       .map((value) => String(value).trim())
       .filter((value) => value.length >= 2 && value.length <= 48)
       .map((value) => value.toLowerCase())
-  )].slice(0, 14);
+  )].slice(0, 24);
 }
 
 async function retrieveKeywordBuilderCandidates(opportunity: any, strategy: ReturnType<typeof buildSearchStrategy>) {
@@ -305,7 +307,13 @@ async function retrieveKeywordBuilderCandidates(opportunity: any, strategy: Retu
     BuilderProfile.find(buildSearchableBuilderFilter({
       $or: [
         { rolePreference: { $in: regexes } },
+        { skills: { $in: regexes } },
+        { headline: { $in: regexes } },
         { 'experiences.skills': { $in: regexes } },
+        { 'experiences.company': { $in: regexes } },
+        { 'experiences.title': { $in: regexes } },
+        { 'education.school': { $in: regexes } },
+        { universityOrCompany: { $in: regexes } },
       ],
     }))
       .select('_id')
@@ -1005,6 +1013,34 @@ async function runSearchForJob(
     }
   }
 
+  // Compile founder requirements once (cached on job until requirements change).
+  {
+    const openRequirementsForPlan = normalizeSearchRequirements(oppPlain.searchRequirements).length
+      ? normalizeSearchRequirements(oppPlain.searchRequirements)
+      : normalizeSearchRequirements(oppPlain.requirements);
+    if (openRequirementsForPlan.length) {
+      logFounderAgent('search_talent:compile_search_plan:start', {
+        jobId,
+        requirementCount: openRequirementsForPlan.length,
+        cachedHash: oppPlain.searchPlan?.sourceHash || null,
+      });
+      const searchPlan = await compileSearchPlan(oppPlain);
+      job.searchPlan = searchPlan;
+      oppPlain.searchPlan = searchPlan;
+      await job.save();
+      logFounderAgent('search_talent:compile_search_plan:done', {
+        jobId,
+        compiledBy: searchPlan.compiledBy,
+        retrievalTermCount: searchPlan.retrievalTerms.length,
+        matchTokenCount: searchPlan.requirements.reduce((sum, item) => sum + item.matchAnyOf.length, 0),
+      });
+    } else if (job.searchPlan) {
+      job.searchPlan = null;
+      oppPlain.searchPlan = null;
+      await job.save();
+    }
+  }
+
   const strategy = buildSearchStrategy({ opportunity: oppPlain, founderId: identity.founderId, searchMode });
   const openRequirements = normalizeSearchRequirements(oppPlain.searchRequirements).length
     ? normalizeSearchRequirements(oppPlain.searchRequirements)
@@ -1019,6 +1055,7 @@ async function runSearchForJob(
     strategy.primaryQuery,
     ...strategy.expandedQueries,
     ...openRequirements.map((requirement) => requirement.text),
+    ...getPlanRetrievalTerms(oppPlain.searchPlan),
     ...extractSearchTerms(oppPlain, strategy),
   ];
   logFounderAgent('search_talent:index_retrieval:start', {
@@ -1080,6 +1117,7 @@ async function runSearchForJob(
             strategy.primaryQuery,
             ...strategy.expandedQueries.slice(0, 2),
             ...openRequirements.map((requirement) => requirement.text),
+            ...getPlanRetrievalTerms(oppPlain.searchPlan).slice(0, 6),
           ],
           candidateLimit: 240,
           profileLimit: 120,
@@ -1282,7 +1320,7 @@ async function runSearchForJob(
     enableLlmRerank: openRequirements.length > 0 && hasOpenRouterConfig(),
     generateReply: openRequirements.length > 0 && hasOpenRouterConfig()
       ? (systemPrompt, userPrompt) =>
-          generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 900 })
+          generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 2200 })
       : undefined,
     semanticScores,
     skipSemanticScoring: retrievalMode === 'search_index' || Boolean(semanticScores.size),
@@ -1601,6 +1639,7 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
       normalizeSearchRequirements(job.searchRequirements),
       newSearchRequirements
     );
+    fields.searchPlan = null;
   }
   const requirements = cleanList(mergedArgs.requirements);
   if (requirements.length) {

@@ -76,9 +76,10 @@ function detectRoleDomainForSearch(roleTitle: string, skills: string[] = []) {
 }
 
 const BIG_TECH_ALIASES: Record<string, string[]> = {
-  'big tech': ['google', 'meta', 'facebook', 'apple', 'amazon', 'microsoft', 'netflix', 'stripe', 'openai', 'anthropic', 'nvidia', 'uber', 'airbnb'],
+  // Kept only as a last-resort lexical hint when SearchPlan is missing.
+  // Prefer compileSearchPlan() expansions for category requirements.
+  'big tech': ['google', 'meta', 'facebook', 'apple', 'amazon', 'microsoft', 'netflix', 'stripe', 'openai', 'anthropic'],
   faang: ['facebook', 'meta', 'apple', 'amazon', 'netflix', 'google'],
-  'faang+': ['facebook', 'meta', 'apple', 'amazon', 'netflix', 'google', 'microsoft'],
 };
 
 export function normalizeSearchTerm(value: unknown) {
@@ -253,7 +254,9 @@ export function collectBuilderSkillTokens(builder: any, projects: any[] = []) {
   return tokens;
 }
 
-export function getSearchRequirements(opportunity: any): Array<{ text: string; importance: 'must' | 'nice' }> {
+export type SearchRequirement = { text: string; importance: 'must' | 'nice' };
+
+export function getSearchRequirements(opportunity: any): SearchRequirement[] {
   return normalizeRequirements(opportunity);
 }
 
@@ -261,7 +264,7 @@ export function countMustSearchRequirements(opportunity: any): number {
   return getSearchRequirements(opportunity).filter((requirement) => requirement.importance === 'must').length;
 }
 
-function normalizeRequirements(opportunity: any): Array<{ text: string; importance: 'must' | 'nice' }> {
+export function normalizeRequirements(opportunity: any): SearchRequirement[] {
   const structured = Array.isArray(opportunity?.searchRequirements)
     ? opportunity.searchRequirements
         .map((requirement: any) => ({
@@ -314,9 +317,21 @@ function evidenceLines(builder: any, projects: any[] = []) {
   return lines.map((line) => normalizeSearchTerm(line)).filter(Boolean);
 }
 
-function requirementAliases(requirementText: string) {
+function requirementAliases(requirementText: string, matchAnyOf?: string[]) {
   const normalized = normalizeSearchTerm(requirementText);
   const aliases = new Set<string>([normalized]);
+
+  // Prefer compiled SearchPlan tokens when available (general: Ivy, Big Tech, blogs, etc.)
+  if (matchAnyOf?.length) {
+    for (const token of matchAnyOf) {
+      const cleaned = normalizeSearchTerm(token);
+      if (cleaned) aliases.add(cleaned);
+    }
+    for (const token of tokenizeText(normalized, 8)) aliases.add(token);
+    return [...aliases].filter(Boolean);
+  }
+
+  // Fallback only when no plan is cached yet
   for (const [label, companies] of Object.entries(BIG_TECH_ALIASES)) {
     if (normalized.includes(label)) companies.forEach((company) => aliases.add(company));
   }
@@ -331,9 +346,10 @@ function requirementAliases(requirementText: string) {
 export function evaluateFounderRequirement(
   requirementText: string,
   builder: any,
-  projects: any[] = []
+  projects: any[] = [],
+  compiled?: { matchAnyOf?: string[]; matchHints?: string[] } | null
 ): { met: 'yes' | 'partial' | 'no'; evidence: string } {
-  const aliases = requirementAliases(requirementText);
+  const aliases = requirementAliases(requirementText, compiled?.matchAnyOf);
   const evidence = evidenceLines(builder, projects);
   const tokens = collectBuilderSkillTokens(builder, projects);
   const profile = collectBuilderSearchProfile(builder, projects);
@@ -369,6 +385,15 @@ export function evaluateFounderRequirement(
     }
   }
 
+  if (compiled?.matchHints?.length) {
+    for (const hint of compiled.matchHints) {
+      const needle = normalizeSearchTerm(hint);
+      if (!needle) continue;
+      const line = evidence.find((entry) => entry.includes(needle));
+      if (line) return { met: 'partial', evidence: line.slice(0, 180) };
+    }
+  }
+
   if (bestScore >= 0.5) return { met: 'partial', evidence: bestEvidence.slice(0, 180) };
   return { met: 'no', evidence: '' };
 }
@@ -379,21 +404,39 @@ export function buildRequirementFindings(
   projects: any[] = []
 ) {
   const requirements = normalizeRequirements(opportunity);
-  return requirements.map((requirement) => ({
-    text: requirement.text,
-    ...evaluateFounderRequirement(requirement.text, builder, projects),
-  }));
+  const planRequirements = Array.isArray(opportunity?.searchPlan?.requirements)
+    ? opportunity.searchPlan.requirements
+    : [];
+  const planByText = new Map(
+    planRequirements.map((item: any) => [normalizeSearchTerm(item?.text), item])
+  );
+
+  return requirements.map((requirement) => {
+    const compiled = planByText.get(normalizeSearchTerm(requirement.text)) || null;
+    return {
+      text: requirement.text,
+      importance: requirement.importance,
+      ...evaluateFounderRequirement(requirement.text, builder, projects, compiled),
+    };
+  });
 }
 
 export function scoreFounderPreferenceFit(opportunity: any, builder: any, projects: any[] = []) {
   const requirements = normalizeRequirements(opportunity);
   if (!requirements.length) return 0;
+  const planRequirements = Array.isArray(opportunity?.searchPlan?.requirements)
+    ? opportunity.searchPlan.requirements
+    : [];
+  const planByText = new Map(
+    planRequirements.map((item: any) => [normalizeSearchTerm(item?.text), item])
+  );
 
   let weighted = 0;
   let totalWeight = 0;
   for (const requirement of requirements) {
     const weight = requirement.importance === 'must' ? 2 : 1;
-    const result = evaluateFounderRequirement(requirement.text, builder, projects);
+    const compiled = planByText.get(normalizeSearchTerm(requirement.text)) || null;
+    const result = evaluateFounderRequirement(requirement.text, builder, projects, compiled);
     const score = result.met === 'yes' ? 1 : result.met === 'partial' ? 0.55 : 0;
     weighted += score * weight;
     totalWeight += weight;
