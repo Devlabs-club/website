@@ -60,7 +60,7 @@ const roleSearchCardsTop = [
     ship: "9.2",
     shipped: "7",
     sources: 4,
-    ex: { label: "ex-Stripe", domain: "stripe.com" },
+    ex: { label: "ex-Google", domain: "google.com" },
     repos: ["stripe-connect", "saas-billing"],
     activity: [2, 5, 3, 7, 4, 8, 6, 9, 5, 8, 7, 9],
     sourceKeys: ["github", "globe", "linkedin", "briefcase"],
@@ -73,7 +73,7 @@ const roleSearchCardsTop = [
     ship: "8.8",
     shipped: "5",
     sources: 3,
-    ex: { label: "ex-Google", domain: "google.com" },
+    ex: { label: "ex-Amazon", domain: "amazon.com" },
     repos: ["checkout-kit", "next-pay"],
     activity: [3, 4, 6, 5, 8, 4, 7, 6, 9, 5, 8, 7],
     sourceKeys: ["github", "globe", "briefcase"],
@@ -86,7 +86,7 @@ const roleSearchCardsTop = [
     ship: "8.6",
     shipped: "6",
     sources: 4,
-    ex: { label: "ex-Meta", domain: "meta.com" },
+    ex: { label: "ex-Waymo", domain: "waymo.com" },
     repos: ["clerk-subs", "pg-ledger"],
     activity: [4, 3, 5, 8, 6, 7, 4, 9, 6, 8, 5, 7],
     sourceKeys: ["github", "linkedin", "globe", "briefcase"],
@@ -99,7 +99,7 @@ const roleSearchCardsTop = [
     ship: "8.4",
     shipped: "4",
     sources: 3,
-    ex: { label: "ex-Apple", domain: "apple.com" },
+    ex: { label: "ex-LinkedIn", domain: "linkedin.com" },
     repos: ["market-payouts", "react-shop"],
     activity: [2, 6, 4, 5, 7, 3, 8, 5, 6, 9, 4, 8],
     sourceKeys: ["github", "globe", "linkedin"],
@@ -115,7 +115,7 @@ const roleSearchCardsBottom = [
     ship: "9.0",
     shipped: "8",
     sources: 4,
-    ex: { label: "ex-Shopify", domain: "shopify.com" },
+    ex: { label: "ex-Amazon", domain: "amazon.com" },
     repos: ["stripe-hooks", "supabase-app"],
     activity: [5, 7, 4, 8, 6, 9, 5, 7, 8, 6, 9, 8],
     sourceKeys: ["github", "globe", "linkedin", "briefcase"],
@@ -128,7 +128,7 @@ const roleSearchCardsBottom = [
     ship: "8.7",
     shipped: "5",
     sources: 3,
-    ex: { label: "ex-Amazon", domain: "amazon.com" },
+    ex: { label: "ex-Google", domain: "google.com" },
     repos: ["payout-ledger", "fraud-guard"],
     activity: [3, 5, 7, 4, 6, 8, 5, 9, 4, 7, 6, 8],
     sourceKeys: ["github", "briefcase", "linkedin"],
@@ -141,7 +141,7 @@ const roleSearchCardsBottom = [
     ship: "8.5",
     shipped: "6",
     sources: 3,
-    ex: { label: "ex-Airbnb", domain: "airbnb.com" },
+    ex: { label: "ex-LinkedIn", domain: "linkedin.com" },
     repos: ["checkout-ux", "conv-lab"],
     activity: [4, 6, 5, 7, 3, 8, 6, 5, 9, 7, 4, 8],
     sourceKeys: ["github", "globe", "linkedin"],
@@ -154,7 +154,7 @@ const roleSearchCardsBottom = [
     ship: "9.1",
     shipped: "4",
     sources: 4,
-    ex: { label: "ex-OpenAI", domain: "openai.com" },
+    ex: { label: "ex-Waymo", domain: "waymo.com" },
     repos: ["match-agent", "eval-harness"],
     activity: [6, 4, 8, 5, 9, 7, 6, 8, 5, 9, 7, 9],
     sourceKeys: ["github", "globe", "linkedin", "briefcase"],
@@ -164,6 +164,37 @@ const roleSearchCardsBottom = [
 function sourceIconSvg(key: string) {
   return icons[key as keyof typeof icons] ?? icons.globe;
 }
+
+const heroSearchCards = [
+  {
+    name: "Aarav V.",
+    initials: "AV",
+    role: "iOS + AI",
+    match: "94%",
+    ship: "9.1",
+    shipped: "6",
+    sources: 4,
+    avatarClass: "bg-[#ff7417] text-white",
+    ex: { label: "ex-Google", domain: "google.com" },
+    repos: ["campus-rides", "receipt-vision"],
+    activity: [4, 6, 5, 8, 7, 9, 6, 8, 5, 9, 7, 8],
+    sourceKeys: ["github", "globe", "linkedin", "briefcase"],
+  },
+  {
+    name: "Niki K.",
+    initials: "NK",
+    role: "Mobile",
+    match: "91%",
+    ship: "8.7",
+    shipped: "5",
+    sources: 3,
+    avatarClass: "bg-black text-white",
+    ex: { label: "ex-Waymo", domain: "waymo.com" },
+    repos: ["rn-proto", "ship-lab"],
+    activity: [3, 5, 7, 4, 8, 6, 5, 9, 7, 6, 8, 7],
+    sourceKeys: ["github", "globe", "linkedin"],
+  },
+];
 
 const evidenceBento = [
   {
@@ -375,7 +406,7 @@ const testimonials = [
       </div>
 
       <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
-        <div class="relative min-h-[520px] overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[390px] lg:min-h-[475px]">
+        <div class="relative flex min-h-[auto] items-center justify-center overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] px-7 py-8 shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[420px] sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12 lg:py-12">
           <img
             src="/landing/hero-meadow.png"
             alt=""
@@ -389,18 +420,18 @@ const testimonials = [
           <span class="selection-dot bottom-7 left-7"></span>
           <span class="selection-dot bottom-7 right-7"></span>
 
-          <div class="hero-builder-card absolute left-1/2 top-[8%] w-[calc(100%_-_1rem)] -translate-x-1/2 border-2 border-black bg-white p-4 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] sm:top-[12%] sm:w-[min(84%,820px)] sm:p-5">
-            <div class="mb-3 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-3 py-2 text-sm font-semibold text-[#bf4f08]">
+          <div class="hero-builder-card relative z-10 w-full max-w-[22.5rem] border-2 border-black bg-white p-3 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] min-[400px]:max-w-[26rem] min-[400px]:p-3.5 sm:max-w-[min(76%,720px)] sm:p-4 lg:max-w-[760px] lg:p-5">
+            <div class="mb-2.5 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-2.5 py-1.5 text-sm font-semibold text-[#bf4f08]">
               <span class="text-[#ff7417]">✦</span>
               Builder search
             </div>
 
-            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-3 sm:gap-4 sm:px-4" aria-label="Find me a cracked App dev with expertise in stripe integration">
+            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label="Find me a cracked App dev with expertise in stripe integration">
               <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="7"></circle>
                 <path d="m21 21-4.3-4.3"></path>
               </svg>
-              <p class="min-w-0 flex-1 overflow-hidden text-[0.68rem] font-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)]">
+              <p class="min-w-0 flex-1 overflow-hidden py-0.5 text-[0.68rem] font-normal leading-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)] sm:leading-[1.35]">
                 <span class="hero-typewriter-text">Find me a cracked App dev with expertise in stripe integration</span>
               </p>
               <a
@@ -420,37 +451,95 @@ const testimonials = [
               </div>
             </div>
 
-            <div class="mt-4 grid gap-3 md:grid-cols-2">
-              <div class="hero-result-card border border-black/15 bg-[#fffaf7] p-3">
-                <div class="flex items-start gap-3">
-                  <div class="grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-sm font-extrabold text-white">AV</div>
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-bold text-black">Aarav V.</p>
-                    <p class="mt-0.5 text-xs text-black/55">iOS + AI agents · 94% match</p>
+            <div class="mt-3 grid gap-2.5 md:grid-cols-2">
+              {heroSearchCards.map((card, index) => (
+                <article class={`hero-result-card border border-black/15 bg-[#fffaf7] p-2.5 sm:p-3 ${index === 1 ? "hero-result-card-two" : ""}`}>
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex min-w-0 items-center gap-2">
+                      <div class={`grid h-8 w-8 shrink-0 place-items-center text-[0.68rem] font-extrabold sm:h-9 sm:w-9 sm:text-sm ${card.avatarClass}`}>
+                        {card.initials}
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-black text-black">{card.name}</p>
+                        <p class="mt-0.5 text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-black/38">
+                          {card.role}
+                        </p>
+                      </div>
+                    </div>
+                    <span class="shrink-0 text-xs font-black text-[#bf4f08]">{card.match}</span>
                   </div>
-                </div>
-                <p class="mt-3 text-xs leading-relaxed text-black/60">
-                  Shipped a campus rides app, vision-based receipt scanner, and two Swift demos.
-                </p>
-              </div>
 
-              <div class="hero-result-card hero-result-card-two border border-black/15 bg-[#fffaf7] p-3">
-                <div class="flex items-start gap-3">
-                  <div class="grid h-10 w-10 shrink-0 place-items-center bg-black text-sm font-extrabold text-white">NK</div>
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-bold text-black">Niki K.</p>
-                    <p class="mt-0.5 text-xs text-black/55">React Native · 91% match</p>
+                  <div class="mt-2.5">
+                    <div class="flex items-center justify-between">
+                      <p class="text-[0.55rem] font-extrabold uppercase tracking-[0.14em] text-black/34">
+                        Ship activity
+                      </p>
+                      <p class="text-[0.55rem] font-bold text-black/34">12w</p>
+                    </div>
+                    <div class="mt-1 flex h-6 items-end gap-[2px]" aria-hidden="true">
+                      {card.activity.map((level) => (
+                        <span
+                          class="profile-activity-bar flex-1 rounded-[1px] bg-[#ff7417]"
+                          style={`height: ${18 + level * 7}%; opacity: ${0.22 + level * 0.07}`}
+                        ></span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p class="mt-3 text-xs leading-relaxed text-black/60">
-                  Built and launched three mobile prototypes with clean GitHub history.
-                </p>
-              </div>
+
+                  <div class="mt-2.5 grid grid-cols-3 gap-1.5 border-y border-black/[0.07] py-2">
+                    <div class="text-left">
+                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.ship}</p>
+                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Ship</p>
+                    </div>
+                    <div class="text-left">
+                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.shipped}</p>
+                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Shipped</p>
+                    </div>
+                    <div class="text-left">
+                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.sources}</p>
+                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Sources</p>
+                    </div>
+                  </div>
+
+                  <div class="mt-2 flex flex-wrap items-center gap-1">
+                    <span class="inline-flex items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.58rem] font-extrabold text-black/70">
+                      <img
+                        src={companyLogoUrl(card.ex.domain)}
+                        alt=""
+                        width="11"
+                        height="11"
+                        class="h-2.5 w-2.5 object-contain"
+                        loading="lazy"
+                      />
+                      {card.ex.label}
+                    </span>
+                    {card.repos.map((repo) => (
+                      <span class="inline-flex max-w-full items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.58rem] font-bold text-black/68">
+                        <svg class="h-2.5 w-2.5 shrink-0 text-black/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.github}></svg>
+                        <span class="truncate">{repo}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div class="mt-2 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1">
+                      {card.sourceKeys.map((key) => (
+                        <span class="grid h-4 w-4 place-items-center border border-black/8 bg-white text-black/55">
+                          <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
+                        </span>
+                      ))}
+                    </div>
+                    <p class="text-[0.52rem] font-extrabold uppercase tracking-[0.1em] text-black/34">
+                      Scraped proof
+                    </p>
+                  </div>
+                </article>
+              ))}
             </div>
 
-            <div class="mt-3 flex flex-wrap gap-2">
+            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
               {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
-                <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2.5 py-1 text-xs font-semibold text-[#bf4f08]">
+                <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-1 text-[0.7rem] font-semibold text-[#bf4f08] sm:px-2.5 sm:text-xs">
                   {signal}
                 </span>
               ))}
@@ -492,11 +581,11 @@ const testimonials = [
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             <div class="flex min-h-[15rem] flex-col justify-between border-b border-black/10 bg-[#f4f1ed]/88 p-8 sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:border-b-0 lg:border-r">
                <div>
-                <p class="text-[clamp(2.5rem,4vw,3.8rem)] leading-none text-[#ff7417]">
+                <p class="text-[clamp(2.5rem,4vw,3.8rem)] font-black leading-none tracking-[-0.04em] text-[#ff7417]">
                 Backed by
                 </p>
                 <p class="mt-5 max-w-xs text-base font-medium leading-relaxed text-black/62">
-                  We know these builders through events, shipped projects, and community momentum.
+                  Teams that have watched our builders ship — then hired them.
                 </p>
               </div>
             </div>
@@ -2036,21 +2125,44 @@ const testimonials = [
     }
 
     [data-hero-card] > div {
-      min-height: 430px !important;
+      min-height: 0 !important;
       border-radius: 20px !important;
+      padding: 2rem 1.65rem !important;
     }
 
     .hero-builder-card {
-      top: 7% !important;
-      padding: 0.75rem !important;
-    }
-
-    .hero-builder-card > .mt-4 {
-      gap: 0.625rem !important;
+      width: 100% !important;
+      max-width: 21.5rem !important;
+      padding: 0.7rem !important;
     }
 
     .hero-builder-card > .mt-3 {
-      gap: 0.375rem !important;
+      gap: 0.55rem !important;
+    }
+
+    .hero-builder-card > .mt-2\.5 {
+      gap: 0.35rem !important;
+    }
+
+    .hero-loading-row {
+      left: 2.4rem;
+      bottom: -1.2rem;
+    }
+
+    [data-hero-card] .selection-dot.left-7 {
+      left: 1.1rem !important;
+    }
+
+    [data-hero-card] .selection-dot.right-7 {
+      right: 1.1rem !important;
+    }
+
+    [data-hero-card] .selection-dot.top-7 {
+      top: 1.1rem !important;
+    }
+
+    [data-hero-card] .selection-dot.bottom-7 {
+      bottom: 1.1rem !important;
     }
 
     .metrics-section {
