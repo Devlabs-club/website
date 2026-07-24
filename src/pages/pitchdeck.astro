@@ -1,0 +1,20 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import LandingMarketingStyles from "../components/landing/LandingMarketingStyles.astro";
+import PitchDeck from "../components/pitchdeck/PitchDeck";
+---
+
+<Layout
+  title="DevLabs Pitch Deck"
+  description="Hire builders who can actually ship. DevLabs replaces resumes with proof."
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  skipSmoothScroll
+>
+  <LandingMarketingStyles />
+  <PitchDeck />
+</Layout>
