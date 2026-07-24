@@ -17,22 +17,26 @@ export type RankingWeights = {
   profileQuality: number;
   startupReadiness: number;
   agentTraceFit: number;
+  githubActivityFit: number;
+  sponsorshipFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
 };
 
 export const DEFAULT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.14,
-  semanticRoleFit: 0.14,
-  semanticProjectFit: 0.14,
-  proofStrength: 0.14,
-  contributionClarity: 0.10,
+  deterministicSkillFit: 0.22,
+  semanticRoleFit: 0.16,
+  semanticProjectFit: 0.16,
+  proofStrength: 0.12,
+  contributionClarity: 0.08,
   founderPreferenceFit: 0.10,
-  hireTypeFit: 0.07,
-  availabilityFit: 0.06,
-  profileQuality: 0.05,
-  startupReadiness: 0.09,
-  agentTraceFit: 0.07,
+  hireTypeFit: 0.05,
+  availabilityFit: 0.04,
+  profileQuality: 0.03,
+  startupReadiness: 0.06,
+  agentTraceFit: 0.02,
+  githubActivityFit: 0.08,
+  sponsorshipFit: 0.06,
   negativeSignalPenalty: 0.10,
   missingEvidencePenalty: 0.05,
 };
@@ -49,6 +53,8 @@ const POSITIVE_WEIGHT_KEYS: Array<keyof RankingWeights> = [
   'profileQuality',
   'startupReadiness',
   'agentTraceFit',
+  'githubActivityFit',
+  'sponsorshipFit',
 ];
 
 const PENALTY_WEIGHT_KEYS: Array<keyof RankingWeights> = [
@@ -89,6 +95,7 @@ export type OpportunityInput = {
   industry?: string | null;
   timeline?: string | null;
   locationPreference?: string | null;
+  visa?: string | null;
 };
 
 export function buildSearchStrategy(params: {
@@ -321,6 +328,12 @@ export function computeDynamicWeights(params: {
   if (mustCount > 0) {
     weights.founderPreferenceFit = Math.min(0.32, 0.12 + mustCount * 0.06);
     weights.negativeSignalPenalty = Math.min(0.18, weights.negativeSignalPenalty + 0.04);
+  }
+
+  const visa = String((opportunity as any).visa || '').toLowerCase().trim();
+  if (visa !== 'no') {
+    // Sponsorship soft signal only applies when the role refuses sponsorship.
+    weights.sponsorshipFit = 0.01;
   }
 
   weights = applyDomainNudges(weights, roleSkillTiers.domain);

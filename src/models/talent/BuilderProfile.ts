@@ -6,7 +6,7 @@ const LegacyRefSchema = new mongoose.Schema(
     documentId: { type: String, required: true },
     fieldPath: { type: String, default: 'root' },
   },
-  { _id: false }
+  { _id: false, suppressReservedKeysWarning: true }
 );
 
 const BuilderProfileSchema = new mongoose.Schema(
@@ -62,6 +62,8 @@ const BuilderProfileSchema = new mongoose.Schema(
         endDateLabel: { type: String, default: null },
         duration: { type: String, default: null },
         description: { type: String, default: null },
+        /** Role-specific work the builder states on their LinkedIn experience. */
+        builderContribution: { type: String, default: null },
         skills: [{ type: String }],
         isCurrent: { type: Boolean, default: false },
         source: { type: String, default: 'linkedin' },
@@ -84,6 +86,9 @@ const BuilderProfileSchema = new mongoose.Schema(
         username: { type: String, default: null },
         scopes: [{ type: String }],
         connectedAt: { type: Date, default: null },
+        activityScore: { type: Number, default: null },
+        activityFetchedAt: { type: Date, default: null },
+        activitySnapshot: { type: mongoose.Schema.Types.Mixed, default: null },
       },
     },
     availability: {

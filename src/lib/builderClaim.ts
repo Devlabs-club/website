@@ -18,6 +18,7 @@ import {
 } from '@/lib/talent/builderDossier';
 import { appendSessionMemory, formatSessionMemoryBlock } from '@/lib/talent/builderSessionMemory';
 import { buildAgentWrappedCommand, generateAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
+import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import type { ResumeInbound } from '@/lib/messaging/inboundResume';
 
 const CLAIM_TTL_DAYS = 14;
@@ -164,6 +165,11 @@ export async function serializeClaim(claim: any, runtime?: RuntimeEnv) {
     builderId && claim.phoneVerifiedAt
       ? generateAgentWrappedUploadToken({ builderId, email: claim.builderEmail }, runtime)
       : null;
+  const uploadedWrapped = builderId
+    ? await AgentWrappedReportModel.findOne({ builderId, source: 'uploaded_agent_usage' })
+        .select('_id')
+        .lean()
+    : null;
 
   return {
     id: String(claim._id),
@@ -180,7 +186,7 @@ export async function serializeClaim(claim: any, runtime?: RuntimeEnv) {
           builderId,
           uploadToken,
           command: buildAgentWrappedCommand(uploadToken, runtime),
-          publicUrl: `/builder/wrapped/${builderId}`,
+          publicUrl: uploadedWrapped ? `/builder/wrapped/${builderId}` : null,
         }
       : null,
   };

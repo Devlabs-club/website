@@ -1,4 +1,4 @@
-export type RoleDomain = 'mobile' | 'frontend' | 'backend' | 'fullstack' | 'ai' | 'design' | 'general';
+export type RoleDomain = 'mobile' | 'frontend' | 'backend' | 'fullstack' | 'ai' | 'design' | 'hardware' | 'general';
 
 export type RoleSkillTiers = {
   domain: RoleDomain;
@@ -17,6 +17,11 @@ const ROLE_DOMAIN_CLUSTERS: Record<Exclude<RoleDomain, 'general'>, string[]> = {
   fullstack: ['react', 'next.js', 'typescript', 'node.js', 'postgres', 'python', 'full-stack', 'fullstack'],
   ai: ['openai', 'llm', 'langchain', 'rag', 'pytorch', 'tensorflow', 'machine learning', 'embeddings'],
   design: ['figma', 'ui', 'ux', 'product design', 'design systems'],
+  hardware: [
+    'hardware', 'embedded', 'firmware', 'robotics', 'mechatronics', 'electronics', 'electrical',
+    'circuit', 'pcb', 'fpga', 'asic', 'verilog', 'vhdl', 'microcontroller', 'sensor', 'actuator',
+    'arduino', 'raspberry pi', 'solidworks', 'cad', 'rtl',
+  ],
 };
 
 const DOMAIN_CONCEPT_KEYS: Record<RoleDomain, string[]> = {
@@ -26,6 +31,7 @@ const DOMAIN_CONCEPT_KEYS: Record<RoleDomain, string[]> = {
   fullstack: ['fullstack', 'full-stack', 'saas'],
   ai: ['ai', 'ai agent', 'agents', 'llm', 'rag'],
   design: [],
+  hardware: ['hardware', 'embedded', 'robotics', 'electronics', 'fpga', 'pcb'],
   general: [],
 };
 
@@ -73,6 +79,7 @@ export function detectRoleDomain(roleTitle: string, skills: string[] = []): Role
   if (/frontend|front[\s-]?end|ui engineer|react developer/i.test(lower)) return 'frontend';
   if (/backend|back[\s-]?end|api engineer|platform engineer/i.test(lower)) return 'backend';
   if (/designer|product design|ux|ui design/i.test(lower)) return 'design';
+  if (/hardware|embedded|robotics|mechatronics|electrical|electronics|firmware|fpga|asic|pcb|verilog|vhdl/i.test(lower)) return 'hardware';
   return 'general';
 }
 
@@ -88,10 +95,15 @@ export function buildRoleSkillTiers(opportunity: {
   const niceToHave = uniqueSkills(opportunity.niceToHaveSkills || []);
   const domain = detectRoleDomain(opportunity.roleTitle || opportunity.title || '', original);
   const cluster = domain === 'general' ? [] : ROLE_DOMAIN_CLUSTERS[domain];
-
-  const primarySkills = uniqueSkills([...original, ...cluster]);
+  const genericLanguages = new Set(['c', 'c++', 'c#', 'java', 'python', 'javascript', 'typescript', 'go', 'rust']);
+  // For a physical-systems role, C/C++ alone is supporting evidence—not proof
+  // that the builder has hardware or robotics experience.
+  const primarySkills = domain === 'hardware'
+    ? uniqueSkills([...cluster, ...original.filter((skill) => !genericLanguages.has(skill))])
+    : uniqueSkills([...original, ...cluster]);
   const primarySet = new Set(primarySkills);
   const secondarySkills = uniqueSkills([
+    ...(domain === 'hardware' ? original.filter((skill) => genericLanguages.has(skill)) : []),
     ...shaped.filter((skill) => !primarySet.has(skill)),
     ...niceToHave,
   ]).filter((skill) => !primarySkills.some((primary) => skillsMatch(skill, primary)));

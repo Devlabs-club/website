@@ -19,6 +19,7 @@ function parseArgs(argv) {
     resume: false,
     limit: null,
     delayMs: 0,
+    noAttachment: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -32,6 +33,7 @@ function parseArgs(argv) {
     else if (arg.startsWith('--delay-ms=')) args.delayMs = Number(arg.slice('--delay-ms='.length));
     else if (arg === '--attachment') args.attachmentPath = argv[++i];
     else if (arg.startsWith('--attachment=')) args.attachmentPath = arg.slice('--attachment='.length);
+    else if (arg === '--no-attachment') args.noAttachment = true;
     else if (arg === '--linkedin-dir') args.linkedInDir = argv[++i];
     else if (arg.startsWith('--linkedin-dir=')) args.linkedInDir = arg.slice('--linkedin-dir='.length);
     else throw new Error(`Unknown argument: ${arg}`);
@@ -105,7 +107,13 @@ async function collectLinkedInBuilderIds(dir) {
   const files = await readdir(dir);
   return new Set(
     files
-      .filter((file) => file.endsWith('.json') && !file.startsWith('run-') && !file.startsWith('apply-') && !file.startsWith('repair-'))
+      .filter((file) =>
+        file.endsWith('.json') &&
+        !file.startsWith('run-') &&
+        !file.startsWith('apply-') &&
+        !file.startsWith('repair-') &&
+        file !== 'batch-summary.json'
+      )
       .map((file) => file.replace(/\.json$/, ''))
       .filter(Boolean)
   );
@@ -273,7 +281,7 @@ async function main() {
   await mkdir(args.outputDir, { recursive: true });
   const [linkedInIds, attachedIds] = await Promise.all([
     collectLinkedInBuilderIds(args.linkedInDir),
-    collectAttachedBuilderIds(args.attachmentPath),
+    args.noAttachment ? Promise.resolve(new Set()) : collectAttachedBuilderIds(args.attachmentPath),
   ]);
   let targetIds = Array.from(new Set([...linkedInIds, ...attachedIds])).sort();
   if (args.limit) targetIds = targetIds.slice(0, args.limit);

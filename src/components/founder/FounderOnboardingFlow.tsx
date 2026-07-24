@@ -8,6 +8,7 @@ import {
   founderSubtextClass,
   founderTextareaClass,
 } from "@/components/founder/founderOnboardingStyles";
+import { fetchEnrichmentJson } from "@/lib/enrichmentFetch";
 import { AnimatePresence, motion } from "framer-motion";
 import { Building2, Globe, Linkedin, Loader2, MapPin, Plus } from "lucide-react";
 
@@ -185,21 +186,20 @@ export const FounderOnboardingFlow: React.FC = () => {
     setLinkedinBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/onboarding/linkedin-enrichment", {
+      const { data } = await fetchEnrichmentJson<{ success?: boolean; error?: string }>("/api/onboarding/linkedin-enrichment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ accountType: "founder", linkedin }),
+        timeoutMs: 180_000,
       });
-      const data = await res.json();
       if (data.success) {
         await loadProfile();
         goTo("profile");
       } else {
         setError(data.error || "Could not load your LinkedIn profile.");
       }
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error. Please try again.");
     } finally {
       setLinkedinBusy(false);
     }
@@ -249,10 +249,13 @@ export const FounderOnboardingFlow: React.FC = () => {
     setEnrichingIndex(index);
     setError("");
     try {
-      const res = await fetch("/api/onboarding/founder-company-enrichment", {
+      const { data } = await fetchEnrichmentJson<{
+        success?: boolean;
+        error?: string;
+        company?: Partial<CompanyState> & { logoUrl?: string | null };
+      }>("/api/onboarding/founder-company-enrichment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           experienceIndex: index,
           company: experience.company,
@@ -261,8 +264,8 @@ export const FounderOnboardingFlow: React.FC = () => {
           companyLogoUrl: experience.companyLogoUrl,
           location: experience.location,
         }),
+        timeoutMs: 120_000,
       });
-      const data = await res.json();
       if (data.success) {
         const c = data.company || {};
         setCompany({
@@ -276,8 +279,8 @@ export const FounderOnboardingFlow: React.FC = () => {
       } else {
         setError(data.error || "Could not load that company.");
       }
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error. Please try again.");
     } finally {
       setEnrichingIndex(null);
     }

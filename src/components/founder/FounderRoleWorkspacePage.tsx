@@ -26,6 +26,7 @@ import type { PlanId } from "@/components/founder/FounderBillingCard";
 import { AgentTraceTeaserSection, type AgentTraceTeaser } from "@/components/founder/AgentTraceTeaserSection";
 import { FounderTraceViewer } from "@/components/founder/FounderTraceViewer";
 import type { AgentWrappedReport } from "@/lib/agentWrapped/types";
+import ChatMarkdown from "@/components/ChatMarkdown";
 
 type Job = {
   id: string;
@@ -360,18 +361,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
 
   const updateDraft = (key: string, value: string) => setDraft((prev) => ({ ...prev, [key]: value }));
 
-  /** Split the agent reply on blank lines and drop each chunk in as its own text, with a human pause. */
+  /** Keep Markdown replies intact so headings and lists render as one coherent answer. */
   const appendAssistantMessages = (raw: string) => {
-    const chunks = raw
-      .split(/\n{2,}/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const messages = chunks.length ? chunks : [raw.trim() || "Updated."];
-    messages.forEach((content, index) => {
-      window.setTimeout(() => {
-        setChat((prev) => [...prev, { role: "assistant", content }]);
-      }, index * 650);
-    });
+    setChat((prev) => [...prev, { role: "assistant", content: raw.trim() || "Updated." }]);
   };
 
   /** Reload the role's freshly-persisted shortlist into the recommendations pane. */
@@ -1244,8 +1236,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                     </div>
                   ) : (
                     <div key={index} className="flex justify-start">
-                      <div className="max-w-[82%] rounded-[22px] rounded-bl-md border border-[#ece7e1] bg-[#f5f1ec] px-4 py-2.5 text-sm leading-relaxed text-black/75">
-                        {item.content}
+                      <div className="prose prose-sm prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 max-w-[82%] rounded-[22px] rounded-bl-md border border-[#ece7e1] bg-[#f5f1ec] px-4 py-2.5 leading-relaxed text-black/75 prose-headings:my-2 prose-headings:text-black prose-strong:text-black prose-a:text-[#b55f1b]">
+                        <ChatMarkdown text={item.content} />
                       </div>
                     </div>
                   )

@@ -140,7 +140,12 @@ function educationEntriesFromLinkedIn(builder: any, proposed: any, extracted: an
 
 function normalizeExperienceEntry(entry: any, index = 0) {
   const title = typeof entry?.title === 'string' ? entry.title.trim() : '';
-  const company = typeof entry?.company === 'string' ? entry.company.trim() : '';
+  const rawCompany = typeof entry?.company === 'string' ? entry.company.trim() : '';
+  const employmentTypeAsCompany =
+    /^(full[-\s]?time|part[-\s]?time|internship|intern|contract|contractor|freelance|self[-\s]?employed|temporary|seasonal|permanent|volunteer|apprenticeship|co-?op|coop)$/i.test(
+      rawCompany
+    );
+  const company = employmentTypeAsCompany ? '' : rawCompany;
   if (!title && !company) return null;
 
   const source = typeof entry?.source === 'string' && entry.source.trim() ? entry.source.trim() : 'linkedin';
@@ -148,6 +153,13 @@ function normalizeExperienceEntry(entry: any, index = 0) {
     typeof entry?.sourceId === 'string' && entry.sourceId.trim()
       ? entry.sourceId.trim()
       : `${source}:${[title, company, entry?.dateRange].map((v) => String(v || '').trim().toLowerCase()).join('|') || index}`;
+
+  const employmentType =
+    typeof entry?.employmentType === 'string' && entry.employmentType.trim()
+      ? entry.employmentType.trim()
+      : employmentTypeAsCompany
+        ? rawCompany
+        : null;
 
   return {
     title: title || 'Builder',
@@ -157,8 +169,7 @@ function normalizeExperienceEntry(entry: any, index = 0) {
       typeof entry?.companyLinkedInUrl === 'string' && entry.companyLinkedInUrl.trim()
         ? entry.companyLinkedInUrl.trim()
         : null,
-    employmentType:
-      typeof entry?.employmentType === 'string' && entry.employmentType.trim() ? entry.employmentType.trim() : null,
+    employmentType,
     location: typeof entry?.location === 'string' && entry.location.trim() ? entry.location.trim() : null,
     dateRange: typeof entry?.dateRange === 'string' && entry.dateRange.trim() ? entry.dateRange.trim() : null,
     startDateLabel:
@@ -166,6 +177,12 @@ function normalizeExperienceEntry(entry: any, index = 0) {
     endDateLabel: typeof entry?.endDateLabel === 'string' && entry.endDateLabel.trim() ? entry.endDateLabel.trim() : null,
     duration: typeof entry?.duration === 'string' && entry.duration.trim() ? entry.duration.trim() : null,
     description: typeof entry?.description === 'string' && entry.description.trim() ? entry.description.trim() : null,
+    builderContribution:
+      typeof entry?.builderContribution === 'string' && entry.builderContribution.trim()
+        ? entry.builderContribution.trim()
+        : typeof entry?.description === 'string' && entry.description.trim()
+          ? entry.description.trim()
+          : null,
     skills: Array.isArray(entry?.skills)
       ? entry.skills.map(String).map((skill: string) => skill.trim()).filter(Boolean)
       : [],

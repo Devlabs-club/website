@@ -9,7 +9,7 @@ const ARTIFACT_DIR = '.context/linkedin-enrichment';
 const EMPTY_ONLY_FIELDS = new Set([
   'headline',
   'bio',
-  'photoUrl',
+  'avatarUrl',
   'location',
   'graduationYear',
   'universityOrCompany',
@@ -220,7 +220,7 @@ async function listArtifacts(dir, limit) {
   return limit ? files.slice(0, limit) : files;
 }
 
-async function applyBuilderUpdate({ builders, ObjectId, artifact, dryRun }) {
+async function applyBuilderUpdate({ builders, users, ObjectId, artifact, dryRun }) {
   const builderId = artifact.builder?._id || artifact.builder?.existingProfile?._id;
   if (!builderId) return { skipped: true, reason: 'missing builder id' };
 
@@ -228,8 +228,15 @@ async function applyBuilderUpdate({ builders, ObjectId, artifact, dryRun }) {
   if (!builder) return { skipped: true, reason: 'builder not found' };
 
   const proposed = artifact.proposedMongoUpdate || {};
+  const proposedSet = { ...(proposed.$set || {}) };
+  // Older CDP artifacts used a non-schema photoUrl field. Apply those images to
+  // BuilderProfile.avatarUrl while retaining the empty-only guard below.
+  if (!proposedSet.avatarUrl && proposedSet.photoUrl) {
+    proposedSet.avatarUrl = proposedSet.photoUrl;
+  }
+  delete proposedSet.photoUrl;
   const set = {};
-  for (const [field, value] of Object.entries(proposed.$set || {})) {
+  for (const [field, value] of Object.entries(proposedSet)) {
     if (EMPTY_ONLY_FIELDS.has(field) && !isEmpty(getPath(builder, field))) continue;
     set[field] = value;
   }
@@ -252,6 +259,15 @@ async function applyBuilderUpdate({ builders, ObjectId, artifact, dryRun }) {
 
   if (!dryRun && Object.keys(update).length) {
     await builders.updateOne({ _id: builder._id }, update);
+    if (set.avatarUrl && builder.email && users) {
+      await users.updateOne(
+        {
+          email: String(builder.email).toLowerCase(),
+          $or: [{ avatarUrl: null }, { avatarUrl: '' }, { avatarUrl: { $exists: false } }],
+        },
+        { $set: { avatarUrl: set.avatarUrl } }
+      );
+    }
   }
 
   return {
@@ -329,6 +345,8 @@ async function main() {
   const collectionNames = await db.listCollections({}, { nameOnly: true }).toArray();
   const hasLower = collectionNames.some((collection) => collection.name === 'builderprofiles');
   const builders = db.collection(hasLower ? 'builderprofiles' : 'builderProfiles');
+  const hasUsers = collectionNames.some((collection) => collection.name === 'users');
+  const users = hasUsers ? db.collection('users') : null;
   const projectsCollection = db.collection('projectrecords');
   const artifacts = await listArtifacts(args.artifactsDir, args.limit);
   const runId = new Date().toISOString().replace(/[:.]/g, '-');
@@ -354,7 +372,7 @@ async function main() {
       try {
         const artifactPath = path.join(args.artifactsDir, file);
         const artifact = JSON.parse(await readFile(artifactPath, 'utf8'));
-        const builderResult = await applyBuilderUpdate({ builders, ObjectId, artifact, dryRun: args.dryRun });
+        const builderResult = await applyBuilderUpdate({ builders, users, ObjectId, artifact, dryRun: args.dryRun });
         const projectResult = await applyProjects({ projectsCollection, ObjectId, artifact, dryRun: args.dryRun });
 
         if (builderResult.skipped) summary.buildersSkipped += 1;

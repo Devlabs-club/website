@@ -6,7 +6,6 @@ import {
   scoreConfidence,
   buildCandidateExplanation,
   type ScoredCandidate,
-  type CandidateScoreComponents,
 } from './scoring';
 import { builderHasPrimaryDomainMatch } from './roleSkillTiers';
 import { buildSearchQualityReport, type SearchQualityReport } from './searchQuality';
@@ -14,13 +13,29 @@ import { rerankTopCandidates } from './rerank';
 import { adjustWeightsFromFeedback, type CandidateFeedbackRecord } from './feedback';
 import { buildSemanticScoreMap, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { isTalentSemanticScoringEnabled } from './semanticConfig';
-import { buildRequirementFindings } from '@/lib/talent/searchTokens';
+import { buildRequirementFindings, evaluateRoleEvidence } from '@/lib/talent/searchTokens';
 import {
   applyMustHavePenalties,
   capOverallFitForMustGate,
   evaluateMustHaveGate,
   type MustHaveGateResult,
 } from './mustHaveGate';
+import {
+  ensureGithubActivityForBuilders,
+  type GithubActivitySnapshot,
+} from '@/lib/talent/githubActivity';
+import {
+  inferSponsorshipNeed,
+  opportunityDoesNotSponsor,
+  shouldHardExcludeForSponsorship,
+  summarizeSponsorshipCoverage,
+  type SponsorshipInference,
+} from '@/lib/talent/sponsorshipInference';
+import {
+  buildRoleEvidenceDossier,
+  opportunityRequiresInternship,
+  type RoleEvidenceDossier,
+} from '@/lib/talent/roleEvidenceDossier';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -35,12 +50,18 @@ export type DiscoveryInput = {
   semanticScores?: SemanticScoreMap;
   skipSemanticScoring?: boolean;
   limit?: number;
+  /** Builder IDs previously shown that now fail new constraints — demote/exclude. */
+  excludeBuilderIds?: string[];
+  persistGithubActivity?: (builderId: string, snapshot: GithubActivitySnapshot) => Promise<void>;
 };
 
 export type RankedCandidate = ScoredCandidate & {
   builder: any;
   projects: any[];
   mustHaveGate: MustHaveGateResult;
+  sponsorship?: SponsorshipInference;
+  githubActivity?: GithubActivitySnapshot | null;
+  evidenceDossier?: RoleEvidenceDossier | null;
 };
 
 export type DiscoveryResult = {
@@ -50,6 +71,9 @@ export type DiscoveryResult = {
   searchQuality: SearchQualityReport;
   totalScanned: number;
   generatedAt: Date;
+  sponsorshipCoverage?: ReturnType<typeof summarizeSponsorshipCoverage>;
+  githubActivityUsed?: boolean;
+  reasoningCohortCount?: number;
 };
 
 export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promise<DiscoveryResult> {
@@ -66,9 +90,13 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     semanticScores: providedSemanticScores,
     skipSemanticScoring = false,
     limit = 12,
+    excludeBuilderIds = [],
+    persistGithubActivity,
   } = input;
 
   const oppId = String(opportunity._id ?? '');
+  const excludeSet = new Set(excludeBuilderIds.map(String));
+  const jobDoesNotSponsor = opportunityDoesNotSponsor(opportunity);
 
   // Stage 1: build search strategy
   let strategy = buildSearchStrategy({ opportunity, founderId, searchMode });
@@ -77,6 +105,14 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   if (feedbackHistory.length > 0) {
     strategy = { ...strategy, weights: adjustWeightsFromFeedback(strategy.weights, feedbackHistory) };
   }
+
+  // Stage 2b: GitHub activity snapshots for ranking / must-have gating
+  const githubByBuilder = await ensureGithubActivityForBuilders({
+    builders,
+    limit: Math.min(40, Math.max(limit * 3, 16)),
+    persist: persistGithubActivity,
+  });
+  const githubActivityUsed = [...githubByBuilder.values()].some((snap) => snap.source === 'github_api');
 
   // Stage 3a: optional semantic similarity — skipped when index retrieval already narrowed the pool.
   let semanticScores = providedSemanticScores || new Map<string, { profileScore: number; projectScore: number }>();
@@ -109,9 +145,22 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
 
   // Stage 3b: score all builders (must-have gate applied before final fit)
   const allScored: RankedCandidate[] = [];
+  const sponsorshipInferences: SponsorshipInference[] = [];
+
   for (const builder of builders) {
     const builderId = String(builder._id);
     const projects = projectsByBuilder.get(builderId) ?? [];
+    const sponsorship = inferSponsorshipNeed(builder);
+    sponsorshipInferences.push(sponsorship);
+
+    if (shouldHardExcludeForSponsorship(sponsorship, jobDoesNotSponsor)) {
+      continue;
+    }
+    if (excludeSet.has(builderId)) {
+      continue;
+    }
+
+    const githubActivity = githubByBuilder.get(builderId) || null;
 
     let components = scoreBuilderFromProfile({
       builder,
@@ -122,9 +171,32 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       roleSkillTiers: strategy.roleSkillTiers,
       hasUploadedAgentTrace: Boolean(wrappedByBuilder.get(builderId)),
       agentWrappedScore: wrappedByBuilder.get(builderId)?.score ?? null,
+      githubActivity,
+      sponsorship,
     });
 
-    const requirementFindings = buildRequirementFindings(opportunity, builder, projects);
+    const githubActivityScore =
+      githubActivity?.source === 'github_api' ? githubActivity.score : null;
+    const requirementFindings = buildRequirementFindings(opportunity, builder, projects, {
+      githubActivityScore,
+    });
+    const roleEvidence = opportunity?.searchPlan?.roleEvidence;
+    const requireInternship = opportunityRequiresInternship(opportunity);
+    const evidenceDossier = buildRoleEvidenceDossier({
+      builder,
+      projects,
+      roleEvidence,
+      requireInternship,
+    });
+    // Evidence-dossier algorithm replaces skill-bag / title-phrase checks when a
+    // roleEvidence plan exists. Keep the legacy evaluator only as a fallback.
+    if (evidenceDossier) {
+      if (!evidenceDossier.hasRoleProof) continue;
+      if (requireInternship && !evidenceDossier.hasInternshipProof) continue;
+    } else if (roleEvidence?.anchorConcepts?.length) {
+      const roleEvidenceFinding = evaluateRoleEvidence(builder, projects, roleEvidence);
+      if (roleEvidenceFinding?.met === 'no') continue;
+    }
     const mustHaveGate = evaluateMustHaveGate(opportunity, requirementFindings);
     components = applyMustHavePenalties(components, mustHaveGate);
 
@@ -136,6 +208,11 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     }
 
     let overallFit = computeOverallFit(components, strategy.weights);
+    // Blend dossier evidence into the ranking score so hardware proof outranks
+    // generic C/C++ web projects even when skill-bag fit looks similar.
+    if (evidenceDossier) {
+      overallFit = Math.min(1, overallFit * 0.35 + evidenceDossier.evidenceFit * 0.65);
+    }
     overallFit = capOverallFitForMustGate(overallFit, mustHaveGate);
     const matchLabel = scoreMatchLabel(overallFit);
     const confidence = scoreConfidence(components);
@@ -146,12 +223,19 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       opportunity,
       searchStrategy: strategy,
       roleSkillTiers: strategy.roleSkillTiers,
+      githubActivity,
+      sponsorship,
     });
+    if (evidenceDossier?.whyTheyMatch) {
+      explanation.whyTheyMatch = evidenceDossier.whyTheyMatch;
+    }
 
     const sources: string[] = ['deterministic_keyword'];
+    if (evidenceDossier) sources.push('evidence_dossier');
     if (sem?.profileScore && sem.profileScore > 0.3) sources.push('semantic_profile');
     if (sem?.projectScore && sem.projectScore > 0.3) sources.push('semantic_project');
     if (wrappedByBuilder.has(builderId)) sources.push('agent_trace');
+    if (githubActivity?.source === 'github_api') sources.push('github_activity');
 
     allScored.push({
       builderId,
@@ -164,32 +248,56 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       builder,
       projects,
       mustHaveGate,
+      sponsorship,
+      githubActivity,
+      evidenceDossier,
     });
   }
 
-  // Stage 4: must-passers first, then overallFit descending
+  // Stage 4: must-passers first, then evidence dossier fit, then overallFit.
   allScored.sort((a, b) => {
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
     }
+    const aEvidence = a.evidenceDossier?.evidenceFit ?? 0;
+    const bEvidence = b.evidenceDossier?.evidenceFit ?? 0;
+    if (aEvidence !== bEvidence) return bEvidence - aEvidence;
     return b.overallFit - a.overallFit;
   });
 
-  // Stage 5: one batched LLM nudge over top 12 (SearchPlan already expanded categories)
+  // Stage 5: reasoning review over the qualified cohort, not only visible top cards.
   let finalCandidates: RankedCandidate[];
+  let reasoningCohortCount = 0;
   if (enableLlmRerank && generateReply) {
     const builderMap = new Map(allScored.map((c) => [c.builderId, { builder: c.builder, projects: c.projects }]));
+    const reasoningCohort = allScored
+      .filter((candidate) => candidate.mustHaveGate.passesMustGate)
+      .slice(0, 35);
+    reasoningCohortCount = reasoningCohort.length;
     const reranked = await rerankTopCandidates({
-      candidates: allScored.slice(0, 12),
+      candidates: reasoningCohort,
       opportunity,
       builderMap,
       generateReply,
-      limit: 12,
+      limit: 35,
     });
-    finalCandidates = [
-      ...reranked as RankedCandidate[],
-      ...allScored.slice(12),
-    ];
+    const rerankedById = new Map(reranked.map((candidate) => [candidate.builderId, candidate]));
+    // Re-cap LLM adjustment and re-apply must-have gate so LLM cannot override unmet musts.
+    finalCandidates = allScored.map((original) => {
+      const candidate = (rerankedById.get(original.builderId) as RankedCandidate | undefined) || original;
+      return (() => {
+        const adj = Math.max(-0.08, Math.min(0.08, candidate.components.llmRerankAdjustment || 0));
+        const components = { ...candidate.components, llmRerankAdjustment: adj };
+        let overallFit = computeOverallFit(components, strategy.weights);
+        overallFit = capOverallFitForMustGate(overallFit, candidate.mustHaveGate);
+        return {
+          ...candidate,
+          components,
+          overallFit,
+          matchLabel: scoreMatchLabel(overallFit),
+        };
+      })();
+    });
   } else {
     finalCandidates = allScored;
   }
@@ -198,21 +306,34 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
     }
+    const aEvidence = a.evidenceDossier?.evidenceFit ?? 0;
+    const bEvidence = b.evidenceDossier?.evidenceFit ?? 0;
+    if (aEvidence !== bEvidence) return bEvidence - aEvidence;
     return b.overallFit - a.overallFit;
   });
 
   const tiers = strategy.roleSkillTiers;
   const primaryMatched = finalCandidates.filter((candidate) =>
-    builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects)
+    candidate.evidenceDossier
+      ? candidate.evidenceDossier.hasRoleProof
+      : builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects)
   );
-  const primaryFallback = finalCandidates.filter((candidate) =>
-    !builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects)
+  const primaryFallback = finalCandidates.filter(
+    (candidate) =>
+      !(candidate.evidenceDossier
+        ? candidate.evidenceDossier.hasRoleProof
+        : builderHasPrimaryDomainMatch(tiers, candidate.builder, candidate.projects))
   );
-  const rankedForReturn = tiers.requiresPrimaryMatch && primaryMatched.length > 0
-    ? [...primaryMatched, ...primaryFallback]
-    : finalCandidates;
+  const rankedForReturn =
+    tiers.requiresPrimaryMatch && primaryMatched.length > 0
+      ? [...primaryMatched, ...primaryFallback]
+      : finalCandidates;
 
-  const returnedCandidates = rankedForReturn.slice(0, limit);
+  const diversified =
+    rankedForReturn.some((candidate) => candidate.evidenceDossier)
+      ? rankedForReturn
+      : diversifyCloseScores(rankedForReturn, limit);
+  const returnedCandidates = diversified.slice(0, limit);
 
   // Stage 6: search quality report for the shortlist founders actually see
   const searchQuality = buildSearchQualityReport({
@@ -222,6 +343,10 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     searchMode,
   });
 
+  const sponsorshipCoverage = jobDoesNotSponsor
+    ? summarizeSponsorshipCoverage(returnedCandidates.map((c) => c.sponsorship || inferSponsorshipNeed(c.builder)))
+    : undefined;
+
   return {
     opportunityId: oppId,
     searchStrategy: strategy,
@@ -229,7 +354,64 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     searchQuality,
     totalScanned: builders.length,
     generatedAt: new Date(),
+    sponsorshipCoverage,
+    githubActivityUsed,
+    reasoningCohortCount,
   };
+}
+
+/** Prefer diversity across companies/schools when overall fit is within ~3%. */
+function diversifyCloseScores(candidates: RankedCandidate[], limit: number): RankedCandidate[] {
+  if (candidates.length <= 2) return candidates;
+  const selected: RankedCandidate[] = [];
+  const usedCompanies = new Set<string>();
+  const usedSchools = new Set<string>();
+  const remaining = [...candidates];
+
+  while (selected.length < limit && remaining.length) {
+    const topFit = remaining[0].overallFit;
+    let pickIndex = 0;
+    for (let i = 0; i < remaining.length; i += 1) {
+      const candidate = remaining[i];
+      if (topFit - candidate.overallFit > 0.03) break;
+      const company = primaryCompany(candidate.builder);
+      const school = primarySchool(candidate.builder);
+      const companyNovel = !company || !usedCompanies.has(company);
+      const schoolNovel = !school || !usedSchools.has(school);
+      if (companyNovel && schoolNovel && (company || school) && i > 0) {
+        pickIndex = i;
+        break;
+      }
+    }
+    const [picked] = remaining.splice(pickIndex, 1);
+    selected.push(picked);
+    const company = primaryCompany(picked.builder);
+    const school = primarySchool(picked.builder);
+    if (company) usedCompanies.add(company);
+    if (school) usedSchools.add(school);
+  }
+
+  return selected;
+}
+
+function primaryCompany(builder: any): string | null {
+  const experiences = Array.isArray(builder?.experiences) ? builder.experiences : [];
+  for (const exp of experiences) {
+    const company = String(exp?.company || '')
+      .trim()
+      .toLowerCase();
+    if (!company || /^(full|part)[-\s]?time|internship|contract|independent$/.test(company)) continue;
+    return company;
+  }
+  return null;
+}
+
+function primarySchool(builder: any): string | null {
+  const education = Array.isArray(builder?.education) ? builder.education : [];
+  const school = String(education[0]?.school || builder?.universityOrCompany || '')
+    .trim()
+    .toLowerCase();
+  return school || null;
 }
 
 export { buildSearchStrategy, computeDynamicWeights, type SearchStrategy, type SearchMode } from './strategy';

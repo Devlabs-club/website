@@ -25,14 +25,41 @@ function buildCompanyQuery(name: string, website?: string | null) {
   return `${name}${site ? ` ${site}` : ''} startup company what they build product mission`;
 }
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export async function deepResearchCompany(params: {
+  name: string;
+  website?: string | null;
+  linkedInUrl?: string | null;
+  runtime?: RuntimeEnv;
+  /** Hard cap so caller APIs never hit the Vercel platform timeout. */
+  timeoutMs?: number;
+}): Promise<CompanyDeepResearchResult> {
+  const { name, website, runtime, timeoutMs = 35_000 } = params;
+  if (!name.trim()) return EMPTY;
+
+  return withTimeout(runDeepResearch({ name, website, linkedInUrl: params.linkedInUrl, runtime }), timeoutMs, 'company deep research');
+}
+
+async function runDeepResearch(params: {
   name: string;
   website?: string | null;
   linkedInUrl?: string | null;
   runtime?: RuntimeEnv;
 }): Promise<CompanyDeepResearchResult> {
   const { name, website, runtime } = params;
-  if (!name.trim()) return EMPTY;
 
   const searchProviders: Array<'brave' | 'exa'> = [];
   if (hasBraveSearchConfig(runtime)) searchProviders.push('brave');
@@ -41,9 +68,9 @@ export async function deepResearchCompany(params: {
 
   const query = buildCompanyQuery(name, website);
   const [braveResults, exaResults] = await Promise.all([
-    hasBraveSearchConfig(runtime) ? braveWebSearch(query, { count: 8, runtime }) : Promise.resolve([]),
+    hasBraveSearchConfig(runtime) ? braveWebSearch(query, { count: 6, runtime }) : Promise.resolve([]),
     hasExaConfig(runtime)
-      ? exaSearch(query, { numResults: 5, category: 'company' }, runtime).catch(() => [])
+      ? exaSearch(query, { numResults: 4, category: 'company' }, runtime).catch(() => [])
       : Promise.resolve([]),
   ]);
 
@@ -57,24 +84,25 @@ export async function deepResearchCompany(params: {
     }
   }
 
-  const citations = merged.map((r) => r.url).filter(Boolean).slice(0, 8);
+  const citations = merged.map((r) => r.url).filter(Boolean).slice(0, 6);
   if (!citations.length) return { ...EMPTY, searchProviders };
 
   const crawlTarget = website?.startsWith('http') ? website : citations[0];
   let pageText = '';
   if (crawlTarget) {
+    // Keep crawl light — this path sits behind Vercel onboarding APIs.
     const { combinedMarkdown } = await crawlMarkdownFromUrl(crawlTarget, {
-      maxDepth: 1,
-      maxPages: 4,
-      maxCharsPerPage: 3500,
+      maxDepth: 0,
+      maxPages: 2,
+      maxCharsPerPage: 2500,
     });
-    pageText = combinedMarkdown.slice(0, 12000);
+    pageText = combinedMarkdown.slice(0, 8000);
   }
 
   const excerpts = merged
     .map((r, i) => `[${i + 1}] ${r.title || r.url}\nURL: ${r.url}\n${r.highlights.join(' … ')}`)
     .join('\n\n')
-    .slice(0, 7000);
+    .slice(0, 5000);
 
   let raw = '';
   try {

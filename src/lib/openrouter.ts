@@ -5,6 +5,15 @@ export function getOpenRouterChatModel() {
   return process.env.OPENROUTER_MODEL_CHAT || 'google/gemini-2.5-flash';
 }
 
+/**
+ * Used for open-ended talent analysis, cohort reranking, and evidence synthesis.
+ * `openai/o3` is a reasoning model on OpenRouter; deployments can override it
+ * without changing application code.
+ */
+export function getOpenRouterReasoningModel() {
+  return process.env.OPENROUTER_MODEL_REASONING || 'openai/o3';
+}
+
 export function hasOpenRouterConfig() {
   return Boolean(process.env.OPENROUTER_API_KEY);
 }
@@ -82,6 +91,7 @@ export async function generateOpenRouterReply(params: {
   maxTokens?: number;
   history?: Array<{ role: string; content: string }>;
   responseFormat?: 'json_object';
+  model?: 'chat' | 'reasoning';
 }): Promise<string> {
   const messages = [
     { role: 'system', content: params.systemPrompt },
@@ -89,11 +99,14 @@ export async function generateOpenRouterReply(params: {
     { role: 'user', content: params.userPrompt },
   ];
   const body: Record<string, unknown> = {
-    model: getOpenRouterChatModel(),
+    model: params.model === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
     messages,
     temperature: params.temperature ?? 0.2,
     max_tokens: params.maxTokens ?? 400,
   };
+  if (params.model === 'reasoning') {
+    body.reasoning = { effort: 'medium' };
+  }
   if (params.responseFormat === 'json_object') {
     body.response_format = { type: 'json_object' };
   }
@@ -110,13 +123,17 @@ export async function generateOpenRouterAgentTurn(params: {
   tools?: ToolDefinition[];
   temperature?: number;
   maxTokens?: number;
+  model?: 'chat' | 'reasoning';
 }): Promise<OpenRouterAgentResponse> {
   const body: Record<string, unknown> = {
-    model: getOpenRouterChatModel(),
+    model: params.model === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
     messages: params.messages,
     temperature: params.temperature ?? 0.3,
     max_tokens: params.maxTokens ?? 600,
   };
+  if (params.model === 'reasoning') {
+    body.reasoning = { effort: 'medium' };
+  }
   if (params.tools && params.tools.length > 0) {
     body.tools = params.tools;
     body.tool_choice = 'auto';

@@ -8,7 +8,7 @@ const AgentWrappedReportSchema = new mongoose.Schema(
     localAnalysisVersion: { type: String, default: null },
     source: {
       type: String,
-      enum: ['uploaded_agent_usage', 'profile_fallback'],
+      enum: ['uploaded_agent_usage'],
       default: 'uploaded_agent_usage',
       index: true,
     },

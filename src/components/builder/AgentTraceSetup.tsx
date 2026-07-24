@@ -10,7 +10,7 @@ type AgentTraceSetupProps = {
   builderId: string;
   uploadToken: string;
   command: string;
-  publicUrl: string;
+  publicUrl?: string | null;
   messageDelivery?: MessageDelivery | null;
   autoCompleteOnUploaded?: boolean;
   onComplete: () => void | Promise<void>;
@@ -194,15 +194,27 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
             {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Check status
           </button>
-          <a
-            href={publicUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="builder-outline-button inline-flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] sm:max-w-[14rem]"
-          >
-            Preview card
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          </a>
+          {uploaded && publicUrl ? (
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="builder-outline-button inline-flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] sm:max-w-[14rem]"
+            >
+              Preview card
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Run the terminal command and approve the upload first"
+              className="builder-outline-button inline-flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] opacity-40 sm:max-w-[14rem]"
+            >
+              Preview card
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {error ? <p className="mt-4 text-sm font-medium text-red-600">{error}</p> : null}

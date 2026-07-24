@@ -30,7 +30,7 @@ type ProfileResponse = {
     builderId: string;
     uploadToken: string;
     command: string;
-    publicUrl: string;
+    publicUrl?: string | null;
     uploaded?: boolean;
     reportId?: string | null;
     archetype?: string | null;
@@ -280,7 +280,7 @@ function BuilderOverview({
           >
             View profile
           </button>
-          {wrappedPublicUrl ? (
+          {wrappedPublicUrl && traceUploaded ? (
             <a
               href={wrappedPublicUrl}
               target="_blank"
@@ -353,6 +353,7 @@ export const BuilderHome: React.FC = () => {
   const [enrichmentLabel, setEnrichmentLabel] = useState<string | null>(null);
   const [enrichmentDetail, setEnrichmentDetail] = useState<string | null>(null);
   const sectionInitializedRef = useRef(false);
+  const inviteLinkAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (!profileEnriching) {
@@ -428,6 +429,43 @@ export const BuilderHome: React.FC = () => {
 
   useEffect(() => {
     void loadProfile();
+  }, [loadProfile]);
+
+  // Reconcile an email-invited builder with this logged-in account, once, if an
+  // invite identity was persisted on the welcome page (localStorage or cookie).
+  useEffect(() => {
+    if (inviteLinkAttemptedRef.current) return;
+
+    let inviteToken: string | undefined;
+    let hasInvite = false;
+    try {
+      const raw = localStorage.getItem('devlabs_invite');
+      if (raw) {
+        hasInvite = true;
+        inviteToken = JSON.parse(raw)?.token;
+      }
+    } catch {
+      /* localStorage unavailable */
+    }
+    if (!hasInvite && typeof document !== 'undefined') {
+      hasInvite = /(?:^|;\s*)devlabs_invite=/.test(document.cookie);
+    }
+    if (!hasInvite) return;
+
+    inviteLinkAttemptedRef.current = true;
+    void (async () => {
+      try {
+        await fetch('/api/builder/claim/link', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(inviteToken ? { token: inviteToken } : {}),
+        });
+        await loadProfile();
+      } catch {
+        /* non-fatal — the profile form still works without linking */
+      }
+    })();
   }, [loadProfile]);
 
   const fetchHandoff = useCallback(async () => {

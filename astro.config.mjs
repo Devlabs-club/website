@@ -53,7 +53,9 @@ export default defineConfig({
     ? vercel({
         edgeMiddleware: false,
         analytics: false,
-        maxDuration: 60,
+        // LinkedIn CDP enrichment + company deep research regularly exceed 60s.
+        // Fluid Compute allows up to 300s; keep enrichment APIs under that budget.
+        maxDuration: 300,
       })
     : cloudflare({
         platformProxy: {

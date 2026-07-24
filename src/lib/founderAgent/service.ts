@@ -2,7 +2,15 @@ import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { runtimeEnvFromLocals, type RuntimeEnv } from '@/lib/workosEnv';
-import { generateOpenRouterAgentTurn, generateOpenRouterReply, getOpenRouterChatModel, hasOpenRouterConfig, type AgentMessage, type ToolDefinition } from '@/lib/openrouter';
+import {
+  generateOpenRouterAgentTurn,
+  generateOpenRouterReply,
+  getOpenRouterChatModel,
+  getOpenRouterReasoningModel,
+  hasOpenRouterConfig,
+  type AgentMessage,
+  type ToolDefinition,
+} from '@/lib/openrouter';
 import '@/models/user.tsx';
 import CompanyProfile from '@/models/founder/CompanyProfile';
 import JobPosting from '@/models/founder/JobPosting';
@@ -46,6 +54,19 @@ import {
   projectEvidenceSortScore,
   searchableBuilderFilter,
 } from '@/lib/talent/searchableBuilderPool';
+import { buildRequirementFindings } from '@/lib/talent/searchTokens';
+import {
+  inferSponsorshipNeed,
+  opportunityDoesNotSponsor,
+  shouldHardExcludeForSponsorship,
+} from '@/lib/talent/sponsorshipInference';
+import {
+  evaluateGithubActivityRequirement,
+  isGithubActivityRequirement,
+  readCachedGithubActivity,
+} from '@/lib/talent/githubActivity';
+import { evaluateMustHaveGate } from '@/lib/talent/discovery/mustHaveGate';
+import { buildPoolSummary, renderPoolSummaryMarkdown, type PoolSummary } from '@/lib/talent/poolSummary';
 
 const User: any = mongoose.models.User;
 
@@ -63,7 +84,7 @@ type ChatToolCall = {
   result: Record<string, unknown>;
 };
 
-type RetrievalMode = 'cached_shortlist' | 'search_index' | 'semantic' | 'keyword_fallback' | 'limited_broad_fallback';
+type RetrievalMode = 'cached_shortlist' | 'search_index' | 'semantic' | 'hybrid' | 'keyword_fallback' | 'limited_broad_fallback';
 const DEFAULT_EQUITY = 'No';
 const DEFAULT_VISA_SPONSORSHIP = 'Yes';
 
@@ -84,8 +105,8 @@ const SYSTEM_PROMPT = `You are the DevLabs founder hiring agent.
 Style:
 - Talk like a real person texting a founder, not an AI assistant. Warm, direct, a little casual. Never say things like "as an AI", "I'd be happy to", "let me assist you", or other assistant-speak.
 - Never use em-dashes (—) or en-dashes (–). Use a comma, a period, or split into two sentences instead.
-- Keep it short. A sentence or two per message, no walls of text.
-- You can send a few short messages in a row to feel human. Separate each one with a blank line and the app shows them as separate texts. Usually 1-2 bubbles, occasionally 3. Don't pad.
+- Keep simple acknowledgements short. For a new search, rerank, comparison, or talent-pool question, use concise Markdown with headings and bullets.
+- Do not split a structured Markdown response into artificial separate messages.
 - Say things like "Cool, got it" only when it actually adds something.
 - Ask one focused follow-up when a required detail is missing. Do not create the job in the same turn as that follow-up.
 
@@ -134,9 +155,9 @@ Starting the search:
 - When the founder confirms the visa/equity defaults (e.g. "yes"), persist it with edit_job or just call search_talent. Do not ask the same visa/equity confirmation again once they've answered it.
 
 Talking about search results:
-- Never tell the founder there are "no strong matches", "weak matches", or that the results aren't great. Don't grade the results down.
-- If there are strong matches, you can say so (e.g. "found a couple of strong matches"). If there aren't, just say you've pulled together some builders for them to look at and keep it positive.
-- After a search runs, point them to the builders pane on the right. Don't repeat candidate counts over and over.`;
+- Be direct and evidence-grounded. State when no verified candidates meet a preference, and distinguish unavailable evidence from evidence that a builder does not have that quality.
+- After a search or rerank, explain the pool in Markdown: overview, top recommendations, meaningful trade-offs, and material unknowns. Use only facts returned by tools.
+- For a nuanced talent-pool question, use inspect_talent_pool before answering. It is a read-only, role-scoped evidence tool.`;
 
 const TOOLS: ToolDefinition[] = [
   {
@@ -238,6 +259,28 @@ const TOOLS: ToolDefinition[] = [
         properties: {
           jobId: { type: 'string', description: 'Job ID. Omit to use the current role session job.' },
           searchMode: { type: 'string', enum: ['balanced', 'broad', 'strict'] },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'inspect_talent_pool',
+      description: 'Read evidence from the current founder-owned shortlist and role-scoped builders to answer nuanced talent-pool questions. Never use it for unrelated data.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string', description: 'Job ID. Omit to use the active role.' },
+          question: { type: 'string', description: 'The founder question or comparison to investigate.' },
+          builderIds: { type: 'array', items: { type: 'string' }, description: 'Optional shortlisted builders to inspect.' },
+          fields: {
+            type: 'array',
+            items: {
+              type: 'string',
+              enum: ['profile', 'projects', 'experience', 'github_activity', 'sponsorship', 'public_presence', 'ranking_evidence'],
+            },
+          },
         },
       },
     },
@@ -599,16 +642,58 @@ function createJobCompensationMessage(missing: string[]) {
  * or mentions "no strong matches" — surfaces strength only when it's good news.
  */
 function searchResultMessage(search: any, prefix = ''): string {
+  if (typeof search?.poolNarrative === 'string' && search.poolNarrative.trim()) {
+    return `${prefix ? `${prefix.trim()}\n\n` : ''}${search.poolNarrative.trim()}`;
+  }
   const total = Number(search?.totalFound || 0);
   const strong = Number(search?.strongCount || 0);
   const head = prefix ? `${prefix} ` : '';
+  let base = '';
   if (strong > 0) {
-    return `${head}I found ${strong} strong ${strong === 1 ? 'match' : 'matches'} for this role. They're in the builders pane on the right.`;
+    base = `${head}I found ${strong} strong ${strong === 1 ? 'match' : 'matches'} for this role. They're in the builders pane on the right.`;
+  } else if (total > 0) {
+    base = `${head}I pulled together some builders for this role. Take a look in the pane on the right and tell me what stands out.`;
+  } else {
+    base = `${head}I just ran the search. Let's add a bit more detail to sharpen it. Anything specific on experience or background?`;
   }
-  if (total > 0) {
-    return `${head}I pulled together some builders for this role. Take a look in the pane on the right and tell me what stands out.`;
+
+  const extras: string[] = [];
+  const coverageMsg = String(search?.sponsorshipCoverage?.message || '').trim();
+  if (coverageMsg) extras.push(coverageMsg);
+  if (search?.githubActivityUsed === true) {
+    extras.push('GitHub activity from public profiles was used in ranking.');
+  } else if (search?.githubActivityUsed === false && total > 0) {
+    extras.push('GitHub activity was unavailable for most profiles, so I leaned more on skills and project proof.');
   }
-  return `${head}I just ran the search. Let's add a bit more detail to sharpen it. Anything specific on experience or background?`;
+  return extras.length ? `${base} ${extras.join(' ')}` : base;
+}
+
+async function buildFounderPoolNarrative(summary: PoolSummary): Promise<string> {
+  const fallback = renderPoolSummaryMarkdown(summary);
+  if (!hasOpenRouterConfig()) return fallback;
+
+  try {
+    const narrative = await generateOpenRouterReply({
+      model: 'reasoning',
+      temperature: 0,
+      maxTokens: 1300,
+      systemPrompt: `You are writing an honest founder-facing hiring summary.
+Return Markdown only. Use only the JSON facts supplied. Do not invent qualifications, social activity, work authorization, GitHub activity, or counts.
+Include: a short pool overview, 3-5 top recommendations, material trade-offs, and evidence coverage.
+Treat missing evidence as unknown. If a requested preference has no verified matches, say that plainly.`,
+      userPrompt: JSON.stringify(summary),
+    });
+    return narrative.trim() || fallback;
+  } catch (error) {
+    logFounderAgentError('pool_narrative:reasoning_failed', error);
+    return fallback;
+  }
+}
+
+function shouldUseReasoningModel(message: string) {
+  return /\b(search|find|recommend|candidate|builder|talent|shortlist|pool|rerank|compare|why|github|social|twitter|linkedin|sponsorship|visa|best fit|trade-?off)\b/i.test(
+    message
+  );
 }
 
 function compactDescription(value: string | null, fallback: string) {
@@ -915,6 +1000,60 @@ function isJobBriefThin(job: any): boolean {
   return !hasDescription || skills.length < 2 || !hasPreferences;
 }
 
+async function collectFailingPriorBuilderIds(jobId: string, opportunity: any): Promise<string[]> {
+  if (!jobId) return [];
+  const prior = await Shortlist.findOne({ opportunityId: jobId }).select('candidates.builderId').lean();
+  const priorIds = Array.isArray((prior as any)?.candidates)
+    ? (prior as any).candidates.map((c: any) => String(c?.builderId || '')).filter(Boolean)
+    : [];
+  if (!priorIds.length) return [];
+
+  const builders = await BuilderProfile.find({ _id: { $in: priorIds } })
+    .select(BUILDER_SEARCH_SELECT)
+    .lean();
+  if (!builders.length) return [];
+
+  const projects = await ProjectRecord.find({ builderId: { $in: builders.map((b: any) => b._id) } })
+    .select('builderId projectName description techStack builderContribution links verificationStatus')
+    .lean();
+  const projectsByBuilder = new Map<string, any[]>();
+  for (const project of projects) {
+    const key = String(project.builderId);
+    const list = projectsByBuilder.get(key) || [];
+    list.push(project);
+    projectsByBuilder.set(key, list);
+  }
+
+  const failing: string[] = [];
+  const jobDoesNotSponsor = opportunityDoesNotSponsor(opportunity);
+  for (const builder of builders) {
+    const builderId = String(builder._id);
+    const builderProjects = projectsByBuilder.get(builderId) || [];
+    const sponsorship = inferSponsorshipNeed(builder);
+    if (shouldHardExcludeForSponsorship(sponsorship, jobDoesNotSponsor)) {
+      failing.push(builderId);
+      continue;
+    }
+    const cached = readCachedGithubActivity(builder);
+    const githubActivityScore = cached?.source === 'github_api' ? cached.score : null;
+    const findings = buildRequirementFindings(opportunity, builder, builderProjects, { githubActivityScore });
+    // If the role asks for GitHub activity and we have no score yet, treat as failing the
+    // prior card so rediscovery can replace with builders that have fresh activity data.
+    const asksGithub = findings.some((f) => isGithubActivityRequirement(f.text));
+    if (asksGithub && githubActivityScore == null) {
+      const githubFinding = findings.find((f) => isGithubActivityRequirement(f.text));
+      if (githubFinding) {
+        const evaluated = evaluateGithubActivityRequirement(null);
+        githubFinding.met = evaluated.met;
+        githubFinding.evidence = evaluated.evidence;
+      }
+    }
+    const gate = evaluateMustHaveGate(opportunity, findings);
+    if (!gate.passesMustGate) failing.push(builderId);
+  }
+  return failing;
+}
+
 async function runSearchForJob(
   identity: FounderIdentity,
   job: any,
@@ -1091,6 +1230,7 @@ async function runSearchForJob(
       targetPoolSize: poolTarget,
       BuilderProfile,
       ProjectRecord,
+      allowSupplemental: false,
     });
     builders = hydrated.builders;
     projectsByBuilder = hydrated.projectsByBuilder;
@@ -1102,9 +1242,9 @@ async function runSearchForJob(
     });
   }
 
-  if (!builders.length) {
+  {
     const retrievalStartedAt = Date.now();
-    let retrievedBuilderIds: string[] = [];
+    let retrievedBuilderIds: string[] = builders.map((builder: any) => String(builder._id));
     logFounderAgent('search_talent:semantic_retrieval:start', {
       jobId,
       primaryQuery: strategy.primaryQuery,
@@ -1138,8 +1278,10 @@ async function runSearchForJob(
         ),
       ]);
       semanticScores = semantic.scores;
-      retrievedBuilderIds = semantic.builderIds;
-      if (retrievedBuilderIds.length > 0) retrievalMode = 'semantic';
+      retrievedBuilderIds = [...new Set([...retrievedBuilderIds, ...semantic.builderIds])];
+      if (semantic.builderIds.length > 0) {
+        retrievalMode = retrievalMode === 'search_index' ? 'hybrid' : 'semantic';
+      }
       logFounderAgent('search_talent:semantic_retrieval:done', {
         jobId,
         retrievalMode,
@@ -1255,6 +1397,7 @@ async function runSearchForJob(
         targetPoolSize: poolTarget,
         BuilderProfile,
         ProjectRecord,
+        allowSupplemental: false,
       });
       builders = hydrated.builders;
       projectsByBuilder = hydrated.projectsByBuilder;
@@ -1320,11 +1463,31 @@ async function runSearchForJob(
     enableLlmRerank: openRequirements.length > 0 && hasOpenRouterConfig(),
     generateReply: openRequirements.length > 0 && hasOpenRouterConfig()
       ? (systemPrompt, userPrompt) =>
-          generateOpenRouterReply({ systemPrompt, userPrompt, temperature: 0, maxTokens: 2200 })
+          generateOpenRouterReply({
+            model: 'reasoning',
+            systemPrompt,
+            userPrompt,
+            temperature: 0,
+            maxTokens: 3200,
+          })
       : undefined,
     semanticScores,
     skipSemanticScoring: retrievalMode === 'search_index' || Boolean(semanticScores.size),
     limit: candidateResultLimit,
+    excludeBuilderIds: await collectFailingPriorBuilderIds(jobId, oppPlain),
+    persistGithubActivity: async (builderId, snapshot) => {
+      await BuilderProfile.updateOne(
+        { _id: builderId },
+        {
+          $set: {
+            'integrations.github.activityScore': snapshot.score,
+            'integrations.github.activityFetchedAt': new Date(snapshot.fetchedAt),
+            'integrations.github.activitySnapshot': snapshot,
+            ...(snapshot.username ? { 'integrations.github.username': snapshot.username } : {}),
+          },
+        }
+      );
+    },
   });
   const limitedCandidates = applyCandidateLimit(result.candidates, entitlements);
   const limitedResult = {
@@ -1335,6 +1498,8 @@ async function runSearchForJob(
       strongCandidates: limitedCandidates.filter((candidate) => candidate.matchLabel === 'Strong Match').length,
     },
   };
+  const poolSummary = buildPoolSummary(limitedResult);
+  const poolNarrative = await buildFounderPoolNarrative(poolSummary);
   logFounderAgent('search_talent:discovery:done', {
     jobId,
     retrievalMode,
@@ -1361,6 +1526,8 @@ async function runSearchForJob(
     opportunity: oppPlain,
     founderEmail: identity.email,
     entitlements,
+    poolSummary,
+    poolNarrative,
   });
 
   job.status = 'shortlisted';
@@ -1398,6 +1565,10 @@ async function runSearchForJob(
     scannedBuilders: result.totalScanned,
     shortlist: publicShortlist,
     uiBlock: buildTalentPreviewUiBlock(shortlistDoc, oppPlain),
+    sponsorshipCoverage: result.sponsorshipCoverage || null,
+    githubActivityUsed: Boolean(result.githubActivityUsed),
+    poolSummary,
+    poolNarrative,
   };
 }
 
@@ -1887,6 +2058,144 @@ async function toolSearchTalent(identity: FounderIdentity, args: Record<string, 
   };
 }
 
+async function toolInspectTalentPool(
+  identity: FounderIdentity,
+  args: Record<string, unknown>,
+  session: any
+): Promise<Record<string, unknown>> {
+  const jobId = cleanString(args.jobId) || (session?.jobId ? String(session.jobId) : null);
+  if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) return { error: 'A valid current role is required.' };
+
+  const job = await JobPosting.findOne({ _id: jobId, founderEmail: identity.email })
+    .select('title roleTitle skillsNeeded searchRequirements visa')
+    .lean();
+  if (!job) return { error: 'Role not found.' };
+
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email })
+    .select('candidates')
+    .lean();
+  const shortlistIds = Array.isArray((shortlist as any)?.candidates)
+    ? (shortlist as any).candidates.map((candidate: any) => String(candidate.builderId)).filter(Boolean)
+    : [];
+  if (!shortlistIds.length) {
+    return { error: 'No current shortlist exists. Run a talent search first.' };
+  }
+
+  const requestedIds = Array.isArray(args.builderIds)
+    ? args.builderIds.map((id) => String(id)).filter((id) => shortlistIds.includes(id))
+    : shortlistIds;
+  const candidateIds = requestedIds.slice(0, 35);
+  const builders = await BuilderProfile.find({
+    _id: { $in: candidateIds },
+    ...searchableBuilderFilter(),
+  })
+    .select(BUILDER_SEARCH_SELECT)
+    .maxTimeMS(10000)
+    .lean();
+  const projects = await ProjectRecord.find({ builderId: { $in: builders.map((builder: any) => builder._id) } })
+    .select('builderId projectName description problemSolved techStack builderContribution verificationStatus links')
+    .sort({ updatedAt: -1 })
+    .limit(280)
+    .maxTimeMS(10000)
+    .lean();
+  const projectsByBuilder = new Map<string, any[]>();
+  for (const project of projects) {
+    const key = String(project.builderId);
+    const list = projectsByBuilder.get(key) || [];
+    list.push(project);
+    projectsByBuilder.set(key, list);
+  }
+
+  const fields = new Set(
+    Array.isArray(args.fields) && args.fields.length
+      ? args.fields.map((field) => String(field))
+      : ['profile', 'projects', 'experience', 'github_activity', 'sponsorship', 'public_presence', 'ranking_evidence']
+  );
+  const sourceCandidate = new Map<string, any>(
+    ((shortlist as any).candidates || []).map((candidate: any) => [String(candidate.builderId), candidate])
+  );
+  const evidence = builders.map((builder: any) => {
+    const builderId = String(builder._id);
+    const shortlisted = sourceCandidate.get(builderId);
+    const record: Record<string, unknown> = {
+      builderId,
+      name: builder.name,
+      matchScore: shortlisted?.matchScore ?? null,
+      matchLabel: shortlisted?.matchLabel ?? null,
+    };
+    if (fields.has('profile')) {
+      record.profile = {
+        headline: builder.headline || null,
+        skills: (builder.rolePreference || builder.skills || []).slice(0, 12),
+        location: builder.location || null,
+      };
+    }
+    if (fields.has('projects')) {
+      record.projects = (projectsByBuilder.get(builderId) || []).slice(0, 5).map((project: any) => ({
+        name: project.projectName,
+        description: String(project.description || '').slice(0, 360),
+        techStack: (project.techStack || []).slice(0, 10),
+        contribution: String(project.builderContribution || '').slice(0, 280),
+        verificationStatus: project.verificationStatus || null,
+        hasGithub: Boolean(project.links?.github),
+      }));
+    }
+    if (fields.has('experience')) {
+      record.experience = (builder.experiences || []).slice(0, 5).map((experience: any) => ({
+        title: experience.title || null,
+        company: experience.company || null,
+        description: String(experience.description || '').slice(0, 280),
+      }));
+    }
+    if (fields.has('github_activity')) {
+      const snapshot = builder.integrations?.github?.activitySnapshot;
+      record.githubActivity = snapshot?.source === 'github_api'
+        ? {
+            score: snapshot.score,
+            recentEventCount: snapshot.recentEventCount,
+            recentlyPushedRepos: snapshot.recentlyPushedRepos,
+            publicRepos: snapshot.publicRepos,
+          }
+        : { available: false };
+    }
+    if (fields.has('sponsorship')) {
+      const inference = inferSponsorshipNeed(builder);
+      record.sponsorship = {
+        need: inference.need,
+        confidence: inference.confidence,
+        evidence: inference.evidence,
+      };
+    }
+    if (fields.has('public_presence')) {
+      record.publicPresence = (builder.enrichmentInsights?.founderHighlights || [])
+        .filter((highlight: any) => /twitter|x\/|public|post|writing|talk|community/i.test(
+          `${highlight?.title || ''} ${highlight?.detail || ''} ${highlight?.source || ''}`
+        ))
+        .slice(0, 5)
+        .map((highlight: any) => ({
+          title: highlight.title,
+          detail: highlight.detail,
+          source: highlight.source,
+        }));
+    }
+    if (fields.has('ranking_evidence')) {
+      record.rankingEvidence = {
+        whyTheyMatch: shortlisted?.whyTheyMatch || null,
+        requirements: shortlisted?.requirementFindings || [],
+      };
+    }
+    return record;
+  });
+
+  return {
+    job: { id: String((job as any)._id), title: (job as any).title || (job as any).roleTitle, skills: (job as any).skillsNeeded || [] },
+    question: cleanString(args.question) || null,
+    cohort: { available: shortlistIds.length, inspected: evidence.length, maxInspectable: 35 },
+    evidence,
+    dataBoundary: 'Read-only role-scoped builder/profile/project evidence. Missing evidence is unknown, not negative.',
+  };
+}
+
 async function runTool(name: string, identity: FounderIdentity, session: any, args: Record<string, unknown>, userText: string, company: any): Promise<Record<string, unknown>> {
   const startedAt = Date.now();
   logFounderAgent('tool:start', {
@@ -1913,6 +2222,9 @@ async function runTool(name: string, identity: FounderIdentity, session: any, ar
         break;
       case 'search_talent':
         result = await toolSearchTalent(identity, args, session, userText);
+        break;
+      case 'inspect_talent_pool':
+        result = await toolInspectTalentPool(identity, args, session);
         break;
       case 'update_company_info':
         result = await toolUpdateCompany(identity, args);
@@ -2021,12 +2333,14 @@ export async function runFounderAgentChat(params: {
       content: m.content,
     })),
   ];
+  const modelRoute = shouldUseReasoningModel(params.message) ? 'reasoning' as const : 'chat' as const;
 
   let agentResponse = await generateOpenRouterAgentTurn({
     messages,
     tools: TOOLS,
     temperature: 0.25,
-    maxTokens: 500,
+    maxTokens: modelRoute === 'reasoning' ? 1500 : 500,
+    model: modelRoute,
   });
   logFounderAgent('chat:model_response', {
     sessionId: String(session._id),
@@ -2074,7 +2388,8 @@ export async function runFounderAgentChat(params: {
         messages,
         tools: TOOLS,
         temperature: 0.25,
-        maxTokens: 500,
+        maxTokens: modelRoute === 'reasoning' ? 1500 : 500,
+        model: modelRoute,
       });
       logFounderAgent('chat:model_response_after_tool', {
         sessionId: String(session._id),
@@ -2097,7 +2412,11 @@ export async function runFounderAgentChat(params: {
     }
   }
 
+  const poolNarrative = toolCalls
+    .map((tool) => (tool.result as any)?.search?.poolNarrative || (tool.result as any)?.search?.poolNarrative)
+    .find((value) => typeof value === 'string' && value.trim());
   const finalMessage =
+    poolNarrative ||
     agentResponse.content ||
     toolCalls.at(-1)?.result?.message ||
     'Cool, I updated that.';
@@ -2140,7 +2459,10 @@ export async function runFounderAgentChat(params: {
     toolCalls,
     searchRan,
     searchNeedsFollowup,
-    meta: { model: getOpenRouterChatModel(), iterations },
+    meta: {
+      model: modelRoute === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
+      iterations,
+    },
   };
   logFounderAgent('chat:done', {
     sessionId: response.session?.id || String(session._id),

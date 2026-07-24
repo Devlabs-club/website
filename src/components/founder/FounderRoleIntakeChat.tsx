@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Briefcase, Loader2, Plus, Send } from 'lucide-react';
+import ChatMarkdown from '@/components/ChatMarkdown';
 
 type ChatMessage = {
   id: string;
@@ -300,13 +301,17 @@ export default function FounderRoleIntakeChat({
                 return (
                   <div key={message.id} className={`flex ${isFounder ? 'justify-end' : 'justify-start'}`}>
                     <div
-                      className={`max-w-[82%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                         isFounder
                           ? 'bg-[#fa7d22] text-black font-medium'
-                          : 'bg-white/[0.05] text-white/85 border border-white/[0.06]'
+                          : 'prose prose-invert prose-sm prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 max-w-[82%] bg-white/[0.05] text-white/85 border border-white/[0.06]'
                       }`}
                     >
-                      {message.content}
+                      {isFounder ? (
+                        <span className="whitespace-pre-wrap">{message.content}</span>
+                      ) : (
+                        <ChatMarkdown text={message.content} />
+                      )}
                     </div>
                   </div>
                 );

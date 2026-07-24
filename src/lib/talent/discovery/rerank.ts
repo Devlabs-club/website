@@ -18,9 +18,15 @@ export type LlmCandidateJudgment = {
   rerankPenalty: number;
 };
 
+const REASONING_COHORT_LIMIT = 35;
+// Detailed dossiers are intentionally rich. Keep batches small enough that a
+// reasoning model can return every required judgment without truncating JSON.
+const REASONING_BATCH_SIZE = 8;
+
 /**
- * One batched LLM call over the top N candidates (default 12).
- * SearchPlan already expanded founder requirements; this only nudges edge cases.
+ * Review the strongest eligible cohort, rather than only the visible shortlist.
+ * The model gets bounded, evidence-rich dossiers in batches to keep each request
+ * auditable and within provider context/output limits.
  */
 export async function rerankTopCandidates(params: {
   candidates: ScoredCandidate[];
@@ -29,16 +35,23 @@ export async function rerankTopCandidates(params: {
   generateReply: (systemPrompt: string, userPrompt: string) => Promise<string>;
   limit?: number;
 }): Promise<ScoredCandidate[]> {
-  const { candidates, opportunity, builderMap, generateReply, limit = 12 } = params;
-  const top = candidates.slice(0, limit);
+  const { candidates, opportunity, builderMap, generateReply, limit = REASONING_COHORT_LIMIT } = params;
+  const top = candidates.slice(0, Math.min(limit, REASONING_COHORT_LIMIT));
   if (!top.length) return candidates;
 
-  const judgments = await judgeCandidatesBatch({
-    candidates: top,
-    opportunity,
-    builderMap,
-    generateReply,
-  });
+  const batches: ScoredCandidate[][] = [];
+  for (let index = 0; index < top.length; index += REASONING_BATCH_SIZE) {
+    batches.push(top.slice(index, index + REASONING_BATCH_SIZE));
+  }
+  const judgmentBatches = await Promise.all(batches.map((batch) =>
+    judgeCandidatesBatch({
+      candidates: batch,
+      opportunity,
+      builderMap,
+      generateReply,
+    })
+  ));
+  const judgments = judgmentBatches.flat();
   const judgedMap = new Map(judgments.map((judgment) => [judgment.builderId, judgment]));
 
   return candidates
@@ -102,34 +115,48 @@ async function judgeCandidatesBatch(params: {
         .map((requirement, index) => `${index + 1}. [${requirement.importance}] ${requirement.text}`)
         .join('\n');
 
-  const systemPrompt = `You are a hiring intelligence system doing a FINAL nudge pass over shortlisted builders.
+  const systemPrompt = `You are a hiring intelligence system reviewing a qualified candidate cohort.
 A SearchPlan already expanded founder requirements into concrete match tokens. Deterministic scoring already applied must/nice gates.
-Your job: only adjust for edge cases the token matcher may miss (synonyms, related companies/schools, project evidence phrasing).
-Return strictly valid JSON: {"judgments":[{builderId, fitSummary, requirementFindings:[{text, met:"yes"|"partial"|"no", evidence}], evidenceBasedReasoning:string[], risks:string[], missingInformation:string[], recommendedAction:"intro"|"trial"|"save"|"pass", rerankBoost:number, rerankPenalty:number}]}
+Your job is to form a calibrated, evidence-based consensus for each builder, including edge cases token matching may miss.
+Return strictly valid JSON: {"judgments":[{builderId,evidenceBasedReasoning:string[],risks:string[],recommendedAction:"intro"|"trial"|"save"|"pass",rerankBoost:number,rerankPenalty:number}]}
 Constraints:
-- rerankBoost and rerankPenalty are each 0-0.12.
-- Prefer small adjustments. Do not invent employers, schools, or projects absent from evidence.
+- Return at most 2 evidenceBasedReasoning items and 1 risk, each under 120 characters.
+- rerankBoost and rerankPenalty are each 0-0.08.
+- Prefer small adjustments. Do not invent employers, schools, projects, social activity, work authorization, or GitHub activity absent from the dossier.
+- Never mark a must-have as met without concrete evidence. Do not override unmet must-haves with boosts.
+- You may make a qualitative inference only when multiple evidence fields support it. State uncertainty in missingInformation instead of treating missing public evidence as a negative fact.
 - Include one judgment object per candidate builderId provided.`;
 
   const candidateBlocks = candidates.map((candidate, index) => {
     const data = builderMap.get(candidate.builderId);
     if (!data) return `${index + 1}. builderId=${candidate.builderId} (missing profile)`;
     const { builder, projects } = data;
+    const highlights = Array.isArray(builder.enrichmentInsights?.founderHighlights)
+      ? builder.enrichmentInsights.founderHighlights
+      : [];
+    const github = builder.integrations?.github?.activitySnapshot;
+    const sponsorship = builder.workAuthorization || 'Unknown';
     return `${index + 1}. builderId=${candidate.builderId}
-Name: ${builder.name || 'Unknown'}
 Score: ${(candidate.overallFit * 100).toFixed(0)}/100
 Headline: ${builder.headline || 'None'}
-Skills: ${(builder.rolePreference || []).slice(0, 10).join(', ') || 'None'}
+Skills: ${[...(builder.rolePreference || []), ...(builder.skills || [])].slice(0, 8).join(', ') || 'None'}
+Deterministic components: skill=${candidate.components.deterministicSkillFit.toFixed(2)}, proof=${candidate.components.proofStrength.toFixed(2)}, GitHub=${candidate.components.githubActivityFit.toFixed(2)}, sponsorship=${candidate.components.sponsorshipFit.toFixed(2)}
+Work authorization: ${sponsorship}
+GitHub activity: ${github?.source === 'github_api'
+  ? `score ${Math.round((github.score || 0) * 100)}/100, ${github.recentEventCount || 0} recent events, ${github.recentlyPushedRepos || 0} recently pushed repos`
+  : 'Unavailable'}
+Public/enrichment evidence:
+${highlights.slice(0, 2).map((item: any) => `- [${item.source || 'profile'}] ${item.title}: ${String(item.detail || '').slice(0, 100)}`).join('\n') || 'None'}
 Education:
 ${formatEducation(builder)}
 Experience:
 ${formatExperience(builder)}
 Projects:
 ${projects
-  .slice(0, 3)
+  .slice(0, 2)
   .map(
     (project: any, projectIndex: number) =>
-      `${projectIndex + 1}. ${project.projectName || 'Unnamed'}: ${String(project.description || '').slice(0, 120)}. Contribution: ${String(project.builderContribution || '').slice(0, 100)}. Stack: ${(project.techStack || []).slice(0, 6).join(', ')}`
+      `${projectIndex + 1}. ${project.projectName || 'Unnamed'}: ${String(project.description || '').slice(0, 90)}. Contribution: ${String(project.builderContribution || '').slice(0, 70)}. Stack: ${(project.techStack || []).slice(0, 5).join(', ')}`
   )
   .join('\n') || 'None'}`;
   });
@@ -145,9 +172,29 @@ Candidates (${candidates.length}):
 ${candidateBlocks.join('\n\n')}`;
 
   try {
-    const raw = await generateReply(systemPrompt, userPrompt);
-    const json = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
-    const parsed = JSON.parse(json);
+    let raw = await generateReply(systemPrompt, userPrompt);
+    let parsed: any;
+    try {
+      parsed = parseRerankJson(raw);
+    } catch (initialError) {
+      // Providers occasionally cut a response mid-string despite JSON mode.
+      // Retry the same bounded batch with a smaller response contract.
+      raw = await generateReply(
+        `${systemPrompt}\nThis is a retry after truncated output. Return compact JSON only. Use at most one evidence item and omit risks.`,
+        userPrompt
+      );
+      try {
+        parsed = parseRerankJson(raw);
+      } catch (retryError) {
+        console.warn('[rerank] batched judgment JSON invalid after retry', {
+          batchSize: candidates.length,
+          initialError: initialError instanceof Error ? initialError.message : String(initialError),
+          retryError: retryError instanceof Error ? retryError.message : String(retryError),
+          responseLength: raw.length,
+        });
+        return [];
+      }
+    }
     const rows = Array.isArray(parsed?.judgments) ? parsed.judgments : Array.isArray(parsed) ? parsed : [];
     const allowedIds = new Set(candidates.map((candidate) => candidate.builderId));
 
@@ -181,8 +228,8 @@ ${candidateBlocks.join('\n\n')}`;
           recommendedAction: (['intro', 'trial', 'save', 'pass'].includes(row.recommendedAction)
             ? row.recommendedAction
             : 'save') as LlmCandidateJudgment['recommendedAction'],
-          rerankBoost: Math.min(0.12, Math.max(0, Number(row.rerankBoost) || 0)),
-          rerankPenalty: Math.min(0.12, Math.max(0, Number(row.rerankPenalty) || 0)),
+          rerankBoost: Math.min(0.08, Math.max(0, Number(row.rerankBoost) || 0)),
+          rerankPenalty: Math.min(0.08, Math.max(0, Number(row.rerankPenalty) || 0)),
         };
       })
       .filter(Boolean) as LlmCandidateJudgment[];
@@ -190,6 +237,11 @@ ${candidateBlocks.join('\n\n')}`;
     console.warn('[rerank] batched judgment failed', error instanceof Error ? error.message : error);
     return [];
   }
+}
+
+function parseRerankJson(raw: string) {
+  const json = raw.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
+  return JSON.parse(json);
 }
 
 function formatEducation(builder: any): string {

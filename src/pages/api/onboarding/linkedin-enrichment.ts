@@ -5,6 +5,9 @@ import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/
 import { findUserById, updateUserAccount } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import {
+  FOUNDER_PROFILE_SCRAPER_TIMEOUT_MS,
+  queueRemoteLinkedInBuilderEnrichment,
+  queueRemoteLinkedInFounderEnrichment,
   requireRemoteLinkedInScraperConfig,
   runRequiredRemoteLinkedInScraperScript,
 } from '@/lib/remoteLinkedInScraper';
@@ -73,28 +76,13 @@ async function resolveUser(request: Request, locals: App.Locals) {
 async function runCdpScript(
   scriptName: string,
   args: string[],
-  runtime?: Record<string, string | undefined>
+  runtime?: Record<string, string | undefined>,
+  timeoutMs = FOUNDER_PROFILE_SCRAPER_TIMEOUT_MS
 ) {
-  return runRequiredRemoteLinkedInScraperScript(scriptName, args, runtime);
+  return runRequiredRemoteLinkedInScraperScript(scriptName, args, runtime, timeoutMs);
 }
 
-function applyableUpdate(artifact: any, linkedInUrl: string) {
-  const proposed = artifact?.proposedMongoUpdate || {};
-  const photoUrl = cleanString(artifact?.extracted?.cdpExtraction?.photo?.imageUrl);
-  const update: Record<string, any> = {
-    $set: {
-      ...(proposed.$set || {}),
-      ...(photoUrl ? { avatarUrl: photoUrl } : {}),
-      'links.linkedin': linkedInUrl,
-      updatedAt: new Date(),
-    },
-  };
-  if (proposed.$addToSet && Object.keys(proposed.$addToSet).length) update.$addToSet = proposed.$addToSet;
-  if (proposed.$push && Object.keys(proposed.$push).length) update.$push = proposed.$push;
-  return update;
-}
-
-async function enrichBuilder(user: any, linkedInUrl: string, cdpUrl: string, runtime?: Record<string, string | undefined>) {
+async function enrichBuilder(user: any, linkedInUrl: string, runtime?: Record<string, string | undefined>) {
   let builder = await BuilderProfile.findOne({
     $or: [{ userId: user._id }, { email: user.email }],
   });
@@ -116,36 +104,54 @@ async function enrichBuilder(user: any, linkedInUrl: string, cdpUrl: string, run
     await builder.save();
   }
 
-  const { summary, artifact } = await runCdpScript('enrich-builder-linkedin-cdp.mjs', [
-    '--builderId',
-    String(builder._id),
-    '--cdp-url',
-    cdpUrl,
-    '--wait-ms',
-    '12000',
-  ], runtime);
-
-  if (artifact?.proposedMongoUpdate) {
-    await BuilderProfile.updateOne({ _id: builder._id }, applyableUpdate(artifact, linkedInUrl));
-  }
-  const photoUrl = cleanString(artifact?.extracted?.cdpExtraction?.photo?.imageUrl);
+  const queued = await queueRemoteLinkedInBuilderEnrichment(
+    {
+      id: String(builder._id),
+      name: String(builder.name || user.name || user.email.split('@')[0]),
+      linkedInUrl,
+    },
+    runtime
+  );
+  if (!queued) throw new Error('Railway LinkedIn scraper is not configured.');
 
   await updateUserAccount(String(user._id), {
     role: 'builder',
     accountType: 'builder',
     onboardingStatus: 'imessage_claim',
-    ...(photoUrl ? { avatarUrl: photoUrl } : {}),
   }, runtime);
 
   return {
     next: '/builder/home',
     profileId: String(builder._id),
-    summary,
-    artifact,
+    queued: true,
+    batchId: queued.batchId,
+    statusUrl: queued.statusUrl,
   };
 }
 
 async function enrichFounder(user: any, linkedInUrl: string, cdpUrl: string, runtime?: Record<string, string | undefined>) {
+  const queued = await queueRemoteLinkedInFounderEnrichment(
+    {
+      id: String(user._id),
+      name: String(user.name || user.email.split('@')[0]),
+      email: String(user.email),
+      linkedInUrl,
+    },
+    runtime
+  );
+  if (!queued) throw new Error('Railway LinkedIn scraper is not configured.');
+  await updateUserAccount(String(user._id), {
+    role: 'founder',
+    accountType: 'founder',
+    onboardingStatus: 'profile',
+  }, runtime);
+  return {
+    next: '/founder/onboarding/profile',
+    queued: true,
+    batchId: queued.batchId,
+    statusUrl: queued.statusUrl,
+  };
+
   const outputKey = `founder-${String(user._id)}-${compactKey(linkedInUrl)}`;
   const { summary, artifact } = await runCdpScript('enrich-builder-linkedin-cdp.mjs', [
     '--linkedin-url',
@@ -259,7 +265,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const result =
       accountType === 'founder'
         ? await enrichFounder(user, linkedInUrl, cdpUrl, runtime)
-        : await enrichBuilder(user, linkedInUrl, cdpUrl, runtime);
+        : await enrichBuilder(user, linkedInUrl, runtime);
 
     return json({
       success: true,
@@ -270,9 +276,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
   } catch (error) {
     console.error('[linkedin-onboarding] enrichment failed', error);
+    const message = error instanceof Error ? error.message : 'LinkedIn enrichment failed.';
+    const timedOut = /aborted|timed out|timeout/i.test(message);
     return json({
       success: false,
-      error: error instanceof Error ? error.message : 'LinkedIn enrichment failed.',
-    }, 500);
+      error: timedOut
+        ? 'LinkedIn enrichment took too long. Please try again in a moment.'
+        : message,
+    }, timedOut ? 504 : 500);
   }
 };

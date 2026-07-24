@@ -28,6 +28,13 @@ export async function retrieveRoleShapedBuilderPool(params: {
   const strategy = buildSearchStrategy({ opportunity, founderId, searchMode: 'balanced' });
   const tiers = buildRoleSkillTiers(opportunity);
   const poolTarget = profileLimitPoolTarget(profileLimit);
+  const roleEvidenceTerms: string[] = [
+    ...(opportunity?.searchPlan?.roleEvidence?.anchorConcepts || []),
+    ...(opportunity?.searchPlan?.roleEvidence?.supportingConcepts || []),
+  ]
+    .map((term: unknown) => String(term || '').trim())
+    .filter(Boolean)
+    .slice(0, 20);
 
   let indexBuilders: any[] = [];
   try {
@@ -36,6 +43,7 @@ export async function retrieveRoleShapedBuilderPool(params: {
         strategy.primaryQuery,
         ...strategy.expandedQueries,
         ...tiers.primarySkills.slice(0, 10),
+        ...roleEvidenceTerms,
       ],
       limit: Math.max(poolTarget, 80),
     });
@@ -50,6 +58,6 @@ export async function retrieveRoleShapedBuilderPool(params: {
     targetPoolSize: poolTarget,
     BuilderProfile,
     ProjectRecord,
-    excludeBuilderIds,
+    excludeBuilderIds: excludeBuilderIds.map(String),
   });
 }

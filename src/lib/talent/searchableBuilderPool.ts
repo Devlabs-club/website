@@ -28,6 +28,8 @@ export const BUILDER_SEARCH_SELECT = [
   'education',
   'experiences',
   'enrichmentInsights',
+  'workAuthorization',
+  'integrations.github',
   'updatedAt',
 ].join(' ');
 
@@ -103,6 +105,8 @@ export async function hydrateSearchableBuilderPool(params: {
   ProjectRecord: any;
   excludeBuilderIds?: Array<string | mongoose.Types.ObjectId>;
   select?: string;
+  /** Only use generic proof-score supplementation for explicitly broad searches. */
+  allowSupplemental?: boolean;
 }) {
   const {
     seedBuilders,
@@ -110,13 +114,14 @@ export async function hydrateSearchableBuilderPool(params: {
     BuilderProfile,
     ProjectRecord,
     excludeBuilderIds = [],
+    allowSupplemental = true,
   } = params;
   const select = params.select || BUILDER_SEARCH_SELECT;
   const excluded = new Set(excludeBuilderIds.map((id) => String(id)));
   const seedIds = [...new Set(
     seedBuilders
       .map((entry) => builderIdFromEntry(entry))
-      .filter((id): id is string => Boolean(id) && !excluded.has(id))
+      .filter((id): id is string => id !== null && !excluded.has(id))
   )];
 
   let builders: any[] = seedIds.length
@@ -133,7 +138,7 @@ export async function hydrateSearchableBuilderPool(params: {
   );
 
   const existingIds = builders.map((builder) => builder._id);
-  if (builders.length < targetPoolSize) {
+  if (allowSupplemental && builders.length < targetPoolSize) {
     const supplemental = await BuilderProfile.find(searchableBuilderFilter({
       _id: { $nin: [...existingIds, ...excludeBuilderIds] },
     }))

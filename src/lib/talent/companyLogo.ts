@@ -1,5 +1,6 @@
 const DOMAIN_OVERRIDES: Record<string, string> = {
   google: 'google.com',
+  dropbox: 'dropbox.com',
   cloudflare: 'cloudflare.com',
   meta: 'meta.com',
   facebook: 'meta.com',
@@ -10,10 +11,22 @@ const DOMAIN_OVERRIDES: Record<string, string> = {
   stripe: 'stripe.com',
   openai: 'openai.com',
   anthropic: 'anthropic.com',
+  headstarter: 'headstarter.co',
+  headstarterai: 'headstarter.co',
+  arizonastateuniversity: 'asu.edu',
+  asu: 'asu.edu',
+  fultonschoolsofengineeringtutoringcentersasu: 'asu.edu',
 };
 
+/** Strip legal suffixes so "Dropbox, Inc." → "dropbox", not "dropboxinc". */
 function compactCompanyKey(company: string) {
-  return company.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return company
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/\b(co\.?|company|inc\.?|incorporated|llc|ltd\.?|limited|corp\.?|corporation|plc)\b/g, '')
+    .replace(/[^a-z0-9]+/g, '')
+    .trim();
 }
 
 function domainFromLinkedInUrl(companyLinkedInUrl?: string | null) {
@@ -21,8 +34,10 @@ function domainFromLinkedInUrl(companyLinkedInUrl?: string | null) {
   try {
     const url = new URL(companyLinkedInUrl);
     const slug = url.pathname.match(/\/company\/([^/]+)/i)?.[1];
-    if (!slug) return null;
-    return `${slug.replace(/-/g, '')}.com`;
+    // Numeric slugs are LinkedIn company IDs, not domains ("/company/1441" is Google).
+    if (!slug || /^\d+$/.test(slug)) return null;
+    const normalized = slug.toLowerCase().replace(/-/g, '');
+    return DOMAIN_OVERRIDES[normalized] || `${normalized}.com`;
   } catch {
     return null;
   }

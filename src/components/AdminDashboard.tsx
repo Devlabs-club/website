@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import AdminResumeViewer from './admin/AdminResumeViewer';
 import EventAdminPanel from './events/EventAdminPanel';
+import AdminInvitePanel from './admin/AdminInvitePanel';
 import AdminShell from './admin/AdminShell';
 import type { AdminSection } from './admin/AdminSidebar';
 import {
+  AdminEmptyState,
+  AdminPageHeader,
   adminGhostButtonClass,
   adminInputClass,
   adminLabelClass,
@@ -15,7 +18,6 @@ import {
   adminSelectClass,
   adminSubPanelClass,
 } from './admin/adminUi';
-import { OsEmptyState, OsPageHeader } from './os';
 import { LoaderFour } from './ui/loader';
 import { Badge } from './ui/badge';
 import { BlurFade } from './ui/blur-fade';
@@ -454,7 +456,7 @@ const AdminDashboard: React.FC = () => {
         applicationCount={applications.length}
         onLogout={logout}
       >
-        <OsEmptyState
+        <AdminEmptyState
           title="Could not load applications"
           description={error}
           action={
@@ -480,6 +482,10 @@ const AdminDashboard: React.FC = () => {
       title: 'Event Registration',
       subtitle: 'Create events, build registration forms, and review submissions.',
     },
+    invite: {
+      title: 'Invite Builders',
+      subtitle: 'Send builders a welcome email to claim their profile and onboard.',
+    },
   };
 
   return (
@@ -492,9 +498,11 @@ const AdminDashboard: React.FC = () => {
       <BlurFade delay={0.02}>
         {adminSection === 'events' ? (
           <EventAdminPanel />
+        ) : adminSection === 'invite' ? (
+          <AdminInvitePanel />
         ) : (
           <div className="space-y-6">
-            <OsPageHeader
+            <AdminPageHeader
               eyebrow="Admin"
               title={sectionTitles[adminSection].title}
               subtitle={sectionTitles[adminSection].subtitle}
@@ -504,7 +512,7 @@ const AdminDashboard: React.FC = () => {
               <div className={`${adminPanelClass} p-5 space-y-5`}>
                 <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-3">
                   <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/35" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/35" />
                     <input
                       className={`${adminInputClass} pl-10`}
                       placeholder="Natural language search query..."
@@ -585,7 +593,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#fa7d22]" />
-                    <p className="text-white font-medium">
+                    <p className="text-[#050505] font-medium">
                       {getFilteredApplications().length} applications
                       {filters.flagColor ? ` · ${applications.length} total` : ''}
                     </p>
@@ -607,7 +615,7 @@ const AdminDashboard: React.FC = () => {
             )}
 
             <Dialog open={searchWarningModal.show} onOpenChange={(open) => !open && closeSearchWarningModal()}>
-              <DialogContent className="border-white/10 bg-[#111] text-white max-w-md">
+              <DialogContent className="border-black/10 bg-white text-[#050505] max-w-md">
                 <DialogHeader>
                   <DialogTitle>Search optimization</DialogTitle>
                 </DialogHeader>
@@ -616,13 +624,13 @@ const AdminDashboard: React.FC = () => {
                     Query length: <span className="text-[#fa7d22]">{searchWarningModal.tokenCount} tokens</span>
                   </p>
                   {searchWarningModal.type === 'vector-too-long' ? (
-                    <p className="text-amber-200 text-sm">Your query is long. RAG search may work better.</p>
+                    <p className="text-amber-700 text-sm">Your query is long. RAG search may work better.</p>
                   ) : null}
                   {searchWarningModal.type === 'rag-too-short' ? (
-                    <p className="text-amber-200 text-sm">Your query is short. Vector search may be faster.</p>
+                    <p className="text-amber-700 text-sm">Your query is short. Vector search may be faster.</p>
                   ) : null}
                   {searchWarningModal.type === 'rag-expensive' ? (
-                    <p className="text-rose-300 text-sm">This query is very long and may be expensive with RAG.</p>
+                    <p className="text-rose-600 text-sm">This query is very long and may be expensive with RAG.</p>
                   ) : null}
                   <div className="flex flex-wrap gap-2">
                     {searchWarningModal.type !== 'rag-expensive' ? (
@@ -664,7 +672,7 @@ const AdminDashboard: React.FC = () => {
             <>
               {getFilteredApplications().length === 0 ? (
                 <div className="p-6">
-                  <OsEmptyState animateTitle={false} title="No applications" description="No applications match the current filters." />
+                  <AdminEmptyState animateTitle={false} title="No applications" description="No applications match the current filters." />
                 </div>
               ) : (
                 <ul>
@@ -678,7 +686,7 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             {(app.user?.name || app.fullName || app.name) && (
-                              <p className="font-medium text-white">
+                              <p className="font-medium text-[#050505]">
                                 {app.user?.name || app.fullName || app.name}
                               </p>
                             )}
@@ -710,7 +718,7 @@ const AdminDashboard: React.FC = () => {
             <>
               {searchResults.length === 0 ? (
                 <div className="p-6">
-                  <OsEmptyState
+                  <AdminEmptyState
                     animateTitle={false}
                     title="No results yet"
                     description={searchQuery ? 'No search results found for this query.' : 'Run a search to discover matching builders.'}
@@ -726,15 +734,15 @@ const AdminDashboard: React.FC = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p className="font-medium text-white">
+                          <p className="font-medium text-[#050505]">
                             {result.email || `User ${result.user_id}`}
                           </p>
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-black/55">
                               {result.major}
                             </p>
                           </div>
-                          <p className="text-xs text-gray-500 line-clamp-2">
+                          <p className="text-xs text-black/45 line-clamp-2">
                             {result.text.substring(0, 100)}...
                           </p>
                           {result.tags?.length > 0 && (
@@ -742,13 +750,13 @@ const AdminDashboard: React.FC = () => {
                               {result.tags.slice(0, 3).map((tag, idx) => (
                                 <span
                                   key={idx}
-                                  className="bg-[#222] text-blue-400 border border-dashed border-blue-400 px-1 py-0.5 text-xs"
+                                  className="bg-blue-50 text-blue-700 border border-blue-200 px-1 py-0.5 text-xs"
                                 >
                                   {tag}
                                 </span>
                               ))}
                               {result.tags.length > 3 && (
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-black/45">
                                   +{result.tags.length - 3} more
                                 </span>
                               )}
@@ -756,7 +764,7 @@ const AdminDashboard: React.FC = () => {
                           )}
                         </div>
                         <div className="ml-2">
-                          <Badge className="bg-orange-500/15 text-orange-200 border-orange-400/30 hover:bg-orange-500/15">
+                          <Badge className="bg-[#fff5ef] text-[#bf4f08] border-[#ff7417]/30 hover:bg-[#fff5ef]">
                             {Math.round(result.match_score * 100)}%
                           </Badge>
                         </div>
@@ -773,7 +781,7 @@ const AdminDashboard: React.FC = () => {
             <div className={`${adminPanelClass} p-4 md:p-6`}>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold text-white">
+                  <h3 className="text-xl font-black tracking-[-0.02em] text-[#050505]">
                     {selectedApplication.user?.name || selectedApplication.fullName || selectedApplication.name || "Unnamed User"}
                   </h3>
                   {selectedApplication.flag?.flagged && (
@@ -801,7 +809,7 @@ const AdminDashboard: React.FC = () => {
               <div className={`${adminSubPanelClass} mb-4 p-4`}>
                 <div className="flex flex-col gap-3">
                   <div className="flex-1">
-                    <p className="text-sm text-gray-500 mb-2">Flag Status</p>
+                    <p className="text-sm text-black/45 mb-2">Flag Status</p>
                     <div className="flex items-center gap-2 mb-3">
                       {selectedApplication.flag?.flagged ? (
                         <>
@@ -812,19 +820,19 @@ const AdminDashboard: React.FC = () => {
                               borderColor: selectedApplication.flag.color,
                             }}
                           />
-                          <span className="text-sm text-gray-300">
+                          <span className="text-sm text-black/70">
                             Flagged ({FLAG_COLORS.find(c => c.value === selectedApplication.flag?.color)?.label || 'Custom'})
                           </span>
                         </>
                       ) : (
-                        <span className="text-sm text-gray-400">Not Flagged</span>
+                        <span className="text-sm text-black/55">Not Flagged</span>
                       )}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {!selectedApplication.flag?.flagged ? (
                       <>
-                        <p className="text-xs text-gray-500 mb-1">Select a flag color:</p>
+                        <p className="text-xs text-black/45 mb-1">Select a flag color:</p>
                         <div className="flex flex-wrap gap-2">
                           {FLAG_COLORS.map(color => (
                             <button
@@ -844,14 +852,14 @@ const AdminDashboard: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <p className="text-xs text-gray-500 mb-1">Change flag color or remove:</p>
+                        <p className="text-xs text-black/45 mb-1">Change flag color or remove:</p>
                         <div className="flex flex-wrap gap-2">
                           {FLAG_COLORS.map(color => (
                             <button
                               key={color.value}
                               onClick={() => updateFlag(selectedApplication._id, { color: color.value, flagged: true })}
                               className={`px-3 py-2 text-sm border border-dashed hover:opacity-80 transition-opacity ${
-                                selectedApplication.flag?.color === color.value ? 'ring-2 ring-offset-2 ring-offset-[#0d0d0d]' : ''
+                                selectedApplication.flag?.color === color.value ? 'ring-2 ring-offset-2 ring-offset-white' : ''
                               }`}
                               style={{
                                 backgroundColor: color.value + '20',
@@ -877,14 +885,14 @@ const AdminDashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium text-gray-300 break-all">
+                  <p className="text-sm text-black/45">Email</p>
+                  <p className="font-medium text-black/70 break-all">
                     {selectedApplication.user?.email || selectedApplication.email || "No email available"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Major/Field of Study</p>
-                  <p className="font-medium text-gray-300">
+                  <p className="text-sm text-black/45">Major/Field of Study</p>
+                  <p className="font-medium text-black/70">
                     {selectedApplication.major || "Not specified"}
                   </p>
                 </div>
@@ -892,16 +900,16 @@ const AdminDashboard: React.FC = () => {
                   <>
                     {selectedApplication.phone && (
                       <div>
-                        <p className="text-sm text-gray-500">Phone</p>
-                        <p className="font-medium text-gray-300">
+                        <p className="text-sm text-black/45">Phone</p>
+                        <p className="font-medium text-black/70">
                           {selectedApplication.phone}
                         </p>
                       </div>
                     )}
                     {selectedApplication.age && (
                       <div>
-                        <p className="text-sm text-gray-500">Age</p>
-                        <p className="font-medium text-gray-300">
+                        <p className="text-sm text-black/45">Age</p>
+                        <p className="font-medium text-black/70">
                           {selectedApplication.age}
                         </p>
                       </div>
@@ -910,41 +918,41 @@ const AdminDashboard: React.FC = () => {
                 )}
                 {selectedApplication.yearOfStudy && (
                   <div>
-                    <p className="text-sm text-gray-500">Year of Study</p>
-                    <p className="font-medium text-gray-300">
+                    <p className="text-sm text-black/45">Year of Study</p>
+                    <p className="font-medium text-black/70">
                       {selectedApplication.yearOfStudy}
                     </p>
                   </div>
                 )}
                 {(selectedApplication.expectedGradYear || selectedApplication.expectedGraduationYear) && (
                   <div>
-                    <p className="text-sm text-gray-500">Expected Graduation</p>
-                    <p className="font-medium text-gray-300">
+                    <p className="text-sm text-black/45">Expected Graduation</p>
+                    <p className="font-medium text-black/70">
                       {selectedApplication.expectedGradYear || selectedApplication.expectedGraduationYear}
                     </p>
                   </div>
                 )}
                 {selectedApplication.season && (
                   <div>
-                    <p className="text-sm text-gray-500">Season</p>
-                    <p className="font-medium text-gray-300">
+                    <p className="text-sm text-black/45">Season</p>
+                    <p className="font-medium text-black/70">
                       {selectedApplication.season}
                     </p>
                   </div>
                 )}
                 <div>
-                  <p className="text-sm text-gray-500">Application Date</p>
-                  <p className="font-medium text-gray-300">
+                  <p className="text-sm text-black/45">Application Date</p>
+                  <p className="font-medium text-black/70">
                     {new Date(selectedApplication.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 {(selectedApplication.workEligibility !== undefined || selectedApplication.eligibleToWorkInUS !== undefined) && (
                   <div>
-                    <p className="text-sm text-gray-500">Work Eligibility</p>
+                    <p className="text-sm text-black/45">Work Eligibility</p>
                     <p className={`font-medium ${
                       (selectedApplication.workEligibility === 'Yes' || selectedApplication.eligibleToWorkInUS === true) 
-                        ? 'text-green-400' 
-                        : 'text-red-400'
+                        ? 'text-green-600' 
+                        : 'text-red-600'
                     }`}>
                       {selectedApplication.workEligibility || (selectedApplication.eligibleToWorkInUS ? 'Yes' : 'No')}
                     </p>
@@ -952,11 +960,11 @@ const AdminDashboard: React.FC = () => {
                 )}
                 {(selectedApplication.needSponsorship !== undefined || selectedApplication.requiresVisaSponsorship !== undefined) && (
                   <div>
-                    <p className="text-sm text-gray-500">Sponsorship Needed</p>
+                    <p className="text-sm text-black/45">Sponsorship Needed</p>
                     <p className={`font-medium ${
                       (selectedApplication.needSponsorship === 'No' || selectedApplication.requiresVisaSponsorship === false) 
-                        ? 'text-green-400' 
-                        : 'text-yellow-400'
+                        ? 'text-green-600' 
+                        : 'text-yellow-600'
                     }`}>
                       {selectedApplication.needSponsorship || (selectedApplication.requiresVisaSponsorship ? 'Yes' : 'No')}
                     </p>
@@ -964,16 +972,16 @@ const AdminDashboard: React.FC = () => {
                 )}
                 {(selectedApplication.sponsorshipType || selectedApplication.visaType) && (
                   <div>
-                    <p className="text-sm text-gray-500">Visa Type</p>
-                    <p className="font-medium text-gray-300">
+                    <p className="text-sm text-black/45">Visa Type</p>
+                    <p className="font-medium text-black/70">
                       {selectedApplication.visaType || selectedApplication.sponsorshipType}
                     </p>
                   </div>
                 )}
                 {selectedApplication.checkedIn !== undefined && (
                   <div>
-                    <p className="text-sm text-gray-500">Checked In</p>
-                    <p className={`font-medium ${selectedApplication.checkedIn ? 'text-green-400' : 'text-gray-400'}`}>
+                    <p className="text-sm text-black/45">Checked In</p>
+                    <p className={`font-medium ${selectedApplication.checkedIn ? 'text-green-600' : 'text-black/55'}`}>
                       {selectedApplication.checkedIn ? 'Yes' : 'No'}
                     </p>
                   </div>
@@ -981,7 +989,7 @@ const AdminDashboard: React.FC = () => {
               </div>
               {(selectedApplication.linkedin || selectedApplication.linkedinUrl || selectedApplication.website || selectedApplication.githubOrPortfolioUrl) && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Links</p>
+                  <p className="text-sm text-black/45 mb-2">Links</p>
                   <div className="flex flex-wrap gap-2">
                     {(selectedApplication.linkedin || selectedApplication.linkedinUrl) && (
                       <a 
@@ -1009,10 +1017,10 @@ const AdminDashboard: React.FC = () => {
               <AdminResumeViewer resumeUrl={selectedApplication.resumeUrl} />
             </div>
           ) : selectedSearchResult ? (
-            <div className="bg-[#111111] p-4 md:p-6 border border-dashed border-gray-700">
+            <div className="bg-white p-4 md:p-6 border border-black/10">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-semibold text-white">Search Result Details</h3>
+                  <h3 className="text-xl font-black tracking-[-0.02em] text-[#050505]">Search Result Details</h3>
                   {selectedApplicationData?.flag?.flagged && (
                     <span
                       className="inline-block w-4 h-4 rounded-full border border-dashed"
@@ -1028,7 +1036,7 @@ const AdminDashboard: React.FC = () => {
                   setSelectedSearchResult(null);
                   setSelectedUserData(null);
                   setSelectedApplicationData(null);
-                }} className="bg-[#222] hover:bg-[#333] text-gray-300 border border-dashed border-gray-600 px-3 py-1 text-sm">Close</button>
+                }} className="bg-black/5 hover:bg-black/10 text-black/70 border border-black/10 px-3 py-1 text-sm">Close</button>
               </div>
 
               {/* Flag Controls for Search Result */}
@@ -1036,7 +1044,7 @@ const AdminDashboard: React.FC = () => {
                 <div className={`${adminSubPanelClass} mb-4 p-4`}>
                   <div className="flex flex-col gap-3">
                     <div className="flex-1">
-                      <p className="text-sm text-gray-500 mb-2">Flag Status</p>
+                      <p className="text-sm text-black/45 mb-2">Flag Status</p>
                       <div className="flex items-center gap-2 mb-3">
                         {selectedApplicationData.flag?.flagged ? (
                           <>
@@ -1047,19 +1055,19 @@ const AdminDashboard: React.FC = () => {
                                 borderColor: selectedApplicationData.flag.color,
                               }}
                             />
-                            <span className="text-sm text-gray-300">
+                            <span className="text-sm text-black/70">
                               Flagged ({FLAG_COLORS.find(c => c.value === selectedApplicationData.flag?.color)?.label || 'Custom'})
                             </span>
                           </>
                         ) : (
-                          <span className="text-sm text-gray-400">Not Flagged</span>
+                          <span className="text-sm text-black/55">Not Flagged</span>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       {!selectedApplicationData.flag?.flagged ? (
                         <>
-                          <p className="text-xs text-gray-500 mb-1">Select a flag color:</p>
+                          <p className="text-xs text-black/45 mb-1">Select a flag color:</p>
                           <div className="flex flex-wrap gap-2">
                             {FLAG_COLORS.map(color => (
                               <button
@@ -1079,14 +1087,14 @@ const AdminDashboard: React.FC = () => {
                         </>
                       ) : (
                         <>
-                          <p className="text-xs text-gray-500 mb-1">Change flag color or remove:</p>
+                          <p className="text-xs text-black/45 mb-1">Change flag color or remove:</p>
                           <div className="flex flex-wrap gap-2">
                             {FLAG_COLORS.map(color => (
                               <button
                                 key={color.value}
                                 onClick={() => updateFlag(selectedApplicationData._id, { color: color.value, flagged: true })}
                                 className={`px-3 py-2 text-sm border border-dashed hover:opacity-80 transition-opacity ${
-                                  selectedApplicationData.flag?.color === color.value ? 'ring-2 ring-offset-2 ring-offset-[#0d0d0d]' : ''
+                                  selectedApplicationData.flag?.color === color.value ? 'ring-2 ring-offset-2 ring-offset-white' : ''
                                 }`}
                                 style={{
                                   backgroundColor: color.value + '20',
@@ -1112,104 +1120,104 @@ const AdminDashboard: React.FC = () => {
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <p className="text-sm text-gray-500">User ID</p>
-                  <p className="font-medium text-gray-300">{selectedSearchResult.user_id}</p>
+                  <p className="text-sm text-black/45">User ID</p>
+                  <p className="font-medium text-black/70">{selectedSearchResult.user_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Match Score</p>
-                  <p className="font-medium text-orange-400">{Math.round(selectedSearchResult.match_score * 100)}%</p>
+                  <p className="text-sm text-black/45">Match Score</p>
+                  <p className="font-medium text-[#bf4f08]">{Math.round(selectedSearchResult.match_score * 100)}%</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium text-gray-300 break-all">{selectedSearchResult.email || 'Not available'}</p>
+                  <p className="text-sm text-black/45">Email</p>
+                  <p className="font-medium text-black/70 break-all">{selectedSearchResult.email || 'Not available'}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Major</p>
-                  <p className="font-medium text-gray-300">{selectedSearchResult.major}</p>
+                  <p className="text-sm text-black/45">Major</p>
+                  <p className="font-medium text-black/70">{selectedSearchResult.major}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Contact Number</p>
-                  <p className="font-medium text-gray-300">{selectedSearchResult.contact_number || 'Not available'}</p>
+                  <p className="text-sm text-black/45">Contact Number</p>
+                  <p className="font-medium text-black/70">{selectedSearchResult.contact_number || 'Not available'}</p>
                 </div>
               </div>
               {selectedSearchResult.tags?.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Tags</p>
+                  <p className="text-sm text-black/45 mb-2">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedSearchResult.tags.map((tag, idx) => (
-                      <span key={idx} className="bg-[#222] text-blue-400 border border-dashed border-blue-400 px-2 py-1 text-xs">{tag}</span>
+                      <span key={idx} className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 text-xs">{tag}</span>
                     ))}
                   </div>
                 </div>
               )}
               <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-2">Profile Text</p>
-                <div className="bg-[#0d0d0d] border border-dashed border-gray-700 p-3">
-                  <p className="text-gray-300 whitespace-pre-wrap">{selectedSearchResult.text}</p>
+                <p className="text-sm text-black/45 mb-2">Profile Text</p>
+                <div className="bg-[#f4f1ed] border border-black/10 p-3">
+                  <p className="text-black/70 whitespace-pre-wrap">{selectedSearchResult.text}</p>
                 </div>
               </div>
 
               {/* User Data Section */}
               {loadingUserData ? (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">User Information</p>
-                  <div className="bg-[#0d0d0d] border border-dashed border-gray-700 p-3">
-                    <p className="text-gray-400">Loading user data...</p>
+                  <p className="text-sm text-black/45 mb-2">User Information</p>
+                  <div className="bg-[#f4f1ed] border border-black/10 p-3">
+                    <p className="text-black/55">Loading user data...</p>
                   </div>
                 </div>
               ) : selectedUserData ? (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">User Information</p>
-                  <div className="bg-[#0d0d0d] border border-dashed border-gray-700 p-3">
+                  <p className="text-sm text-black/45 mb-2">User Information</p>
+                  <div className="bg-[#f4f1ed] border border-black/10 p-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
-                          <p className="text-xs text-gray-500">Name</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData?.fullName || selectedApplicationData?.name || selectedUserData.fullName || selectedUserData.name || 'Unknown'}</p>
+                          <p className="text-xs text-black/45">Name</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData?.fullName || selectedApplicationData?.name || selectedUserData.fullName || selectedUserData.name || 'Unknown'}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Email</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData?.email || selectedUserData.email}</p>
+                        <p className="text-xs text-black/45">Email</p>
+                        <p className="text-black/70 font-medium">{selectedApplicationData?.email || selectedUserData.email}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Major</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData?.major || selectedUserData?.major || "Not specified"}</p>
+                        <p className="text-xs text-black/45">Major</p>
+                        <p className="text-black/70 font-medium">{selectedApplicationData?.major || selectedUserData?.major || "Not specified"}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">Member Since</p>
-                        <p className="text-gray-300 font-medium">{new Date(selectedUserData.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-black/45">Member Since</p>
+                        <p className="text-black/70 font-medium">{new Date(selectedUserData.createdAt).toLocaleDateString()}</p>
                       </div>
                       {(selectedUserData.age || selectedUserData.phone) && (
                         <>
                           {selectedUserData.age && (
                             <div>
-                              <p className="text-xs text-gray-500">Age</p>
-                              <p className="text-gray-300 font-medium">{selectedUserData.age}</p>
+                              <p className="text-xs text-black/45">Age</p>
+                              <p className="text-black/70 font-medium">{selectedUserData.age}</p>
                             </div>
                           )}
                           {selectedUserData.phone && (
                             <div>
-                              <p className="text-xs text-gray-500">Phone</p>
-                              <p className="text-gray-300 font-medium">{selectedUserData.phone}</p>
+                              <p className="text-xs text-black/45">Phone</p>
+                              <p className="text-black/70 font-medium">{selectedUserData.phone}</p>
                             </div>
                           )}
                         </>
                       )}
                       {selectedUserData.yearOfStudy && (
                         <div>
-                          <p className="text-xs text-gray-500">Year of Study</p>
-                          <p className="text-gray-300 font-medium">{selectedUserData.yearOfStudy}</p>
+                          <p className="text-xs text-black/45">Year of Study</p>
+                          <p className="text-black/70 font-medium">{selectedUserData.yearOfStudy}</p>
                         </div>
                       )}
                       {selectedUserData.expectedGraduationYear && (
                         <div>
-                          <p className="text-xs text-gray-500">Expected Graduation</p>
-                          <p className="text-gray-300 font-medium">{selectedUserData.expectedGraduationYear}</p>
+                          <p className="text-xs text-black/45">Expected Graduation</p>
+                          <p className="text-black/70 font-medium">{selectedUserData.expectedGraduationYear}</p>
                         </div>
                       )}
                       {selectedUserData.season && (
                         <div>
-                          <p className="text-xs text-gray-500">Season</p>
-                          <p className="text-gray-300 font-medium">{selectedUserData.season}</p>
+                          <p className="text-xs text-black/45">Season</p>
+                          <p className="text-black/70 font-medium">{selectedUserData.season}</p>
                         </div>
                       )}
                     </div>
@@ -1224,50 +1232,50 @@ const AdminDashboard: React.FC = () => {
               {/* Application Data Section */}
               {selectedApplicationData ? (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Application Information</p>
-                  <div className="bg-[#0d0d0d] border border-dashed border-gray-700 p-3">
+                  <p className="text-sm text-black/45 mb-2">Application Information</p>
+                  <div className="bg-[#f4f1ed] border border-black/10 p-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                       <div>
-                        <p className="text-xs text-gray-500">Full Name</p>
-                        <p className="text-gray-300 font-medium">{selectedApplicationData.fullName || selectedApplicationData.name}</p>
+                        <p className="text-xs text-black/45">Full Name</p>
+                        <p className="text-black/70 font-medium">{selectedApplicationData.fullName || selectedApplicationData.name}</p>
                       </div>
                       {selectedApplicationData.age && (
                         <div>
-                          <p className="text-xs text-gray-500">Age</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.age}</p>
+                          <p className="text-xs text-black/45">Age</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.age}</p>
                         </div>
                       )}
                       {selectedApplicationData.phone && (
                         <div>
-                          <p className="text-xs text-gray-500">Phone</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.phone}</p>
+                          <p className="text-xs text-black/45">Phone</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.phone}</p>
                         </div>
                       )}
                       {selectedApplicationData.yearOfStudy && (
                         <div>
-                          <p className="text-xs text-gray-500">Year of Study</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.yearOfStudy}</p>
+                          <p className="text-xs text-black/45">Year of Study</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.yearOfStudy}</p>
                         </div>
                       )}
                       {(selectedApplicationData.expectedGradYear || selectedApplicationData.expectedGraduationYear) && (
                         <div>
-                          <p className="text-xs text-gray-500">Expected Graduation</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.expectedGraduationYear || selectedApplicationData.expectedGradYear}</p>
+                          <p className="text-xs text-black/45">Expected Graduation</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.expectedGraduationYear || selectedApplicationData.expectedGradYear}</p>
                         </div>
                       )}
                       {selectedApplicationData.season && (
                         <div>
-                          <p className="text-xs text-gray-500">Season</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.season}</p>
+                          <p className="text-xs text-black/45">Season</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.season}</p>
                         </div>
                       )}
                       {(selectedApplicationData.workEligibility !== undefined || selectedApplicationData.eligibleToWorkInUS !== undefined) && (
                         <div>
-                          <p className="text-xs text-gray-500">Work Eligibility</p>
+                          <p className="text-xs text-black/45">Work Eligibility</p>
                           <p className={`font-medium ${
                             (selectedApplicationData.workEligibility === 'Yes' || selectedApplicationData.eligibleToWorkInUS === true) 
-                              ? 'text-green-400' 
-                              : 'text-red-400'
+                              ? 'text-green-600' 
+                              : 'text-red-600'
                           }`}>
                             {selectedApplicationData.workEligibility || (selectedApplicationData.eligibleToWorkInUS ? 'Yes' : 'No')}
                           </p>
@@ -1275,11 +1283,11 @@ const AdminDashboard: React.FC = () => {
                       )}
                       {(selectedApplicationData.needSponsorship !== undefined || selectedApplicationData.requiresVisaSponsorship !== undefined) && (
                         <div>
-                          <p className="text-xs text-gray-500">Sponsorship Needed</p>
+                          <p className="text-xs text-black/45">Sponsorship Needed</p>
                           <p className={`font-medium ${
                             (selectedApplicationData.needSponsorship === 'No' || selectedApplicationData.requiresVisaSponsorship === false) 
-                              ? 'text-green-400' 
-                              : 'text-yellow-400'
+                              ? 'text-green-600' 
+                              : 'text-yellow-600'
                           }`}>
                             {selectedApplicationData.needSponsorship || (selectedApplicationData.requiresVisaSponsorship ? 'Yes' : 'No')}
                           </p>
@@ -1287,14 +1295,14 @@ const AdminDashboard: React.FC = () => {
                       )}
                       {(selectedApplicationData.sponsorshipType || selectedApplicationData.visaType) && (
                         <div>
-                          <p className="text-xs text-gray-500">Visa Type</p>
-                          <p className="text-gray-300 font-medium">{selectedApplicationData.visaType || selectedApplicationData.sponsorshipType}</p>
+                          <p className="text-xs text-black/45">Visa Type</p>
+                          <p className="text-black/70 font-medium">{selectedApplicationData.visaType || selectedApplicationData.sponsorshipType}</p>
                         </div>
                       )}
                       {selectedApplicationData.checkedIn !== undefined && (
                         <div>
-                          <p className="text-xs text-gray-500">Checked In</p>
-                          <p className={`font-medium ${selectedApplicationData.checkedIn ? 'text-green-400' : 'text-gray-400'}`}>
+                          <p className="text-xs text-black/45">Checked In</p>
+                          <p className={`font-medium ${selectedApplicationData.checkedIn ? 'text-green-600' : 'text-black/55'}`}>
                             {selectedApplicationData.checkedIn ? 'Yes' : 'No'}
                           </p>
                         </div>
@@ -1304,8 +1312,8 @@ const AdminDashboard: React.FC = () => {
 
                     {/* Links Section */}
                     {(selectedApplicationData.linkedin || selectedApplicationData.linkedinUrl || selectedApplicationData.website || selectedApplicationData.githubOrPortfolioUrl) && (
-                      <div className="mt-3 pt-3 border-t border-dashed border-gray-600">
-                        <p className="text-xs text-gray-500 mb-2">Links</p>
+                      <div className="mt-3 pt-3 border-t border-black/10">
+                        <p className="text-xs text-black/45 mb-2">Links</p>
                         <div className="flex flex-wrap gap-2">
                           {(selectedApplicationData.linkedin || selectedApplicationData.linkedinUrl) && (
                             <a 
@@ -1332,17 +1340,17 @@ const AdminDashboard: React.FC = () => {
                     )}
 
                     {/* Timestamps */}
-                    <div className="mt-3 pt-3 border-t border-dashed border-gray-600">
+                    <div className="mt-3 pt-3 border-t border-black/10">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <p className="text-xs text-gray-500">Application Submitted</p>
-                          <p className="text-gray-300 font-medium text-xs">
+                          <p className="text-xs text-black/45">Application Submitted</p>
+                          <p className="text-black/70 font-medium text-xs">
                             {new Date(selectedApplicationData.createdAt).toLocaleDateString()} at {new Date(selectedApplicationData.createdAt).toLocaleTimeString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Last Updated</p>
-                          <p className="text-gray-300 font-medium text-xs">
+                          <p className="text-xs text-black/45">Last Updated</p>
+                          <p className="text-black/70 font-medium text-xs">
                             {new Date(selectedApplicationData.updatedAt).toLocaleDateString()} at {new Date(selectedApplicationData.updatedAt).toLocaleTimeString()}
                           </p>
                         </div>
@@ -1352,16 +1360,16 @@ const AdminDashboard: React.FC = () => {
                 </div>
               ) : selectedUserData && !loadingUserData ? (
                 <div className="mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Application Information</p>
-                  <div className="bg-[#0d0d0d] border border-dashed border-gray-700 p-3">
-                    <p className="text-gray-400 text-xs">No application found for this user</p>
+                  <p className="text-sm text-black/45 mb-2">Application Information</p>
+                  <div className="bg-[#f4f1ed] border border-black/10 p-3">
+                    <p className="text-black/55 text-xs">No application found for this user</p>
                   </div>
                 </div>
               ) : null}
             </div>
           ) : (
             <div className={`${adminPanelClass} p-10 flex items-center justify-center min-h-[320px]`}>
-              <OsEmptyState
+              <AdminEmptyState
                 animateTitle={false}
                 title={showSearch ? 'Select a search result' : 'Select an application'}
                 description={

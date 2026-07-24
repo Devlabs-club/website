@@ -23,6 +23,12 @@ http {
     location = /health {
       proxy_pass http://127.0.0.1:6090;
     }
+    # Persistent batch submission, status, and artifact download API.
+    location ^~ /batches {
+      proxy_pass http://127.0.0.1:6090;
+      proxy_read_timeout 180s;
+      proxy_send_timeout 180s;
+    }
 
     # Everything else -> noVNC viewer (incl. /vnc.html and /websockify upgrade).
     location / {

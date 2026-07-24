@@ -1,9 +1,7 @@
 import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import BuilderProfile from '@/models/talent/BuilderProfile';
-import ProjectRecord from '@/models/talent/ProjectRecord';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
-import { generateFallbackAgentWrappedReport } from '@/lib/agentWrapped/generateFallbackReport';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { CARD_ORDER, CARD_THEMES, type WrappedCardKey } from '@/components/builder/wrapped/theme';
 
@@ -86,7 +84,8 @@ function cardTitleForKey(key: WrappedCardKey, report: AgentWrappedReport, topLan
   }
 }
 
-export async function loadWrappedOgData(builderId: string, origin: string): Promise<WrappedOgData | null> {
+/** OG card data only when a real local agent upload exists — never profile fallback. */
+export async function loadWrappedOgData(builderId: string, _origin: string): Promise<WrappedOgData | null> {
   if (!mongoose.Types.ObjectId.isValid(builderId)) return null;
 
   await connectAdminDB();
@@ -96,22 +95,16 @@ export async function loadWrappedOgData(builderId: string, origin: string): Prom
   } | null;
   if (!profile) return null;
 
-  const uploaded = (await AgentWrappedReportModel.findOne({ builderId })
+  const uploaded = (await AgentWrappedReportModel.findOne({
+    builderId,
+    source: 'uploaded_agent_usage',
+  })
     .sort({ createdAt: -1 })
     .lean()) as { report?: AgentWrappedReport } | null;
 
-  let report: AgentWrappedReport;
-  let verified = false;
+  if (!uploaded?.report) return null;
 
-  if (uploaded?.report) {
-    report = uploaded.report as AgentWrappedReport;
-    verified = true;
-  } else {
-    const projects = await ProjectRecord.find({ builderId }).sort({ updatedAt: -1 }).limit(20).lean();
-    report = generateFallbackAgentWrappedReport({ profile, projects, rootUrl: origin });
-    verified = false;
-  }
-
+  const report = uploaded.report;
   const builderName =
     (profile.name && !profile.name.includes('@') ? profile.name : null) ||
     report.builderName ||
@@ -155,7 +148,7 @@ export async function loadWrappedOgData(builderId: string, origin: string): Prom
     headline,
     topLanguage,
     topAgent,
-    verified,
+    verified: true,
     totalHours,
     cardPreviews,
   };

@@ -9,7 +9,7 @@ export type AgentWrappedReport = {
   score: number;
   percentile?: number;
   confidence: AgentWrappedConfidence;
-  source: 'uploaded_agent_usage' | 'profile_fallback';
+  source: 'uploaded_agent_usage';
   sourceSummary: {
     claudeSessions?: number;
     codexSessions?: number;

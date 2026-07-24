@@ -11,6 +11,7 @@ import Message from '@/models/talent/Message';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import type { FounderEntitlements } from '@/lib/billing/entitlements';
 import { buildRoleFitTrace, buildTraceFreshness, type RoleFitTracePayload } from '@/lib/talent/roleFitTrace';
+import { normalizeFounderFacingExperiences } from '@/lib/talent/experienceNormalize';
 
 export type AgentTraceTeaserPayload = {
   locked: boolean;
@@ -1039,7 +1040,7 @@ export async function buildFullCandidateCard(params: {
       desiredCompensation: availability.desiredCompensation || null,
     },
     workTypes: Array.isArray(builder.preferredWorkType) ? builder.preferredWorkType : [],
-    experiences: Array.isArray(builder.experiences) ? builder.experiences.slice(0, 5) : [],
+    experiences: normalizeFounderFacingExperiences(builder.experiences, 8),
     topSkills: domainSkillsMatched.length
       ? domainSkillsMatched
       : shortlistCandidate?.topSkills?.length
@@ -1143,50 +1144,6 @@ export function suggestedTrialFromDraft(
 ) {
   if (trialProject) return trialProjectToSummary(trialProject);
   return buildSuggestedTrialProject(opportunity);
-}
-
-export type AdminCandidate = Awaited<ReturnType<typeof buildFullCandidateCard>> & {
-  email: string | null;
-  universityOrCompany: string | null;
-  signalScores: Record<string, unknown> | null;
-};
-
-export async function buildAdminCandidatesForShortlist(
-  shortlist: any,
-  opportunity: any,
-  deps: {
-    BuilderProfile: any;
-    ProjectRecord: any;
-    MatchRecord: any;
-  }
-): Promise<AdminCandidate[]> {
-  const base = await buildFullCandidatesForShortlist(shortlist, opportunity, deps);
-  const builderIds = base.map((c: any) => c.builderId);
-  const builders = await deps.BuilderProfile.find({ _id: { $in: builderIds } })
-    .select('email universityOrCompany')
-    .lean();
-  const builderMeta = new Map<string, { email: string | null; universityOrCompany: string | null }>(
-    builders.map((b: any) => [
-      String(b._id),
-      { email: b.email || null, universityOrCompany: b.universityOrCompany || null },
-    ])
-  );
-  const matches = await deps.MatchRecord.find({
-    opportunityId: shortlist.opportunityId,
-    builderId: { $in: builderIds },
-  })
-    .select('builderId signalScores')
-    .lean();
-  const signalByBuilder = new Map(
-    matches.map((m: any) => [String(m.builderId), m.signalScores || null])
-  );
-
-  return base.map((c: any) => ({
-    ...c,
-    email: builderMeta.get(c.builderId)?.email ?? null,
-    universityOrCompany: builderMeta.get(c.builderId)?.universityOrCompany ?? null,
-    signalScores: signalByBuilder.get(c.builderId) ?? null,
-  }));
 }
 
 export async function buildFullCandidatesForShortlist(

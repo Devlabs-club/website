@@ -1,3 +1,8 @@
+import {
+  evaluateGithubActivityRequirement,
+  isGithubActivityRequirement,
+} from '@/lib/talent/githubActivity';
+
 const INDEX_STOP_TERMS = new Set([
   'a',
   'an',
@@ -244,6 +249,8 @@ export function collectBuilderSkillTokens(builder: any, projects: any[] = []) {
     for (const skill of project?.techStack || []) tokens.add(normalizeSkillTerm(String(skill)));
     for (const tag of project?.contributionTags || []) tokens.add(normalizeSkillTerm(String(tag)));
     for (const token of tokenizeText(project?.projectName, 4)) tokens.add(token);
+    for (const token of tokenizeText(project?.description, 10)) tokens.add(token);
+    for (const token of tokenizeText(project?.builderContribution, 8)) tokens.add(token);
   }
 
   if (builder?.headline) tokens.add(normalizeSearchTerm(String(builder.headline)));
@@ -317,6 +324,118 @@ function evidenceLines(builder: any, projects: any[] = []) {
   return lines.map((line) => normalizeSearchTerm(line)).filter(Boolean);
 }
 
+function hasPhrase(text: string, phrase: string) {
+  const needle = normalizeSearchTerm(phrase);
+  if (!needle) return false;
+  return new RegExp(`(^|\\s)${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'i').test(text);
+}
+
+function matchesRoleConcept(text: string, concept: string) {
+  if (hasPhrase(text, concept)) return true;
+  const normalizedConcept = normalizeSearchTerm(concept);
+  const meaningfulTerms = normalizedConcept
+    .split(' ')
+    .filter((term) => term.length >= 4 && !['engineer', 'systems', 'design', 'development'].includes(term));
+  // A broad word from a compound concept is not role proof. For example,
+  // "hardware engineer" must not match a web project that merely says
+  // "hardware auto-detection." Only domain-specific atomic concepts can
+  // fall back to a single-token match; multi-word role titles need their
+  // full phrase or another explicit domain anchor.
+  const safeAtomicConcepts = new Set([
+    'robotics',
+    'mechatronics',
+    'embedded',
+    'firmware',
+    'verilog',
+    'vhdl',
+    'fpga',
+    'asic',
+    'pcb',
+    'circuit',
+    'circuits',
+    'sensor',
+    'sensors',
+    'actuator',
+    'microcontroller',
+    'microprocessor',
+    'schematic',
+    'rtl',
+  ]);
+  if (meaningfulTerms.length !== 1 || !safeAtomicConcepts.has(meaningfulTerms[0])) return false;
+  return hasPhrase(text, meaningfulTerms[0]);
+}
+
+function experienceEvidence(builder: any) {
+  return (builder?.experiences || []).map((entry: any) => ({
+    label: [entry?.title, entry?.company].filter(Boolean).join(' at '),
+    text: normalizeSearchTerm([entry?.title, entry?.company, entry?.description, ...(entry?.skills || [])].join(' ')),
+  }));
+}
+
+function projectEvidence(projects: any[]) {
+  return projects.map((project) => ({
+    label: String(project?.projectName || 'Project'),
+    text: normalizeSearchTerm([
+      project?.projectName,
+      project?.description,
+      project?.problemSolved,
+      project?.builderContribution,
+      ...(project?.techStack || []),
+      ...(project?.contributionTags || []),
+    ].join(' ')),
+  }));
+}
+
+function evaluateInternshipExperience(builder: any) {
+  const match = experienceEvidence(builder).find((entry: { label: string; text: string }) =>
+    /\b(?:intern(?:ship)?|co[-\s]?op|apprentice|fellow)\b/i.test(entry.text)
+  );
+  return match
+    ? { met: 'yes' as const, evidence: match.label.slice(0, 180) }
+    : { met: 'no' as const, evidence: 'No internship, co-op, apprenticeship, or fellowship is listed in experience.' };
+}
+
+function evaluateWorkExperience(builder: any) {
+  const match = experienceEvidence(builder).find((entry: { label: string; text: string }) => entry.label.trim().length > 0);
+  return match
+    ? { met: 'yes' as const, evidence: match.label.slice(0, 180) }
+    : { met: 'no' as const, evidence: 'No prior work experience is listed.' };
+}
+
+function evaluateProjectExperience(projects: any[]) {
+  const match = projectEvidence(projects).find((entry: { label: string; text: string }) => entry.label.trim().length > 0);
+  return match
+    ? { met: 'yes' as const, evidence: match.label.slice(0, 180) }
+    : { met: 'no' as const, evidence: 'No prior project evidence is listed.' };
+}
+
+function evaluateRoleRelevance(builder: any, projects: any[], compiled: any) {
+  const plan = compiled?.roleEvidence || compiled;
+  const anchors: string[] = Array.isArray(plan?.anchorConcepts) ? plan.anchorConcepts.map(String) : [];
+  const supporting: string[] = Array.isArray(plan?.supportingConcepts) ? plan.supportingConcepts.map(String) : [];
+  const workEvidence = [...experienceEvidence(builder), ...projectEvidence(projects)];
+  const anchorHits = anchors.flatMap((term) =>
+    workEvidence.filter((entry) => matchesRoleConcept(entry.text, term)).map((entry) => `${entry.label}: ${term}`)
+  );
+  const allEvidence = [...workEvidence, { label: 'Skills', text: normalizeSearchTerm([...(builder?.skills || []), ...(builder?.rolePreference || [])].join(' ')) }];
+  const totalTerms = new Set(
+    [...anchors, ...supporting].filter((term) => allEvidence.some((entry) => matchesRoleConcept(entry.text, term)))
+  );
+  const minAnchors = Math.max(1, Number(plan?.minimumAnchorMatches) || 1);
+  const minTotal = Math.max(1, Number(plan?.minimumTotalMatches) || 2);
+  if (anchorHits.length >= minAnchors && totalTerms.size >= minTotal) {
+    return { met: 'yes' as const, evidence: anchorHits.slice(0, 2).join('; ').slice(0, 180) };
+  }
+  if (anchorHits.length) {
+    return { met: 'partial' as const, evidence: anchorHits.slice(0, 2).join('; ').slice(0, 180) };
+  }
+  return { met: 'no' as const, evidence: 'No role-relevant experience or project evidence found.' };
+}
+
+export function evaluateRoleEvidence(builder: any, projects: any[], roleEvidence: any) {
+  return evaluateRoleRelevance(builder, projects, roleEvidence);
+}
+
 function requirementAliases(requirementText: string, matchAnyOf?: string[]) {
   const normalized = normalizeSearchTerm(requirementText);
   const aliases = new Set<string>([normalized]);
@@ -347,8 +466,25 @@ export function evaluateFounderRequirement(
   requirementText: string,
   builder: any,
   projects: any[] = [],
-  compiled?: { matchAnyOf?: string[]; matchHints?: string[] } | null
+  compiled?: { matchAnyOf?: string[]; matchHints?: string[]; predicate?: string | null; roleEvidence?: any } | null,
+  options?: { githubActivityScore?: number | null }
 ): { met: 'yes' | 'partial' | 'no'; evidence: string } {
+  if (isGithubActivityRequirement(requirementText)) {
+    return evaluateGithubActivityRequirement(options?.githubActivityScore);
+  }
+  if (compiled?.predicate === 'internship_experience') {
+    return evaluateInternshipExperience(builder);
+  }
+  if (compiled?.predicate === 'work_experience') {
+    return evaluateWorkExperience(builder);
+  }
+  if (compiled?.predicate === 'project_experience') {
+    return evaluateProjectExperience(projects);
+  }
+  if (compiled?.predicate === 'role_relevance') {
+    return evaluateRoleRelevance(builder, projects, compiled?.roleEvidence || compiled);
+  }
+
   const aliases = requirementAliases(requirementText, compiled?.matchAnyOf);
   const evidence = evidenceLines(builder, projects);
   const tokens = collectBuilderSkillTokens(builder, projects);
@@ -401,7 +537,8 @@ export function evaluateFounderRequirement(
 export function buildRequirementFindings(
   opportunity: any,
   builder: any,
-  projects: any[] = []
+  projects: any[] = [],
+  options?: { githubActivityScore?: number | null }
 ) {
   const requirements = normalizeRequirements(opportunity);
   const planRequirements = Array.isArray(opportunity?.searchPlan?.requirements)
@@ -412,16 +549,24 @@ export function buildRequirementFindings(
   );
 
   return requirements.map((requirement) => {
-    const compiled = planByText.get(normalizeSearchTerm(requirement.text)) || null;
+    const baseCompiled = planByText.get(normalizeSearchTerm(requirement.text)) || null;
+    const compiled = baseCompiled
+      ? { ...baseCompiled, roleEvidence: opportunity?.searchPlan?.roleEvidence || null }
+      : null;
     return {
       text: requirement.text,
       importance: requirement.importance,
-      ...evaluateFounderRequirement(requirement.text, builder, projects, compiled),
+      ...evaluateFounderRequirement(requirement.text, builder, projects, compiled, options),
     };
   });
 }
 
-export function scoreFounderPreferenceFit(opportunity: any, builder: any, projects: any[] = []) {
+export function scoreFounderPreferenceFit(
+  opportunity: any,
+  builder: any,
+  projects: any[] = [],
+  options?: { githubActivityScore?: number | null }
+) {
   const requirements = normalizeRequirements(opportunity);
   if (!requirements.length) return 0;
   const planRequirements = Array.isArray(opportunity?.searchPlan?.requirements)
@@ -436,7 +581,7 @@ export function scoreFounderPreferenceFit(opportunity: any, builder: any, projec
   for (const requirement of requirements) {
     const weight = requirement.importance === 'must' ? 2 : 1;
     const compiled = planByText.get(normalizeSearchTerm(requirement.text)) || null;
-    const result = evaluateFounderRequirement(requirement.text, builder, projects, compiled);
+    const result = evaluateFounderRequirement(requirement.text, builder, projects, compiled, options);
     const score = result.met === 'yes' ? 1 : result.met === 'partial' ? 0.55 : 0;
     weighted += score * weight;
     totalWeight += weight;

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { fetchEnrichmentJson } from "@/lib/enrichmentFetch";
 import { Linkedin, Loader2 } from "lucide-react";
 
 const NEXT = "/founder/onboarding/profile";
@@ -14,17 +15,19 @@ export const FounderLinkedInConnectPage: React.FC = () => {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/onboarding/linkedin-enrichment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ accountType: "founder", linkedin }),
-      });
-      const data = await res.json();
-      if (data.success) window.location.href = data.next || "/founder/onboarding/profile";
+      const { data } = await fetchEnrichmentJson<{ success?: boolean; error?: string; next?: string }>(
+        "/api/onboarding/linkedin-enrichment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountType: "founder", linkedin }),
+          timeoutMs: 180_000,
+        }
+      );
+      if (data.success) window.location.href = data.next || NEXT;
       else setError(data.error || "Could not enrich your LinkedIn profile.");
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error. Please try again.");
     } finally {
       setBusy(false);
     }

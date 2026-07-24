@@ -49,6 +49,9 @@ const ShortlistSchema = new mongoose.Schema(
     introAccess: { type: String, enum: ['locked', 'enabled'], default: 'enabled' },
     upgradeRequiredFor: [{ type: String }],
     teaserMetadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+    /** Immutable, evidence-only summary produced for the most recent search run. */
+    poolSummary: { type: mongoose.Schema.Types.Mixed, default: null },
+    poolNarrative: { type: String, default: null },
     candidates: [AnonymousCandidateSchema],
     previewGeneratedAt: { type: Date, default: null },
   },

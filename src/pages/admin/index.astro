@@ -1,0 +1,9 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import AdminDashboardPage from '@/components/AdminDashboardPage';
+---
+
+<Layout title="Admin · DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
+  <AdminDashboardPage client:load />
+</Layout>

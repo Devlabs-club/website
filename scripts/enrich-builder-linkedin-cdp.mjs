@@ -21,6 +21,8 @@ function parseArgs(argv) {
     limit: null,
     offset: 0,
     resume: false,
+    photoOnly: false,
+    missingAvatarOnly: false,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -44,6 +46,8 @@ function parseArgs(argv) {
     else if (arg === '--offset') args.offset = Number(argv[++i]);
     else if (arg.startsWith('--offset=')) args.offset = Number(arg.slice('--offset='.length));
     else if (arg === '--resume') args.resume = true;
+    else if (arg === '--photo-only') args.photoOnly = true;
+    else if (arg === '--missing-avatar-only') args.missingAvatarOnly = true;
     else if (arg === '--cdp-url') args.cdpUrl = argv[++i];
     else if (arg.startsWith('--cdp-url=')) args.cdpUrl = arg.slice('--cdp-url='.length);
     else if (arg === '--wait-ms' || arg === '--playwright-wait-ms') args.waitMs = Number(argv[++i]);
@@ -133,7 +137,7 @@ const projection = {
   email: 1,
   headline: 1,
   bio: 1,
-  photoUrl: 1,
+  avatarUrl: 1,
   phone: 1,
   location: 1,
   timezone: 1,
@@ -171,13 +175,16 @@ const uri = process.env.LINKEDIN_ENRICH_MONGO_URI;
 const conn = new Mongo(uri);
 const db = conn.getDB(${JSON.stringify(dbName)});
 const collectionName = db.getCollectionNames().includes('builderprofiles') ? 'builderprofiles' : 'builderProfiles';
-const filter = { "links.linkedin": { $nin: [null, ""] } };
+const filter = {
+  "links.linkedin": { $nin: [null, ""] },
+  ...( ${args.missingAvatarOnly ? 'true' : 'false'} ? { $or: [{ avatarUrl: null }, { avatarUrl: "" }, { avatarUrl: { $exists: false } }] } : {}),
+};
 const projection = {
   name: 1,
   email: 1,
   headline: 1,
   bio: 1,
-  photoUrl: 1,
+  avatarUrl: 1,
   phone: 1,
   location: 1,
   timezone: 1,
@@ -359,6 +366,67 @@ async function evaluateLinkedInDom(session, builderName) {
   return evaluated?.result?.value || {};
 }
 
+/**
+ * LinkedIn frequently links experiences to numeric company IDs
+ * (e.g. /company/1441 for Google). Rather than a hardcoded ID→name table,
+ * visit each numeric company page in the logged-in session: LinkedIn
+ * redirects to the vanity URL (/company/google/) and the page title carries
+ * the display name ("Google | LinkedIn"). Results are cached per run.
+ */
+const companySlugCache = new Map();
+
+async function resolveNumericCompanyLinks(session, dom, waitMs) {
+  const numericLinks = (dom.companyLinks || []).filter((link) => /^\d+$/.test(String(link.slug || '')));
+  if (!numericLinks.length) return;
+
+  for (const link of numericLinks.slice(0, 6)) {
+    const cached = companySlugCache.get(link.slug);
+    if (cached) {
+      Object.assign(link, cached);
+      continue;
+    }
+    try {
+      await session.send('Page.navigate', { url: `https://www.linkedin.com/company/${link.slug}/` });
+      await sleep(Math.min(Math.max(Math.floor(waitMs * 0.5), 6000), 9000));
+      const evaluated = await session.send('Runtime.evaluate', {
+        expression: `JSON.stringify({
+          href: location.href,
+          title: document.title,
+          ogTitle: document.querySelector('meta[property="og:title"]')?.content || null,
+          h1: document.querySelector('h1')?.innerText || null,
+        })`,
+        returnByValue: true,
+      });
+      const page = JSON.parse(evaluated?.result?.value || '{}');
+      const vanitySlug = String(page.href || '').match(/\/company\/([^/?#]+)/i)?.[1] || null;
+      const displayName = String(page.h1 || page.ogTitle || page.title || '')
+        .replace(/\s*[|·-]\s*LinkedIn.*$/i, '')
+        .trim() || null;
+      if (/sign in|authwall|join now/i.test(`${page.title || ''}`)) continue;
+
+      const resolved = {};
+      if (displayName) resolved.resolvedName = displayName;
+      if (vanitySlug && !/^\d+$/.test(vanitySlug)) {
+        resolved.slug = vanitySlug;
+        resolved.url = `https://www.linkedin.com/company/${vanitySlug}`;
+      }
+      if (Object.keys(resolved).length) {
+        companySlugCache.set(link.slug, resolved);
+        // Rewrite experience entries that pointed at the numeric URL.
+        for (const entry of dom.experienceEntries || []) {
+          if (entry.companyLinkedInUrl && entry.companyLinkedInUrl.includes(`/company/${link.slug}`)) {
+            if (resolved.url) entry.companyLinkedInUrl = resolved.url;
+            if (resolved.resolvedName && !entry.resolvedCompanyName) entry.resolvedCompanyName = resolved.resolvedName;
+          }
+        }
+        Object.assign(link, resolved);
+      }
+    } catch {
+      // Non-fatal: keep the numeric link as-is.
+    }
+  }
+}
+
 function applyDomToCdpResult(result, dom) {
   result.pageTitle = dom.title;
   result.finalUrl = dom.url;
@@ -469,28 +537,66 @@ function linkedInDomExtractionExpression(builderName) {
       }).filter((img) => img.src && img.score > 0).sort((a, b) => a.top - b.top);
     };
     const looksLikeDateRangeLine = (line) => /\b(present|20[0-4][0-9]|19[8-9][0-9])\b/i.test(line) && /\s[–-]\s/.test(line);
+    // "Part-time · 2 yrs 5 mos" — employment type + duration, no year range.
+    // This line follows a company name in grouped multi-role cards.
+    const looksLikeTypeDurationLine = (line) =>
+      /^(full-?time|part-?time|internship|contract|freelance|self-?employed|seasonal|apprenticeship)\b/i.test(line) &&
+      !/\b(20[0-4][0-9]|19[8-9][0-9])\b/.test(line);
     const segmentExperienceLines = (section) => {
       const bodyLines = cleanLines(section.innerText).filter((line) => !/^Experience$/i.test(line));
       const logos = imagesForExperienceSection(section);
-      const entries = [];
 
+      // Pass 1: mark entry starts. Two layouts:
+      //   std: title / company / date        (date two lines below)
+      //   sub: title / date                  (grouped role — company in group header above)
+      // Group headers look like: company / "Part-time · 2 yrs 5 mos".
+      const starts = [];
+      const headers = [];
       for (let i = 0; i < bodyLines.length; i += 1) {
-        if (!looksLikeDateRangeLine(bodyLines[i + 2] || '')) continue;
-        let next = bodyLines.length;
-        for (let j = i + 3; j < bodyLines.length; j += 1) {
-          if (looksLikeDateRangeLine(bodyLines[j + 2] || '')) {
-            next = j;
-            break;
+        const dateAt = (idx) => looksLikeDateRangeLine(bodyLines[idx] || '');
+        if (!dateAt(i) && looksLikeTypeDurationLine(bodyLines[i + 1] || '')) {
+          headers.push({ index: i, company: bodyLines[i] });
+          i += 1;
+          continue;
+        }
+        if (dateAt(i + 2) && !dateAt(i + 1) && !dateAt(i)) {
+          starts.push({ index: i, kind: 'std' });
+        } else if (dateAt(i + 1) && !dateAt(i)) {
+          const prev = starts[starts.length - 1];
+          // Skip the company line of a std entry (it also sees a date one line below).
+          if (!(prev && prev.kind === 'std' && prev.index === i - 1)) {
+            starts.push({ index: i, kind: 'sub' });
           }
         }
+      }
+
+      // Pass 2: build entries. Sub-roles inherit the nearest group header above
+      // them (as long as no std entry resets the grouping in between).
+      const entries = [];
+      for (let s = 0; s < starts.length; s += 1) {
+        const start = starts[s];
+        const nextStart = starts[s + 1]?.index ?? bodyLines.length;
+        const nextHeader = headers.find((header) => header.index > start.index)?.index ?? bodyLines.length;
+        const end = Math.min(nextStart, nextHeader);
+        if (end <= start.index) continue;
+
+        let groupCompany = null;
+        if (start.kind === 'sub') {
+          const header = [...headers].reverse().find((candidate) => candidate.index < start.index);
+          const stdBetween = starts.some(
+            (other) => other.kind === 'std' && header && other.index > header.index && other.index < start.index
+          );
+          if (header && !stdBetween) groupCompany = header.company;
+        }
+
         entries.push({
           index: entries.length,
-          lines: bodyLines.slice(i, next),
-          text: bodyLines.slice(i, next).join('\n'),
+          lines: bodyLines.slice(start.index, end),
+          text: bodyLines.slice(start.index, end).join('\n'),
           companyLinkedInUrl: null,
+          groupCompany,
           logo: logos[entries.length] || null,
         });
-        i = next - 1;
       }
 
       return entries;
@@ -538,14 +644,28 @@ function linkedInDomExtractionExpression(builderName) {
           const companyLinkedInUrl = Array.from(item.querySelectorAll('a[href*="/company/"]'))
             .map((anchor) => absolutize(anchor.getAttribute('href')))
             .find(Boolean) || null;
+          // Grouped roles: LinkedIn nests multiple positions under one company card.
+          // Inherit the company (first line) and link from the enclosing card.
+          const parent = itemNodes.find((other) => other !== item && other.contains(item));
+          const parentLines = parent ? cleanLines(parent.innerText) : [];
+          const hasSubRoles = itemNodes.some((other) => other !== item && item.contains(other));
+          const parentCompanyUrl = parent
+            ? Array.from(parent.querySelectorAll('a[href*="/company/"]'))
+                .map((anchor) => absolutize(anchor.getAttribute('href')))
+                .find(Boolean) || null
+            : null;
           return {
             index,
             lines,
             text: lines.join('\\n'),
-            companyLinkedInUrl,
-            logo,
+            companyLinkedInUrl: companyLinkedInUrl || parentCompanyUrl,
+            groupCompany: parentLines[0] || null,
+            hasSubRoles,
+            logo: logo || (parent ? imageForExperience(parent) : null),
           };
         })
+        // Parent cards duplicate their nested roles; keep only leaf entries.
+        .filter((entry) => !entry.hasSubRoles)
         .filter((entry) => entry.lines.length >= 2)
         .slice(0, 12);
 
@@ -676,9 +796,28 @@ function linkedInDomExtractionExpression(builderName) {
           .trim()
           .replace(/\s+/g, ' ');
         if (!map.has(slug)) {
-          map.set(slug, { slug, name: name || null, url: `https://www.linkedin.com/company/${slug}` });
-        } else if (name && !map.get(slug).name) {
-          map.get(slug).name = name;
+          map.set(slug, { slug, name: name || null, shortName: name || null, url: `https://www.linkedin.com/company/${slug}` });
+        } else {
+          const existing = map.get(slug);
+          // Longest label: experience cards include title/dates (useful for parsing roles).
+          if (name && (!existing.name || name.length > String(existing.name || '').length)) {
+            existing.name = name;
+          }
+          // Shortest label: chips/logo links usually carry just the company name.
+          if (name && (!existing.shortName || name.length < String(existing.shortName || '').length)) {
+            existing.shortName = name;
+          }
+        }
+        // Logo alt text is the most reliable generic name ("Google logo" → "Google").
+        const logoAlt = String(anchor.querySelector('img')?.alt || '')
+          .replace(/\s+logo\s*$/i, '')
+          .trim();
+        if (logoAlt && !map.get(slug).logoAlt) map.get(slug).logoAlt = logoAlt;
+        const logoSrc = String(
+          anchor.querySelector('img')?.currentSrc || anchor.querySelector('img')?.src || ''
+        ).trim();
+        if (logoSrc && !logoSrc.startsWith('data:') && !map.get(slug).logoSrc) {
+          map.get(slug).logoSrc = logoSrc;
         }
       });
       return Array.from(map.values()).slice(0, 40);
@@ -698,7 +837,7 @@ function linkedInDomExtractionExpression(builderName) {
   }.toString()})(${JSON.stringify(builderName || '')})`;
 }
 
-async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
+async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs, options = {}) {
   const result = {
     attempted: true,
     transport: 'cdp',
@@ -742,18 +881,27 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
     let dom = await evaluateLinkedInDom(session, builder.name);
     applyDomToCdpResult(result, dom);
 
-    if ((dom.experienceEntries || []).length < 2 && experienceDetailsUrl) {
+    if (options.photoOnly) {
+      result.skillLabels = dom.skillLabels || [];
+      return result;
+    }
+
+    // Always open /details/experience/ — the main profile often truncates roles
+    // (e.g. Google intern missing) or returns incomplete company/logo cards.
+    if (experienceDetailsUrl) {
       await session.send('Page.navigate', { url: experienceDetailsUrl });
       await sleep(Math.max(waitMs, 14000));
       await scrollAndExpandPage(session);
       const detailsDom = await evaluateLinkedInDom(session, builder.name);
-      if ((detailsDom.experienceEntries || []).length >= (dom.experienceEntries || []).length) {
+      const detailsCount = (detailsDom.experienceEntries || []).length;
+      const mainCount = (dom.experienceEntries || []).length;
+      if (detailsCount > 0 || detailsCount >= mainCount) {
         dom = {
           ...detailsDom,
           text: `${dom.text || ''}\n${detailsDom.text || ''}`.trim(),
           skillLabels: [...(dom.skillLabels || []), ...(detailsDom.skillLabels || [])],
           companyLinks: [...(dom.companyLinks || []), ...(detailsDom.companyLinks || [])],
-          experienceEntries: detailsDom.experienceEntries?.length
+          experienceEntries: detailsCount
             ? detailsDom.experienceEntries
             : dom.experienceEntries,
         };
@@ -777,6 +925,12 @@ async function extractLinkedInProfileViaCDP(url, builder, cdpUrl, waitMs) {
         applyDomToCdpResult(result, dom);
       }
     }
+
+    // Resolve numeric /company/<id> links to real names + vanity slugs by visiting
+    // each company page in the same logged-in session. Fully generic — works for
+    // any company without a hardcoded lookup table.
+    await resolveNumericCompanyLinks(session, dom, waitMs);
+    applyDomToCdpResult(result, dom);
 
     result.skillLabels = dom.skillLabels || [];
 
@@ -872,21 +1026,24 @@ function extractLinkedInData(rawText, builder, cdpExtraction) {
   if (lines.length < 20) warnings.push('Extracted page text is short; profile sections may not have loaded or may be hidden.');
   if (!cdpExtraction.photo.imageUrl) warnings.push('No likely LinkedIn profile photo found in DOM.');
 
+  const structuredExperiences = parseExperienceEntries(cdpExtraction, builder, experienceLines);
+  // Headline and profile-badge inference is only a last-resort fallback. Mixing it
+  // with real experience cards creates false jobs such as mutual connections or
+  // "Honors CS Student" when LinkedIn has already supplied structured roles.
+  const experiences = structuredExperiences.length
+    ? structuredExperiences
+    : mergeExperienceResults(
+        inferExperiencesFromHeadline(headlineCandidate, cdpExtraction.companyLinks || [], builder),
+        inferExperiencesFromProfileBadges(lines, cdpExtraction.companyLinks || [], builder)
+      );
+
   return {
     lines,
     headline: headlineCandidate || null,
     location: lines.find(looksLikeLocation) || null,
     about: aboutLines.join(' ').slice(0, 1500) || null,
     experience: experienceLines.slice(0, 80),
-    experiences: mergeExperienceResults(
-      parseExperienceEntries(cdpExtraction, builder, experienceLines),
-      (cdpExtraction.experienceEntries || []).length < 2
-        ? inferExperiencesFromHeadline(headlineCandidate, cdpExtraction.companyLinks || [], builder)
-        : [],
-      (cdpExtraction.experienceEntries || []).length < 2
-        ? inferExperiencesFromProfileBadges(lines, cdpExtraction.companyLinks || [], builder)
-        : []
-    ),
+    experiences,
     education: educationLines.slice(0, 60),
     educationEntries,
     skills: (() => {
@@ -983,7 +1140,26 @@ function normalizeExperienceLines(lines) {
     .map((line) => String(line || '').trim().replace(/\s+/g, ' '))
     .filter(Boolean)
     .filter((line) => !/^(show all|show more|see more|more|message|connect|follow|view profile|open profile)$/i.test(line))
-    .filter((line) => !/^… more$/i.test(line));
+    .filter((line) => !/^… more$/i.test(line))
+    // Description bullets and skills chips are never titles/companies.
+    .filter((line) => !/^[-–—•*·]/.test(line))
+    .filter((line) => !/^skills?\s*:/i.test(line))
+    .filter((line) => !/\+\d+\s+skills?\b/i.test(line))
+    // Standalone employment-type/duration lines ("Part-time · 2 yrs 5 mos").
+    .filter((line) => !/^(full-?time|part-?time|internship|contract|freelance|self-?employed|seasonal|apprenticeship)\b(\s*·\s*.*)?$/i.test(line));
+}
+
+/** True when a derived title/company is actually a description, skills chip, location, or type line. */
+function looksLikeExperienceNoise(value) {
+  const text = String(value || '').trim();
+  if (!text) return true;
+  if (/^[-–—•*·]/.test(text)) return true;
+  if (/^skills?\s*:/i.test(text)) return true;
+  if (/\+\d+\s+skills?\b/i.test(text)) return true;
+  if (looksLikeDateRange(text)) return true;
+  if (looksLikeExperienceLocation(text)) return true;
+  if (/^(full-?time|part-?time|internship|contract|freelance|self-?employed|seasonal|apprenticeship)\b/i.test(text)) return true;
+  return false;
 }
 
 function compactToken(value) {
@@ -1011,6 +1187,7 @@ function slugFromCompanyUrl(url) {
 function resolveCompanyLink(company, companyLinkedInUrl, companyLinks) {
   let slug = slugFromCompanyUrl(companyLinkedInUrl);
   let url = companyLinkedInUrl || null;
+  let logoSrc = null;
 
   if (!slug && Array.isArray(companyLinks) && company) {
     const target = compactKey(company);
@@ -1019,12 +1196,17 @@ function resolveCompanyLink(company, companyLinkedInUrl, companyLinks) {
     if (match) {
       slug = match.slug;
       url = match.url;
+      logoSrc = match.logoSrc || null;
     }
+  }
+  if (!logoSrc && slug && Array.isArray(companyLinks)) {
+    logoSrc = companyLinks.find((link) => String(link.slug || '') === String(slug))?.logoSrc || null;
   }
 
   return {
     companyUsername: slug || null,
     companyLinkedInUrl: url || (slug ? `https://www.linkedin.com/company/${slug}` : null),
+    companyLogoUrl: logoSrc,
   };
 }
 
@@ -1033,21 +1215,62 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
   if (lines.length < 2) return null;
 
   const dateIndex = lines.findIndex(looksLikeDateRange);
-  if (dateIndex < 1) return null;
+  if (dateIndex < 0) return null;
 
   let title = lines[0];
-  const companyLine = lines.slice(1, dateIndex).find((line) => !looksLikeDateRange(line) && !looksLikeExperienceLocation(line)) || lines[1];
-  const { company, employmentType } = splitCompanyLine(companyLine);
-  if (!title || !company) return null;
+  const beforeDate = lines
+    .slice(0, dateIndex)
+    .filter((line) => !looksLikeDateRange(line) && !looksLikeExperienceLocation(line));
+  const companyLine =
+    beforeDate.find((line, index) => index > 0) ||
+    beforeDate[1] ||
+    null;
+  let { company, employmentType } = companyLine
+    ? splitCompanyLine(companyLine)
+    : { company: null, employmentType: null };
 
-  if (compactKey(title) === compactKey(company)) {
-    const alternateTitle = lines.slice(1, dateIndex).find((line) => line !== companyLine && !looksLikeDateRange(line) && !looksLikeExperienceLocation(line));
+  // Never treat a date range as the company (common when LinkedIn omits company text).
+  if (company && looksLikeDateRange(company)) {
+    company = null;
+    employmentType = null;
+  }
+  if (!title || looksLikeDateRange(title)) return null;
+
+  if (company && compactKey(title) === compactKey(company)) {
+    const alternateTitle = beforeDate.find(
+      (line) => line !== companyLine && !looksLikeDateRange(line) && !looksLikeExperienceLocation(line)
+    );
     if (alternateTitle) title = alternateTitle;
   }
 
+  // If company text is missing, resolve from company URL / page-wide company cards / description.
   const dateParts = splitDateRange(lines[dateIndex]);
-  const logo = logoForName(rawEntry.logo, company);
   const afterDate = lines.slice(dateIndex + 1);
+  const descriptionText = afterDate.join('\n');
+  if (!company) {
+    // Grouped roles inherit the company from the enclosing card's first line
+    // (e.g. "Arizona State University" wrapping several student jobs).
+    const groupCompany = String(rawEntry.groupCompany || '').trim();
+    company =
+      rawEntry.resolvedCompanyName ||
+      companyNameForLinkedInUrl(rawEntry.companyLinkedInUrl, companyLinks) ||
+      companyNameFromLogoAlt(rawEntry.logo) ||
+      (groupCompany && !looksLikeExperienceNoise(groupCompany) && groupCompany.length <= 80
+        ? groupCompany
+        : null) ||
+      null;
+  }
+  if (!company) {
+    const fromLink = resolveCompanyLink(null, rawEntry.companyLinkedInUrl, companyLinks);
+    if (fromLink.companyUsername && !/^\d+$/.test(fromLink.companyUsername)) {
+      company = titleCaseSlug(fromLink.companyUsername);
+    }
+  }
+  if (!company) return null;
+  // Reject mangled rows where a bullet/skills/location/type line slipped into title or company.
+  if (looksLikeExperienceNoise(title) || looksLikeExperienceNoise(company)) return null;
+
+  const logo = logoForName(rawEntry.logo, company);
   const location = afterDate.find(looksLikeExperienceLocation) || null;
   const descriptionLines = afterDate
     .filter((line) => line !== location)
@@ -1062,12 +1285,12 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
     .filter((skill, index, arr) => arr.findIndex((candidate) => candidate.toLowerCase() === skill.toLowerCase()) === index)
     .slice(0, 8);
   const sourceId = `linkedin:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${title}-${company}-${dateParts.dateRange || rawEntry.index}`)}`;
-  const { companyUsername, companyLinkedInUrl } = resolveCompanyLink(company, rawEntry.companyLinkedInUrl, companyLinks);
+  const { companyUsername, companyLinkedInUrl, companyLogoUrl } = resolveCompanyLink(company, rawEntry.companyLinkedInUrl, companyLinks);
 
   return {
     title: title.slice(0, 140),
     company: company.slice(0, 140),
-    companyLogoUrl: logo?.src || null,
+    companyLogoUrl: logo?.src || companyLogoUrl || null,
     companyUsername,
     companyLinkedInUrl,
     employmentType,
@@ -1077,6 +1300,9 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
     endDateLabel: dateParts.endDateLabel,
     duration: dateParts.duration,
     description: descriptionLines.join('\n').slice(0, 1200) || null,
+    // LinkedIn calls this role description. Preserve it separately as the
+    // builder's stated contribution so ranking can cite it without guessing.
+    builderContribution: descriptionLines.join('\n').slice(0, 1200) || null,
     skills,
     isCurrent: /\bpresent\b/i.test(dateParts.dateRange || ''),
     source: 'linkedin',
@@ -1085,12 +1311,187 @@ function parseExperienceEntry(rawEntry, builder, companyLinks) {
   };
 }
 
+function titleCaseSlug(slug) {
+  return String(slug || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+}
+
+/** "Google logo" alt text → "Google". Generic: LinkedIn sets alt on company logos. */
+function companyNameFromLogoAlt(logo) {
+  const alt = String(logo?.alt || '')
+    .replace(/\s+logo\s*$/i, '')
+    .trim();
+  if (!alt || alt.length > 80) return null;
+  if (looksLikeDateRange(alt)) return null;
+  return alt;
+}
+
+/** Display name for a /company/ URL using page-wide link data (resolved names, logo alts, short chips). */
+function companyNameForLinkedInUrl(companyLinkedInUrl, companyLinks = []) {
+  const slug = slugFromCompanyUrl(companyLinkedInUrl);
+  if (!slug) return null;
+  const link = companyLinks.find((candidate) => String(candidate.slug || '') === slug);
+  return companyNameForLink(link);
+}
+
+/** Best display name attached to a collected company link, without any hardcoded table. */
+function companyNameForLink(link) {
+  if (!link) return null;
+  if (link.resolvedName) return link.resolvedName;
+  const fromAlt = companyNameFromLogoAlt({ alt: link.logoAlt });
+  if (fromAlt) return fromAlt;
+  const short = String(link.shortName || '').trim();
+  // Short chips are trustworthy only when they look like a bare company name,
+  // not a full experience card ("Intern Google · Internship 2024 …").
+  if (
+    short &&
+    short.length <= 60 &&
+    !looksLikeDateRange(short) &&
+    !/\b(20\d{2}|present|·)\b/i.test(short) &&
+    !/\b(intern|engineer|fellow|assistant|aide|founder|developer|designer|lead)\b/i.test(short)
+  ) {
+    return short;
+  }
+  if (link.slug && !/^\d+$/.test(String(link.slug))) return titleCaseSlug(link.slug);
+  return null;
+}
+
+/**
+ * LinkedIn often embeds full experience cards in company-link aria/text
+ * (especially on /details/experience/) even when the list DOM is incomplete.
+ * Example: "Incoming Software Engineer Intern Google · Internship 2026 - Present · 7 mos ..."
+ */
+function parseExperiencesFromCompanyLinks(companyLinks = [], builder) {
+  const results = [];
+  for (const link of companyLinks) {
+    const raw = String(link?.name || '').trim().replace(/\s+/g, ' ');
+    if (!raw) continue;
+    if (/you both (work|studied)|people also viewed|similar profiles/i.test(raw)) continue;
+    if (!/\b(intern|engineer|fellow|lead|aide|assistant|founder|developer|designer)\b/i.test(raw)) continue;
+    if (!/\b(20\d{2}|present)\b/i.test(raw)) continue;
+
+    const slug = String(link.slug || '').toLowerCase();
+    let company = companyNameForLink(link);
+    const parts = raw.split(/\s*·\s*/).map((part) => part.trim()).filter(Boolean);
+    const head = parts[0] || raw;
+
+    let title = head;
+    if (company) {
+      const companyRe = new RegExp(`\\s+${company.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\s*$`, 'i');
+      if (companyRe.test(head)) {
+        title = head.replace(companyRe, '').trim();
+      } else {
+        // "… Intern Dropbox" / "… Fellow Headstarter AI"
+        const idx = head.toLowerCase().lastIndexOf(` ${company.toLowerCase()}`);
+        if (idx > 0) title = head.slice(0, idx).trim();
+      }
+    } else {
+      // Infer company as last Capitalized run in head before date-like noise
+      const match = head.match(/^(.*)\s+([A-Z][A-Za-z0-9&.]*(?:\s+[A-Z][A-Za-z0-9&.,]*){0,3})$/);
+      if (match) {
+        title = match[1].trim();
+        company = match[2].trim();
+      }
+    }
+    if (!title || !company || looksLikeDateRange(company) || looksLikeDateRange(title)) continue;
+
+    const dateMatch = raw.match(
+      /((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|\d{4})\s*[-–—]\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{4}|Present|\d{4})/i
+    );
+    const datePart =
+      dateMatch?.[0] ||
+      parts.find((part) => {
+        const cleaned = String(part || '')
+          .replace(/^(internship|full-?time|part-?time|contract)\s+/i, '')
+          .trim();
+        return looksLikeDateRange(cleaned);
+      }) ||
+      null;
+    const dateParts = splitDateRange(
+      String(datePart || '')
+        .replace(/^(internship|full-?time|part-?time|contract)\s+/i, '')
+        .trim()
+    );
+    const employmentType = parts.find((part) => /internship|full-?time|part-?time|contract|seasonal/i.test(part)) || null;
+    const location =
+      parts.find((part) => looksLikeExperienceLocation(part) && !looksLikeDateRange(part) && !/internship|full-?time/i.test(part)) ||
+      null;
+    const duration = parts.find((part) => /^\d+\s+(yr|mos?|mo|year|month)/i.test(part)) || dateParts.duration;
+
+    // link.url/slug are already vanity URLs when resolveNumericCompanyLinks ran.
+    const companyLinkedInUrl = link.url || `https://www.linkedin.com/company/${slug}`;
+    const companyUsername = slugFromCompanyUrl(companyLinkedInUrl) || slug || null;
+    const companyLogoUrl = link.logoSrc || null;
+    const sourceId = `linkedin:${compactKey(builder.links?.linkedin || builder.name)}:${compactKey(`${title}-${company}-${dateParts.dateRange || 'na'}`)}`;
+
+    results.push({
+      title: title.slice(0, 140),
+      company: company.slice(0, 140),
+      companyLogoUrl,
+      companyUsername,
+      companyLinkedInUrl: companyLinkedInUrl || `https://www.linkedin.com/company/${slug}`,
+      employmentType,
+      location,
+      dateRange: dateParts.dateRange,
+      startDateLabel: dateParts.startDateLabel,
+      endDateLabel: dateParts.endDateLabel,
+      duration: duration || null,
+      description: null,
+      builderContribution: null,
+      skills: [],
+      isCurrent: /\bpresent\b/i.test(dateParts.dateRange || raw),
+      source: 'linkedin',
+      sourceId,
+      importedAt: new Date().toISOString(),
+    });
+  }
+  return results;
+}
+
 function mergeExperienceResults(...groups) {
   const merged = [];
   for (const group of groups) {
     for (const entry of group || []) {
       if (!entry?.title && !entry?.company) continue;
-      if (merged.some((existing) => existing.sourceId === entry.sourceId)) continue;
+      const mergeInto = (existing) => {
+        for (const [key, value] of Object.entries(entry)) {
+          if (
+            (existing[key] == null || existing[key] === '' || (Array.isArray(existing[key]) && !existing[key].length)) &&
+            value != null &&
+            value !== '' &&
+            (!Array.isArray(value) || value.length)
+          ) {
+            existing[key] = value;
+          }
+        }
+      };
+      const sameSource = merged.find((existing) => existing.sourceId === entry.sourceId);
+      if (sameSource) {
+        mergeInto(sameSource);
+        continue;
+      }
+      // Same role reported by two extraction paths: match on date range plus
+      // company (allowing name variants like "Headstarter" / "Headstarter AI").
+      const sameCompany = (a, b) => {
+        const keyA = compactKey(a);
+        const keyB = compactKey(b);
+        return keyA === keyB || keyA.startsWith(keyB) || keyB.startsWith(keyA);
+      };
+      const matchingRole =
+        entry.company &&
+        entry.dateRange &&
+        merged.find(
+          (existing) =>
+            existing.company &&
+            existing.dateRange === entry.dateRange &&
+            sameCompany(existing.company, entry.company)
+        );
+      if (matchingRole) {
+        mergeInto(matchingRole);
+        continue;
+      }
       merged.push(entry);
     }
   }
@@ -1126,6 +1527,7 @@ function inferExperiencesFromHeadline(headline, companyLinks, builder) {
       endDateLabel: null,
       duration: null,
       description: null,
+      builderContribution: null,
       skills: [],
       isCurrent: !/\bprev\b/i.test(segment),
       source: 'linkedin',
@@ -1166,6 +1568,7 @@ function inferExperiencesFromProfileBadges(lines, companyLinks, builder) {
       endDateLabel: null,
       duration: null,
       description: null,
+      builderContribution: null,
       skills: [],
       isCurrent: true,
       source: 'linkedin',
@@ -1202,11 +1605,12 @@ function parseExperienceEntries(cdpExtraction, builder, experienceLines = []) {
   const fromDom = (cdpExtraction.experienceEntries || [])
     .map((entry) => parseExperienceEntry(entry, builder, companyLinks))
     .filter(Boolean);
-  const merged = fromDom.length
-    ? fromDom
+  const fromLinks = parseExperiencesFromCompanyLinks(companyLinks, builder);
+  const fromText = fromDom.length
+    ? []
     : parseExperiencesFromTextLines(experienceLines, builder, companyLinks);
 
-  return merged
+  return mergeExperienceResults(fromLinks, fromDom, fromText)
     .filter((entry, index, arr) => arr.findIndex((candidate) => candidate.sourceId === entry.sourceId) === index)
     .slice(0, 12);
 }
@@ -1397,12 +1801,12 @@ function buildProposedDiff(builder, extracted) {
   if (!builder.bio) setValue(proposed, 'bio', buildBio(builder, extracted), 'Generated from LinkedIn because BuilderProfile.bio is empty.');
   else skipped.push({ field: 'bio', reason: 'Existing value present; not overwriting.' });
 
-  if (!builder.photoUrl && extracted.cdpExtraction.photo.imageUrl) {
-    setValue(proposed, 'photoUrl', extracted.cdpExtraction.photo.imageUrl, 'LinkedIn DOM profile image via Chrome CDP fills empty BuilderProfile.photoUrl.');
-  } else if (builder.photoUrl) {
-    skipped.push({ field: 'photoUrl', reason: 'Existing value present; not overwriting.' });
+  if (!builder.avatarUrl && extracted.cdpExtraction.photo.imageUrl) {
+    setValue(proposed, 'avatarUrl', extracted.cdpExtraction.photo.imageUrl, 'LinkedIn DOM profile image via Chrome CDP fills empty BuilderProfile.avatarUrl.');
+  } else if (builder.avatarUrl) {
+    skipped.push({ field: 'avatarUrl', reason: 'Existing value present; not overwriting.' });
   } else {
-    skipped.push({ field: 'photoUrl', reason: 'No likely LinkedIn profile photo found in DOM.' });
+    skipped.push({ field: 'avatarUrl', reason: 'No likely LinkedIn profile photo found in DOM.' });
   }
 
   if (!builder.location && extracted.location) setValue(proposed, 'location', extracted.location, 'LinkedIn location fills empty BuilderProfile.location.');
@@ -1496,7 +1900,9 @@ async function processBuilder(builder, context, args) {
     };
   }
 
-  const cdpExtraction = await extractLinkedInProfileViaCDP(linkedInUrl, builder, args.cdpUrl, args.waitMs);
+  const cdpExtraction = await extractLinkedInProfileViaCDP(linkedInUrl, builder, args.cdpUrl, args.waitMs, {
+    photoOnly: args.photoOnly,
+  });
   const extracted = extractLinkedInData(cdpExtraction.rawText, builder, cdpExtraction);
   const diff = buildProposedDiff(builder, extracted);
   const output = {
@@ -1554,7 +1960,7 @@ async function processLinkedInUrl(args) {
     email: args.email || null,
     headline: null,
     bio: null,
-    photoUrl: null,
+    avatarUrl: null,
     phone: null,
     location: null,
     timezone: null,
@@ -1575,7 +1981,9 @@ async function processLinkedInUrl(args) {
     legacyRefs: [],
   };
 
-  const cdpExtraction = await extractLinkedInProfileViaCDP(linkedInUrl, builder, args.cdpUrl, args.waitMs);
+  const cdpExtraction = await extractLinkedInProfileViaCDP(linkedInUrl, builder, args.cdpUrl, args.waitMs, {
+    photoOnly: args.photoOnly,
+  });
   const extracted = extractLinkedInData(cdpExtraction.rawText, builder, cdpExtraction);
   const diff = buildProposedDiff(builder, extracted);
   const output = {

@@ -25,7 +25,7 @@ function WorkspaceLoader({ text }: { text: string }) {
 
 function RoleRedirect({ role, accountType }: { role: string; accountType?: 'founder' | 'builder' | null }) {
   useEffect(() => {
-    if (role === 'admin') window.location.href = '/admin/talent-scout';
+    if (role === 'admin') window.location.href = '/admin';
     else if (accountType === 'founder' || role === 'founder') window.location.href = '/founder/home';
     else if (accountType === 'builder' || role === 'builder') window.location.href = '/builder/home';
     else window.location.href = '/auth/select-role';

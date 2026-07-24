@@ -45,7 +45,9 @@ export function evaluateMustHaveGate(
     mustRequirementCount: mustRequirements.length,
     unmetMustCount,
     unmetPartialCount,
-    passesMustGate: unmetMustCount === 0,
+    // A partial finding is useful to explain a near match, but it cannot satisfy
+    // a founder-marked must-have.
+    passesMustGate: unmetMustCount === 0 && unmetPartialCount === 0,
   };
 }
 
@@ -71,7 +73,7 @@ export function applyMustHavePenalties(
 
 /** Prevent unmet must-haves from ranking as Good/Strong matches even with strong skills. */
 export function capOverallFitForMustGate(overallFit: number, gate: MustHaveGateResult): number {
-  if (gate.unmetMustCount === 0) return overallFit;
+  if (gate.unmetMustCount === 0 && gate.unmetPartialCount === 0) return overallFit;
   const cap = gate.unmetPartialCount > 0 ? 0.38 : 0.32;
   return Math.min(overallFit, cap);
 }

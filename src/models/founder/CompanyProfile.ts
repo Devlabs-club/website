@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 const CompanyProfileSchema = new mongoose.Schema(
   {
-    founderId: { type: String, required: true, index: true },
-    founderEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
+    founderId: { type: String, required: true },
+    founderEmail: { type: String, required: true, lowercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     website: { type: String, default: null, trim: true },
     description: { type: String, default: null, trim: true },

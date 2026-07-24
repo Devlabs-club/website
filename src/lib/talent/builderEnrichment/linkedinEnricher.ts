@@ -1,7 +1,9 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
-import { runRemoteLinkedInScraperScript } from '@/lib/remoteLinkedInScraper';
+import {
+  queueRemoteLinkedInBuilderEnrichment,
+  runRemoteLinkedInScraperScript,
+} from '@/lib/remoteLinkedInScraper';
 import type { RuntimeEnv } from '@/lib/workosEnv';
-import { applyLinkedInCdpToBuilder } from './apply';
 import { fetchUrlMarkdown, normalizeUrl } from './urlToMarkdown';
 import { urlForMarkdownFetch } from './urlForMarkdown';
 import {
@@ -236,48 +238,26 @@ async function enrichFromRemoteCdp(
   builder: any,
   normalizedUrl: string,
   runtime?: RuntimeEnv,
-  deferExperiences?: boolean
+  _deferExperiences?: boolean
 ): Promise<SourceEnrichmentResult | null> {
-  // Remote scraper reads from its own Mongo when given --builderId. Local/dev builders
-  // won't exist there, so always pass the LinkedIn URL directly.
-  const args = [
-    '--linkedin-url',
-    normalizedUrl,
-    '--name',
-    String(builder?.name || builder?.email || 'Builder'),
-    '--wait-ms',
-    '12000',
-  ];
-  const email = String(builder?.email || '').trim().toLowerCase();
-  if (email) args.push('--email', email);
-
-  const result = await runRemoteLinkedInScraperScript(
-    'enrich-builder-linkedin-cdp.mjs',
-    args,
-    runtime,
-    150_000
+  const builderId = String(builder?._id || builder?.id || '').trim();
+  if (!builderId) return null;
+  const queued = await queueRemoteLinkedInBuilderEnrichment(
+    {
+      id: builderId,
+      name: String(builder?.name || builder?.email || 'Builder'),
+      linkedInUrl: normalizedUrl,
+    },
+    runtime
   );
-  if (!result) return null;
-
-  const artifact = result.artifact;
-  const extracted = artifact?.extracted || {};
-  const writeResult = await applyLinkedInCdpToBuilder(builder, artifact, normalizedUrl, { deferExperiences });
+  if (!queued) return null;
   return {
     source: 'linkedin',
     meta: {
-      appliedInEnricher: true,
-      writeResult,
-      mode: 'remote_chrome_cdp',
-      summary: result.summary,
-      artifactPath: result.summary?.outputPath || null,
-      profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
-      extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
-      extractedEducationCount: Array.isArray(extracted.educationEntries)
-        ? extracted.educationEntries.length
-        : Array.isArray(extracted.education)
-          ? extracted.education.length
-          : 0,
-      warnings: artifact?.warnings || extracted?.warnings || [],
+      mode: 'remote_chrome_cdp_queue',
+      queued: true,
+      batchId: queued.batchId,
+      statusUrl: queued.statusUrl,
     },
   };
 }

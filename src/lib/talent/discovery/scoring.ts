@@ -8,6 +8,18 @@ import {
   type RoleSkillTiers,
 } from './roleSkillTiers';
 import { buildRequirementFindings, getSearchRequirements, scoreFounderPreferenceFit } from '@/lib/talent/searchTokens';
+import {
+  scoreGithubActivityFit,
+  type GithubActivitySnapshot,
+  opportunityAsksGithubActivity,
+} from '@/lib/talent/githubActivity';
+import {
+  inferSponsorshipNeed,
+  opportunityDoesNotSponsor,
+  scoreSponsorshipFit,
+  type SponsorshipInference,
+} from '@/lib/talent/sponsorshipInference';
+import { buildConversationAwareWhyTheyMatch } from '@/lib/talent/whyTheyMatch';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -21,6 +33,8 @@ export type CandidateScoreComponents = {
   profileQuality: number;
   startupReadiness: number;
   agentTraceFit: number;
+  githubActivityFit: number;
+  sponsorshipFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
   llmRerankAdjustment: number;
@@ -35,6 +49,7 @@ export type CandidateExplanation = {
     met: 'yes' | 'partial' | 'no';
     evidence: string;
   }>;
+  whyTheyMatch?: string;
   bestUseCase: string;
   recommendedAction: 'request_intro' | 'send_trial' | 'save' | 'reject' | 'review_more';
 };
@@ -62,9 +77,13 @@ export function computeOverallFit(components: CandidateScoreComponents, weights:
     profileQuality: weights.profileQuality ?? 0,
     startupReadiness: weights.startupReadiness ?? 0,
     agentTraceFit: weights.agentTraceFit ?? 0,
+    githubActivityFit: weights.githubActivityFit ?? 0,
+    sponsorshipFit: weights.sponsorshipFit ?? 0,
     negativeSignalPenalty: weights.negativeSignalPenalty ?? 0,
     missingEvidencePenalty: weights.missingEvidencePenalty ?? 0,
   };
+
+  const llmAdj = Math.max(-0.08, Math.min(0.08, components.llmRerankAdjustment || 0));
 
   const raw =
     components.deterministicSkillFit * w.deterministicSkillFit +
@@ -77,10 +96,12 @@ export function computeOverallFit(components: CandidateScoreComponents, weights:
     components.availabilityFit * w.availabilityFit +
     components.profileQuality * w.profileQuality +
     components.startupReadiness * w.startupReadiness +
-    components.agentTraceFit * w.agentTraceFit -
+    components.agentTraceFit * w.agentTraceFit +
+    (components.githubActivityFit ?? 0) * w.githubActivityFit +
+    (components.sponsorshipFit ?? 0) * w.sponsorshipFit -
     components.negativeSignalPenalty * w.negativeSignalPenalty -
     components.missingEvidencePenalty * w.missingEvidencePenalty +
-    components.llmRerankAdjustment;
+    llmAdj;
 
   if (!Number.isFinite(raw)) return 0;
   return Math.max(0, Math.min(1, raw));
@@ -112,6 +133,8 @@ export function scoreBuilderFromProfile(params: {
   roleSkillTiers?: RoleSkillTiers;
   hasUploadedAgentTrace?: boolean;
   agentWrappedScore?: number | null;
+  githubActivity?: GithubActivitySnapshot | null;
+  sponsorship?: SponsorshipInference | null;
 }): CandidateScoreComponents {
   const {
     builder,
@@ -121,6 +144,8 @@ export function scoreBuilderFromProfile(params: {
     roleSkillTiers,
     hasUploadedAgentTrace,
     agentWrappedScore,
+    githubActivity,
+    sponsorship,
   } = params;
   const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
   const deterministicSkillFit = scoreRoleAwareSkillFit(tiers, builder, projects, mustHaveSignals);
@@ -132,7 +157,15 @@ export function scoreBuilderFromProfile(params: {
   const profileQuality = scoreProfileQuality(builder);
   const startupReadiness = scoreStartupReadiness(builder, projects);
   const missingEvidencePenalty = scoreMissingEvidence(builder, projects, opportunity);
-  const founderPreferenceFit = scoreFounderPreferenceFit(opportunity, builder, projects);
+  const roleAsksGithub = opportunityAsksGithubActivity(opportunity);
+  const githubActivityFit = scoreGithubActivityFit(githubActivity, roleAsksGithub);
+  const sponsorshipInference = sponsorship || inferSponsorshipNeed(builder);
+  const sponsorshipFit = scoreSponsorshipFit(sponsorshipInference, opportunityDoesNotSponsor(opportunity));
+  const githubActivityScore =
+    githubActivity?.source === 'github_api' ? githubActivity.score : null;
+  const founderPreferenceFit = scoreFounderPreferenceFit(opportunity, builder, projects, {
+    githubActivityScore,
+  });
   const agentTraceFit = scoreAgentTraceFit(hasUploadedAgentTrace, agentWrappedScore);
 
   return {
@@ -147,6 +180,8 @@ export function scoreBuilderFromProfile(params: {
     profileQuality,
     startupReadiness,
     agentTraceFit,
+    githubActivityFit,
+    sponsorshipFit,
     negativeSignalPenalty: 0,
     missingEvidencePenalty,
     llmRerankAdjustment: 0,
@@ -250,13 +285,14 @@ function scoreStartupReadiness(builder: any, projects: any[]): number {
   return Math.min(1, score);
 }
 
+/** Uploaded Wrapped is a small bonus only — never a near-1.0 component. */
 function scoreAgentTraceFit(hasUploadedAgentTrace?: boolean, agentWrappedScore?: number | null): number {
   if (!hasUploadedAgentTrace) return 0;
-  let score = 0.65;
+  let score = 0.2;
   if (typeof agentWrappedScore === 'number') {
-    score += Math.min(0.35, agentWrappedScore / 100 * 0.35);
+    score += Math.min(0.15, (agentWrappedScore / 100) * 0.15);
   }
-  return Math.min(1, score);
+  return Math.min(0.35, score);
 }
 
 function scoreMissingEvidence(builder: any, projects: any[], opportunity: any): number {
@@ -277,12 +313,16 @@ export function buildCandidateExplanation(params: {
   opportunity: any;
   searchStrategy: { proofSignals: string[] };
   roleSkillTiers?: RoleSkillTiers;
+  githubActivity?: GithubActivitySnapshot | null;
+  sponsorship?: SponsorshipInference | null;
 }): CandidateExplanation {
-  const { builder, projects, components, opportunity, roleSkillTiers } = params;
+  const { builder, projects, components, opportunity, roleSkillTiers, githubActivity, sponsorship } = params;
   const tiers = roleSkillTiers || buildRoleSkillTiers(opportunity);
   const tokens = collectBuilderSkillTokens(builder, projects);
   const primaryHits = matchedSkills(tiers.primarySkills, tokens);
-  const requirementFindings = buildRequirementFindings(opportunity, builder, projects);
+  const requirementFindings = buildRequirementFindings(opportunity, builder, projects, {
+    githubActivityScore: githubActivity?.source === 'github_api' ? githubActivity.score : null,
+  });
   const strongestSignals: string[] = [];
   const concerns: string[] = [];
   const missingEvidence: string[] = [];
@@ -295,7 +335,11 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity >= 0.6) strongestSignals.push('Clear personal contribution on projects');
   if (components.startupReadiness >= 0.6) strongestSignals.push('Strong shipped-project proof');
   if (components.founderPreferenceFit >= 0.75) strongestSignals.push('Matches founder search requirements');
-  if (components.agentTraceFit >= 0.6) strongestSignals.push('Verified agent trace uploaded');
+  if (components.agentTraceFit >= 0.25) strongestSignals.push('Agent Wrapped uploaded');
+  if (components.githubActivityFit >= 0.55) strongestSignals.push('Strong recent GitHub activity');
+  if (components.sponsorshipFit >= 0.85 && opportunityDoesNotSponsor(opportunity)) {
+    strongestSignals.push('Likely authorized without sponsorship');
+  }
   if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
   else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
 
@@ -319,6 +363,12 @@ export function buildCandidateExplanation(params: {
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
   if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
+  if (opportunityAsksGithubActivity(opportunity) && components.githubActivityFit < 0.35) {
+    concerns.push('GitHub activity below the bar for this role');
+  }
+  if (opportunityDoesNotSponsor(opportunity) && sponsorship?.need === 'unknown') {
+    concerns.push('Sponsorship need unknown — confirm work authorization');
+  }
   const unmetMust = requirementFindings.filter((finding) => {
     if (finding.met !== 'no') return false;
     return getSearchRequirements(opportunity).some(
@@ -341,11 +391,22 @@ export function buildCandidateExplanation(params: {
     : missingEvidence.length >= 3 ? 'review_more'
     : 'send_trial';
 
+  const whyTheyMatch = buildConversationAwareWhyTheyMatch({
+    builder,
+    projects,
+    opportunity,
+    components,
+    requirementFindings,
+    sponsorship,
+    githubActivity,
+  });
+
   return {
     strongestSignals: strongestSignals.slice(0, 5),
     concerns: concerns.slice(0, 3),
     missingEvidence: missingEvidence.slice(0, 3),
     requirementFindings: requirementFindings.length ? requirementFindings : undefined,
+    whyTheyMatch,
     bestUseCase: deriveBestUseCase(builder, projects, opportunity),
     recommendedAction,
   };

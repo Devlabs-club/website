@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { OnboardingStepShell } from "./OnboardingStepShell";
+import { fetchEnrichmentJson } from "@/lib/enrichmentFetch";
 import { Building2, Globe, Loader2, MapPin, Plus } from "lucide-react";
 
 const fieldClass =
@@ -82,10 +83,13 @@ export const FounderCompanyReviewPage: React.FC = () => {
     setEnrichingIndex(index);
     setError("");
     try {
-      const res = await fetch("/api/onboarding/founder-company-enrichment", {
+      const { data } = await fetchEnrichmentJson<{
+        success?: boolean;
+        error?: string;
+        company?: Partial<CompanyState> & { logoUrl?: string | null };
+      }>("/api/onboarding/founder-company-enrichment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({
           experienceIndex: index,
           company: experience.company,
@@ -94,8 +98,8 @@ export const FounderCompanyReviewPage: React.FC = () => {
           companyLogoUrl: experience.companyLogoUrl,
           location: experience.location,
         }),
+        timeoutMs: 120_000,
       });
-      const data = await res.json();
       if (data.success) {
         const c = data.company || {};
         setState({
@@ -109,8 +113,8 @@ export const FounderCompanyReviewPage: React.FC = () => {
       } else {
         setError(data.error || "Could not enrich that company.");
       }
-    } catch {
-      setError("Network error. Please try again.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network error. Please try again.");
     } finally {
       setEnrichingIndex(null);
     }

@@ -1,17 +1,22 @@
+import {
+  FOUNDER_COMPANY_SCRAPER_TIMEOUT_MS,
+  requireRemoteLinkedInScraperConfig,
+  runRequiredRemoteLinkedInScraperScript,
+} from '@/lib/remoteLinkedInScraper';
+import { deepResearchCompany } from '@/lib/talent/founderCompanyDeepResearch';
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { findUserById, updateUserAccount } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
-import {
-  requireRemoteLinkedInScraperConfig,
-  runRequiredRemoteLinkedInScraperScript,
-} from '@/lib/remoteLinkedInScraper';
 import FounderProfile from '@/models/talent/FounderProfile';
 import CompanyProfile from '@/models/founder/CompanyProfile';
-import { deepResearchCompany } from '@/lib/talent/founderCompanyDeepResearch';
 
 export const prerender = false;
+
+/** Stay under Vercel maxDuration (300s) with headroom for DB writes + response. */
+const REQUEST_BUDGET_MS = 240_000;
+const DEEP_RESEARCH_BUDGET_MS = 35_000;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -38,6 +43,10 @@ function slugFromCompanyUrl(url: unknown): string | null {
   return match ? match[1] : null;
 }
 
+function remainingMs(startedAt: number, budgetMs = REQUEST_BUDGET_MS) {
+  return Math.max(0, budgetMs - (Date.now() - startedAt));
+}
+
 async function resolveUser(request: Request, locals: App.Locals) {
   const runtime = runtimeEnvFromLocals(locals);
   const token =
@@ -49,16 +58,22 @@ async function resolveUser(request: Request, locals: App.Locals) {
   return { user: await findUserById(decoded.userId, runtime), runtime };
 }
 
-async function runCompanyScript(args: string[], runtime?: Record<string, string | undefined>) {
-  return runRequiredRemoteLinkedInScraperScript('enrich-founder-company-linkedin-cdp.mjs', args, runtime);
+async function runCompanyScript(args: string[], runtime?: Record<string, string | undefined>, timeoutMs?: number) {
+  return runRequiredRemoteLinkedInScraperScript(
+    'enrich-founder-company-linkedin-cdp.mjs',
+    args,
+    runtime,
+    timeoutMs
+  );
 }
 
 /**
  * Enrich a chosen company by opening its LinkedIn About page in the logged-in Chrome
  * (CDP) session — `/company/<username>/about/?viewAsMember=true` — and reading the
- * website + about. No web-search API involved.
+ * website + about. Optional deep research is time-boxed so Vercel never hard-times-out.
  */
 export const POST: APIRoute = async ({ request, locals }) => {
+  const startedAt = Date.now();
   const { user, runtime } = await resolveUser(request, locals);
   if (!user) return json({ success: false, error: 'Please log in to continue.' }, 401);
 
@@ -106,12 +121,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
       `founder-company-${String(user._id)}-${compactKey(companyUsername)}`,
       '--cdp-url',
       cdpUrl,
+      // Keep page wait short — About pages are lighter than profile experience scrapes.
       '--wait-ms',
-      '9000',
+      '5000',
     ];
     if (companyName) scriptArgs.push('--company-name', companyName);
 
-    const { summary, artifact } = await runCompanyScript(scriptArgs, runtime);
+    const scrapeBudget = Math.min(
+      FOUNDER_COMPANY_SCRAPER_TIMEOUT_MS,
+      Math.max(20_000, remainingMs(startedAt) - DEEP_RESEARCH_BUDGET_MS - 10_000)
+    );
+    const { summary, artifact } = await runCompanyScript(scriptArgs, runtime, scrapeBudget);
     const company = artifact?.company || {};
     const name = cleanString(company.name) || companyName || 'My company';
     const website = cleanString(company.website);
@@ -120,28 +140,43 @@ export const POST: APIRoute = async ({ request, locals }) => {
     let description =
       cleanString(company.about) || cleanString(company.description) || '';
     let researchHighlights: string[] = [];
+    let researchSkipped: string | null = null;
 
-    try {
-      const research = await deepResearchCompany({
-        name,
-        website,
-        linkedInUrl,
-        runtime,
-      });
-      if (research.description) {
-        description = research.description;
-        if (research.whatTheyBuild && !description.toLowerCase().includes(research.whatTheyBuild.toLowerCase().slice(0, 20))) {
-          description = `${description} ${research.whatTheyBuild}`.trim();
+    const researchBudget = Math.min(DEEP_RESEARCH_BUDGET_MS, remainingMs(startedAt) - 8_000);
+    if (researchBudget >= 8_000) {
+      try {
+        const research = await deepResearchCompany({
+          name,
+          website,
+          linkedInUrl,
+          runtime,
+          timeoutMs: researchBudget,
+        });
+        if (research.description) {
+          description = research.description;
+          if (
+            research.whatTheyBuild &&
+            !description.toLowerCase().includes(research.whatTheyBuild.toLowerCase().slice(0, 20))
+          ) {
+            description = `${description} ${research.whatTheyBuild}`.trim();
+          }
         }
+        researchHighlights = research.highlights;
+        console.info('[founder-company-enrichment] deep research', {
+          providers: research.searchProviders,
+          highlights: researchHighlights.length,
+          citations: research.citations.length,
+          elapsedMs: Date.now() - startedAt,
+        });
+      } catch (researchErr) {
+        researchSkipped = researchErr instanceof Error ? researchErr.message : 'deep_research_failed';
+        console.warn('[founder-company-enrichment] deep research skipped', researchErr);
       }
-      researchHighlights = research.highlights;
-      console.info('[founder-company-enrichment] deep research', {
-        providers: research.searchProviders,
-        highlights: researchHighlights.length,
-        citations: research.citations.length,
+    } else {
+      researchSkipped = 'skipped_low_time_budget';
+      console.warn('[founder-company-enrichment] deep research skipped — low remaining budget', {
+        remainingMs: remainingMs(startedAt),
       });
-    } catch (researchErr) {
-      console.warn('[founder-company-enrichment] deep research skipped', researchErr);
     }
 
     await CompanyProfile.findOneAndUpdate(
@@ -164,6 +199,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
             founded: cleanString(company.founded),
             specialties: cleanString(company.specialties),
             researchHighlights,
+            researchSkipped,
             warnings: artifact?.warnings || [],
             artifactPath: summary?.outputPath || null,
           },
@@ -183,7 +219,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
           enrichmentStatus: artifact?.warnings?.length ? 'partial' : 'complete',
           enrichedAt: new Date(),
         },
-        $addToSet: { enrichmentSources: { $each: ['company_linkedin_about', 'company_deep_research'] } },
+        $addToSet: {
+          enrichmentSources: {
+            $each: researchSkipped
+              ? ['company_linkedin_about']
+              : ['company_linkedin_about', 'company_deep_research'],
+          },
+        },
       },
       { new: true }
     );
@@ -201,12 +243,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
         logoUrl: cleanString(company.logoUrl) || cleanString(chosen?.companyLogoUrl),
       },
       warnings: artifact?.warnings || [],
+      meta: {
+        elapsedMs: Date.now() - startedAt,
+        researchSkipped,
+      },
     });
   } catch (error) {
     console.error('[founder-company-enrichment] failed', error);
+    const message = error instanceof Error ? error.message : 'Company enrichment failed.';
+    const timedOut = /aborted|timed out|timeout/i.test(message);
     return json(
-      { success: false, error: error instanceof Error ? error.message : 'Company enrichment failed.' },
-      500
+      {
+        success: false,
+        error: timedOut
+          ? 'Company enrichment took too long. Try again, or add the company manually.'
+          : message,
+      },
+      timedOut ? 504 : 500
     );
   }
 };

@@ -23,7 +23,15 @@ export type BuilderProfile = {
   rolePreference?: string[];
   skills?: string[];
   preferredWorkType?: string[];
-  experiences?: Array<{ title: string; company: string; companyLogoUrl?: string | null; dateRange?: string; description?: string; skills?: string[] }>;
+  experiences?: Array<{
+    title: string;
+    company: string;
+    companyLogoUrl?: string | null;
+    location?: string | null;
+    dateRange?: string;
+    description?: string;
+    skills?: string[];
+  }>;
   projects?: Array<{ id: string; projectName: string; description?: string; techStack?: string[]; links?: Record<string, string | null> }>;
   links?: Record<string, string | null>;
   founderHighlights?: Array<{ title?: string; detail?: string; source?: string }>;
@@ -212,8 +220,10 @@ export const BuilderProfileView: React.FC<{
                   <p className={`font-semibold ${founder ? "text-black" : "font-medium"}`}>
                     {exp.title} · {exp.company}
                   </p>
-                  {exp.dateRange ? (
-                    <p className={`mt-1 text-xs ${founder ? "text-black/50" : "text-muted-foreground"}`}>{exp.dateRange}</p>
+                  {[exp.location, exp.dateRange].filter(Boolean).length ? (
+                    <p className={`mt-1 text-xs ${founder ? "text-black/50" : "text-muted-foreground"}`}>
+                      {[exp.location, exp.dateRange].filter(Boolean).join(" · ")}
+                    </p>
                   ) : null}
                 </div>
               </div>

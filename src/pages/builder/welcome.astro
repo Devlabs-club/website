@@ -1,0 +1,16 @@
+---
+import Layout from "@/layouts/Layout.astro";
+import BuilderWelcome from "@/components/builder/BuilderWelcome.astro";
+---
+
+<Layout
+  title="Claim your builder profile · DevLabs"
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  skipSmoothScroll
+>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
+  <BuilderWelcome />
+</Layout>

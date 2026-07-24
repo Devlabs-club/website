@@ -20,8 +20,19 @@ export async function persistDiscoveryCandidates(params: {
   founderEmail: string;
   unlockShortlist?: boolean;
   entitlements?: FounderEntitlements;
+  poolSummary?: Record<string, unknown> | null;
+  poolNarrative?: string | null;
 }) {
-  const { result, opportunityId, opportunity, founderEmail, unlockShortlist = true, entitlements } = params;
+  const {
+    result,
+    opportunityId,
+    opportunity,
+    founderEmail,
+    unlockShortlist = true,
+    entitlements,
+    poolSummary = null,
+    poolNarrative = null,
+  } = params;
   const roleTiers = opportunity ? buildRoleSkillTiers(opportunity) : null;
   const startedAt = Date.now();
   const candidatePayloads = result.candidates.map((candidate) => ({
@@ -30,7 +41,8 @@ export async function persistDiscoveryCandidates(params: {
     matchScore: Math.round(candidate.overallFit * 100),
     matchLabel: candidate.matchLabel,
     status: 'generated',
-    reasoning: candidate.explanation.strongestSignals.join('; '),
+    reasoning:
+      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
     requirementFindings: candidate.explanation.requirementFindings || [],
     evidence: buildMatchEvidenceFromExplanation({
       strongestSignals: candidate.explanation.strongestSignals,
@@ -84,7 +96,9 @@ export async function persistDiscoveryCandidates(params: {
         ? domainSkillsMatched
         : candidate.builder.rolePreference?.slice(0, 4) || [],
       proofSummary: candidate.explanation.strongestSignals[0] || '',
-      whyTheyMatch: candidate.explanation.strongestSignals.join('; '),
+      whyTheyMatch:
+        candidate.explanation.whyTheyMatch ||
+        candidate.explanation.strongestSignals.join('; '),
       requirementFindings: candidate.explanation.requirementFindings || [],
     };
   });
@@ -118,6 +132,8 @@ export async function persistDiscoveryCandidates(params: {
               sourceBadges: ['Claude Code', 'Codex', 'GitHub', 'Portfolio', 'LinkedIn'],
             }
           : {},
+        poolSummary,
+        poolNarrative,
         candidates: candidatesWithIds,
         previewGeneratedAt: new Date(),
         ...(unlockShortlist ? { unlocked: true, unlockedAt: new Date() } : {}),

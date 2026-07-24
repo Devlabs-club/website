@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 const FounderBillingAccountSchema = new mongoose.Schema(
   {
-    founderId: { type: String, required: true, index: true },
-    founderEmail: { type: String, required: true, lowercase: true, trim: true, index: true },
+    founderId: { type: String, required: true },
+    founderEmail: { type: String, required: true, lowercase: true, trim: true },
     plan: {
       type: String,
       enum: ['free', 'growth', 'custom'],

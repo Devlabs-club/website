@@ -25,13 +25,25 @@ export type CompiledRequirement = {
   /** Terms to add to retrieval (index / semantic / keyword). */
   retrievalTerms: string[];
   rationale: string;
+  /** Deterministic requirement checks that must not be narrowed by model output. */
+  predicate?: 'internship_experience' | 'work_experience' | 'project_experience' | 'role_relevance' | null;
+};
+
+export type RoleEvidencePlan = {
+  /** Role concepts that require project or experience evidence, never skills alone. */
+  anchorConcepts: string[];
+  /** Helpful concepts that strengthen anchored evidence but cannot qualify a candidate alone. */
+  supportingConcepts: string[];
+  minimumAnchorMatches: number;
+  minimumTotalMatches: number;
 };
 
 export type SearchPlan = {
-  version: 1;
+  version: 2;
   sourceHash: string;
   compiledAt: string;
   requirements: CompiledRequirement[];
+  roleEvidence: RoleEvidencePlan;
   /** Flattened retrieval terms across all requirements. */
   retrievalTerms: string[];
   compiledBy: 'llm' | 'fallback';
@@ -84,7 +96,7 @@ export function hashSearchRequirements(requirements: SearchRequirement[]): strin
 
 export function getCachedSearchPlan(opportunity: any): SearchPlan | null {
   const plan = opportunity?.searchPlan;
-  if (!plan || plan.version !== 1 || !Array.isArray(plan.requirements)) return null;
+  if (!plan || plan.version !== 2 || !Array.isArray(plan.requirements)) return null;
   const requirements = getSearchRequirements(opportunity);
   if (!requirements.length) return null;
   if (plan.sourceHash !== hashSearchRequirements(requirements)) return null;
@@ -115,6 +127,15 @@ function defaultEvidenceFields(mode: CompiledRequirement['mode']): SearchPlanEvi
   }
 }
 
+function requirementPredicate(text: string): CompiledRequirement['predicate'] {
+  const lower = text.toLowerCase();
+  if (/\bintern(ship)?\b|\bco[-\s]?op\b/.test(lower)) return 'internship_experience';
+  if (/\b(previous|prior|past)\b.*\bwork experience\b|\bprofessional experience\b/.test(lower)) return 'work_experience';
+  if (/\b(previous|prior|past)\b.*\bprojects?\b|\bproject experience\b/.test(lower)) return 'project_experience';
+  if (/\brelevant\b.*\b(experiences?|background|work|projects?)\b/.test(lower)) return 'role_relevance';
+  return null;
+}
+
 /** Lexical fallback when OpenRouter is unavailable — no hardcoded company lists. */
 export function buildFallbackSearchPlan(opportunity: any): SearchPlan {
   const requirements = getSearchRequirements(opportunity);
@@ -134,11 +155,21 @@ export function buildFallbackSearchPlan(opportunity: any): SearchPlan {
       evidenceFields: defaultEvidenceFields(mode),
       retrievalTerms: uniqueStrings([requirement.text, ...tokens.slice(0, 8)], 12),
       rationale: 'Fallback lexical expansion (LLM compile unavailable).',
+      predicate: requirementPredicate(requirement.text),
     } satisfies CompiledRequirement;
   });
 
   return {
-    version: 1,
+    version: 2,
+    roleEvidence: sanitizeRoleEvidence(
+      {
+        anchorConcepts: [opportunity?.roleTitle, ...(opportunity?.skillsNeeded || [])],
+        supportingConcepts: opportunity?.skillsNeeded || [],
+        minimumAnchorMatches: 1,
+        minimumTotalMatches: 2,
+      },
+      opportunity
+    ),
     sourceHash: hashSearchRequirements(requirements),
     compiledAt: new Date().toISOString(),
     requirements: compiled,
@@ -192,6 +223,37 @@ function sanitizeCompiledRequirement(
     evidenceFields: evidenceFields.length ? evidenceFields : defaultEvidenceFields(mode),
     retrievalTerms,
     rationale: String(raw?.rationale || '').slice(0, 200) || 'Compiled from founder requirement.',
+    predicate: requirementPredicate(fallback.text),
+  };
+}
+
+function sanitizeRoleEvidence(raw: any, opportunity: any): RoleEvidencePlan {
+  const rawAnchors = uniqueStrings(
+    [
+      ...(Array.isArray(raw?.anchorConcepts) ? raw.anchorConcepts : [opportunity?.roleTitle]),
+      // Explicit founder skills are role evidence anchors unless they are
+      // generic languages (filtered below). A model must not silently demote
+      // a required domain skill such as Verilog to a mere nice-to-have.
+      ...(opportunity?.skillsNeeded || []),
+    ]
+      .map((value: unknown) => String(value || '').slice(0, 80)),
+    20
+  );
+  // General-purpose languages help rank a qualified candidate but are too common
+  // to prove that their past work is relevant to a role on their own.
+  const genericLanguages = new Set(['c', 'c++', 'c#', 'java', 'python', 'javascript', 'typescript', 'go', 'ruby', 'php', 'rust']);
+  const anchors = rawAnchors.filter((term) => !genericLanguages.has(norm(term)));
+  const supportingConcepts = uniqueStrings(
+    (Array.isArray(raw?.supportingConcepts) ? raw.supportingConcepts : opportunity?.skillsNeeded || [])
+      .map((value: unknown) => String(value || '').slice(0, 80)),
+    20
+  ).concat(rawAnchors.filter((term) => genericLanguages.has(norm(term))))
+    .filter((term, index, all) => !anchors.some((anchor) => norm(anchor) === norm(term)) && all.findIndex((value) => norm(value) === norm(term)) === index);
+  return {
+    anchorConcepts: anchors,
+    supportingConcepts,
+    minimumAnchorMatches: Math.max(1, Math.min(3, Number(raw?.minimumAnchorMatches) || 1)),
+    minimumTotalMatches: Math.max(1, Math.min(5, Number(raw?.minimumTotalMatches) || 2)),
   };
 }
 
@@ -203,7 +265,8 @@ export async function compileSearchPlan(opportunity: any): Promise<SearchPlan> {
   const requirements = getSearchRequirements(opportunity);
   if (!requirements.length) {
     return {
-      version: 1,
+      version: 2,
+      roleEvidence: { anchorConcepts: [], supportingConcepts: [], minimumAnchorMatches: 1, minimumTotalMatches: 1 },
       sourceHash: hashSearchRequirements([]),
       compiledAt: new Date().toISOString(),
       requirements: [],
@@ -230,7 +293,9 @@ Rules:
 - evidenceFields: which profile areas to check. Use only: experiences.company, experiences.title, experiences.description, education.school, education.field, headline, bio, skills, rolePreference, projects.
 - mode: literal | category | skill | project_evidence | school | other
 - Do not drop the original requirement text from matchAnyOf/retrievalTerms.
-Return ONLY valid JSON: {"requirements":[{"text":"...","mode":"...","matchAnyOf":["..."],"matchHints":["..."],"evidenceFields":["..."],"retrievalTerms":["..."],"rationale":"..."}]}`;
+- Also return roleEvidence derived from the complete role. anchorConcepts prove relevant work only when found in an experience or project. supportingConcepts can strengthen a match but can never qualify a candidate alone. Include adjacent domain evidence, not just literal title words.
+- Never narrow an explicit founder requirement. "internship experience" means an internship/co-op record of any kind unless the founder explicitly specifies its domain.
+Return ONLY valid JSON: {"roleEvidence":{"anchorConcepts":["..."],"supportingConcepts":["..."],"minimumAnchorMatches":1,"minimumTotalMatches":2},"requirements":[{"text":"...","mode":"...","matchAnyOf":["..."],"matchHints":["..."],"evidenceFields":["..."],"retrievalTerms":["..."],"rationale":"..."}]}`;
 
   const userPrompt = JSON.stringify({
     roleTitle: opportunity.roleTitle || opportunity.title || null,
@@ -263,7 +328,8 @@ Return ONLY valid JSON: {"requirements":[{"text":"...","mode":"...","matchAnyOf"
     );
 
     return {
-      version: 1,
+      version: 2,
+      roleEvidence: sanitizeRoleEvidence(parsed?.roleEvidence, opportunity),
       sourceHash: hashSearchRequirements(requirements),
       compiledAt: new Date().toISOString(),
       requirements: compiled,
@@ -281,5 +347,9 @@ Return ONLY valid JSON: {"requirements":[{"text":"...","mode":"...","matchAnyOf"
 
 export function getPlanRetrievalTerms(plan: SearchPlan | null | undefined): string[] {
   if (!plan) return [];
-  return uniqueStrings(plan.retrievalTerms || [], 40);
+  return uniqueStrings([
+    ...(plan.retrievalTerms || []),
+    ...(plan.roleEvidence?.anchorConcepts || []),
+    ...(plan.roleEvidence?.supportingConcepts || []),
+  ], 40);
 }

@@ -37,7 +37,8 @@ function shortlistCandidateFromDiscovery(
       ? domainSkillsMatched
       : candidate.builder.rolePreference?.slice(0, 4) || [],
     proofSummary: candidate.explanation.strongestSignals[0] || '',
-    whyTheyMatch: candidate.explanation.strongestSignals.join('; '),
+    whyTheyMatch:
+      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
     requirementFindings: candidate.explanation.requirementFindings || [],
   };
 }
@@ -158,7 +159,8 @@ export async function repairShortlistMissingBuilders(params: {
     matchScore: Math.round(candidate.overallFit * 100),
     matchLabel: candidate.matchLabel,
     status: 'generated',
-    reasoning: candidate.explanation.strongestSignals.join('; '),
+    reasoning:
+      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
     requirementFindings: candidate.explanation.requirementFindings || [],
     evidence: buildMatchEvidenceFromExplanation({
       strongestSignals: candidate.explanation.strongestSignals,

@@ -23,7 +23,10 @@ export const GET: APIRoute = async ({ url, locals }) => {
   }
 
   await connectAdminDB();
-  const report = await AgentWrappedReportModel.findOne({ builderId })
+  const report = await AgentWrappedReportModel.findOne({
+    builderId,
+    source: 'uploaded_agent_usage',
+  })
     .sort({ createdAt: -1 })
     .select('reportId createdAt')
     .lean() as any;
