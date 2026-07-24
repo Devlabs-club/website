@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DevLabs Pitch Deck — Editable</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap");
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Manrope, Helvetica, Arial, sans-serif; background: #111; color: #050505; }
+      [data-document-role="page"] {
+        width: 1920px;
+        height: 1080px;
+        position: relative;
+        overflow: hidden;
+        background: #fbf6f3;
+        padding: 64px 80px;
+      }
+      .dark { background: #0d0d0d; color: #fff; }
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: rgba(0,0,0,0.4);
+        margin-bottom: 36px;
+      }
+      .dark .label-row { color: rgba(255,255,255,0.4); }
+      .num { color: #bf4f08; }
+      .dark .num { color: #ff7417; }
+      h1, h2 {
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.95;
+        font-size: 72px;
+      }
+      .orange { color: #ff7417; }
+      .sub {
+        margin-top: 28px;
+        font-size: 28px;
+        font-weight: 500;
+        color: rgba(0,0,0,0.55);
+        max-width: 900px;
+        line-height: 1.35;
+      }
+      .dark .sub { color: rgba(255,255,255,0.65); }
+      .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 36px; }
+      .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 36px; }
+      .box {
+        border: 1px solid rgba(0,0,0,0.12);
+        background: #fffaf7;
+        padding: 28px 32px;
+      }
+      .box-strong { border: 2px solid #000; background: #fff; padding: 32px 36px; }
+      .stat { font-size: 40px; font-weight: 800; color: #ff7417; letter-spacing: -0.04em; }
+      .stat-label { margin-top: 10px; font-size: 20px; font-weight: 500; color: rgba(0,0,0,0.55); }
+      .panel-label {
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #bf4f08;
+        margin-bottom: 20px;
+      }
+      .list { list-style: none; }
+      .list li {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 14px;
+      }
+      .dot { width: 12px; height: 12px; margin-top: 12px; background: #ff7417; flex-shrink: 0; }
+      .dot-muted { background: rgba(0,0,0,0.2); }
+      .strike { color: rgba(0,0,0,0.4); text-decoration: line-through; }
+      .black-panel {
+        border: 2px solid #000;
+        background: #1a1a1a;
+        color: #fff;
+        padding: 40px;
+      }
+      .sage-panel {
+        border: 2px solid #000;
+        background: #c6d99b;
+        color: #20311d;
+        padding: 40px;
+      }
+      .panel-title { font-size: 36px; font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; margin: 18px 0; }
+      .panel-body { font-size: 22px; font-weight: 500; opacity: 0.7; line-height: 1.4; }
+      .metric {
+        border: 2px solid #000;
+        padding: 36px;
+        min-height: 240px;
+      }
+      .metric.orange { background: #ff7417; color: #fff; }
+      .metric.black { background: #1a1a1a; color: #fff; }
+      .metric.sage { background: #c6d99b; color: #20311d; }
+      .metric .big { font-size: 96px; font-weight: 800; letter-spacing: -0.07em; line-height: 1; }
+      .metric .cap {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+      .center {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .brand {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #bf4f08;
+        margin: 28px 0 24px;
+      }
+      .logo {
+        width: 96px;
+        height: 96px;
+        object-fit: contain;
+      }
+      .search-frame {
+        margin-top: 28px;
+        border: 3px solid #168df7;
+        background: #cfe6e9;
+        padding: 28px;
+      }
+      .search-inner {
+        border: 2px solid #000;
+        background: #fff;
+        padding: 24px;
+      }
+      .chip {
+        display: inline-block;
+        border: 1px solid rgba(255,116,23,0.6);
+        background: #fff5ef;
+        color: #bf4f08;
+        padding: 8px 12px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+      .query {
+        border: 1px solid #000;
+        padding: 18px 20px;
+        font-size: 26px;
+        font-weight: 500;
+        margin-bottom: 20px;
+      }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .card {
+        border: 1px solid rgba(0,0,0,0.15);
+        background: #fffaf7;
+        padding: 18px;
+      }
+      .card h3 { font-size: 22px; font-weight: 800; }
+      .card .role {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(0,0,0,0.38);
+        margin-top: 4px;
+      }
+      .match { color: #bf4f08; font-weight: 800; font-size: 20px; }
+      .meta { margin-top: 10px; font-size: 16px; color: rgba(0,0,0,0.55); }
+      .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; border-top: 1px solid rgba(0,0,0,0.07); border-bottom: 1px solid rgba(0,0,0,0.07); padding: 12px 0; }
+      .nums strong { display: block; font-size: 22px; font-weight: 800; }
+      .nums span { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.38); }
+      .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+      .tag {
+        border: 1px solid rgba(255,116,23,0.35);
+        background: #fff5ef;
+        color: #bf4f08;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 4px 8px;
+      }
+      .sponsors {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        border: 1px solid rgba(0,0,0,0.1);
+        background: #f4f1ed;
+        padding: 20px;
+      }
+      .sponsor {
+        background: #fffaf7;
+        border: 1px solid rgba(0,0,0,0.08);
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      .eq {
+        margin-top: 24px;
+        border: 2px solid #000;
+        background: #fff;
+        padding: 28px;
+      }
+      .eq-row {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1.1fr;
+        gap: 12px;
+        align-items: stretch;
+      }
+      .eq-cell { border: 1px solid rgba(0,0,0,0.1); background: #fffaf7; padding: 22px; }
+      .eq-dark { border: 2px solid #000; background: #1a1a1a; color: #fff; padding: 22px; }
+      .op { display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 900; color: #ff7417; }
+      .funnel { margin-top: 18px; border: 2px solid #000; background: #fffaf7; padding: 24px; }
+      .layer { border: 2px solid #000; padding: 18px 24px; margin: 0 auto 10px; }
+      .layer.som { width: 58%; background: #ff7417; color: #fff; }
+      .layer.sam { width: 78%; background: #1a1a1a; color: #fff; }
+      .layer.tam { width: 100%; background: #c6d99b; color: #20311d; }
+      .layer .tier { font-size: 14px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.8; }
+      .layer .val { font-size: 48px; font-weight: 800; letter-spacing: -0.06em; margin-top: 4px; }
+      .growth {
+        margin-top: 16px;
+        border: 1px solid rgba(0,0,0,0.12);
+        background: #fff;
+        padding: 22px;
+      }
+      .growth-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+      .growth-cell { border: 1px solid rgba(0,0,0,0.1); background: #fffaf7; padding: 18px; }
+      .growth-cell .y { font-size: 14px; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(0,0,0,0.35); }
+      .growth-cell .arr { font-size: 36px; font-weight: 800; letter-spacing: -0.05em; margin-top: 10px; }
+      .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 40px; max-width: 900px; text-align: left; }
+      .compare .a { border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); padding: 32px; }
+      .compare .b { border: 1px solid rgba(255,116,23,0.5); background: rgba(255,116,23,0.1); padding: 32px; }
+      .compare .lab { font-size: 16px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.35); }
+      .compare .b .lab { color: #ff7417; }
+      .compare p { margin-top: 16px; font-size: 28px; font-weight: 600; line-height: 1.3; }
+    </style>
+  </head>
+  <body>
+    <!-- 01 Intro -->
+    <section data-document-role="page" data-label="01 Intro">
+      <div class="center">
+        <img class="logo" src="https://www.devlabs.club/logo.png" alt="DevLabs" />
+        <p class="brand">DevLabs</p>
+        <h1>Hire <strong>builders</strong><br />who can actually <strong>ship</strong></h1>
+        <p class="sub" style="text-align:center;max-width:720px;">The talent platform that replaces resumes with proof.</p>
+      </div>
+    </section>
+
+    <!-- 02 Problem -->
+    <section data-document-role="page" data-label="02 Problem">
+      <div class="label-row"><span>Problem</span><span class="num">02</span></div>
+      <h2>Hiring through resumes is broken.<br /><span class="orange">You need people who can ship.</span></h2>
+      <div class="grid3">
+        <div class="box"><div class="stat">6–10 wks</div><div class="stat-label">Avg. time to fill a founding engineer role</div></div>
+        <div class="box"><div class="stat">$50–150K</div><div class="stat-label">Founder opportunity cost per long search</div></div>
+        <div class="box"><div class="stat">1 bad hire</div><div class="stat-label">Can burn a seed round’s runway</div></div>
+      </div>
+      <p class="sub">With DevLabs, we look for the right signals.</p>
+      <div class="grid2">
+        <div class="box-strong">
+          <div class="panel-label">Look for</div>
+          <ul class="list">
+            <li><span class="dot"></span>Code quality</li>
+            <li><span class="dot"></span>Past projects</li>
+            <li><span class="dot"></span>Hackathon performance</li>
+            <li><span class="dot"></span>Social presence</li>
+            <li><span class="dot"></span>AI agent traces</li>
+            <li><span class="dot"></span>Products they shipped</li>
+          </ul>
+        </div>
+        <div class="box">
+          <div class="panel-label" style="color:rgba(0,0,0,0.35)">Not your</div>
+          <ul class="list">
+            <li><span class="dot dot-muted"></span><span class="strike">Ivy League</span></li>
+            <li><span class="dot dot-muted"></span><span class="strike">Big tech experience</span></li>
+            <li><span class="dot dot-muted"></span><span class="strike">GPA</span></li>
+            <li><span class="dot dot-muted"></span><span class="strike">Resume polish</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 Moat -->
+    <section data-document-role="page" data-label="03 Moat">
+      <div class="label-row"><span>Moat</span><span class="num">03</span></div>
+      <h2>We don't scrape the web for talent.<br /><span class="orange">We attract them.</span></h2>
+      <p class="sub">Proprietary signal compounds with every event — a data moat LinkedIn and job boards cannot buy.</p>
+      <div class="grid2" style="margin-top:48px;">
+        <div class="black-panel">
+          <div class="panel-label" style="color:#ff7417">Community</div>
+          <div class="panel-title">Our community is the engine that produces the data.</div>
+          <div class="panel-body">Builders opt in, ship in public, and leave a trail of proof — not another scraped profile.</div>
+        </div>
+        <div class="sage-panel">
+          <div class="panel-label" style="color:rgba(32,49,29,0.7)">Events</div>
+          <div class="panel-title">Events are where builders prove themselves and get hired.</div>
+          <div class="panel-body">Hackathons, houses, and demo days turn raw ambition into observable signal.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 Product -->
+    <section data-document-role="page" data-label="04 Product">
+      <div class="label-row"><span>Product</span><span class="num">04</span></div>
+      <div style="display:flex;justify-content:space-between;gap:40px;align-items:flex-end;">
+        <h2 style="max-width:1100px;">Tell DevLabs what you need.<br />Get builders with the right signals.</h2>
+        <p class="sub" style="margin:0;text-align:right;max-width:420px;">Unlike LinkedIn or resume databases, matches are ranked on shipped work — not keywords.</p>
+      </div>
+      <div class="search-frame">
+        <div class="search-inner">
+          <div class="chip">✦ Builder search</div>
+          <div class="query">Find a developer who has experience in stripe integration</div>
+          <div class="cards">
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;"><div><h3>Isha R.</h3><div class="role">Full-stack</div></div><div class="match">96%</div></div>
+              <div class="meta">ex-Google</div>
+              <div class="nums"><div><strong>9.2</strong><span>Ship</span></div><div><strong>7</strong><span>Shipped</span></div><div><strong>4</strong><span>Sources</span></div></div>
+              <div class="tags"><span class="tag">Stripe Connect</span><span class="tag">Live billing</span><span class="tag">Hackathon finalist</span></div>
+            </div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;"><div><h3>Dev P.</h3><div class="role">Payments</div></div><div class="match">93%</div></div>
+              <div class="meta">ex-Amazon</div>
+              <div class="nums"><div><strong>8.8</strong><span>Ship</span></div><div><strong>5</strong><span>Shipped</span></div><div><strong>3</strong><span>Sources</span></div></div>
+              <div class="tags"><span class="tag">Checkout flows</span><span class="tag">Webhook reliability</span><span class="tag">Shipped products</span></div>
+            </div>
+            <div class="card">
+              <div style="display:flex;justify-content:space-between;"><div><h3>Maya T.</h3><div class="role">Full-stack</div></div><div class="match">94%</div></div>
+              <div class="meta">ex-Stripe</div>
+              <div class="nums"><div><strong>9.0</strong><span>Ship</span></div><div><strong>8</strong><span>Shipped</span></div><div><strong>4</strong><span>Sources</span></div></div>
+              <div class="tags"><span class="tag">Agent traces</span><span class="tag">Prod apps</span><span class="tag">Event winner</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 Traction -->
+    <section data-document-role="page" data-label="05 Traction">
+      <div class="label-row"><span>Traction</span><span class="num">05</span></div>
+      <h2>Builders already get hired<br />through DevLabs.</h2>
+      <p class="sub">Proof before scale — community flywheel already producing hires.</p>
+      <div class="grid3" style="margin-top:40px;">
+        <div class="metric orange"><div class="big">1500+</div><div class="cap">Builders in the talent pool</div></div>
+        <div class="metric black"><div class="big">4+</div><div class="cap">Companies hired</div></div>
+        <div class="metric sage"><div class="big">12+</div><div class="cap">Events hosted</div></div>
+      </div>
+      <p class="panel-label" style="margin-top:36px;color:rgba(0,0,0,0.4)">Worked with and sponsored by</p>
+      <div class="sponsors">
+        <div class="sponsor">Antler</div>
+        <div class="sponsor">Google DeepMind</div>
+        <div class="sponsor">AWS</div>
+        <div class="sponsor">Browser Use</div>
+        <div class="sponsor">Supermemory</div>
+        <div class="sponsor">Stripe</div>
+        <div class="sponsor">TinyFish</div>
+        <div class="sponsor">Dodo Payments</div>
+      </div>
+    </section>
+
+    <!-- 06 Market -->
+    <section data-document-role="page" data-label="06 Market">
+      <div class="label-row"><span>Market</span><span class="num">06</span></div>
+      <h2 style="font-size:56px;">Simple math.<br /><span class="orange">Clear path to scale.</span></h2>
+      <p class="sub" style="font-size:22px;margin-top:16px;">Start where the pain is sharpest — Seed startups — then expand.</p>
+      <div class="eq">
+        <div class="panel-label">How we size the market</div>
+        <div class="eq-row">
+          <div class="eq-cell"><div class="stat">10K</div><div style="font-weight:800;margin-top:8px;">Startups hiring engineers</div><div class="stat-label" style="font-size:16px;">US Seed &amp; Series A companies filling technical roles each year.</div></div>
+          <div class="op">×</div>
+          <div class="eq-cell"><div class="stat">$8K</div><div style="font-weight:800;margin-top:8px;">Revenue per company / year</div><div class="stat-label" style="font-size:16px;">Blended ACV from subscriptions + success fees on hires.</div></div>
+          <div class="op" style="color:rgba(0,0,0,0.3)">=</div>
+          <div class="eq-dark"><div class="stat">$80M</div><div style="font-weight:800;margin-top:8px;">SAM</div><div class="stat-label" style="font-size:16px;color:rgba(255,255,255,0.5)">10,000 × $8K = serviceable market with today's product.</div></div>
+        </div>
+      </div>
+      <div class="funnel">
+        <div class="panel-label">Expansion path</div>
+        <div class="layer som"><div class="tier">SOM</div><div class="val">$6M</div><div>What we can win by Y5 — 750 companies × $8K (~7.5% of SAM)</div></div>
+        <div class="layer sam"><div class="tier">SAM</div><div class="val">$80M</div><div>What we can serve today — 10K startups × $8K</div></div>
+        <div class="layer tam"><div class="tier">TAM</div><div class="val">$750M</div><div>Where the category goes — 50K companies × $15K</div></div>
+      </div>
+      <div class="growth">
+        <div class="panel-label">Expected growth</div>
+        <div style="font-weight:800;font-size:22px;">Conservative ramp to $6M SOM</div>
+        <div class="growth-row">
+          <div class="growth-cell"><div class="y">Y1</div><div class="arr">$0.3M</div><div class="stat-label">40 companies</div></div>
+          <div class="growth-cell"><div class="y">Y2</div><div class="arr">$1.0M</div><div class="stat-label">120 companies</div></div>
+          <div class="growth-cell"><div class="y">Y3</div><div class="arr">$2.4M</div><div class="stat-label">300 companies</div></div>
+          <div class="growth-cell"><div class="y">Y5</div><div class="arr">$6.0M</div><div class="stat-label">750 companies</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 Vision -->
+    <section data-document-role="page" data-label="07 Vision" class="dark">
+      <div class="label-row"><span>Vision</span><span class="num">07</span></div>
+      <div class="center" style="padding-top:40px;">
+        <img class="logo" src="https://www.devlabs.club/logo.png" alt="" style="filter:brightness(0) invert(1);" />
+        <h2 style="margin-top:36px;color:#fff;">Stop hiring<br />from resumes.</h2>
+        <p class="sub" style="text-align:center;">Today, DevLabs helps startups find builders who can actually ship.</p>
+        <div class="compare">
+          <div class="a">
+            <div class="lab">LinkedIn</div>
+            <p>Tells companies where someone has been.</p>
+          </div>
+          <div class="b">
+            <div class="lab">DevLabs</div>
+            <p>Will tell them what that person can do.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>
