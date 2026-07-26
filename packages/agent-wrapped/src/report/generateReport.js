@@ -184,16 +184,25 @@ export function generateReport({ builderId, builderName, samples, usage = null, 
 
   const fallbackTime = computeTimeInvested(samples);
   const timeInvested = usage?.activeHours
-    ? {
-        totalHours: usage.activeHours.allTime,
-        longestSessionMinutes: fallbackTime.longestSessionMinutes,
-        estimated: Boolean(usage.activeHours.estimated),
-        sessionFiles: usage.sessions?.allTime ?? fallbackTime.sessionFiles,
-        timedSessionFiles: usage.sessions?.allTime ?? fallbackTime.timedSessionFiles,
-        daysCovered: fallbackTime.daysCovered,
-        method: usage.activeHours.method || 'active_gap',
-        last30Hours: usage.activeHours.last30,
-      }
+    ? (() => {
+        const totalMinutes = Math.max(0, Math.round((usage.activeHours.allTime || 0) * 60));
+        const activeLongest = Math.round(usage.activeHours.longestSessionMinutes || 0);
+        const longestSessionMinutes = Math.min(
+          4 * 60,
+          activeLongest > 0 ? activeLongest : totalMinutes,
+          totalMinutes > 0 ? totalMinutes : activeLongest || 1,
+        );
+        return {
+          totalHours: usage.activeHours.allTime,
+          longestSessionMinutes: Math.max(1, longestSessionMinutes),
+          estimated: Boolean(usage.activeHours.estimated),
+          sessionFiles: usage.sessions?.allTime ?? fallbackTime.sessionFiles,
+          timedSessionFiles: usage.sessions?.allTime ?? fallbackTime.timedSessionFiles,
+          daysCovered: fallbackTime.daysCovered,
+          method: usage.activeHours.method || 'active_gap',
+          last30Hours: usage.activeHours.last30,
+        };
+      })()
     : fallbackTime;
   const agentSplit = usage?.tokens?.byAgent?.length
     ? usage.tokens.byAgent

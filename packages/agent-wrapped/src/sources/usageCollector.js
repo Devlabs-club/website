@@ -392,6 +392,7 @@ function rollupAgent(bucket, agentLabel, windowStartMs, options = {}) {
   let last30Ms = 0;
   let allTimeSessions = 0;
   let last30Sessions = 0;
+  let longestSessionMs = 0;
   let input = 0;
   let output = 0;
   let cacheRead = 0;
@@ -413,6 +414,7 @@ function rollupAgent(bucket, agentLabel, windowStartMs, options = {}) {
 
     allTimeMs += durationMs;
     allTimeSessions += 1;
+    if (durationMs > longestSessionMs) longestSessionMs = durationMs;
     if (inWindow) {
       last30Ms += durationMs;
       last30Sessions += 1;
@@ -472,6 +474,7 @@ function rollupAgent(bucket, agentLabel, windowStartMs, options = {}) {
     last30Hours: last30Ms / 3_600_000,
     allTimeSessions,
     last30Sessions,
+    longestSessionMs,
     tokens: {
       work: input + output,
       cache: cacheRead + cacheWrite,
@@ -524,6 +527,7 @@ export async function collectUsageTelemetry() {
   let last30Hours = 0;
   let allTimeSessions = 0;
   let last30Sessions = 0;
+  let longestSessionMs = 0;
   let work = 0;
   let cache = 0;
   let costUsd = 0;
@@ -541,6 +545,7 @@ export async function collectUsageTelemetry() {
     last30Hours += roll.last30Hours;
     allTimeSessions += roll.allTimeSessions;
     last30Sessions += roll.last30Sessions;
+    if (roll.longestSessionMs > longestSessionMs) longestSessionMs = roll.longestSessionMs;
     work += roll.tokens.work;
     cache += roll.tokens.cache;
     costUsd += roll.costUsd;
@@ -609,6 +614,7 @@ export async function collectUsageTelemetry() {
     activeHours: {
       last30: Math.round(last30Hours * 10) / 10,
       allTime: Math.round(allTimeHours * 10) / 10,
+      longestSessionMinutes: Math.max(1, Math.round(longestSessionMs / 60_000)),
       estimated: false,
       method: 'active_gap',
       gapMinutes: MAX_ACTIVE_GAP_MINUTES,

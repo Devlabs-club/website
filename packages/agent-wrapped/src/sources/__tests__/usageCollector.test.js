@@ -68,7 +68,13 @@ test('generateReport attaches usage aggregates', async () => {
   const usage = {
     schemaVersion: 1,
     windowDays: 30,
-    activeHours: { last30: 12.5, allTime: 404, estimated: false, method: 'active_gap' },
+    activeHours: {
+      last30: 12.5,
+      allTime: 404,
+      longestSessionMinutes: 95,
+      estimated: false,
+      method: 'active_gap',
+    },
     sessions: { last30: 20, allTime: 120 },
     tokens: {
       total: 2_000_000_000,
@@ -99,10 +105,11 @@ test('generateReport attaches usage aggregates', async () => {
   assert.equal(report.usage.activeHours.allTime, 404);
   assert.equal(report.timeInvested.totalHours, 404);
   assert.equal(report.timeInvested.last30Hours, 12.5);
+  assert.equal(report.timeInvested.longestSessionMinutes, 95);
   assert.equal(report.timeInvested.method, 'active_gap');
   assert.equal(report.usage.tokens.total, 2_000_000_000);
   assert.equal(report.usage.models[0].id, 'Opus');
   assert.equal(report.usage.rhythm.peakHour, 13);
-  assert.equal(report.localAnalysisVersion, '0.4.1');
+  assert.equal(report.localAnalysisVersion, '0.4.2');
   assert.match(report.sourceCoverage.confidenceNotes.join(' '), /Methodology/);
 });

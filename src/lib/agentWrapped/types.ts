@@ -10,6 +10,7 @@ export type AgentWrappedUsage = {
     last30: number;
     allTime: number;
     estimated: boolean;
+    longestSessionMinutes?: number;
     method?: string;
     gapMinutes?: number;
     cursorSqlite?: boolean;

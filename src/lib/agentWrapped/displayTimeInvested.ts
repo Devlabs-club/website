@@ -2,7 +2,7 @@ import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { getReportUsage } from '@/lib/agentWrapped/usageDisplay';
 
 const MAX_ACTIVE_HOURS_PER_DAY = 10;
-const MAX_SESSION_MINUTES_FOR_DISPLAY = 6 * 60;
+const MAX_SESSION_MINUTES_FOR_DISPLAY = 4 * 60; // matches active-gap session cap
 
 /**
  * Prefer active-gap telemetry when present.
@@ -32,15 +32,26 @@ export function resolveDisplayTimeInvested(report: AgentWrappedReport): {
   if (usage?.activeHours) {
     const totalHours = usage.activeHours.allTime > 0 ? usage.activeHours.allTime : 0;
     const last30Hours = usage.activeHours.last30 > 0 ? usage.activeHours.last30 : 0;
+    const displayHours = last30Hours > 0 ? last30Hours : totalHours;
     const insufficient = totalHours <= 0 && last30Hours <= 0;
-    const rawLongest = report.timeInvested?.longestSessionMinutes || 0;
+    const totalMinutes = Math.max(0, Math.round(displayHours * 60));
+    const rawLongest =
+      usage.activeHours.longestSessionMinutes ||
+      report.timeInvested?.longestSessionMinutes ||
+      0;
+    // Never show a session longer than the hours headline (fixes wall-clock leftovers).
+    const longestSessionMinutes = insufficient
+      ? 0
+      : Math.min(
+          MAX_SESSION_MINUTES_FOR_DISPLAY,
+          totalMinutes > 0 ? totalMinutes : MAX_SESSION_MINUTES_FOR_DISPLAY,
+          rawLongest > 0 ? rawLongest : totalMinutes || 1,
+        );
+
     return {
       totalHours,
       last30Hours,
-      longestSessionMinutes: Math.min(
-        MAX_SESSION_MINUTES_FOR_DISPLAY,
-        rawLongest > 0 ? rawLongest : Math.min(MAX_SESSION_MINUTES_FOR_DISPLAY, 60)
-      ),
+      longestSessionMinutes: Math.max(insufficient ? 0 : 1, longestSessionMinutes),
       sessionCount: sessionCount || 0,
       estimated: Boolean(usage.activeHours.estimated),
       capped: false,
@@ -82,17 +93,19 @@ export function resolveDisplayTimeInvested(report: AgentWrappedReport): {
     capped = true;
   }
 
+  const totalMinutes = Math.round(totalHours * 60);
   const longestSessionMinutes = Math.min(
     MAX_SESSION_MINUTES_FOR_DISPLAY,
+    totalMinutes,
     raw.longestSessionMinutes > 0
       ? raw.longestSessionMinutes
-      : Math.min(MAX_SESSION_MINUTES_FOR_DISPLAY, Math.round((totalHours * 60) / safeSessions))
+      : Math.min(MAX_SESSION_MINUTES_FOR_DISPLAY, Math.round(totalMinutes / safeSessions) || 1)
   );
 
   return {
     totalHours,
     last30Hours: typeof raw.last30Hours === 'number' ? raw.last30Hours : null,
-    longestSessionMinutes,
+    longestSessionMinutes: Math.max(1, longestSessionMinutes),
     sessionCount: sessionCount || safeSessions,
     estimated: capped || raw.estimated !== false,
     capped,
@@ -118,9 +131,10 @@ export function hoursSupportLine(hours: number, options?: { last30?: number | nu
     const months = Math.max(1, Math.round(hours / (24 * 30)));
     return months === 1 ? "that's about a month of build time" : `that's about ${months} months of build time`;
   }
-  const days = hours / 24;
-  if (days < 1) return 'almost a full day of agent time';
-  const rounded = Math.max(1, Math.round(days));
-  if (rounded === 1) return 'almost 1 day of agent time';
-  return `that's about ${rounded} days of agent time`;
+  if (hours >= 20) return 'almost a full day of agent time';
+  if (hours >= 8) return "that's about a full work day of agent time";
+  if (hours >= 3) return "that's a solid afternoon of agent time";
+  if (hours >= 1) return "that's a focused stretch of agent time";
+  if (hours > 0) return 'active time from local agent logs';
+  return 'from local agent logs';
 }
