@@ -1,29 +1,42 @@
-# devlabs-talent
+# devlabs-talent (Buildprint)
 
-Builder-level local analyzer for DevLabs Agent Wrapped.
+Builder-level local analyzer for **DevLabs Buildprint** — your building habits, backed by proof.
 
 ```bash
 npx devlabs-talent@latest analyze --token <verified-upload-token>
 ```
 
-Version 0.2.0 adds the trace fields required by the Wrapped story cards:
-- `timeInvested` from session timestamps
-- `agentSplit` across Claude Code, Codex, and Cursor
-- `identities` for the final reveal card
+## What it measures (methodology `buildprint-0.3.0`)
 
-Use `--color` to force the DevLabs terminal theme when recording or screenshotting output:
+**Observed facts** (from local Claude Code / Codex / Cursor summaries and configs):
+
+- Substantial sessions (length, duration, or multi-signal activity — not config noise)
+- Project bucket diversity (hashed locally; raw paths never uploaded)
+- Product / backend / systems / test / recovery session counts
+- Context artifacts (rules, agents.md, settings)
+- Agent family coverage and time invested
+
+**Normalized signals** use diminishing returns. Keyword spam alone does not produce a high score.
+
+**Earned identities** come from a curated catalog (Product Shipper, Debugging Closer, Full-Stack Owner, …). Titles are never invented by an LLM. Identities require minimum evidence. Agent Orchestrator is deferred until multi-agent overlap telemetry is reliable.
+
+**Evidence Strength** (`emerging` → `exceptional`) describes evidence amount and reliability — not a universal “Founder Fit” quality score.
+
+**Proof language** only states defensible facts, e.g. “Verification activity appeared in 18 of 24 substantial sessions,” not unverifiable success rates.
+
+## Preview & privacy
+
+Use `--color` for the DevLabs terminal theme. The CLI shows a preview before upload and never uploads raw prompts, conversations, source code, secrets, env vars, full paths, or private filenames.
 
 ```bash
-npx devlabs-talent@latest analyze --token <verified-upload-token> --color
+npx devlabs-talent@latest analyze --token <token> --color
 ```
 
-After a successful upload, the CLI opens the shareable Wrapped URL in your default browser.
-Use `--no-open` to disable that behavior.
+After upload, the CLI opens the shareable Wrapped/Buildprint URL. Use `--no-open` to disable.
 
-The upload API defaults to `https://www.devlabs.club`, and the browser opens the public
-Wrapped URL on `https://www.devlabs.club` by default. Use `--api` only for non-production
-upload testing, and `--public-url` only if the public web host changes.
+Defaults: upload API and public URL `https://www.devlabs.club`. Override with `--api`, `--public-url`, or `DEVLABS_API_URL` / `DEVLABS_PUBLIC_URL`.
 
-The CLI scans safe local AI-agent usage sources across Claude Code, Codex, Cursor, and optional exported summaries. It shows a preview before upload and never uploads raw prompts, raw conversations, source code, secrets, environment variables, full local paths, or private filenames.
+## Campaign naming
 
-Set `DEVLABS_API_URL` to test against a non-production DevLabs app.
+- **Buildprint** — permanent professional artifact
+- **Agent Wrapped / Builder Wrapped** — campaign experience and public URL path (`/builder/wrapped/:id`)

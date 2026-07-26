@@ -1,3 +1,5 @@
+import type { BuilderBuildprint } from './buildprintTypes';
+
 export type AgentWrappedConfidence = 'low' | 'moderate' | 'high';
 
 export type AgentWrappedReport = {
@@ -6,7 +8,9 @@ export type AgentWrappedReport = {
   builderName?: string;
   builderHandle?: string;
   archetype: string;
+  /** @deprecated Legacy Founder Fit — do not show publicly. Prefer buildprint.evidenceStrength. */
   score: number;
+  /** @deprecated Fake local percentile — omit for Buildprint reports. */
   percentile?: number;
   confidence: AgentWrappedConfidence;
   source: 'uploaded_agent_usage';
@@ -87,6 +91,9 @@ export type AgentWrappedReport = {
     tagline: string;
     score: number;
   }[];
+  /** Buildprint artifact (methodology buildprint-0.3.0+). Absent on legacy Wrapped reports. */
+  buildprint?: BuilderBuildprint;
+  localAnalysisVersion?: string;
 };
 
 export type UploadAgentWrappedReportRequest = {

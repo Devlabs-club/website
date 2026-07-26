@@ -67,6 +67,13 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
     return json({ ok: false, error: 'builder_mismatch' }, 403);
   }
 
+  const methodologyVersion =
+    (report as any).buildprint?.methodologyVersion || body.localAnalysisVersion || null;
+  const selectedPublicIdentityId =
+    (report as any).buildprint?.selectedPublicIdentityId ||
+    (report as any).buildprint?.primaryIdentityId ||
+    null;
+
   const saved = await AgentWrappedReportModel.findOneAndUpdate(
     { builderId: body.builderId, reportId: report.reportId },
     {
@@ -75,6 +82,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
         reportId: report.reportId,
         report,
         localAnalysisVersion: body.localAnalysisVersion || null,
+        methodologyVersion,
+        selectedPublicIdentityId,
         source: 'uploaded_agent_usage',
         sourceCoverage: report.sourceCoverage || {},
         consent: {

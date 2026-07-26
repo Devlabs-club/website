@@ -40,7 +40,7 @@ export const StoryCardShell: React.FC<{
       <div
         className="pointer-events-none absolute inset-0 mix-blend-overlay"
         style={{
-          opacity: theme.lightOverlays ? 0.2 : 0.48,
+          opacity: theme.lightOverlays ? 0.08 : 0.48,
           backgroundImage:
             'radial-gradient(circle at center, rgba(255,255,255,0.72) 0 1px, transparent 1.4px)',
           backgroundSize: '5px 5px',
@@ -49,14 +49,15 @@ export const StoryCardShell: React.FC<{
       <div
         className="pointer-events-none absolute inset-0 mix-blend-screen"
         style={{
-          opacity: theme.lightOverlays ? 0.08 : 0.18,
+          opacity: theme.lightOverlays ? 0.03 : 0.18,
           backgroundImage:
             'linear-gradient(0deg, transparent 0 46%, rgba(255,255,255,0.46) 50%, transparent 54%)',
           backgroundSize: '100% 6px',
         }}
       />
-      <GrainOverlay opacity={theme.lightOverlays ? 0.1 : 0.22} />
+      <GrainOverlay opacity={theme.lightOverlays ? 0.04 : 0.22} />
 
+      {/* Decorations sit behind copy on light cards so text/CTAs stay readable. */}
       <motion.img
         src={SWOOSH_SRC}
         alt=""
@@ -64,17 +65,9 @@ export const StoryCardShell: React.FC<{
         initial={reduceMotion ? false : { opacity: 0, scale: 0.92, x: -16, y: -12 }}
         animate={reduceMotion ? undefined : { opacity: 0.92, scale: 1, x: 0, y: 0 }}
         transition={{ delay: 0.12, duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
-        className="pointer-events-none absolute -left-[22%] -top-[14%] z-20 h-80 w-[128%] max-w-none object-contain object-left-top mix-blend-screen sm:-left-[24%] sm:-top-[16%] sm:h-96"
-      />
-
-      <motion.img
-        src="/logo.png"
-        alt="DevLabs"
-        initial={reduceMotion ? false : { opacity: 0, scale: 0.72, rotate: -8 }}
-        animate={reduceMotion ? undefined : { opacity: 1, scale: 1, rotate: 0 }}
-        transition={{ delay: 0.22, duration: 0.45 }}
-        className="absolute right-7 top-7 z-20 h-8 w-8 object-contain brightness-0 invert sm:h-9 sm:w-9"
-        draggable={false}
+        className={`pointer-events-none absolute -left-[22%] -top-[14%] h-80 w-[128%] max-w-none object-contain object-left-top sm:-left-[24%] sm:-top-[16%] sm:h-96 ${
+          theme.lightOverlays ? 'z-[5] mix-blend-multiply opacity-55' : 'z-20 mix-blend-screen'
+        }`}
       />
 
       <motion.img
@@ -84,18 +77,36 @@ export const StoryCardShell: React.FC<{
         initial={reduceMotion ? false : { opacity: 0, x: 18 }}
         animate={reduceMotion ? undefined : { opacity: 0.92, x: 0 }}
         transition={{ delay: 0.35, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="pointer-events-none absolute bottom-10 right-0 z-20 h-10 w-44 translate-x-2/3 object-contain object-right mix-blend-screen sm:bottom-10 sm:h-12 sm:w-52"
+        className={`pointer-events-none absolute bottom-10 right-0 h-10 w-44 translate-x-2/3 object-contain object-right sm:bottom-10 sm:h-12 sm:w-52 ${
+          theme.lightOverlays ? 'z-[5] opacity-55 mix-blend-multiply' : 'z-20 mix-blend-screen'
+        }`}
       />
 
-      <div className="absolute bottom-10 left-6 z-20 font-gatwick text-[1.15rem] font-bold tracking-wide text-white sm:left-7">
-        {index}/{total}
-      </div>
-
       <div
-        className={`absolute inset-0 z-10 ${contentClassName}`}
+        className={`absolute inset-0 ${theme.lightOverlays ? 'z-20' : 'z-10'} ${contentClassName}`}
         style={{ paddingLeft: '8.6%', paddingRight: '8.6%', paddingTop: '8.5%', paddingBottom: '14.5%' }}
       >
         {children}
+      </div>
+
+      <motion.img
+        src="/logo.png"
+        alt="DevLabs"
+        initial={reduceMotion ? false : { opacity: 0, scale: 0.72, rotate: -8 }}
+        animate={reduceMotion ? undefined : { opacity: 1, scale: 1, rotate: 0 }}
+        transition={{ delay: 0.22, duration: 0.45 }}
+        className={`absolute right-7 top-7 z-30 h-8 w-8 object-contain sm:h-9 sm:w-9 ${
+          theme.lightOverlays ? 'brightness-0' : 'brightness-0 invert'
+        }`}
+        draggable={false}
+      />
+
+      <div
+        className={`absolute bottom-10 left-6 z-30 font-gatwick text-[1.15rem] font-bold tracking-wide sm:left-7 ${
+          theme.lightOverlays ? 'text-[#14110f]/70' : 'text-white'
+        }`}
+      >
+        {index}/{total}
       </div>
     </div>
   );

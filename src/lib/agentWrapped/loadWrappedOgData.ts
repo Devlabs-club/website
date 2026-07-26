@@ -3,7 +3,14 @@ import { connectAdminDB } from '@/lib/mongodb';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
-import { CARD_ORDER, CARD_THEMES, type WrappedCardKey } from '@/components/builder/wrapped/theme';
+import {
+  getPublicCardLine,
+  getPublicHeadline,
+  getPublicIdentity,
+} from '@/lib/agentWrapped/legacyWrappedAdapter';
+import { OWNER_CARD_ORDER, CARD_THEMES, type WrappedCardKey } from '@/components/builder/wrapped/theme';
+
+const OG_CARD_ORDER: WrappedCardKey[] = OWNER_CARD_ORDER;
 
 export type WrappedOgCardPreview = {
   key: WrappedCardKey;
@@ -38,9 +45,14 @@ function peekForKey(
     case 'agents':
       return { peekLabel: 'Top agent', peekValue: topAgent };
     case 'identity':
-      return { peekLabel: 'Archetype', peekValue: report.archetype || 'Builder' };
+      return {
+        peekLabel: 'Buildprint',
+        peekValue: getPublicHeadline(report),
+      };
+    case 'convert':
+      return { peekLabel: 'Buildprint', peekValue: 'Get yours' };
     default:
-      return { peekLabel: 'Wrapped', peekValue: `Score ${score}` };
+      return { peekLabel: 'Buildprint', peekValue: getPublicHeadline(report) };
   }
 }
 
@@ -62,7 +74,8 @@ const CARD_LABELS: Record<WrappedCardKey, string> = {
   stack: 'Your Stack',
   buildSurface: 'Your Power Stack',
   agents: 'Multi-Agent',
-  identity: 'Final Reveal',
+  identity: 'Buildprint',
+  convert: 'Get yours',
 };
 
 function cardTitleForKey(key: WrappedCardKey, report: AgentWrappedReport, topLanguage: string, topAgent: string, totalHours: number) {
@@ -78,9 +91,11 @@ function cardTitleForKey(key: WrappedCardKey, report: AgentWrappedReport, topLan
     case 'agents':
       return topAgent;
     case 'identity':
-      return report.archetype || 'Builder';
+      return getPublicHeadline(report);
+    case 'convert':
+      return 'Get your Buildprint';
     default:
-      return 'Wrapped';
+      return 'Buildprint';
   }
 }
 
@@ -122,13 +137,15 @@ export async function loadWrappedOgData(builderId: string, _origin: string): Pro
     report.timeInvested?.totalHours && report.timeInvested.totalHours > 0
       ? report.timeInvested.totalHours
       : Math.max(24, Math.round(sessionCount * 1.45));
+  const identity = getPublicIdentity(report);
   const headline =
+    getPublicCardLine(report).slice(0, 120) ||
     report.founderRead?.summary?.slice(0, 120) ||
     profile.headline ||
-    'Proof-of-work builder on DevLabs';
+    'Building habits backed by proof on DevLabs';
 
   const score = Math.round(report.score || 0);
-  const cardPreviews: WrappedOgCardPreview[] = CARD_ORDER.map((key) => {
+  const cardPreviews: WrappedOgCardPreview[] = OG_CARD_ORDER.map((key) => {
     const peek = peekForKey(key, report, topLanguage, topAgent, totalHours, score);
     return {
       key,
@@ -143,7 +160,7 @@ export async function loadWrappedOgData(builderId: string, _origin: string): Pro
 
   return {
     builderName,
-    archetype: report.archetype || 'Builder',
+    archetype: identity?.label || report.archetype || 'Builder',
     score,
     headline,
     topLanguage,

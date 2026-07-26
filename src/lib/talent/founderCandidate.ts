@@ -24,6 +24,7 @@ export type AgentTraceTeaserPayload = {
   archetype?: string | null;
   wrappedScore?: number | null;
   bestFitRoles?: string[];
+  evidenceStrength?: string | null;
   /** Optional punchy project + tech one-liner — only when proof is genuinely strong. */
   projectHighlight?: string | null;
   roleFitTrace?: RoleFitTracePayload | null;
@@ -505,7 +506,9 @@ function buildLockedTraceDetails(params: {
         ...(report.evidenceHighlights || []).map((item) => `Agent evidence: ${truncateAtWord(item, 110)}`),
         ...(report.founderRead?.strengths || []).map((item) => `Strength: ${truncateAtWord(item, 100)}`),
         ...(report.founderRead?.riskFlags || []).map((item) => `Risk to validate: ${truncateAtWord(item, 96)}`),
-        ...(report.founderRead?.bestFitRoles || []).map((item) => `Best-fit role signal: ${truncateAtWord(item, 82)}`),
+        ...((report.buildprint?.earnedIdentities || []).map((item) => item.label) || []).map(
+          (item) => `Earned identity: ${truncateAtWord(item, 82)}`
+        ),
         report.validation?.buildTestLoops ? `${report.validation.buildTestLoops} build/test loops found in agent usage` : null,
         report.validation?.errorRecoveryLoops ? `${report.validation.errorRecoveryLoops} error-recovery loops found` : null,
         report.agentMaturity?.blindAcceptanceRisk
@@ -575,18 +578,25 @@ function buildAgentTraceFromWrapped(
     ...(builder.links?.linkedin ? ['LinkedIn'] : []),
     ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
   ];
-  const sourceBadges = [...new Set(['Agent Wrapped', ...agents, ...profileBadges])].slice(0, 6);
+  const sourceBadges = [...new Set(['Buildprint', ...agents, ...profileBadges])].slice(0, 6);
+  const publicIdentity =
+    report.buildprint?.earnedIdentities?.find(
+      (item) => item.id === (report.buildprint?.selectedPublicIdentityId || report.buildprint?.primaryIdentityId)
+    )?.label || report.archetype;
+  const evidenceStrength = report.buildprint?.evidenceStrength;
 
   const visibleInsight = firstSentence(
-    report.founderRead?.summary || report.evidenceHighlights?.[0],
-    `${report.archetype || 'Builder'} — verified agent usage with ${agents.length || 'multiple'} agent source${agents.length === 1 ? '' : 's'}.`
+    report.buildprint?.earnedIdentities?.[0]?.proofStatement ||
+      report.founderRead?.summary ||
+      report.evidenceHighlights?.[0],
+    `${publicIdentity || 'Builder'} — verified agent usage with ${agents.length || 'multiple'} agent source${agents.length === 1 ? '' : 's'}.`
   );
 
   const quantifiedSignals = [
-    typeof report.score === 'number' ? `Founder fit ${report.score}/100` : null,
-    report.validation?.buildTestLoops ? `${report.validation.buildTestLoops} build/test loops` : null,
+    evidenceStrength ? `Evidence ${evidenceStrength}` : null,
+    report.validation?.buildTestLoops ? `${report.validation.buildTestLoops} sessions with test/verify activity` : null,
     report.agentMaturity?.verificationScore != null
-      ? `Verification ${Math.round(report.agentMaturity.verificationScore / 10)}/10`
+      ? `Verification signal ${Math.round(report.agentMaturity.verificationScore)}`
       : null,
     agents.length ? `${agents.length} agent tool${agents.length === 1 ? '' : 's'}` : null,
     `${Math.round(base.matchScore || 0)}% role match`,
@@ -594,10 +604,12 @@ function buildAgentTraceFromWrapped(
     .filter(Boolean)
     .slice(0, 4) as string[];
 
+  const earnedLabels = (report.buildprint?.earnedIdentities || []).map((item) => item.label).slice(0, 3);
+
   return enrichAgentTrace(
     {
       locked,
-      label: report.archetype || 'Agent Wrapped uploaded',
+      label: publicIdentity || 'Buildprint uploaded',
       sourceBadges,
       visibleInsight,
       quantifiedSignals,
@@ -605,9 +617,10 @@ function buildAgentTraceFromWrapped(
         ? buildLockedTraceDetails({ report, projects, base, builder, match, shortlistCandidate })
         : [],
       hasAgentWrapped: true,
-      archetype: report.archetype || null,
-      wrappedScore: typeof report.score === 'number' ? report.score : null,
-      bestFitRoles: (report.founderRead?.bestFitRoles || []).slice(0, 3),
+      archetype: publicIdentity || null,
+      wrappedScore: null,
+      bestFitRoles: earnedLabels,
+      evidenceStrength: evidenceStrength || null,
     },
     {
       report,
@@ -636,6 +649,7 @@ function mergeAgentTraceTeaser(
     archetype: wrapped.archetype,
     wrappedScore: wrapped.wrappedScore,
     bestFitRoles: wrapped.bestFitRoles?.length ? wrapped.bestFitRoles : primary.bestFitRoles,
+    evidenceStrength: wrapped.evidenceStrength || primary.evidenceStrength || null,
     projectHighlight: primary.projectHighlight || wrapped.projectHighlight || null,
   };
 }
@@ -1244,7 +1258,7 @@ export async function buildFullCandidatesForShortlist(
           ? { report: wrappedDoc.report as AgentWrappedReport, doc: wrappedDoc }
           : null,
         threadId,
-        builderEmail: builder.email || null,
+        builderEmail: (builder as { email?: string | null }).email || null,
         hasBuilderReply: builderReplyCount > 0,
         lastEmailPreview: thread?.lastMessagePreview || null,
       });

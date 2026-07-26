@@ -174,11 +174,22 @@ export function buildRoleFitTrace(params: {
       alignmentScore -= 10;
     }
 
-    const bestFit = report.founderRead?.bestFitRoles || [];
-    const roleLower = norm(roleTitle);
-    if (bestFit.some((r) => norm(r).includes(roleLower) || roleLower.includes(norm(r)))) {
-      relevantSignals.push(`Archetype aligns with ${roleTitle}`);
-      alignmentScore += 10;
+    // Buildprint: use earned public identity label for soft signal only (no hardcoded-role bonus).
+    const publicIdentity =
+      report.buildprint?.earnedIdentities?.find(
+        (item: any) => item.id === (report.buildprint?.selectedPublicIdentityId || report.buildprint?.primaryIdentityId)
+      )?.label || report.archetype;
+    if (publicIdentity && roleTitle) {
+      const roleLower = norm(roleTitle);
+      const identityLower = norm(publicIdentity);
+      if (identityLower.includes(roleLower) || roleLower.includes(identityLower.split(' ')[0] || '')) {
+        relevantSignals.push(`${publicIdentity} identity relates to ${roleTitle}`);
+        alignmentScore += 4;
+      }
+    }
+    if (report.buildprint?.evidenceStrength === 'verified' || report.buildprint?.evidenceStrength === 'exceptional') {
+      relevantSignals.push(`Evidence strength: ${report.buildprint.evidenceStrength}`);
+      alignmentScore += 3;
     }
   } else {
     const projectStack = new Set(

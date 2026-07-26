@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUpRight, CheckCircle2, Clipboard, Loader2, RefreshCw } from 'lucide-react';
+import { trackBuildprintEvent } from '@/lib/analytics/buildprintFunnel';
+import { loadBuildprintAttr } from '@/lib/agentWrapped/buildprintAttribution';
 
 export type MessageDelivery =
   | { status: 'sent'; providerMessageId?: string | null }
@@ -41,6 +43,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
   const [delivery, setDelivery] = useState<MessageDelivery | null>(messageDelivery || null);
   const [uploaded, setUploaded] = useState(false);
   const [error, setError] = useState('');
+  const trackedUpload = useRef(false);
 
   const statusUrl = useMemo(() => {
     const params = new URLSearchParams({ builderId, token: uploadToken });
@@ -54,8 +57,22 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
       const res = await fetch(statusUrl, { credentials: 'include' });
       const data = await readJson(res);
       if (!res.ok || !data.ok) throw new Error(data.error || 'Could not check trace status.');
-      setUploaded(Boolean(data.uploaded));
-      if (data.uploaded && autoCompleteOnUploaded) await onComplete();
+      const isUploaded = Boolean(data.uploaded);
+      setUploaded(isUploaded);
+      if (isUploaded && !trackedUpload.current) {
+        trackedUpload.current = true;
+        const attr = loadBuildprintAttr();
+        trackBuildprintEvent('buildprint_analysis_uploaded', {
+          builderId,
+          sourceBuilderId: attr?.sourceBuilderId,
+          referringBuildprintId: attr?.referringBuildprintId,
+          ctaPlacement: attr?.ctaPlacement,
+          channel: attr?.channel,
+          methodologyVersion: attr?.methodologyVersion,
+        });
+        trackBuildprintEvent('buildprint_published', { builderId });
+      }
+      if (isUploaded && autoCompleteOnUploaded) await onComplete();
       else if (!silent) setError('No uploaded report yet. Run the command, approve the preview, then check again.');
     } catch (err) {
       if (!silent) setError(err instanceof Error ? err.message : 'Could not check trace status.');
@@ -75,6 +92,10 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
+      trackBuildprintEvent('buildprint_command_copied', {
+        builderId,
+        ...loadBuildprintAttr(),
+      });
       window.setTimeout(() => setCopied(false), 2200);
     } catch {
       setError('Could not copy automatically. Select the command and copy it manually.');
@@ -107,7 +128,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
       {uploaded ? (
         <div className="mb-8 flex items-center gap-2 text-sm font-semibold text-[#20311d]">
           <CheckCircle2 className="h-4 w-4 text-[#ff7417]" />
-          Agent Wrapped uploaded — continuing…
+          AI Wrapped uploaded — continuing…
         </div>
       ) : null}
 
@@ -221,7 +242,7 @@ export const AgentTraceSetup: React.FC<AgentTraceSetupProps> = ({
 
         {!uploaded ? (
           <p className="mt-5 max-w-xl text-xs leading-5 text-black/40">
-            Required before your profile goes live — Agent Wrapped reflects how you ship with AI across all your work, not one project.
+            Required before your profile goes live — AI Wrapped reflects how you ship with AI across all your work, not one project.
           </p>
         ) : null}
       </section>

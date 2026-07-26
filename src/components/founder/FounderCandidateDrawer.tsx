@@ -272,7 +272,7 @@ export default function FounderCandidateDrawer({
               <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                 <h3 className="text-xs uppercase tracking-wider text-[#ffb580]">
                   {candidate.teasers.agentTrace.hasAgentWrapped
-                    ? 'Agent Wrapped'
+                    ? 'AI Wrapped'
                     : candidate.teasers.agentTrace.locked
                       ? 'Agent trace preview'
                       : 'Agent trace'}
@@ -281,9 +281,13 @@ export default function FounderCandidateDrawer({
                   {candidate.teasers.agentTrace.hasAgentWrapped ? (
                     <span className="rounded-full bg-[#fa7d22]/15 px-2 py-0.5 text-[10px] font-semibold text-[#ffb580]">Uploaded</span>
                   ) : null}
-                  {typeof candidate.teasers.agentTrace.wrappedScore === 'number' ? (
+                  {candidate.teasers.agentTrace.evidenceStrength ? (
+                    <span className="text-[10px] font-semibold capitalize text-[#ffb580]">
+                      Evidence {candidate.teasers.agentTrace.evidenceStrength}
+                    </span>
+                  ) : typeof candidate.teasers.agentTrace.wrappedScore === 'number' ? (
                     <span className="text-[10px] font-semibold text-[#ffb580]">
-                      Founder fit {candidate.teasers.agentTrace.wrappedScore}/100
+                      Score {candidate.teasers.agentTrace.wrappedScore}/100
                     </span>
                   ) : null}
                   <span className="text-[10px] text-white/35">{candidate.teasers.agentTrace.label}</span>
@@ -307,7 +311,7 @@ export default function FounderCandidateDrawer({
               ) : null}
               {candidate.teasers.agentTrace.bestFitRoles?.length ? (
                 <p className="mb-2 text-xs text-white/55">
-                  Best fit: {candidate.teasers.agentTrace.bestFitRoles.join(' · ')}
+                  Identities: {candidate.teasers.agentTrace.bestFitRoles.join(' · ')}
                 </p>
               ) : null}
               {candidate.teasers.agentTrace.projectHighlight ? (

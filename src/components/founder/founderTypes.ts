@@ -147,6 +147,7 @@ export type FullCandidate = {
       archetype?: string | null;
       wrappedScore?: number | null;
       bestFitRoles?: string[];
+      evidenceStrength?: string | null;
       projectHighlight?: string | null;
       roleFitTrace?: {
         alignmentScore: number;

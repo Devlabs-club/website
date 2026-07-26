@@ -13,6 +13,7 @@ export type AgentTraceTeaser = {
   archetype?: string | null;
   wrappedScore?: number | null;
   bestFitRoles?: string[];
+  evidenceStrength?: string | null;
   projectHighlight?: string | null;
   roleFitTrace?: RoleFitTracePayload | null;
   traceFreshness?: {
@@ -36,7 +37,7 @@ export const AgentTraceTeaserSection: React.FC<Props> = ({ teaser, compact, onEx
   <section className={`rounded-2xl border border-[#ec9149]/30 bg-[#fff7ef] ${compact ? 'p-3' : 'p-4 mb-6'}`}>
     <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
       <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#9a4f0c]">
-        {teaser.hasAgentWrapped ? 'Agent Wrapped' : teaser.locked ? 'Agent trace preview' : 'Agent trace'}
+        {teaser.hasAgentWrapped ? 'AI Wrapped' : teaser.locked ? 'Agent trace preview' : 'Agent trace'}
       </h3>
       <div className="flex flex-wrap items-center gap-2">
         {teaser.hasAgentWrapped ? (
@@ -48,9 +49,9 @@ export const AgentTraceTeaserSection: React.FC<Props> = ({ teaser, compact, onEx
             Profile estimate
           </span>
         )}
-        {typeof teaser.wrappedScore === 'number' ? (
-          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
-            Founder fit {teaser.wrappedScore}/100
+        {teaser.evidenceStrength ? (
+          <span className="rounded-full border border-[#ec9149]/30 bg-white px-2 py-0.5 text-[10px] font-semibold capitalize text-[#9a4f0c]">
+            Evidence {teaser.evidenceStrength}
           </span>
         ) : null}
         {teaser.traceFreshness?.label ? (
@@ -93,7 +94,7 @@ export const AgentTraceTeaserSection: React.FC<Props> = ({ teaser, compact, onEx
 
     {teaser.bestFitRoles?.length ? (
       <p className={`mb-2 text-black/70 ${compact ? 'text-[11px]' : 'text-xs'}`}>
-        Best fit: {teaser.bestFitRoles.join(' · ')}
+        Identities: {teaser.bestFitRoles.join(' · ')}
       </p>
     ) : null}
 

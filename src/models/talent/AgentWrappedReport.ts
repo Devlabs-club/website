@@ -6,6 +6,9 @@ const AgentWrappedReportSchema = new mongoose.Schema(
     reportId: { type: String, required: true, index: true },
     report: { type: mongoose.Schema.Types.Mixed, required: true },
     localAnalysisVersion: { type: String, default: null },
+    methodologyVersion: { type: String, default: null },
+    selectedPublicIdentityId: { type: String, default: null },
+    acquisitionSource: { type: mongoose.Schema.Types.Mixed, default: null },
     source: {
       type: String,
       enum: ['uploaded_agent_usage'],

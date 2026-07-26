@@ -62,7 +62,7 @@ export const StackCard: React.FC<{ report: AgentWrappedReport; index: number; to
                 initial={{ opacity: 0, x: i % 2 ? 26 : -26, rotate: i === 1 ? -2 : 1 }}
                 animate={{ opacity: 1, x: 0, rotate: i === 1 ? -2 : 1 }}
                 transition={{ delay: 0.12 + i * 0.1, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-                className={`shrink-0 max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-gatwick font-black leading-tight text-white ${heroTextSize(tech, i)} ${
+                className={`shrink-0 max-w-full font-gatwick font-black leading-[0.95] text-white [overflow-wrap:anywhere] ${heroTextSize(tech, i)} ${
                   i === 1 ? 'ml-[8%]' : ''
                 }`}
                 style={{
@@ -92,7 +92,7 @@ export const StackCard: React.FC<{ report: AgentWrappedReport; index: number; to
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.48 + groupIndex * 0.1 + i * 0.06, duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                      className="inline-flex max-w-[9.25rem] overflow-hidden text-ellipsis whitespace-nowrap rounded-full border border-white/70 bg-black/35 px-3 py-1.5 text-[0.78rem] font-black text-white shadow-[5px_5px_0_rgba(250,125,34,0.75)] sm:text-sm"
+                      className="inline-flex max-w-full rounded-full border border-white/70 bg-black/35 px-3 py-1.5 text-[0.78rem] font-black leading-snug text-white shadow-[5px_5px_0_rgba(250,125,34,0.75)] [overflow-wrap:anywhere] sm:text-sm"
                     >
                       {item}
                     </motion.span>

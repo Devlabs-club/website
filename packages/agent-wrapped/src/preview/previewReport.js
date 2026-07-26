@@ -69,22 +69,13 @@ function printMetricRows(rows, theme) {
   }
 }
 
-function riskLine(report, theme) {
-  const risk = report.agentMaturity?.blindAcceptanceRisk || 'moderate';
-  if (risk === 'low') return theme.green('✓ Low blind-acceptance risk');
-  if (risk === 'moderate') return theme.yellow('⚠ Blind-acceptance risk is moderate');
-  return theme.yellow('⚠ Blind-acceptance risk is high');
-}
-
 function section(title, theme) {
   console.log(theme.orange(theme.bold(title)));
 }
 
 export function previewReport(report, sources, options = {}) {
   const theme = makeTheme(options.color);
-  const roles = report.founderRead?.bestFitRoles?.length
-    ? report.founderRead.bestFitRoles
-    : ['Early-stage AI builder'];
+  const bp = report.buildprint;
   const languages = report.languages?.length
     ? report.languages.slice(0, 5)
     : [{ name: 'Unknown', percent: 100 }];
@@ -92,29 +83,70 @@ export function previewReport(report, sources, options = {}) {
     ? report.frameworks.map((framework) => framework.name).slice(0, 8)
     : ['No framework signal yet'];
   const buildSurface = report.buildSurface || {};
-  const signals = [
-    ...(report.founderRead?.strengths || []).slice(0, 3).map((item) => `${theme.green('✓')} ${item}`),
-    riskLine(report, theme),
-  ];
+  const primary =
+    bp?.earnedIdentities?.find((item) => item.id === bp.primaryIdentityId) ||
+    bp?.earnedIdentities?.[0];
 
   console.log('');
   console.log(theme.blue('┌──────────────────────────────────────────────────────────────┐'));
-  console.log(theme.blue('│') + theme.cream(theme.bold('                 DEVLABS AGENT WRAPPED                        ')) + theme.blue('│'));
-  console.log(theme.blue('│') + theme.orange('          verified proof-of-work from agent usage              ') + theme.blue('│'));
+  console.log(theme.blue('│') + theme.cream(theme.bold('                 DEVLABS BUILDPRINT                           ')) + theme.blue('│'));
+  console.log(theme.blue('│') + theme.orange('          your building habits, backed by proof                 ') + theme.blue('│'));
   console.log(theme.blue('└──────────────────────────────────────────────────────────────┘'));
   console.log('');
-  console.log(`          ${theme.cream(theme.bold(String(report.archetype || 'AI-Native Builder').toUpperCase()))}`);
-  console.log('');
-  console.log(`                 ${theme.muted('Founder Fit:')} ${theme.orange(theme.bold(String(report.score).padStart(3)))} ${theme.cream('/ 100')}`);
-  console.log(`                 ${theme.muted('Confidence:')} ${theme.cream(confidenceLabel(report.confidence))}`);
+
+  if (primary) {
+    console.log(`          ${theme.cream(theme.bold(`YOUR BUILDPRINT IS ${primary.label.toUpperCase()}`))}`);
+    console.log('');
+    for (const line of wrappedLines(primary.proofStatement, 64)) {
+      console.log(`  ${theme.cream(line)}`);
+    }
+  } else {
+    console.log(`          ${theme.cream(theme.bold('YOUR BUILDPRINT IS STILL FORMING'))}`);
+    console.log('');
+    for (const line of wrappedLines(bp?.forming?.message || report.founderRead?.summary, 64)) {
+      console.log(`  ${theme.cream(line)}`);
+    }
+  }
   console.log('');
 
-  section('Best Fit', theme);
-  for (const role of roles.slice(0, 4)) console.log(`  ${theme.cream(role)}`);
+  section('Evidence Strength', theme);
+  console.log(
+    `  ${theme.orange(titleCase(bp?.evidenceStrength || 'emerging'))}  ${theme.muted('·')}  ${theme.cream(
+      `Confidence: ${confidenceLabel(bp?.confidence || report.confidence)}`
+    )}`
+  );
   console.log('');
+
+  if (bp?.earnedIdentities?.length) {
+    section('Earned Identities', theme);
+    for (const identity of bp.earnedIdentities.slice(0, 3)) {
+      console.log(`  ${theme.cream(identity.label)} ${theme.muted(`(${identity.score})`)}`);
+    }
+    console.log('');
+  }
+
+  if (primary?.proofMetrics?.length) {
+    section('Proof', theme);
+    for (const metric of primary.proofMetrics.slice(0, 5)) {
+      console.log(`  ${theme.cream(padRight(metric.label, 36))} ${theme.orange(metric.value)}`);
+    }
+    console.log('');
+  }
+
+  if (bp?.nextUnlock) {
+    section('Next Unlock', theme);
+    console.log(`  ${theme.cream(bp.nextUnlock.label)}`);
+    for (const req of (bp.nextUnlock.missingRequirements || []).slice(0, 3)) {
+      console.log(`  ${theme.muted('·')} ${theme.cream(req)}`);
+    }
+    console.log('');
+  }
 
   section('Languages', theme);
-  printMetricRows(languages.map((language) => ({ label: language.name, value: language.percent })), theme);
+  printMetricRows(
+    languages.map((language) => ({ label: language.name, value: language.percent })),
+    theme
+  );
   console.log('');
 
   section('Frameworks', theme);
@@ -122,36 +154,24 @@ export function previewReport(report, sources, options = {}) {
   console.log('');
 
   section('Build Surface', theme);
-  printMetricRows([
-    { label: 'Frontend', value: buildSurface.frontend || 0 },
-    { label: 'Backend', value: buildSurface.backend || 0 },
-    { label: 'Database', value: buildSurface.database || 0 },
-    { label: 'Infra', value: buildSurface.infra || 0 },
-    { label: 'Tests', value: buildSurface.tests || 0 },
-  ], theme);
-  console.log('');
-
-  section('Validation', theme);
-  console.log(`  ${theme.cream(padRight('Build/test loops', 24))} ${theme.orange(report.validation?.buildTestLoops ?? 0)}`);
-  console.log(`  ${theme.cream(padRight('Error recovery loops', 24))} ${theme.orange(report.validation?.errorRecoveryLoops ?? 0)}`);
-  console.log(`  ${theme.cream(padRight('Successful reruns', 24))} ${theme.orange(report.validation?.successfulReruns ?? 0)}`);
-  console.log(`  ${theme.cream(padRight('Test discipline', 24))} ${theme.orange(((report.validation?.testDisciplineScore || 0) / 10).toFixed(1))} ${theme.cream('/ 10')}`);
-  console.log('');
-
-  section('Signal', theme);
-  for (const signal of signals) {
-    for (const line of wrappedLines(signal, 64)) console.log(`  ${theme.cream(line)}`);
-  }
-  console.log('');
-
-  section('Founder Read', theme);
-  for (const line of wrappedLines(report.founderRead?.summary, 64)) console.log(`  ${theme.cream(line)}`);
+  printMetricRows(
+    [
+      { label: 'Frontend', value: buildSurface.frontend || 0 },
+      { label: 'Backend', value: buildSurface.backend || 0 },
+      { label: 'Database', value: buildSurface.database || 0 },
+      { label: 'Infra', value: buildSurface.infra || 0 },
+      { label: 'Tests', value: buildSurface.tests || 0 },
+    ],
+    theme
+  );
   console.log('');
 
   if (report.timeInvested) {
     section('Time Invested', theme);
     console.log(`  ${theme.cream(padRight('Total hours', 24))} ${theme.orange(report.timeInvested.totalHours)}`);
-    console.log(`  ${theme.cream(padRight('Longest session (min)', 24))} ${theme.orange(report.timeInvested.longestSessionMinutes)}`);
+    console.log(
+      `  ${theme.cream(padRight('Longest session (min)', 24))} ${theme.orange(report.timeInvested.longestSessionMinutes)}`
+    );
     console.log('');
   }
 
@@ -163,20 +183,16 @@ export function previewReport(report, sources, options = {}) {
     console.log('');
   }
 
-  if (report.identities?.length) {
-    section('Builder Identity', theme);
-    console.log(`  ${report.identities.map((identity) => theme.cream(identity.name)).join(theme.muted(' · '))}`);
-    console.log('');
-  }
-
   section('Source Coverage', theme);
   console.log(`  ${theme.muted('Agents:')} ${theme.cream(report.sourceCoverage?.agents?.join(', ') || 'Limited')}`);
-  console.log(`  ${theme.muted('Sources:')} ${theme.cream(`${sources.length} source group${sources.length === 1 ? '' : 's'}`)}`);
+  console.log(
+    `  ${theme.muted('Sources:')} ${theme.cream(`${sources.length} source group${sources.length === 1 ? '' : 's'}`)}`
+  );
   console.log('');
 
   section('Will Upload', theme);
-  console.log(`  ${theme.cream('Aggregated language, framework, build-surface, validation,')}`);
-  console.log(`  ${theme.cream('agent-maturity, evidence, and founder-read signals.')}`);
+  console.log(`  ${theme.cream('Aggregated Buildprint identities, evidence strength, stack,')}`);
+  console.log(`  ${theme.cream('proof metrics, and build-surface signals.')}`);
   console.log('');
 
   section('Will NOT Upload', theme);

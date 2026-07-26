@@ -14,9 +14,9 @@ export const CoverCard: React.FC<{ report: AgentWrappedReport; total: number }> 
         className="absolute left-0 right-0 top-[16%]"
       >
         <p className="font-gatwick text-[2.4cqw] font-black uppercase tracking-[0.48em] text-white/75">
-          Builder Wrapped
+          DevLabs AI Wrapped
         </p>
-        <p className="mt-[1.2cqw] max-w-full truncate text-[2.8cqw] font-normal text-white/90">
+        <p className="mt-[1.2cqw] max-w-full text-[2.8cqw] font-normal leading-snug text-white/90 [overflow-wrap:anywhere]">
           {report.builderName || 'DevLabs Builder'}
         </p>
       </motion.div>
@@ -28,12 +28,12 @@ export const CoverCard: React.FC<{ report: AgentWrappedReport; total: number }> 
         className="absolute left-0 right-[4%] top-[40%] -translate-y-1/2"
       >
         <h1 className="max-w-full font-gatwick text-[10.5cqw] font-black leading-[0.95] text-white drop-shadow-[4px_5px_0_rgba(222,32,19,0.72)]">
-          2026
+          how you
           <br />
-          wrapped
+          build
         </h1>
         <p className="mt-[3.5cqw] max-w-[78%] text-[3.1cqw] font-bold leading-[1.35] text-white">
-          your year in prompts, patches, agents, and shipped proof.
+          your building habits, backed by proof from real agent sessions.
         </p>
       </motion.div>
 

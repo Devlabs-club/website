@@ -288,9 +288,10 @@ function scoreStartupReadiness(builder: any, projects: any[]): number {
 /** Uploaded Wrapped is a small bonus only — never a near-1.0 component. */
 function scoreAgentTraceFit(hasUploadedAgentTrace?: boolean, agentWrappedScore?: number | null): number {
   if (!hasUploadedAgentTrace) return 0;
-  let score = 0.2;
-  if (typeof agentWrappedScore === 'number') {
-    score += Math.min(0.15, (agentWrappedScore / 100) * 0.15);
+  // Prefer upload presence over legacy Founder Fit /100. Optional tiny boost if a score exists.
+  let score = 0.25;
+  if (typeof agentWrappedScore === 'number' && agentWrappedScore > 0) {
+    score += Math.min(0.1, (agentWrappedScore / 100) * 0.1);
   }
   return Math.min(0.35, score);
 }

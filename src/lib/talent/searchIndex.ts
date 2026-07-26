@@ -301,7 +301,10 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
     builder.profileQuality?.oneLineSummary,
     agentWrappedReport?.archetype,
     agentWrappedReport?.founderRead?.summary,
-    ...(agentWrappedReport?.founderRead?.bestFitRoles || []),
+    ...((agentWrappedReport?.buildprint?.earnedIdentities || []).map((item: any) => item.label) ||
+      agentWrappedReport?.founderRead?.bestFitRoles ||
+      []),
+    agentWrappedReport?.buildprint?.evidenceStrength,
     ...wrappedLanguages,
     ...wrappedFrameworks,
     ...wrappedAgents,

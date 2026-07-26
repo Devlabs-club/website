@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 const MAX_SAMPLE_BYTES = 160_000;
 const CHUNK_SCAN_BYTES = 256_000;
@@ -186,6 +187,24 @@ function isSessionLikeFile(source, file) {
   return false;
 }
 
+/** Stable project bucket id for diversity counts — never upload the raw path. */
+function projectBucketIdForFile(file) {
+  const normalized = String(file || '').replace(/\\/g, '/');
+  const parts = normalized.split('/');
+  const projectsIdx = parts.findIndex((p) => p === 'projects');
+  if (projectsIdx >= 0 && parts[projectsIdx + 1]) {
+    return createHash('sha256').update(`claude:${parts[projectsIdx + 1]}`).digest('hex').slice(0, 16);
+  }
+  const sessionsIdx = parts.findIndex((p) => p === 'sessions');
+  if (sessionsIdx >= 0 && parts[sessionsIdx + 1]) {
+    return createHash('sha256').update(`codex:${parts[sessionsIdx + 1]}`).digest('hex').slice(0, 16);
+  }
+  if (parts.length >= 2) {
+    return createHash('sha256').update(`dir:${parts[parts.length - 2]}`).digest('hex').slice(0, 16);
+  }
+  return null;
+}
+
 export async function readSourceSamples(sources) {
   const samples = [];
   const seenFiles = new Set();
@@ -217,6 +236,8 @@ export async function readSourceSamples(sources) {
         isSessionFile: sessionLike,
         text: redactSecrets(text),
         timeRange,
+        byteLength: text.length,
+        projectBucketId: projectBucketIdForFile(file),
       });
     }
   }

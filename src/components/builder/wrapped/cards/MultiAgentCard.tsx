@@ -93,7 +93,9 @@ export const MultiAgentCard: React.FC<{ report: AgentWrappedReport; index: numbe
               transition={{ delay: 0.72 + i * 0.1, duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className="flex min-w-0 items-center justify-between gap-3 border border-white bg-white px-3 py-2 text-black shadow-[6px_6px_0_rgba(220,39,16,0.88)]"
             >
-              <span className="min-w-0 truncate text-[0.78rem] font-black uppercase tracking-[0.08em]">{segment.agent}</span>
+              <span className="min-w-0 text-[0.78rem] font-black uppercase leading-snug tracking-[0.08em] [overflow-wrap:anywhere]">
+                {segment.agent}
+              </span>
               <span className="shrink-0 font-gatwick text-[1.42rem] font-black leading-none">
                 <CountUp value={segment.percent} durationMs={700} />%
               </span>

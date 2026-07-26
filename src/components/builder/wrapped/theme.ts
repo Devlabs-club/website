@@ -67,11 +67,38 @@ export const CARD_THEMES = {
     accentSoft: 'rgba(255,206,84,0.2)',
     imageDrift: [-4, 4, 4, -4],
   },
+  convert: {
+    bgImage: '/wrapped/buildprint-convert-bg.jpg',
+    objectPosition: 'center 45%',
+    wash: 'transparent',
+    accent: ORANGE,
+    accentSoft: 'rgba(250,125,34,0.18)',
+    imageDrift: [0, 0, 0, 0],
+    lightOverlays: true,
+  },
 } satisfies Record<string, WrappedCardTheme>;
 
 export type WrappedCardKey = keyof typeof CARD_THEMES;
 
-export const CARD_ORDER: WrappedCardKey[] = ['cover', 'time', 'stack', 'buildSurface', 'agents', 'identity'];
+export const CARD_ORDER: WrappedCardKey[] = [
+  'cover',
+  'time',
+  'stack',
+  'buildSurface',
+  'agents',
+  'identity',
+  'convert',
+];
+
+/** Story cards shown to the Buildprint owner (no acquisition convert card). */
+export const OWNER_CARD_ORDER: WrappedCardKey[] = [
+  'cover',
+  'time',
+  'stack',
+  'buildSurface',
+  'agents',
+  'identity',
+];
 
 /** Reference artboard: 577×1024 */
 export const WRAPPED_CARD_WIDTH = 577;
