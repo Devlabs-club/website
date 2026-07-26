@@ -9,6 +9,7 @@ import {
   getPublicIdentity,
 } from '@/lib/agentWrapped/legacyWrappedAdapter';
 import { OWNER_CARD_ORDER, CARD_THEMES, type WrappedCardKey } from '@/components/builder/wrapped/theme';
+import { resolveDisplayTimeInvested } from '@/lib/agentWrapped/displayTimeInvested';
 
 const OG_CARD_ORDER: WrappedCardKey[] = OWNER_CARD_ORDER;
 
@@ -45,14 +46,11 @@ function peekForKey(
     case 'agents':
       return { peekLabel: 'Top agent', peekValue: topAgent };
     case 'identity':
-      return {
-        peekLabel: 'Buildprint',
-        peekValue: getPublicHeadline(report),
-      };
+      return { peekLabel: 'AI Wrapped', peekValue: getPublicHeadline(report) };
     case 'convert':
-      return { peekLabel: 'Buildprint', peekValue: 'Get yours' };
+      return { peekLabel: 'AI Wrapped', peekValue: 'Get yours' };
     default:
-      return { peekLabel: 'Buildprint', peekValue: getPublicHeadline(report) };
+      return { peekLabel: 'AI Wrapped', peekValue: getPublicHeadline(report) };
   }
 }
 
@@ -74,7 +72,7 @@ const CARD_LABELS: Record<WrappedCardKey, string> = {
   stack: 'Your Stack',
   buildSurface: 'Your Power Stack',
   agents: 'Multi-Agent',
-  identity: 'Buildprint',
+  identity: 'AI Wrapped',
   convert: 'Get yours',
 };
 
@@ -93,9 +91,9 @@ function cardTitleForKey(key: WrappedCardKey, report: AgentWrappedReport, topLan
     case 'identity':
       return getPublicHeadline(report);
     case 'convert':
-      return 'Get your Buildprint';
+      return 'Get your AI Wrapped';
     default:
-      return 'Buildprint';
+      return 'AI Wrapped';
   }
 }
 
@@ -127,16 +125,8 @@ export async function loadWrappedOgData(builderId: string, _origin: string): Pro
     'DevLabs Builder';
   const topLanguage = report.languages?.[0]?.name || 'TypeScript';
   const topAgent = report.agentSplit?.[0]?.agent || report.sourceCoverage?.agents?.[0] || 'Codex';
-  const sessionCount =
-    report.sourceCoverage?.sessionCount ||
-    (report.sourceSummary.claudeSessions || 0) +
-      (report.sourceSummary.codexSessions || 0) +
-      (report.sourceSummary.cursorSessions || 0) +
-      (report.sourceSummary.manualImports || 0);
-  const totalHours =
-    report.timeInvested?.totalHours && report.timeInvested.totalHours > 0
-      ? report.timeInvested.totalHours
-      : Math.max(24, Math.round(sessionCount * 1.45));
+  const displayTime = resolveDisplayTimeInvested(report);
+  const totalHours = displayTime.totalHours;
   const identity = getPublicIdentity(report);
   const headline =
     getPublicCardLine(report).slice(0, 120) ||

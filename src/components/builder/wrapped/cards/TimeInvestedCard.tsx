@@ -2,6 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
+import {
+  hoursSupportLine,
+  resolveDisplayTimeInvested,
+} from '@/lib/agentWrapped/displayTimeInvested';
 import { StoryCardShell } from '../StoryCardShell';
 import { CountUp } from '../CountUp';
 import { CARD_THEMES } from '../theme';
@@ -15,27 +19,11 @@ function formatMinutes(minutes: number) {
 
 function hoursNumberClass(hours: number) {
   const digits = String(Math.round(hours)).length;
-  if (digits >= 3) return 'text-[13.8cqw]';
-  if (digits === 2) return 'text-[14.8cqw]';
-  return 'text-[15.5cqw]';
-}
-
-function sessionCountFor(report: AgentWrappedReport) {
-  return (
-    report.sourceCoverage?.sessionCount ||
-    (report.sourceSummary.claudeSessions || 0) +
-      (report.sourceSummary.codexSessions || 0) +
-      (report.sourceSummary.cursorSessions || 0) +
-      (report.sourceSummary.manualImports || 0)
-  );
-}
-
-function almostDaysStraight(hours: number) {
-  const days = hours / 24;
-  if (days < 1) return 'almost a full day straight';
-  const rounded = Math.max(1, Math.round(days));
-  if (rounded === 1) return 'almost 1 day straight';
-  return `almost ${rounded} days straight`;
+  if (digits >= 5) return 'text-[16cqw]';
+  if (digits >= 4) return 'text-[18cqw]';
+  if (digits === 3) return 'text-[20cqw]';
+  if (digits === 2) return 'text-[22cqw]';
+  return 'text-[24cqw]';
 }
 
 export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: number; total: number }> = ({
@@ -44,28 +32,8 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
   total,
 }) => {
   const verified = isUploadedAgentWrappedReport(report);
-  const sessionCount = sessionCountFor(report);
-  const fallbackHours = Math.max(24, Math.round(sessionCount * 1.45));
-  const rawTimeInvested = report.timeInvested || { totalHours: 0, longestSessionMinutes: 0, estimated: true };
-  const timeInvested = {
-    totalHours:
-      rawTimeInvested.totalHours > 0
-        ? rawTimeInvested.totalHours
-        : verified
-          ? Math.max(fallbackHours, Math.round(sessionCount * 0.75))
-          : fallbackHours,
-    longestSessionMinutes:
-      rawTimeInvested.longestSessionMinutes > 0
-        ? rawTimeInvested.longestSessionMinutes
-        : verified
-          ? Math.min(402, Math.max(58, Math.round((rawTimeInvested.totalHours || fallbackHours) * 7 / Math.max(sessionCount, 1))))
-          : Math.min(402, Math.max(58, Math.round(fallbackHours * 7))),
-    estimated: verified
-      ? rawTimeInvested.estimated !== false || rawTimeInvested.totalHours <= 0
-      : rawTimeInvested.estimated || rawTimeInvested.totalHours <= 0,
-  };
-  const introClass = 'text-[5.35cqw] font-bold leading-[1.4]';
-  const support = almostDaysStraight(timeInvested.totalHours);
+  const timeInvested = resolveDisplayTimeInvested(report);
+  const support = hoursSupportLine(timeInvested.totalHours);
 
   return (
     <StoryCardShell theme={CARD_THEMES.time} index={index} total={total} contentClassName="">
@@ -74,36 +42,25 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-          className="absolute left-[-1.1%] right-[20%] top-[33.5%] max-w-full"
+          className="absolute left-0 right-[8%] top-[28%]"
         >
-          <div className="flex max-w-full flex-nowrap items-end gap-x-[0.8cqw] text-white">
-            <span className={`shrink-0 self-end ${introClass}`}>you built for</span>
-            <span className={`self-end font-bold leading-none ${hoursNumberClass(timeInvested.totalHours)}`}>
-              <CountUp value={timeInvested.totalHours} decimals={timeInvested.totalHours < 10 ? 1 : 0} />
-            </span>
-          </div>
-
-          <div className="mt-[0.35cqw] flex max-w-full items-baseline gap-x-[0.8cqw]">
-            <span className={`invisible shrink-0 ${introClass}`} aria-hidden="true">
-              you built for
-            </span>
-            <span className="-ml-[1.2cqw] text-[8.1cqw] font-bold leading-[1.4] text-white">hours</span>
-          </div>
-
-          <div className="mt-[0.2cqw] flex max-w-full items-baseline gap-x-[0.8cqw]">
-            <span className={`invisible shrink-0 ${introClass}`} aria-hidden="true">
-              you built for
-            </span>
-            <span className="ml-[2.4cqw] text-[4.85cqw] font-bold leading-[1.4] text-white">with agents.</span>
-          </div>
-
+          <p className="font-gatwick text-[4.6cqw] font-bold leading-none text-white/85">you built for</p>
+          <p
+            className={`mt-[2cqw] font-gatwick font-black leading-[0.9] tracking-[-0.04em] text-white drop-shadow-[4px_5px_0_rgba(226,36,16,0.55)] ${hoursNumberClass(timeInvested.totalHours)}`}
+          >
+            <CountUp value={timeInvested.totalHours} decimals={timeInvested.totalHours < 10 ? 1 : 0} />
+          </p>
+          <p className="mt-[1.5cqw] font-gatwick text-[7.2cqw] font-bold leading-[1.05] text-white">
+            hours
+            <span className="mt-[0.4cqw] block text-[4.6cqw] font-bold text-white/90">with agents.</span>
+          </p>
           <motion.p
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.42, duration: 0.45 }}
-            className="mt-[4.8cqw] max-w-full text-[3.05cqw] font-bold leading-[1.4] text-[#d4d4d4]"
+            className="mt-[4cqw] max-w-[90%] text-[3cqw] font-bold leading-[1.35] text-[#d4d4d4]"
           >
-            that's {support}
+            {support}
           </motion.p>
         </motion.div>
 

@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Download, Loader2, Share2 } from 'luc
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { getPublicCardLine, getPublicHeadline } from '@/lib/agentWrapped/legacyWrappedAdapter';
 import { buildShareUrl } from '@/lib/agentWrapped/buildprintAttribution';
+import { resolveDisplayTimeInvested } from '@/lib/agentWrapped/displayTimeInvested';
 import { trackBuildprintEvent } from '@/lib/analytics/buildprintFunnel';
 import { CARD_ORDER, OWNER_CARD_ORDER, type WrappedCardKey } from './theme';
 import CoverCard from './cards/CoverCard';
@@ -173,43 +174,44 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     else goTo(activeIndex + 1);
   };
 
-  const shareUrl = useMemo(() => {
-    const base =
-      typeof window === 'undefined'
-        ? report.share.publicUrl
-        : report.share.publicUrl.startsWith('http')
-          ? report.share.publicUrl
-          : `${window.location.origin}${report.share.publicUrl}`;
-    return buildShareUrl(base, {
-      sourceBuilderId: report.builderId,
-      referringBuildprintId: report.reportId,
-      card: 'identity',
-      channel: 'link',
-      campaign: 'buildprint',
-      methodologyVersion: report.buildprint?.methodologyVersion,
-    });
-  }, [report]);
+  const activeCard = order[activeIndex];
 
-  const shareText =
-    captionDraft ||
-    `${getPublicHeadline(report)}. ${getPublicCardLine(report)}`.trim();
+  const basePublicUrl = useMemo(() => {
+    if (typeof window === 'undefined') return report.share.publicUrl;
+    return report.share.publicUrl.startsWith('http')
+      ? report.share.publicUrl
+      : `${window.location.origin}${report.share.publicUrl}`;
+  }, [report.share.publicUrl]);
+
+  const shareUrl = useMemo(
+    () =>
+      buildShareUrl(basePublicUrl, {
+        card: activeCard,
+        channel: 'link',
+      }),
+    [activeCard, basePublicUrl]
+  );
+
+  const displayHours = useMemo(() => resolveDisplayTimeInvested(report).totalHours, [report]);
+
+  const shareText = useMemo(() => {
+    if (captionDraft) return captionDraft;
+    if (activeCard === 'time') {
+      return `I built for ${Math.round(displayHours).toLocaleString('en-US')} hours with agents — my DevLabs AI Wrapped.`;
+    }
+    if (activeCard === 'identity') {
+      return `${getPublicHeadline(report)}. ${getPublicCardLine(report)}`.trim();
+    }
+    return `${getPublicHeadline(report)} — my DevLabs AI Wrapped.`;
+  }, [activeCard, captionDraft, displayHours, report]);
 
   const channelShareUrl = useCallback(
     (channel: 'x' | 'linkedin') =>
-      buildShareUrl(
-        typeof window !== 'undefined' && !report.share.publicUrl.startsWith('http')
-          ? `${window.location.origin}${report.share.publicUrl}`
-          : report.share.publicUrl,
-        {
-          sourceBuilderId: report.builderId,
-          referringBuildprintId: report.reportId,
-          card: 'identity',
-          channel,
-          campaign: 'buildprint',
-          methodologyVersion: report.buildprint?.methodologyVersion,
-        }
-      ),
-    [report]
+      buildShareUrl(basePublicUrl, {
+        card: activeCard,
+        channel,
+      }),
+    [activeCard, basePublicUrl]
   );
 
   const exportCardBlob = async () => {

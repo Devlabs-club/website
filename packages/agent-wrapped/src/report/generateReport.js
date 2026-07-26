@@ -49,9 +49,11 @@ function computeTimeInvested(samples) {
   const timedSessions = sessionSamples.filter((sample) => sample.timeRange);
   const untimedSessions = sessionSamples.filter((sample) => !sample.timeRange);
 
-  const timedMinutes = timedSessions.map((sample) =>
-    Math.max(1, (sample.timeRange.endMs - sample.timeRange.startMs) / 60_000)
-  );
+  const timedMinutes = timedSessions.map((sample) => {
+    const raw = Math.max(1, (sample.timeRange.endMs - sample.timeRange.startMs) / 60_000);
+    // Cap wall-clock spans (editor sessions left open for days).
+    return Math.min(6 * 60, raw);
+  });
   const timedTotalMinutes = timedMinutes.reduce((sum, value) => sum + value, 0);
   const avgTimedMinutes =
     timedMinutes.length > 0 ? timedTotalMinutes / timedMinutes.length : DEFAULT_SESSION_MINUTES;

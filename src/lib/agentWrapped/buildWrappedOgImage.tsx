@@ -303,9 +303,154 @@ function pickDeckCards(previews: WrappedOgCardPreview[]) {
   );
 }
 
-export async function buildWrappedOgImage(data: WrappedOgData, origin: string) {
+export async function buildWrappedOgImage(
+  data: WrappedOgData,
+  origin: string,
+  options: { featuredCard?: WrappedCardKey | null } = {},
+) {
   const fonts = await loadFonts();
   const bgUrl = `${origin}/og/wrapped-og-bg.png`;
+  const featuredKey = options.featuredCard || null;
+  const featuredPreview = featuredKey
+    ? data.cardPreviews.find((card) => card.key === featuredKey) || null
+    : null;
+
+  if (featuredPreview) {
+    const featuredBg =
+      OG_CARD_BG[featuredPreview.key as keyof typeof OG_CARD_BG] ||
+      featuredPreview.bgImage ||
+      '/og/wrapped-card-identity.png';
+    const hoursLabel = Math.round(data.totalHours).toLocaleString('en-US');
+    const isTime = featuredPreview.key === 'time';
+    const headline = isTime
+      ? hoursLabel
+      : truncate(featuredPreview.peekValue || featuredPreview.title, 22);
+    const kicker = isTime ? 'you built for' : featuredPreview.peekLabel;
+    const sub = isTime ? 'hours with agents' : 'DevLabs AI Wrapped';
+
+    return new ImageResponse(
+      (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            position: 'relative',
+            fontFamily: 'Manrope',
+            overflow: 'hidden',
+            background: '#fbf6f3',
+          }}
+        >
+          <img
+            src={bgUrl}
+            width={OG_WIDTH}
+            height={OG_HEIGHT}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: OG_WIDTH,
+              height: OG_HEIGHT,
+              objectFit: 'fill',
+            }}
+          />
+          <BracketName name={data.builderName} />
+          <div
+            style={{
+              position: 'absolute',
+              left: Math.round(OG_WIDTH * 0.28),
+              top: Math.round(OG_HEIGHT * 0.22),
+              width: Math.round(OG_WIDTH * 0.44),
+              height: Math.round(OG_HEIGHT * 0.7),
+              borderRadius: 28,
+              overflow: 'hidden',
+              display: 'flex',
+              border: '3px solid rgba(255,255,255,0.95)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.28)',
+            }}
+          >
+            <img
+              src={`${origin}${featuredBg}`}
+              width={Math.round(OG_WIDTH * 0.44)}
+              height={Math.round(OG_HEIGHT * 0.7)}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.72) 100%)',
+              }}
+            />
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                width: '100%',
+                height: '100%',
+                padding: '36px 28px 40px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.82)',
+                  letterSpacing: '-0.01em',
+                  marginBottom: 8,
+                }}
+              >
+                {kicker}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: isTime ? 72 : headline.length > 14 ? 40 : 52,
+                  fontWeight: 800,
+                  color: '#ffffff',
+                  lineHeight: 0.95,
+                  letterSpacing: '-0.05em',
+                  textShadow: '3px 3px 0 rgba(226,36,16,0.5)',
+                }}
+              >
+                {isTime ? `${headline}h` : headline}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  marginTop: 10,
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.9)',
+                }}
+              >
+                {sub}
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        width: OG_WIDTH,
+        height: OG_HEIGHT,
+        fonts: [
+          { name: 'Manrope', data: fonts.manropeMedium, weight: 500, style: 'normal' },
+          { name: 'Manrope', data: fonts.manropeExtraBold, weight: 800, style: 'normal' },
+        ],
+      },
+    );
+  }
 
   const deckCards = pickDeckCards(data.cardPreviews);
   const cardCount = deckCards.length;
