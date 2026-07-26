@@ -31,6 +31,33 @@ export const CARD_THEMES = {
     imageDrift: [-8, 4, 6, -8],
     lightOverlays: true,
   },
+  tokens: {
+    bgImage: '/wrapped/story-code-field.jpg',
+    objectPosition: 'center 40%',
+    wash:
+      'linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.28) 40%, rgba(0,0,0,0.88) 100%), linear-gradient(90deg, rgba(250,125,34,0.35) 0%, rgba(226,39,16,0.22) 50%, rgba(255,220,46,0.28) 100%), radial-gradient(circle at 80% 20%, rgba(255,184,77,0.4), transparent 48%)',
+    accent: ORANGE,
+    accentSoft: 'rgba(250,125,34,0.22)',
+    imageDrift: [5, -4, -6, 4],
+  },
+  models: {
+    bgImage: '/wrapped/story-soft-mesh.jpg',
+    objectPosition: 'center 48%',
+    wash:
+      'linear-gradient(180deg, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.32) 42%, rgba(0,0,0,0.84) 100%), linear-gradient(90deg, rgba(22,141,247,0.32) 0%, rgba(80,220,150,0.2) 55%, rgba(255,220,46,0.28) 100%), radial-gradient(circle at 18% 22%, rgba(22,141,247,0.4), transparent 46%)',
+    accent: BLUE,
+    accentSoft: 'rgba(22,141,247,0.22)',
+    imageDrift: [-5, 3, 6, -5],
+  },
+  rhythm: {
+    bgImage: '/wrapped/story-green-halftone.jpg',
+    objectPosition: 'center 50%',
+    wash:
+      'linear-gradient(180deg, rgba(2,20,16,0.1) 0%, rgba(1,14,10,0.3) 46%, rgba(1,9,8,0.86) 100%), linear-gradient(90deg, rgba(0,42,255,0.22), rgba(0,255,162,0.18), rgba(255,225,44,0.2)), radial-gradient(circle at 12% 10%, rgba(22,141,247,0.35), transparent 50%)',
+    accent: '#50dc96',
+    accentSoft: 'rgba(80,220,150,0.22)',
+    imageDrift: [4, 0, -6, -5],
+  },
   stack: {
     bgImage: '/wrapped/story-green-halftone.jpg',
     objectPosition: 'center 50%',
@@ -80,24 +107,25 @@ export const CARD_THEMES = {
 
 export type WrappedCardKey = keyof typeof CARD_THEMES;
 
+/** Public facts-first story deck (no Buildprint identity reveal). */
 export const CARD_ORDER: WrappedCardKey[] = [
   'cover',
   'time',
-  'stack',
-  'buildSurface',
+  'tokens',
+  'models',
+  'rhythm',
   'agents',
-  'identity',
   'convert',
 ];
 
-/** Story cards shown to the Buildprint owner (no acquisition convert card). */
+/** Story cards shown to the owner (no acquisition convert card). */
 export const OWNER_CARD_ORDER: WrappedCardKey[] = [
   'cover',
   'time',
-  'stack',
-  'buildSurface',
+  'tokens',
+  'models',
+  'rhythm',
   'agents',
-  'identity',
 ];
 
 /** Reference artboard: 577×1024 */

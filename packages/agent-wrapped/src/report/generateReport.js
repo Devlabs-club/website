@@ -125,10 +125,13 @@ function computeAgentSplit(samples, agents) {
   return split.sort((a, b) => b.percent - a.percent);
 }
 
-export function generateReport({ builderId, builderName, samples, publicRoot }) {
+export function generateReport({ builderId, builderName, samples, usage = null, publicRoot }) {
   const allText = samples.map((sample) => sample.text).join('\n').toLowerCase();
   const agents = [...new Set(samples.map((sample) => sample.agent))];
-  const sessionCount = samples.filter((sample) => sample.isSessionFile).length || samples.length;
+  const sessionCount =
+    usage?.sessions?.allTime ||
+    samples.filter((sample) => sample.isSessionFile).length ||
+    samples.length;
 
   const languageHits = Object.entries(LANGUAGE_PATTERNS)
     .map(([name, pattern]) => ({ name, hits: countMatches(allText, pattern) }))
@@ -179,8 +182,38 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
     docs: clamp(docs * 5),
   };
 
-  const timeInvested = computeTimeInvested(samples);
-  const agentSplit = computeAgentSplit(samples, agents);
+  const fallbackTime = computeTimeInvested(samples);
+  const timeInvested = usage?.activeHours
+    ? {
+        totalHours: usage.activeHours.allTime,
+        longestSessionMinutes: fallbackTime.longestSessionMinutes,
+        estimated: Boolean(usage.activeHours.estimated),
+        sessionFiles: usage.sessions?.allTime ?? fallbackTime.sessionFiles,
+        timedSessionFiles: usage.sessions?.allTime ?? fallbackTime.timedSessionFiles,
+        daysCovered: fallbackTime.daysCovered,
+        method: usage.activeHours.method || 'active_gap',
+        last30Hours: usage.activeHours.last30,
+      }
+    : fallbackTime;
+  const agentSplit = usage?.tokens?.byAgent?.length
+    ? usage.tokens.byAgent
+        .filter((row) => row.sessions > 0)
+        .map((row) => ({
+          agent: row.agent,
+          sessions: row.sessions,
+          percent: 0,
+        }))
+        .map((row, _i, arr) => {
+          const total = arr.reduce((s, r) => s + (r.sessions || 0), 0) || 1;
+          return { ...row, percent: Math.round(((row.sessions || 0) / total) * 100) };
+        })
+        .sort((a, b) => b.percent - a.percent)
+    : computeAgentSplit(samples, agents);
+
+  if (agentSplit.length) {
+    const drift = 100 - agentSplit.reduce((sum, item) => sum + item.percent, 0);
+    if (drift !== 0) agentSplit[0].percent += drift;
+  }
 
   return {
     builderId,
@@ -199,13 +232,17 @@ export function generateReport({ builderId, builderName, samples, publicRoot }) 
     sourceCoverage: {
       agents,
       sessionCount,
-      timeframeLabel: 'Local available agent usage',
+      timeframeLabel: usage ? 'Local agent telemetry (active-gap hours)' : 'Local available agent usage',
       confidenceNotes: [
         'Report is generated from local agent usage summaries/configs and approved by the builder before upload.',
         'Raw prompts, conversations, source code, full paths, private filenames, and secrets are not uploaded.',
         `Methodology: ${buildprint.methodologyVersion}.`,
+        ...(usage?.tokens?.cursorEstimated
+          ? ['Cursor tokens are estimated from active time when usage counters are unavailable.']
+          : []),
       ],
     },
+    usage: usage || undefined,
     languages,
     frameworks,
     buildSurface,

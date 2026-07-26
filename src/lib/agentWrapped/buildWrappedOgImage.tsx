@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import React from 'react';
 import { ImageResponse } from '@vercel/og';
-import type { WrappedOgData } from '@/lib/agentWrapped/loadWrappedOgData';
+import type { WrappedOgData, WrappedOgFact } from '@/lib/agentWrapped/loadWrappedOgData';
 import type { WrappedCardKey } from '@/components/builder/wrapped/theme';
 
 const OG_WIDTH = 1200;
@@ -78,16 +78,40 @@ function truncate(value: string, max: number) {
   return `${value.slice(0, max - 1).trim()}…`;
 }
 
-function hoursFontSize(hoursLabel: string) {
-  const digits = hoursLabel.replace(/[^\d]/g, '').length;
-  if (digits >= 5) return 72;
-  if (digits >= 4) return 88;
-  if (digits === 3) return 104;
+function valueFontSize(value: string) {
+  const len = value.replace(/[^\w.]/g, '').length;
+  if (len >= 8) return 56;
+  if (len >= 6) return 72;
+  if (len >= 5) return 88;
+  if (len >= 4) return 100;
   return 118;
 }
 
-function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg: string }) {
-  const hoursSize = hoursFontSize(data.hoursLabel);
+function resolveFeaturedFact(
+  data: WrappedOgData,
+  featuredCard?: WrappedCardKey | null,
+): WrappedOgFact | null {
+  const key =
+    featuredCard === 'tokens' ||
+    featuredCard === 'models' ||
+    featuredCard === 'rhythm' ||
+    featuredCard === 'time'
+      ? featuredCard
+      : data.defaultShareCard;
+
+  return data.featuredFacts[key] || data.featuredFacts.tokens || data.featuredFacts.time || null;
+}
+
+function FactShareCard({
+  fact,
+  timeCardBg,
+  sessionLine,
+}: {
+  fact: WrappedOgFact;
+  timeCardBg: string;
+  sessionLine: string;
+}) {
+  const valueSize = valueFontSize(fact.value);
 
   return (
     <div
@@ -98,7 +122,6 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
         height: 540,
       }}
     >
-      {/* Orange offset plate */}
       <div
         style={{
           position: 'absolute',
@@ -111,7 +134,6 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
         }}
       />
 
-      {/* Status pill */}
       <div
         style={{
           position: 'absolute',
@@ -137,7 +159,6 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
         </div>
       </div>
 
-      {/* Card body */}
       <div
         style={{
           position: 'absolute',
@@ -197,7 +218,7 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
               lineHeight: 1,
             }}
           >
-            you built for
+            {fact.eyebrow}
           </div>
 
           <div
@@ -205,7 +226,7 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
               display: 'flex',
               marginTop: 10,
               fontFamily: 'Gatwick',
-              fontSize: hoursSize,
+              fontSize: valueSize,
               fontWeight: 700,
               color: '#ffffff',
               lineHeight: 0.9,
@@ -213,7 +234,7 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
               textShadow: `4px 5px 0 rgba(226,36,16,0.55)`,
             }}
           >
-            {data.hoursLabel}
+            {fact.value}
           </div>
 
           <div
@@ -222,16 +243,13 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
               flexDirection: 'column',
               marginTop: 8,
               fontFamily: 'Gatwick',
-              fontSize: 34,
+              fontSize: fact.kind === 'models' ? 28 : 34,
               fontWeight: 700,
               color: '#ffffff',
               lineHeight: 1.05,
             }}
           >
-            <div style={{ display: 'flex' }}>hours</div>
-            <div style={{ display: 'flex', fontSize: 22, color: 'rgba(255,255,255,0.92)' }}>
-              with agents.
-            </div>
+            {fact.unit}
           </div>
 
           <div
@@ -246,7 +264,7 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
               lineHeight: 1.35,
             }}
           >
-            {truncate(data.hoursSupport, 56)}
+            {truncate(fact.support, 72)}
           </div>
 
           <div
@@ -272,7 +290,7 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
                 color: INK,
               }}
             >
-              {`longest single session: ${data.longestSessionLabel}`}
+              {truncate(fact.footer, 48)}
             </div>
             <div
               style={{
@@ -285,13 +303,12 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
                 letterSpacing: '0.04em',
               }}
             >
-              {`${data.sessionCount.toLocaleString('en-US')} sessions · ${truncate(data.topAgent, 18)}`}
+              {sessionLine}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Badge overlays card top edge (paint after card; Satori has no z-index) */}
       <div
         style={{
           position: 'absolute',
@@ -321,19 +338,32 @@ function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg:
 
 /**
  * DevLabs-themed share OG: cream paper + orange accents, left brand/copy,
- * right = time-with-agents builder card (Satori / @vercel/og).
+ * right = featured fact card (time / tokens / models / rhythm).
  */
 export async function buildWrappedOgImage(
   data: WrappedOgData,
   _origin: string,
-  _options: { featuredCard?: WrappedCardKey | null } = {},
+  options: { featuredCard?: WrappedCardKey | null } = {},
 ) {
   const [fonts, assets] = await Promise.all([loadFonts(), loadAssets()]);
   const nameLine = truncate(data.builderName, 28);
   const identityLine = truncate(`${data.builderName} · ${data.archetype}`, 42);
   const tagline =
     truncate(data.headline, 90) ||
-    'ships proof of agent work — hours, sessions, and stack on DevLabs';
+    'ships proof of agent work — hours, tokens, and models on DevLabs';
+
+  const fact =
+    resolveFeaturedFact(data, options.featuredCard) ||
+    ({
+      kind: 'time',
+      eyebrow: 'you built for',
+      value: data.hoursLabel || '—',
+      unit: 'hours with agents',
+      support: data.hoursSupport,
+      footer: `longest single session: ${data.longestSessionLabel}`,
+    } satisfies WrappedOgFact);
+
+  const sessionLine = `${data.sessionCount.toLocaleString('en-US')} sessions · ${truncate(data.topAgent, 18)}`;
 
   return new ImageResponse(
     (
@@ -348,7 +378,6 @@ export async function buildWrappedOgImage(
           overflow: 'hidden',
         }}
       >
-        {/* Landing hero ASCII stars (canvas → PNG, same placement as hero) */}
         <img
           src={assets.starLeft}
           width={OG_WIDTH}
@@ -387,7 +416,6 @@ export async function buildWrappedOgImage(
             justifyContent: 'space-between',
           }}
         >
-          {/* Left column */}
           <div
             style={{
               display: 'flex',
@@ -506,9 +534,8 @@ export async function buildWrappedOgImage(
             </div>
           </div>
 
-          {/* Right column — hours card */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <HoursShareCard data={data} timeCardBg={assets.timeCard} />
+            <FactShareCard fact={fact} timeCardBg={assets.timeCard} sessionLine={sessionLine} />
           </div>
         </div>
       </div>

@@ -2,6 +2,41 @@ import type { BuilderBuildprint } from './buildprintTypes';
 
 export type AgentWrappedConfidence = 'low' | 'moderate' | 'high';
 
+/** Aggregated local telemetry (counts/histograms only — no prompts or paths). */
+export type AgentWrappedUsage = {
+  schemaVersion: number;
+  windowDays: number;
+  activeHours: {
+    last30: number;
+    allTime: number;
+    estimated: boolean;
+    method?: string;
+    gapMinutes?: number;
+    cursorSqlite?: boolean;
+  };
+  sessions: {
+    last30: number;
+    allTime: number;
+  };
+  tokens: {
+    total: number;
+    work: number;
+    cache: number;
+    byAgent: Array<{ agent: string; total: number; hours?: number; sessions?: number }>;
+    cursorEstimated: boolean;
+    retailCostUsd?: number;
+  };
+  models: Array<{ id: string; percent: number; sessions: number }>;
+  rhythm: {
+    hourBuckets: number[];
+    peakHour: number;
+    weekdayPct: number;
+    weekendPct: number;
+  };
+  months?: Array<{ ym: string; hours: number; sessions: number }>;
+  coverageHash?: string;
+};
+
 export type AgentWrappedReport = {
   builderId: string;
   reportId: string;
@@ -28,6 +63,8 @@ export type AgentWrappedReport = {
     timeframeLabel: string;
     confidenceNotes: string[];
   };
+  /** Structured usage telemetry (localAnalysisVersion 0.4.0+). */
+  usage?: AgentWrappedUsage;
   languages: {
     name: string;
     percent: number;
@@ -80,6 +117,8 @@ export type AgentWrappedReport = {
     sessionFiles?: number;
     timedSessionFiles?: number;
     daysCovered?: number;
+    method?: string;
+    last30Hours?: number;
   };
   agentSplit?: {
     agent: string;

@@ -6,15 +6,23 @@ Builder-level local analyzer for **DevLabs Buildprint** — your building habits
 npx devlabs-talent@latest analyze --token <verified-upload-token>
 ```
 
-## What it measures (methodology `buildprint-0.3.0`)
+## What it measures (methodology `buildprint-0.4.0`)
 
-**Observed facts** (from local Claude Code / Codex / Cursor summaries and configs):
+**Usage telemetry** (aggregates only — Claude/Codex JSONL + Cursor SQLite when available):
+
+- Active hours via gap-capped sessions (15m gap / 4h session caps)
+- Token totals (fresh vs cache), optional retail $ estimate; Cursor tokens disclosed as estimated
+- Top models by session share
+- Peak coding hour + weekday/weekend split
+- Last-30-day and all-time session/hour rollups
+
+**Observed Buildprint facts** (from local Claude Code / Codex / Cursor summaries and configs):
 
 - Substantial sessions (length, duration, or multi-signal activity — not config noise)
 - Project bucket diversity (hashed locally; raw paths never uploaded)
 - Product / backend / systems / test / recovery session counts
 - Context artifacts (rules, agents.md, settings)
-- Agent family coverage and time invested
+- Agent family coverage
 
 **Normalized signals** use diminishing returns. Keyword spam alone does not produce a high score.
 

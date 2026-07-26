@@ -3,18 +3,27 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { toBlob, toPng } from 'html-to-image';
 import { Check, ChevronLeft, ChevronRight, Download, Loader2, Share2 } from 'lucide-react';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
-import { getPublicCardLine, getPublicHeadline } from '@/lib/agentWrapped/legacyWrappedAdapter';
 import { buildShareUrl } from '@/lib/agentWrapped/buildprintAttribution';
 import { resolveDisplayTimeInvested } from '@/lib/agentWrapped/displayTimeInvested';
 import { trackBuildprintEvent } from '@/lib/analytics/buildprintFunnel';
 import { CARD_ORDER, OWNER_CARD_ORDER, type WrappedCardKey } from './theme';
 import CoverCard from './cards/CoverCard';
 import TimeInvestedCard from './cards/TimeInvestedCard';
-import StackCard from './cards/StackCard';
-import BuildSurfaceCard from './cards/BuildSurfaceCard';
+import TokensCard from './cards/TokensCard';
+import ModelsCard from './cards/ModelsCard';
+import RhythmCard from './cards/RhythmCard';
 import MultiAgentCard from './cards/MultiAgentCard';
-import IdentityCard from './cards/IdentityCard';
 import BuildprintConversionCard from './cards/BuildprintConversionCard';
+import {
+  formatPeakHour,
+  formatTokenCount,
+  getReportUsage,
+  getWrappedShareHeadline,
+  getWrappedShareLine,
+  hasModelsFact,
+  hasRhythmFact,
+  hasTokensFact,
+} from '@/lib/agentWrapped/usageDisplay';
 
 const DURATION_MS = 6500;
 const HOLD_THRESHOLD_MS = 250;
@@ -109,10 +118,16 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
   onCta,
   captionDraft,
 }) => {
-  const order = useMemo<WrappedCardKey[]>(
-    () => (viewer === 'owner' ? OWNER_CARD_ORDER : CARD_ORDER),
-    [viewer]
-  );
+  const order = useMemo<WrappedCardKey[]>(() => {
+    const base = viewer === 'owner' ? OWNER_CARD_ORDER : CARD_ORDER;
+    const usage = getReportUsage(report);
+    return base.filter((key) => {
+      if (key === 'tokens') return hasTokensFact(usage);
+      if (key === 'models') return hasModelsFact(usage);
+      if (key === 'rhythm') return hasRhythmFact(usage);
+      return true;
+    });
+  }, [report, viewer]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'working' | 'done'>('idle');
@@ -120,7 +135,6 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
   const frameRef = useRef<HTMLDivElement>(null);
   const total = order.length;
   const reduceMotion = useReducedMotion();
-  const identityIndex = order.indexOf('identity');
 
   const goTo = useCallback(
     (next: number) => {
@@ -130,12 +144,6 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
   );
 
   useEffect(() => {
-    if (activeIndex === identityIndex && identityIndex >= 0) {
-      trackBuildprintEvent('buildprint_identity_viewed', {
-        builderId: report.builderId,
-        methodologyVersion: report.buildprint?.methodologyVersion,
-      });
-    }
     if (activeIndex === total - 1) {
       trackBuildprintEvent('buildprint_story_completed', {
         builderId: report.builderId,
@@ -148,7 +156,7 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
         });
       }
     }
-  }, [activeIndex, identityIndex, order, report.builderId, report.buildprint?.methodologyVersion, total]);
+  }, [activeIndex, order, report.builderId, report.buildprint?.methodologyVersion, total]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -192,18 +200,33 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     [activeCard, basePublicUrl]
   );
 
-  const displayHours = useMemo(() => resolveDisplayTimeInvested(report).totalHours, [report]);
+  const usage = useMemo(() => getReportUsage(report), [report]);
 
   const shareText = useMemo(() => {
     if (captionDraft) return captionDraft;
     if (activeCard === 'time') {
-      return `I built for ${Math.round(displayHours).toLocaleString('en-US')} hours with agents — my DevLabs AI Wrapped.`;
+      const time = resolveDisplayTimeInvested(report);
+      const hours =
+        time.method === 'active_gap' && time.last30Hours && time.last30Hours > 0
+          ? time.last30Hours
+          : time.totalHours;
+      if (time.insufficient || hours <= 0) {
+        return `${getWrappedShareHeadline(report)} — my DevLabs AI Wrapped.`;
+      }
+      return `I built for ${Math.round(hours).toLocaleString('en-US')} hours with agents — my DevLabs AI Wrapped.`;
     }
-    if (activeCard === 'identity') {
-      return `${getPublicHeadline(report)}. ${getPublicCardLine(report)}`.trim();
+    if (activeCard === 'tokens' && usage?.tokens?.total) {
+      return `I burned ${formatTokenCount(usage.tokens.total)} tokens with agents — my DevLabs AI Wrapped.`;
     }
-    return `${getPublicHeadline(report)} — my DevLabs AI Wrapped.`;
-  }, [activeCard, captionDraft, displayHours, report]);
+    if (activeCard === 'models' && usage?.models?.[0]) {
+      const top = usage.models[0];
+      return `My top model was ${top.id} (${top.percent}%) — my DevLabs AI Wrapped.`;
+    }
+    if (activeCard === 'rhythm' && usage?.rhythm) {
+      return `I code hardest at ${formatPeakHour(usage.rhythm.peakHour).replace(':00 ', '')} — my DevLabs AI Wrapped.`;
+    }
+    return `${getWrappedShareHeadline(report)}. ${getWrappedShareLine(report)} — my DevLabs AI Wrapped.`;
+  }, [activeCard, captionDraft, report, usage]);
 
   const channelShareUrl = useCallback(
     (channel: 'x' | 'linkedin') =>
@@ -392,26 +415,14 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
         return <CoverCard report={report} total={total} />;
       case 'time':
         return <TimeInvestedCard {...props} />;
-      case 'stack':
-        return <StackCard {...props} />;
-      case 'buildSurface':
-        return <BuildSurfaceCard {...props} />;
+      case 'tokens':
+        return <TokensCard {...props} />;
+      case 'models':
+        return <ModelsCard {...props} />;
+      case 'rhythm':
+        return <RhythmCard {...props} />;
       case 'agents':
         return <MultiAgentCard {...props} />;
-      case 'identity':
-        return (
-          <IdentityCard
-            {...props}
-            showAcquisitionLink={viewer !== 'owner'}
-            onSeeHowYouBuild={() => {
-              trackBuildprintEvent('buildprint_cta_clicked', {
-                builderId: report.builderId,
-                ctaPlacement: 'post_identity',
-              });
-              onCta?.('post_identity', 'primary');
-            }}
-          />
-        );
       case 'convert':
         return (
           <BuildprintConversionCard

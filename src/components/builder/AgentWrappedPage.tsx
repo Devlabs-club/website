@@ -2,11 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, ChevronDown, Loader2, ShieldCheck } from 'lucide-react';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import {
-  getPublicCardLine,
-  getPublicHeadline,
   getPublicIdentity,
   isLegacyWrappedReport,
 } from '@/lib/agentWrapped/legacyWrappedAdapter';
+import {
+  getWrappedShareHeadline,
+  getWrappedShareLine,
+  hasUsageFacts,
+} from '@/lib/agentWrapped/usageDisplay';
 import {
   getBuildprintCtaHref,
   getBuildprintSignupHref,
@@ -70,7 +73,7 @@ const AgentWrappedPageInner: React.FC<{ builderId: string }> = ({ builderId }) =
             null
         );
         setCaption(
-          `${getPublicHeadline(data.report)} — ${getPublicCardLine(data.report)}\n${typeof window !== 'undefined' ? window.location.href.split('?')[0] : data.report.share.publicUrl}`
+          `${getWrappedShareHeadline(data.report)}. ${getWrappedShareLine(data.report)}\n${typeof window !== 'undefined' ? window.location.href.split('?')[0] : data.report.share.publicUrl}`
         );
         trackBuildprintEvent('buildprint_public_viewed', {
           builderId,
@@ -272,7 +275,19 @@ const AgentWrappedPageInner: React.FC<{ builderId: string }> = ({ builderId }) =
           }}
         />
 
-        {viewer === 'owner' && earned.length > 0 ? (
+        {viewer === 'owner' && hasUsageFacts(report) ? (
+          <div className="mt-6 w-full max-w-[min(577px,calc(100vw-22px))] rounded-2xl border border-black/10 bg-white p-4">
+            <label className="block text-xs font-bold text-black/45">Share caption</label>
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              rows={4}
+              className="mt-1.5 w-full rounded-xl border border-black/10 bg-[#fbf6f3] px-3 py-2 text-sm"
+            />
+          </div>
+        ) : null}
+
+        {viewer === 'owner' && !hasUsageFacts(report) && earned.length > 0 ? (
           <div className="mt-6 w-full max-w-[min(577px,calc(100vw-22px))] rounded-2xl border border-black/10 bg-white p-4">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-black/40">Public identity</p>
             <div className="mt-3 space-y-2">

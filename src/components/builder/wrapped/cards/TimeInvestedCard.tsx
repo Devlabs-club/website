@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import { isUploadedAgentWrappedReport } from '@/lib/agentWrapped/types';
 import {
+  formatHoursLabel,
   hoursSupportLine,
   resolveDisplayTimeInvested,
 } from '@/lib/agentWrapped/displayTimeInvested';
@@ -33,7 +34,38 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
 }) => {
   const verified = isUploadedAgentWrappedReport(report);
   const timeInvested = resolveDisplayTimeInvested(report);
-  const support = hoursSupportLine(timeInvested.totalHours);
+  const support = hoursSupportLine(timeInvested.totalHours, {
+    last30: timeInvested.last30Hours,
+    method: timeInvested.method,
+  });
+
+  if (timeInvested.insufficient) {
+    return (
+      <StoryCardShell theme={CARD_THEMES.time} index={index} total={total} contentClassName="">
+        <div className="relative flex h-full flex-col justify-center">
+          <p className="font-gatwick text-[4.6cqw] font-bold text-white/85">hours with agents</p>
+          <p className="mt-[3cqw] max-w-[90%] font-gatwick text-[7cqw] font-black leading-[1.05] text-white">
+            not enough local logs
+          </p>
+          <p className="mt-[3cqw] text-[2.8cqw] font-bold text-[#d4d4d4]">
+            re-run AI Wrapped after more Claude, Codex, or Cursor sessions.
+          </p>
+        </div>
+      </StoryCardShell>
+    );
+  }
+
+  const displayHours =
+    timeInvested.method === 'active_gap' && timeInvested.last30Hours && timeInvested.last30Hours > 0
+      ? timeInvested.last30Hours
+      : timeInvested.totalHours;
+  const headlineSupport =
+    timeInvested.method === 'active_gap' &&
+    timeInvested.last30Hours != null &&
+    timeInvested.last30Hours > 0 &&
+    timeInvested.totalHours > timeInvested.last30Hours
+      ? `~${formatHoursLabel(timeInvested.totalHours)} hours all-time from local logs`
+      : support;
 
   return (
     <StoryCardShell theme={CARD_THEMES.time} index={index} total={total} contentClassName="">
@@ -46,9 +78,9 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
         >
           <p className="font-gatwick text-[4.6cqw] font-bold leading-none text-white/85">you built for</p>
           <p
-            className={`mt-[2cqw] font-gatwick font-black leading-[0.9] tracking-[-0.04em] text-white drop-shadow-[4px_5px_0_rgba(226,36,16,0.55)] ${hoursNumberClass(timeInvested.totalHours)}`}
+            className={`mt-[2cqw] font-gatwick font-black leading-[0.9] tracking-[-0.04em] text-white drop-shadow-[4px_5px_0_rgba(226,36,16,0.55)] ${hoursNumberClass(displayHours)}`}
           >
-            <CountUp value={timeInvested.totalHours} decimals={timeInvested.totalHours < 10 ? 1 : 0} />
+            <CountUp value={displayHours} decimals={displayHours < 10 ? 1 : 0} />
           </p>
           <p className="mt-[1.5cqw] font-gatwick text-[7.2cqw] font-bold leading-[1.05] text-white">
             hours
@@ -60,7 +92,7 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
             transition={{ delay: 0.42, duration: 0.45 }}
             className="mt-[4cqw] max-w-[90%] text-[3cqw] font-bold leading-[1.35] text-[#d4d4d4]"
           >
-            {support}
+            {headlineSupport}
           </motion.p>
         </motion.div>
 
@@ -73,16 +105,18 @@ export const TimeInvestedCard: React.FC<{ report: AgentWrappedReport; index: num
           longest single session: {formatMinutes(timeInvested.longestSessionMinutes)}
         </motion.div>
 
-        {timeInvested.estimated ? (
+        {timeInvested.estimated || timeInvested.method === 'active_gap' ? (
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.85 }}
             className="absolute bottom-[10%] left-0 right-0 text-center text-[1.75cqw] font-normal uppercase tracking-[0.08em] text-white/28"
           >
-            {verified
-              ? 'estimated from local session files and timestamps'
-              : 'estimated from available proof-of-work'}
+            {timeInvested.method === 'active_gap'
+              ? '~active hours from local logs (15m gap cap)'
+              : verified
+                ? 'estimated from local session files and timestamps'
+                : 'estimated from available proof-of-work'}
           </motion.p>
         ) : null}
       </div>

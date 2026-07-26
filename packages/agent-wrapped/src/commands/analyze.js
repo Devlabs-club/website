@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { discoverAgentSources, readSourceSamples } from '../sources/discover.js';
+import { collectUsageTelemetry } from '../sources/usageCollector.js';
 import { generateReport } from '../report/generateReport.js';
 import { previewReport } from '../preview/previewReport.js';
 import { uploadReport } from '../upload/uploadReport.js';
@@ -87,10 +88,13 @@ export async function analyzeCommand(argv) {
     }
 
     const samples = await readSourceSamples(sources);
+    console.log('Collecting usage telemetry (hours, tokens, models, rhythm)...');
+    const usage = await collectUsageTelemetry();
     const report = generateReport({
       builderId: tokenPayload.builderId,
       builderName: tokenPayload.email?.split('@')[0],
       samples,
+      usage,
       publicRoot: args.publicUrl,
     });
 

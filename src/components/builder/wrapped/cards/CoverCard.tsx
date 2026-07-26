@@ -33,7 +33,7 @@ export const CoverCard: React.FC<{ report: AgentWrappedReport; total: number }> 
           build
         </h1>
         <p className="mt-[3.5cqw] max-w-[78%] text-[3.1cqw] font-bold leading-[1.35] text-white">
-          your building habits, backed by proof from real agent sessions.
+          hours, tokens, models, and peak coding time — from your real agent logs.
         </p>
       </motion.div>
 

@@ -7,18 +7,20 @@ import { loadWrappedOgData } from "../../../lib/agentWrapped/loadWrappedOgData";
 const builderId = Astro.params.builderId || "";
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
 const featuredCard = parseShareCardParam(Astro.url.searchParams.get("c") || Astro.url.searchParams.get("card"));
-const cardShort = shortCardParam(featuredCard) || "t";
-const ogImage = `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png?c=${cardShort}`;
 
 let pageTitle = "AI Wrapped · DevLabs";
 let pageDescription = "DevLabs AI Wrapped — building habits backed by proof.";
+let cardShort = shortCardParam(featuredCard) || "t";
 
 try {
   const ogData = await loadWrappedOgData(builderId, siteOrigin);
   if (ogData) {
+    if (!featuredCard) {
+      cardShort = shortCardParam(ogData.defaultShareCard) || "t";
+    }
     const featured = featuredCard
       ? ogData.cardPreviews.find((card) => card.key === featuredCard)
-      : null;
+      : ogData.cardPreviews.find((card) => card.key === ogData.defaultShareCard) || null;
     pageTitle = featured
       ? `${ogData.builderName} · ${featured.title} · AI Wrapped`
       : `${ogData.builderName} · ${ogData.archetype} · AI Wrapped`;
@@ -29,6 +31,8 @@ try {
 } catch {
   /* fall back to generic meta */
 }
+
+const ogImage = `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png?c=${cardShort}`;
 ---
 
 <AppLayout

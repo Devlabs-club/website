@@ -1,7 +1,7 @@
 {
   "name": "devlabs-talent",
-  "version": "0.3.0",
-  "description": "Generate safe DevLabs Buildprint reports from builder-level AI agent usage.",
+  "version": "0.4.1",
+  "description": "Generate safe DevLabs AI Wrapped reports from builder-level AI agent usage.",
   "type": "module",
   "bin": {
     "agent-wrapped": "bin/agent-wrapped.js",
@@ -18,6 +18,6 @@
   },
   "scripts": {
     "analyze": "node ./bin/agent-wrapped.js analyze",
-    "test": "node --test ./src/buildprint/__tests__/*.test.js"
+    "test": "node --test ./src/buildprint/__tests__/*.test.js ./src/sources/__tests__/*.test.js"
   }
 }

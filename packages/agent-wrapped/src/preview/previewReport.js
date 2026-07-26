@@ -76,6 +76,7 @@ function section(title, theme) {
 export function previewReport(report, sources, options = {}) {
   const theme = makeTheme(options.color);
   const bp = report.buildprint;
+  const usage = report.usage;
   const languages = report.languages?.length
     ? report.languages.slice(0, 5)
     : [{ name: 'Unknown', percent: 100 }];
@@ -83,61 +84,91 @@ export function previewReport(report, sources, options = {}) {
     ? report.frameworks.map((framework) => framework.name).slice(0, 8)
     : ['No framework signal yet'];
   const buildSurface = report.buildSurface || {};
-  const primary =
-    bp?.earnedIdentities?.find((item) => item.id === bp.primaryIdentityId) ||
-    bp?.earnedIdentities?.[0];
 
   console.log('');
   console.log(theme.blue('┌──────────────────────────────────────────────────────────────┐'));
-  console.log(theme.blue('│') + theme.cream(theme.bold('                 DEVLABS BUILDPRINT                           ')) + theme.blue('│'));
-  console.log(theme.blue('│') + theme.orange('          your building habits, backed by proof                 ') + theme.blue('│'));
+  console.log(theme.blue('│') + theme.cream(theme.bold('                 DEVLABS AI WRAPPED                            ')) + theme.blue('│'));
+  console.log(theme.blue('│') + theme.orange('     hours · tokens · models · rhythm from local logs          ') + theme.blue('│'));
   console.log(theme.blue('└──────────────────────────────────────────────────────────────┘'));
   console.log('');
 
-  if (primary) {
-    console.log(`          ${theme.cream(theme.bold(`YOUR BUILDPRINT IS ${primary.label.toUpperCase()}`))}`);
+  if (usage?.tokens?.total) {
+    const billions = usage.tokens.total >= 1e9
+      ? `${(usage.tokens.total / 1e9).toFixed(1).replace(/\.0$/, '')}B`
+      : usage.tokens.total >= 1e6
+        ? `${(usage.tokens.total / 1e6).toFixed(1).replace(/\.0$/, '')}M`
+        : String(usage.tokens.total);
+    console.log(`          ${theme.cream(theme.bold(`YOU BURNED ${billions} TOKENS`))}`);
     console.log('');
-    for (const line of wrappedLines(primary.proofStatement, 64)) {
-      console.log(`  ${theme.cream(line)}`);
-    }
+  } else if (report.timeInvested?.totalHours) {
+    console.log(
+      `          ${theme.cream(theme.bold(`YOU BUILT FOR ${report.timeInvested.totalHours} HOURS WITH AGENTS`))}`
+    );
+    console.log('');
   } else {
-    console.log(`          ${theme.cream(theme.bold('YOUR BUILDPRINT IS STILL FORMING'))}`);
+    console.log(`          ${theme.cream(theme.bold('YOUR AI WRAPPED FACTS'))}`);
     console.log('');
-    for (const line of wrappedLines(bp?.forming?.message || report.founderRead?.summary, 64)) {
-      console.log(`  ${theme.cream(line)}`);
-    }
   }
-  console.log('');
 
-  section('Evidence Strength', theme);
-  console.log(
-    `  ${theme.orange(titleCase(bp?.evidenceStrength || 'emerging'))}  ${theme.muted('·')}  ${theme.cream(
-      `Confidence: ${confidenceLabel(bp?.confidence || report.confidence)}`
-    )}`
-  );
-  console.log('');
-
-  if (bp?.earnedIdentities?.length) {
-    section('Earned Identities', theme);
-    for (const identity of bp.earnedIdentities.slice(0, 3)) {
-      console.log(`  ${theme.cream(identity.label)} ${theme.muted(`(${identity.score})`)}`);
+  if (report.timeInvested) {
+    section('Time Invested', theme);
+    console.log(`  ${theme.cream(padRight('Total hours', 24))} ${theme.orange(report.timeInvested.totalHours)}`);
+    if (report.timeInvested.last30Hours != null) {
+      console.log(
+        `  ${theme.cream(padRight('Last 30 days (h)', 24))} ${theme.orange(report.timeInvested.last30Hours)}`
+      );
+    }
+    console.log(
+      `  ${theme.cream(padRight('Longest session (min)', 24))} ${theme.orange(report.timeInvested.longestSessionMinutes)}`
+    );
+    if (report.timeInvested.method) {
+      console.log(`  ${theme.muted('Method:')} ${theme.cream(report.timeInvested.method)}`);
     }
     console.log('');
   }
 
-  if (primary?.proofMetrics?.length) {
-    section('Proof', theme);
-    for (const metric of primary.proofMetrics.slice(0, 5)) {
-      console.log(`  ${theme.cream(padRight(metric.label, 36))} ${theme.orange(metric.value)}`);
+  if (usage?.tokens) {
+    section('Tokens', theme);
+    console.log(`  ${theme.cream(padRight('Total', 24))} ${theme.orange(usage.tokens.total.toLocaleString('en-US'))}`);
+    console.log(`  ${theme.cream(padRight('Fresh / cache', 24))} ${theme.orange(`${usage.tokens.work.toLocaleString('en-US')} / ${usage.tokens.cache.toLocaleString('en-US')}`)}`);
+    if (usage.tokens.retailCostUsd) {
+      console.log(`  ${theme.cream(padRight('Retail $ (est.)', 24))} ${theme.orange(`$${usage.tokens.retailCostUsd}`)}`);
+    }
+    if (usage.tokens.cursorEstimated) {
+      console.log(`  ${theme.muted('Note:')} ${theme.cream('Cursor tokens estimated from active time')}`);
+    }
+    for (const row of (usage.tokens.byAgent || []).slice(0, 4)) {
+      console.log(`  ${theme.cream(padRight(row.agent, 24))} ${theme.orange(row.total.toLocaleString('en-US'))}`);
     }
     console.log('');
   }
 
-  if (bp?.nextUnlock) {
-    section('Next Unlock', theme);
-    console.log(`  ${theme.cream(bp.nextUnlock.label)}`);
-    for (const req of (bp.nextUnlock.missingRequirements || []).slice(0, 3)) {
-      console.log(`  ${theme.muted('·')} ${theme.cream(req)}`);
+  if (usage?.models?.length) {
+    section('Top Models', theme);
+    for (const model of usage.models.slice(0, 5)) {
+      console.log(
+        `  ${theme.cream(padRight(model.id, 24))} ${theme.orange(`${model.percent}%`)} ${theme.muted(`(${model.sessions} sessions)`)}`
+      );
+    }
+    console.log('');
+  }
+
+  if (usage?.rhythm) {
+    section('Coding Rhythm', theme);
+    const peak = usage.rhythm.peakHour;
+    const suffix = peak >= 12 ? 'pm' : 'am';
+    const twelve = peak % 12 === 0 ? 12 : peak % 12;
+    console.log(`  ${theme.cream(padRight('Peak hour', 24))} ${theme.orange(`${twelve}:00 ${suffix}`)}`);
+    console.log(
+      `  ${theme.cream(padRight('Weekday / weekend', 24))} ${theme.orange(`${usage.rhythm.weekdayPct}% / ${usage.rhythm.weekendPct}%`)}`
+    );
+    console.log('');
+  }
+
+  if (report.agentSplit?.length) {
+    section('Agent Split', theme);
+    for (const item of report.agentSplit) {
+      console.log(`  ${theme.cream(padRight(item.agent, 24))} ${theme.orange(`${item.percent}%`)}`);
     }
     console.log('');
   }
@@ -166,19 +197,10 @@ export function previewReport(report, sources, options = {}) {
   );
   console.log('');
 
-  if (report.timeInvested) {
-    section('Time Invested', theme);
-    console.log(`  ${theme.cream(padRight('Total hours', 24))} ${theme.orange(report.timeInvested.totalHours)}`);
-    console.log(
-      `  ${theme.cream(padRight('Longest session (min)', 24))} ${theme.orange(report.timeInvested.longestSessionMinutes)}`
-    );
-    console.log('');
-  }
-
-  if (report.agentSplit?.length) {
-    section('Agent Split', theme);
-    for (const item of report.agentSplit) {
-      console.log(`  ${theme.cream(padRight(item.agent, 24))} ${theme.orange(`${item.percent}%`)}`);
+  if (bp?.earnedIdentities?.length) {
+    section('Founder labels (not shown on public Wrapped)', theme);
+    for (const identity of bp.earnedIdentities.slice(0, 3)) {
+      console.log(`  ${theme.muted(identity.label)} ${theme.dim(`(${identity.score})`)}`);
     }
     console.log('');
   }
@@ -191,8 +213,8 @@ export function previewReport(report, sources, options = {}) {
   console.log('');
 
   section('Will Upload', theme);
-  console.log(`  ${theme.cream('Aggregated Buildprint identities, evidence strength, stack,')}`);
-  console.log(`  ${theme.cream('proof metrics, and build-surface signals.')}`);
+  console.log(`  ${theme.cream('Active hours, tokens, models, rhythm, agent split,')}`);
+  console.log(`  ${theme.cream('and stack aggregates. Public cards show facts only.')}`);
   console.log('');
 
   section('Will NOT Upload', theme);
