@@ -230,15 +230,6 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     window.setTimeout(() => URL.revokeObjectURL(url), 1500);
   };
 
-  const canNativeFileShare = () => {
-    try {
-      const probe = new File([new Uint8Array([0])], 'probe.png', { type: 'image/png' });
-      return !!navigator.canShare?.({ files: [probe] });
-    } catch {
-      return false;
-    }
-  };
-
   const copyLink = async () => {
     trackBuildprintEvent('buildprint_share_started', {
       builderId: report.builderId,
@@ -313,22 +304,31 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     }
   };
 
+  const openExternalShare = (href: string) => {
+    // Must run synchronously in the click handler — await before this gets popup-blocked.
+    const opened = window.open(href, '_blank', 'noopener,noreferrer');
+    if (opened) return;
+    const anchor = document.createElement('a');
+    anchor.href = href;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
   const shareToX = async () => {
     setExportState('working');
     const url = channelShareUrl('x');
     const caption = `${shareText}\n\n${url}`;
-    const intentHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`;
-    const preferNative = canNativeFileShare();
+    // Always open X intent — do not gate on Web Share (macOS canShare(files) is true but isn't X).
+    const intentHref = `https://x.com/intent/tweet?text=${encodeURIComponent(`${shareText}\n${url}`)}`;
+    openExternalShare(intentHref);
     trackBuildprintEvent('buildprint_share_started', {
       builderId: report.builderId,
       channel: 'x',
       card: order[activeIndex],
     });
-
-    // Open sync on click — after await, desktop popup blockers kill window.open.
-    if (!preferNative) {
-      window.open(intentHref, '_blank', 'noopener,noreferrer');
-    }
 
     try {
       try {
@@ -336,29 +336,15 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
       } catch {
         // ignore clipboard failures
       }
-
       const blob = await exportCardBlob();
-      const file = blob ? new File([blob], 'devlabs-ai-wrapped.png', { type: 'image/png' }) : null;
-      if (preferNative && file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'My DevLabs AI Wrapped',
-          text: caption,
-        });
-      } else if (blob) {
-        downloadBlob(blob, 'devlabs-ai-wrapped.png');
-      }
-
+      if (blob) downloadBlob(blob, 'devlabs-ai-wrapped.png');
       trackBuildprintEvent('buildprint_share_completed', {
         builderId: report.builderId,
         channel: 'x',
         card: order[activeIndex],
       });
     } catch {
-      // ignore cancel / export failures — intent already opened on desktop
-      if (preferNative) {
-        window.open(intentHref, '_blank', 'noopener,noreferrer');
-      }
+      // intent already opened
     } finally {
       setExportState('idle');
     }
@@ -368,17 +354,14 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     setExportState('working');
     const url = channelShareUrl('linkedin');
     const caption = `${shareText}\n\n${url}`;
+    // LinkedIn web share only accepts a URL; caption is copied for paste.
     const intentHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-    const preferNative = canNativeFileShare();
+    openExternalShare(intentHref);
     trackBuildprintEvent('buildprint_share_started', {
       builderId: report.builderId,
       channel: 'linkedin',
       card: order[activeIndex],
     });
-
-    if (!preferNative) {
-      window.open(intentHref, '_blank', 'noopener,noreferrer');
-    }
 
     try {
       try {
@@ -386,28 +369,15 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
       } catch {
         // ignore
       }
-
       const blob = await exportCardBlob();
-      const file = blob ? new File([blob], 'devlabs-ai-wrapped.png', { type: 'image/png' }) : null;
-      if (preferNative && file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'My DevLabs AI Wrapped',
-          text: caption,
-        });
-      } else if (blob) {
-        downloadBlob(blob, 'devlabs-ai-wrapped.png');
-      }
-
+      if (blob) downloadBlob(blob, 'devlabs-ai-wrapped.png');
       trackBuildprintEvent('buildprint_share_completed', {
         builderId: report.builderId,
         channel: 'linkedin',
         card: order[activeIndex],
       });
     } catch {
-      if (preferNative) {
-        window.open(intentHref, '_blank', 'noopener,noreferrer');
-      }
+      // intent already opened
     } finally {
       setExportState('idle');
     }
