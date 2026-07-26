@@ -9,7 +9,18 @@ import {
   getPublicIdentity,
 } from '@/lib/agentWrapped/legacyWrappedAdapter';
 import { OWNER_CARD_ORDER, CARD_THEMES, type WrappedCardKey } from '@/components/builder/wrapped/theme';
-import { resolveDisplayTimeInvested } from '@/lib/agentWrapped/displayTimeInvested';
+import {
+  formatHoursLabel,
+  hoursSupportLine,
+  resolveDisplayTimeInvested,
+} from '@/lib/agentWrapped/displayTimeInvested';
+
+function formatMinutesLabel(minutes: number) {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h <= 0) return `${m}m`;
+  return `${h}h ${m}m`;
+}
 
 const OG_CARD_ORDER: WrappedCardKey[] = OWNER_CARD_ORDER;
 
@@ -63,6 +74,10 @@ export type WrappedOgData = {
   topAgent: string;
   verified: boolean;
   totalHours: number;
+  hoursLabel: string;
+  hoursSupport: string;
+  longestSessionLabel: string;
+  sessionCount: number;
   cardPreviews: WrappedOgCardPreview[];
 };
 
@@ -127,6 +142,10 @@ export async function loadWrappedOgData(builderId: string, _origin: string): Pro
   const topAgent = report.agentSplit?.[0]?.agent || report.sourceCoverage?.agents?.[0] || 'Codex';
   const displayTime = resolveDisplayTimeInvested(report);
   const totalHours = displayTime.totalHours;
+  const hoursLabel = formatHoursLabel(totalHours);
+  const hoursSupport = hoursSupportLine(totalHours);
+  const longestSessionLabel = formatMinutesLabel(displayTime.longestSessionMinutes);
+  const sessionCount = displayTime.sessionCount;
   const identity = getPublicIdentity(report);
   const headline =
     getPublicCardLine(report).slice(0, 120) ||
@@ -157,6 +176,10 @@ export async function loadWrappedOgData(builderId: string, _origin: string): Pro
     topAgent,
     verified: true,
     totalHours,
+    hoursLabel,
+    hoursSupport,
+    longestSessionLabel,
+    sessionCount,
     cardPreviews,
   };
 }

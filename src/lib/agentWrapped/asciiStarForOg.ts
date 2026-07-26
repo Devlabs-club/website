@@ -159,21 +159,25 @@ export async function buildWrappedOgStarLayers(
   height: number,
   origin: string,
 ): Promise<WrappedOgStarLayers> {
-  const starSvg = await loadStarSvg(origin);
-  const starSize = Math.max(width, height) * 0.72;
+  const starSvg = await loadStarSvg(origin === 'file://local' ? undefined : origin);
+  // Match LandingAsciiStars.astro desktop sizing (~32vw / ~30vw) on the OG canvas.
+  const leftSize = Math.round(width * 0.42);
+  const rightSize = Math.round(width * 0.38);
 
   const [leftGlyphs, rightGlyphs] = await Promise.all([
     buildAsciiStarGlyphsFromSvg({
-      centerX: width * 0.08,
-      centerY: height * 0.54,
-      size: starSize,
+      // left-[max(-12rem,-13vw)] top-32  → bleed past left edge, mid-upper
+      centerX: width * -0.02,
+      centerY: height * 0.42,
+      size: leftSize,
       rotationDeg: -22,
       starSvg,
     }),
     buildAsciiStarGlyphsFromSvg({
-      centerX: width * 0.92,
-      centerY: height * 0.48,
-      size: starSize * 0.92,
+      // right-[max(-11rem,-12vw)] top-20 → bleed past right edge
+      centerX: width * 1.02,
+      centerY: height * 0.34,
+      size: rightSize,
       rotationDeg: 10,
       starSvg,
     }),

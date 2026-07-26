@@ -7,10 +7,8 @@ import { loadWrappedOgData } from "../../../lib/agentWrapped/loadWrappedOgData";
 const builderId = Astro.params.builderId || "";
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
 const featuredCard = parseShareCardParam(Astro.url.searchParams.get("c") || Astro.url.searchParams.get("card"));
-const cardShort = shortCardParam(featuredCard);
-const ogImage = cardShort
-  ? `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png?c=${cardShort}`
-  : `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png`;
+const cardShort = shortCardParam(featuredCard) || "t";
+const ogImage = `/api/builder/wrapped/${encodeURIComponent(builderId)}/og.png?c=${cardShort}`;
 
 let pageTitle = "AI Wrapped · DevLabs";
 let pageDescription = "DevLabs AI Wrapped — building habits backed by proof.";

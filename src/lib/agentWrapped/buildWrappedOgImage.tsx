@@ -1,57 +1,76 @@
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import React from 'react';
 import { ImageResponse } from '@vercel/og';
-import type { WrappedOgCardPreview, WrappedOgData } from '@/lib/agentWrapped/loadWrappedOgData';
+import type { WrappedOgData } from '@/lib/agentWrapped/loadWrappedOgData';
 import type { WrappedCardKey } from '@/components/builder/wrapped/theme';
 
-/** Three-card deck: cover · hours hero · archetype reveal */
-const DECK_CARD_KEYS: WrappedCardKey[] = ['cover', 'time', 'identity'];
-
-const OG_CARD_BG: Record<(typeof DECK_CARD_KEYS)[number], string> = {
-  cover: '/og/wrapped-card-cover.png',
-  time: '/og/wrapped-card-time.png',
-  identity: '/og/wrapped-card-identity.png',
-};
-
-/** Portrait card art aspect (width / height). */
-const CARD_ASPECT = 293 / 523;
-
-/** Standard OG canvas — background art is 1024×537, scaled to 1200×630. */
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
-const BG_SCALE_X = OG_WIDTH / 1024;
-const BG_SCALE_Y = OG_HEIGHT / 537;
 
-/** Measured from reference artboard (1024×537), then scaled. */
-const FIGMA = {
-  left: Math.round(176 * BG_SCALE_X),
-  top: Math.round(361 * BG_SCALE_Y),
-  width: Math.round(673 * BG_SCALE_X),
-  height: Math.round((537 - 361) * BG_SCALE_Y),
-  radius: 16,
-  inset: 14,
-};
-
-const NAME = {
-  top: Math.round(252 * BG_SCALE_Y),
-  height: Math.round(44 * BG_SCALE_Y),
-};
+const PAPER = '#fbf6f3';
+const INK = '#050505';
+const ORANGE = '#ff7417';
+const ORANGE_DEEP = '#e22710';
+const MUTED = 'rgba(5,5,5,0.55)';
 
 type FontCache = {
-  manropeMedium: ArrayBuffer;
+  manropeRegular: ArrayBuffer;
+  manropeBold: ArrayBuffer;
   manropeExtraBold: ArrayBuffer;
+  gatwickBold: ArrayBuffer;
+};
+
+type AssetCache = {
+  logo: string;
+  starLeft: string;
+  starRight: string;
+  timeCard: string;
 };
 
 let fontCache: FontCache | null = null;
+let assetCache: AssetCache | null = null;
 
 async function loadFonts(): Promise<FontCache> {
   if (fontCache) return fontCache;
 
-  const [manropeMedium, manropeExtraBold] = await Promise.all([
-    fetch('https://fonts.gstatic.com/s/manrope/v20/xn7_YHE41ni1AdIRqAuZuw1Bx9mbZk7PFO_F.ttf').then((r) => r.arrayBuffer()),
-    fetch('https://fonts.gstatic.com/s/manrope/v20/xn7_YHE41ni1AdIRqAuZuw1Bx9mbZk59E-_F.ttf').then((r) => r.arrayBuffer()),
+  const [manropeRegular, manropeBold, manropeExtraBold, gatwickBold] = await Promise.all([
+    fetch('https://cdn.jsdelivr.net/fontsource/fonts/manrope@5.2.5/latin-400-normal.ttf').then((r) =>
+      r.arrayBuffer(),
+    ),
+    fetch('https://cdn.jsdelivr.net/fontsource/fonts/manrope@5.2.5/latin-700-normal.ttf').then((r) =>
+      r.arrayBuffer(),
+    ),
+    fetch('https://cdn.jsdelivr.net/fontsource/fonts/manrope@5.2.5/latin-800-normal.ttf').then((r) =>
+      r.arrayBuffer(),
+    ),
+    readFile(join(process.cwd(), 'public/fonts/PPGatwick-Bold.otf')),
   ]);
 
-  fontCache = { manropeMedium, manropeExtraBold };
+  fontCache = {
+    manropeRegular,
+    manropeBold,
+    manropeExtraBold,
+    gatwickBold: Uint8Array.from(gatwickBold).buffer,
+  };
   return fontCache;
+}
+
+async function pngDataUrl(relativePath: string) {
+  const buf = await readFile(join(process.cwd(), 'public', relativePath));
+  return `data:image/png;base64,${buf.toString('base64')}`;
+}
+
+async function loadAssets(): Promise<AssetCache> {
+  if (assetCache) return assetCache;
+  const [logo, starLeft, starRight, timeCard] = await Promise.all([
+    pngDataUrl('logo.png'),
+    pngDataUrl('og/wrapped-star-left.png'),
+    pngDataUrl('og/wrapped-star-right.png'),
+    pngDataUrl('og/wrapped-card-time.png'),
+  ]);
+  assetCache = { logo, starLeft, starRight, timeCard };
+  return assetCache;
 }
 
 function truncate(value: string, max: number) {
@@ -59,128 +78,89 @@ function truncate(value: string, max: number) {
   return `${value.slice(0, max - 1).trim()}…`;
 }
 
-function fanRotation(index: number, count: number) {
-  if (count === 3) return [-10, 0, 10][index] ?? 0;
-  const center = (count - 1) / 2;
-  return (index - center) * 7.5;
+function hoursFontSize(hoursLabel: string) {
+  const digits = hoursLabel.replace(/[^\d]/g, '').length;
+  if (digits >= 5) return 72;
+  if (digits >= 4) return 88;
+  if (digits === 3) return 104;
+  return 118;
 }
 
-function fanZIndex(index: number, count: number) {
-  const center = (count - 1) / 2;
-  return count * 10 - Math.round(Math.abs(index - center) * 8);
-}
-
-function BracketName({ name }: { name: string }) {
-  const corner = 14;
-  const thickness = 3;
-  const orange = '#fa7d22';
+function HoursShareCard({ data, timeCardBg }: { data: WrappedOgData; timeCardBg: string }) {
+  const hoursSize = hoursFontSize(data.hoursLabel);
 
   return (
     <div
       style={{
-        position: 'absolute',
-        top: NAME.top,
-        left: 0,
-        right: 0,
-        height: NAME.height,
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        position: 'relative',
+        width: 460,
+        height: 540,
       }}
     >
+      {/* Orange offset plate */}
       <div
         style={{
+          position: 'absolute',
+          top: 44,
+          left: 18,
+          width: 420,
+          height: 480,
+          background: ORANGE,
+          display: 'flex',
+        }}
+      />
+
+      {/* Status pill */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 4,
+          left: 18,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-          padding: '8px 28px',
-          minWidth: 220,
+          gap: 8,
         }}
       >
-        <div style={{ position: 'absolute', top: 0, left: 0, width: corner, height: corner, borderTop: `${thickness}px solid ${orange}`, borderLeft: `${thickness}px solid ${orange}` }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, width: corner, height: corner, borderTop: `${thickness}px solid ${orange}`, borderRight: `${thickness}px solid ${orange}` }} />
-        <div style={{ position: 'absolute', bottom: 0, left: 0, width: corner, height: corner, borderBottom: `${thickness}px solid ${orange}`, borderLeft: `${thickness}px solid ${orange}` }} />
-        <div style={{ position: 'absolute', bottom: 0, right: 0, width: corner, height: corner, borderBottom: `${thickness}px solid ${orange}`, borderRight: `${thickness}px solid ${orange}` }} />
+        <div style={{ display: 'flex', width: 10, height: 10, borderRadius: 999, background: ORANGE }} />
         <div
           style={{
             display: 'flex',
-            fontSize: 22,
-            fontWeight: 800,
-            color: '#050505',
-            letterSpacing: '-0.03em',
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#1f8a4c',
+            letterSpacing: '0.04em',
+            fontFamily: 'Manrope',
           }}
         >
-          {truncate(name, 28)}
+          TRACKING ACTIVE
         </div>
       </div>
-    </div>
-  );
-}
 
-function DeckCard({
-  card,
-  origin,
-  bgImage,
-  width,
-  cardHeight,
-  left,
-  bottom,
-  rotation,
-  zIndex,
-  isHero,
-  heroHours,
-}: {
-  card: WrappedOgCardPreview;
-  origin: string;
-  bgImage: string;
-  width: number;
-  cardHeight: number;
-  left: number;
-  bottom: number;
-  rotation: number;
-  zIndex: number;
-  isHero: boolean;
-  heroHours: number;
-}) {
-  const valueSize = isHero ? 40 : card.peekValue.length > 10 ? 28 : card.peekValue.length > 6 ? 32 : 36;
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        position: 'absolute',
-        left,
-        bottom,
-        width,
-        height: cardHeight,
-        transform: `rotate(${rotation}deg)`,
-        transformOrigin: '50% 100%',
-        zIndex,
-      }}
-    >
+      {/* Card body */}
       <div
         style={{
+          position: 'absolute',
+          top: 34,
+          left: 8,
+          width: 420,
+          height: 480,
           display: 'flex',
-          width: '100%',
-          height: '100%',
-          borderRadius: 18,
-          border: isHero ? '3px solid rgba(255,255,255,0.96)' : '2px solid rgba(255,255,255,0.92)',
-          boxShadow: isHero ? '0 18px 40px rgba(0,0,0,0.3)' : '0 14px 32px rgba(0,0,0,0.22)',
           overflow: 'hidden',
-          position: 'relative',
+          border: `2px solid ${INK}`,
+          background: INK,
         }}
       >
         <img
-          src={`${origin}${bgImage}`}
-          width={width}
-          height={cardHeight}
+          src={timeCardBg}
+          width={420}
+          height={480}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
-            width: '100%',
-            height: '100%',
+            width: 420,
+            height: 480,
             objectFit: 'cover',
           }}
         />
@@ -191,9 +171,12 @@ function DeckCard({
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'linear-gradient(180deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0) 38%, rgba(0,0,0,0.62) 100%)',
+            background:
+              'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.2) 35%, rgba(0,0,0,0.72) 100%)',
+            display: 'flex',
           }}
         />
+
         <div
           style={{
             position: 'relative',
@@ -201,272 +184,156 @@ function DeckCard({
             flexDirection: 'column',
             width: '100%',
             height: '100%',
-            padding: isHero ? '20px 16px 0' : '18px 14px 0',
+            padding: '56px 28px 28px',
           }}
         >
-          {isHero ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.85)',
-                  letterSpacing: '-0.01em',
-                  lineHeight: 1.2,
-                }}
-              >
-                you built for
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: valueSize,
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  lineHeight: 0.95,
-                  letterSpacing: '-0.05em',
-                  textShadow: '2px 2px 0 rgba(226,36,16,0.5)',
-                }}
-              >
-                {Math.round(heroHours)}h
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.85)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                this year
-              </div>
+          <div
+            style={{
+              display: 'flex',
+              fontFamily: 'Gatwick',
+              fontSize: 22,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.88)',
+              lineHeight: 1,
+            }}
+          >
+            you built for
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 10,
+              fontFamily: 'Gatwick',
+              fontSize: hoursSize,
+              fontWeight: 700,
+              color: '#ffffff',
+              lineHeight: 0.9,
+              letterSpacing: '-0.05em',
+              textShadow: `4px 5px 0 rgba(226,36,16,0.55)`,
+            }}
+          >
+            {data.hoursLabel}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              marginTop: 8,
+              fontFamily: 'Gatwick',
+              fontSize: 34,
+              fontWeight: 700,
+              color: '#ffffff',
+              lineHeight: 1.05,
+            }}
+          >
+            <div style={{ display: 'flex' }}>hours</div>
+            <div style={{ display: 'flex', fontSize: 22, color: 'rgba(255,255,255,0.92)' }}>
+              with agents.
             </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 10,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    color: 'rgba(255,255,255,0.8)',
-                  }}
-                >
-                  {truncate(card.peekLabel, 14)}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    width: 11,
-                    height: 11,
-                    borderRadius: 999,
-                    border: '1.5px solid rgba(255,255,255,0.85)',
-                    background: 'rgba(255,255,255,0.12)',
-                  }}
-                />
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: valueSize,
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  lineHeight: 1.05,
-                  letterSpacing: '-0.04em',
-                  textShadow: '2px 2px 0 rgba(226,36,16,0.45)',
-                }}
-              >
-                {truncate(card.peekValue, 16)}
-              </div>
-            </>
-          )}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 18,
+              maxWidth: 340,
+              fontFamily: 'Manrope',
+              fontSize: 16,
+              fontWeight: 700,
+              color: '#d4d4d4',
+              lineHeight: 1.35,
+            }}
+          >
+            {truncate(data.hoursSupport, 56)}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              marginTop: 'auto',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                border: `1.5px solid ${INK}`,
+                background: '#ffffff',
+                padding: '10px 14px',
+                boxShadow: `7px 7px 0 ${ORANGE_DEEP}`,
+                fontFamily: 'Manrope',
+                fontSize: 14,
+                fontWeight: 700,
+                color: INK,
+              }}
+            >
+              {`longest single session: ${data.longestSessionLabel}`}
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                fontFamily: 'Manrope',
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.45)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {`${data.sessionCount.toLocaleString('en-US')} sessions · ${truncate(data.topAgent, 18)}`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Badge overlays card top edge (paint after card; Satori has no z-index) */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 54,
+          left: 36,
+          display: 'flex',
+          background: ORANGE,
+          padding: '6px 12px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            fontSize: 12,
+            fontWeight: 800,
+            color: INK,
+            letterSpacing: '0.12em',
+            fontFamily: 'Manrope',
+          }}
+        >
+          AI WRAPPED
         </div>
       </div>
     </div>
   );
 }
 
-function pickDeckCards(previews: WrappedOgCardPreview[]) {
-  return DECK_CARD_KEYS.map((key) => previews.find((c) => c.key === key)).filter(
-    (c): c is WrappedOgCardPreview => Boolean(c),
-  );
-}
-
+/**
+ * DevLabs-themed share OG: cream paper + orange accents, left brand/copy,
+ * right = time-with-agents builder card (Satori / @vercel/og).
+ */
 export async function buildWrappedOgImage(
   data: WrappedOgData,
-  origin: string,
-  options: { featuredCard?: WrappedCardKey | null } = {},
+  _origin: string,
+  _options: { featuredCard?: WrappedCardKey | null } = {},
 ) {
-  const fonts = await loadFonts();
-  const bgUrl = `${origin}/og/wrapped-og-bg.png`;
-  const featuredKey = options.featuredCard || null;
-  const featuredPreview = featuredKey
-    ? data.cardPreviews.find((card) => card.key === featuredKey) || null
-    : null;
-
-  if (featuredPreview) {
-    const featuredBg =
-      OG_CARD_BG[featuredPreview.key as keyof typeof OG_CARD_BG] ||
-      featuredPreview.bgImage ||
-      '/og/wrapped-card-identity.png';
-    const hoursLabel = Math.round(data.totalHours).toLocaleString('en-US');
-    const isTime = featuredPreview.key === 'time';
-    const headline = isTime
-      ? hoursLabel
-      : truncate(featuredPreview.peekValue || featuredPreview.title, 22);
-    const kicker = isTime ? 'you built for' : featuredPreview.peekLabel;
-    const sub = isTime ? 'hours with agents' : 'DevLabs AI Wrapped';
-
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            position: 'relative',
-            fontFamily: 'Manrope',
-            overflow: 'hidden',
-            background: '#fbf6f3',
-          }}
-        >
-          <img
-            src={bgUrl}
-            width={OG_WIDTH}
-            height={OG_HEIGHT}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: OG_WIDTH,
-              height: OG_HEIGHT,
-              objectFit: 'fill',
-            }}
-          />
-          <BracketName name={data.builderName} />
-          <div
-            style={{
-              position: 'absolute',
-              left: Math.round(OG_WIDTH * 0.28),
-              top: Math.round(OG_HEIGHT * 0.22),
-              width: Math.round(OG_WIDTH * 0.44),
-              height: Math.round(OG_HEIGHT * 0.7),
-              borderRadius: 28,
-              overflow: 'hidden',
-              display: 'flex',
-              border: '3px solid rgba(255,255,255,0.95)',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.28)',
-            }}
-          >
-            <img
-              src={`${origin}${featuredBg}`}
-              width={Math.round(OG_WIDTH * 0.44)}
-              height={Math.round(OG_HEIGHT * 0.7)}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                background:
-                  'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.72) 100%)',
-              }}
-            />
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-end',
-                width: '100%',
-                height: '100%',
-                padding: '36px 28px 40px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.82)',
-                  letterSpacing: '-0.01em',
-                  marginBottom: 8,
-                }}
-              >
-                {kicker}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: isTime ? 72 : headline.length > 14 ? 40 : 52,
-                  fontWeight: 800,
-                  color: '#ffffff',
-                  lineHeight: 0.95,
-                  letterSpacing: '-0.05em',
-                  textShadow: '3px 3px 0 rgba(226,36,16,0.5)',
-                }}
-              >
-                {isTime ? `${headline}h` : headline}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  marginTop: 10,
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.9)',
-                }}
-              >
-                {sub}
-              </div>
-            </div>
-          </div>
-        </div>
-      ),
-      {
-        width: OG_WIDTH,
-        height: OG_HEIGHT,
-        fonts: [
-          { name: 'Manrope', data: fonts.manropeMedium, weight: 500, style: 'normal' },
-          { name: 'Manrope', data: fonts.manropeExtraBold, weight: 800, style: 'normal' },
-        ],
-      },
-    );
-  }
-
-  const deckCards = pickDeckCards(data.cardPreviews);
-  const cardCount = deckCards.length;
-  const innerLeft = FIGMA.left + FIGMA.inset;
-  const innerTop = FIGMA.top + FIGMA.inset;
-  const innerWidth = FIGMA.width - FIGMA.inset * 2;
-  const innerHeight = FIGMA.height - FIGMA.inset * 2;
-  const horizontalPad = 22;
-  const deckWidth = innerWidth - horizontalPad * 2;
-
-  // Tall cards — bottom half overflows beneath the clip; only top half peeks in.
-  const cardHeight = Math.round(innerHeight * 2.35);
-  const cardWidth = Math.round(cardHeight * CARD_ASPECT);
-  const cardBottom = -Math.round(cardHeight * 0.5);
-  const heroIndex = 1;
-  const slotCenters = [0.37, 0.5, 0.63];
+  const [fonts, assets] = await Promise.all([loadFonts(), loadAssets()]);
+  const nameLine = truncate(data.builderName, 28);
+  const identityLine = truncate(`${data.builderName} · ${data.archetype}`, 42);
+  const tagline =
+    truncate(data.headline, 90) ||
+    'ships proof of agent work — hours, sessions, and stack on DevLabs';
 
   return new ImageResponse(
     (
@@ -475,14 +342,28 @@ export async function buildWrappedOgImage(
           width: '100%',
           height: '100%',
           display: 'flex',
-          position: 'relative',
+          background: PAPER,
           fontFamily: 'Manrope',
+          position: 'relative',
           overflow: 'hidden',
-          background: '#fbf6f3',
         }}
       >
+        {/* Landing hero ASCII stars (canvas → PNG, same placement as hero) */}
         <img
-          src={bgUrl}
+          src={assets.starLeft}
+          width={OG_WIDTH}
+          height={OG_HEIGHT}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: OG_WIDTH,
+            height: OG_HEIGHT,
+            objectFit: 'fill',
+          }}
+        />
+        <img
+          src={assets.starRight}
           width={OG_WIDTH}
           height={OG_HEIGHT}
           style={{
@@ -495,53 +376,139 @@ export async function buildWrappedOgImage(
           }}
         />
 
-        <BracketName name={data.builderName} />
-
         <div
           style={{
-            position: 'absolute',
-            left: innerLeft,
-            top: innerTop,
-            width: innerWidth,
-            height: innerHeight,
-            borderRadius: FIGMA.radius - 4,
-            overflow: 'hidden',
+            position: 'relative',
             display: 'flex',
+            width: '100%',
+            height: '100%',
+            padding: '48px 52px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
+          {/* Left column */}
           <div
             style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
               display: 'flex',
+              flexDirection: 'column',
+              width: 540,
+              height: '100%',
+              justifyContent: 'center',
+              paddingRight: 24,
             }}
           >
-            {deckCards.map((card, index) => {
-              const isHero = index === heroIndex;
-              const width = isHero ? cardWidth + 22 : cardWidth;
-              const centerX = horizontalPad + slotCenters[index] * deckWidth;
-              const left = Math.round(centerX - width / 2);
-              const rotation = fanRotation(index, cardCount);
-              const zIndex = fanZIndex(index, cardCount) + (isHero ? 30 : 0);
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
+              <img
+                src={assets.logo}
+                width={44}
+                height={44}
+                style={{ width: 44, height: 44, objectFit: 'contain' }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  fontFamily: 'Manrope',
+                  fontSize: 28,
+                  fontWeight: 800,
+                  color: INK,
+                  letterSpacing: '-0.03em',
+                }}
+              >
+                DevLabs
+              </div>
+            </div>
 
-              return (
-                <DeckCard
-                  key={card.key}
-                  card={card}
-                  origin={origin}
-                  bgImage={OG_CARD_BG[card.key]}
-                  width={width}
-                  cardHeight={cardHeight}
-                  left={left}
-                  bottom={cardBottom}
-                  rotation={rotation}
-                  zIndex={zIndex}
-                  isHero={isHero}
-                  heroHours={data.totalHours}
-                />
-              );
-            })}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                fontFamily: 'Gatwick',
+                fontSize: nameLine.length > 22 ? 42 : 50,
+                fontWeight: 700,
+                color: INK,
+                lineHeight: 1.05,
+                letterSpacing: '-0.03em',
+                marginBottom: 10,
+              }}
+            >
+              {nameLine}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                fontFamily: 'Manrope',
+                fontSize: 20,
+                fontWeight: 700,
+                color: ORANGE,
+                letterSpacing: '-0.01em',
+                marginBottom: 22,
+              }}
+            >
+              {truncate(data.archetype, 36)}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                width: 420,
+                height: 2,
+                background: 'rgba(5,5,5,0.12)',
+                marginBottom: 22,
+              }}
+            />
+
+            <div
+              style={{
+                display: 'flex',
+                maxWidth: 440,
+                fontFamily: 'Manrope',
+                fontSize: 20,
+                fontWeight: 400,
+                color: MUTED,
+                lineHeight: 1.45,
+                marginBottom: 36,
+              }}
+            >
+              {tagline}
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: ORANGE,
+                color: INK,
+                padding: '16px 28px',
+                fontFamily: 'Manrope',
+                fontSize: 18,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                width: 240,
+              }}
+            >
+              GET YOURS
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                marginTop: 18,
+                fontFamily: 'Manrope',
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'rgba(5,5,5,0.4)',
+              }}
+            >
+              {truncate(identityLine, 48)}
+            </div>
+          </div>
+
+          {/* Right column — hours card */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <HoursShareCard data={data} timeCardBg={assets.timeCard} />
           </div>
         </div>
       </div>
@@ -549,9 +516,14 @@ export async function buildWrappedOgImage(
     {
       width: OG_WIDTH,
       height: OG_HEIGHT,
+      headers: {
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+      },
       fonts: [
-        { name: 'Manrope', data: fonts.manropeMedium, weight: 500, style: 'normal' },
+        { name: 'Manrope', data: fonts.manropeRegular, weight: 400, style: 'normal' },
+        { name: 'Manrope', data: fonts.manropeBold, weight: 700, style: 'normal' },
         { name: 'Manrope', data: fonts.manropeExtraBold, weight: 800, style: 'normal' },
+        { name: 'Gatwick', data: fonts.gatwickBold, weight: 700, style: 'normal' },
       ],
     },
   );

@@ -10,6 +10,7 @@ const MAX_SESSION_MINUTES_FOR_DISPLAY = 6 * 60;
 export function resolveDisplayTimeInvested(report: AgentWrappedReport): {
   totalHours: number;
   longestSessionMinutes: number;
+  sessionCount: number;
   estimated: boolean;
   capped: boolean;
 } {
@@ -50,6 +51,7 @@ export function resolveDisplayTimeInvested(report: AgentWrappedReport): {
   return {
     totalHours,
     longestSessionMinutes,
+    sessionCount,
     estimated: capped || raw.estimated !== false,
     capped,
   };
