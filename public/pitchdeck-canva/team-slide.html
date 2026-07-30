@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DevLabs — Team</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap");
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Manrope, Helvetica, Arial, sans-serif; background: #111; color: #050505; }
+      [data-document-role="page"] {
+        width: 1920px;
+        height: 1080px;
+        position: relative;
+        overflow: hidden;
+        background: #fbf6f3;
+        padding: 64px 80px;
+      }
+      .label-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: rgba(0,0,0,0.4);
+        margin-bottom: 28px;
+      }
+      .num { color: #bf4f08; }
+      h2 {
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        line-height: 0.95;
+        font-size: 64px;
+        max-width: 1600px;
+      }
+      .orange { color: #ff7417; }
+      .sub {
+        margin-top: 20px;
+        font-size: 26px;
+        font-weight: 500;
+        color: rgba(0,0,0,0.55);
+        max-width: 1100px;
+        line-height: 1.35;
+      }
+      .founders {
+        margin-top: 48px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+      }
+      .founder {
+        border: 2px solid #000;
+        background: #fff;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        min-height: 420px;
+      }
+      .founder img {
+        width: 280px;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        background: #1a1a1a;
+      }
+      .founder-body {
+        padding: 36px 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .role {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #bf4f08;
+        margin-bottom: 12px;
+      }
+      .name {
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+      }
+      .creds {
+        margin-top: 18px;
+        font-size: 22px;
+        font-weight: 600;
+        color: rgba(0,0,0,0.7);
+        line-height: 1.45;
+      }
+      .why {
+        margin-top: 18px;
+        font-size: 18px;
+        font-weight: 500;
+        color: rgba(0,0,0,0.5);
+        line-height: 1.4;
+      }
+      .proof {
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .chip {
+        border: 1px solid rgba(0,0,0,0.12);
+        background: #fffaf7;
+        padding: 18px 22px;
+      }
+      .chip strong {
+        display: block;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .chip span {
+        display: block;
+        margin-top: 6px;
+        font-size: 15px;
+        font-weight: 500;
+        color: rgba(0,0,0,0.5);
+      }
+    </style>
+  </head>
+  <body>
+    <section data-document-role="page" data-label="02 Team">
+      <div class="label-row"><span>Team</span><span class="num">02</span></div>
+      <h2>Operators who ship.<br /><span class="orange">Building the hiring layer they needed.</span></h2>
+      <p class="sub">Ex-Google. Ex-Cloudflare. Ex-Twilio. Domain insight from building products and communities — not from reading resumes.</p>
+
+      <div class="founders">
+        <article class="founder">
+          <img src="https://raw.githubusercontent.com/Devlabs-club/website/main/public/pitchdeck-canva/dhanush.png" alt="Dhanush Vardhan" />
+          <div class="founder-body">
+            <div class="role">Co-founder</div>
+            <div class="name">Dhanush Vardhan</div>
+            <div class="creds">Ex-Google · Ex-Cloudflare<br />Prev. exited startup</div>
+            <div class="why">Engineering + systems background. Built and shipped products at scale before founding DevLabs.</div>
+          </div>
+        </article>
+        <article class="founder">
+          <img src="https://raw.githubusercontent.com/Devlabs-club/website/main/public/pitchdeck-canva/bhoomi.png" alt="Bhoomi Sahajsinghani" />
+          <div class="founder-body">
+            <div class="role">Co-founder</div>
+            <div class="name">Bhoomi Sahajsinghani</div>
+            <div class="creds">Ex-Twilio</div>
+            <div class="why">Community, partnerships, and go-to-market. Turns builder energy into a durable talent network.</div>
+          </div>
+        </article>
+      </div>
+
+      <div class="proof">
+        <div class="chip"><strong>Unfair insight</strong><span>Lived the broken hiring loop as builders and operators</span></div>
+        <div class="chip"><strong>Technical chops</strong><span>Shipped production systems at Google, Cloudflare, Twilio</span></div>
+        <div class="chip"><strong>Why now</strong><span>Proof-of-work signals finally beat resume keywords</span></div>
+      </div>
+    </section>
+  </body>
+</html>
