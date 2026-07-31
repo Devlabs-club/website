@@ -205,6 +205,15 @@ export default function FounderCandidateDrawer({
         </SheetHeader>
 
         <div className="p-6 space-y-8">
+          {candidate.whyTheyMatch ? (
+            <section className="rounded-2xl border border-[#fa7d22]/35 bg-[#fa7d22]/[0.1] p-4">
+              <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#ffb580] mb-2">
+                Reason to hire
+              </h3>
+              <p className="text-sm font-medium text-white leading-relaxed">{candidate.whyTheyMatch}</p>
+            </section>
+          ) : null}
+
           <section>
             <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Summary</h3>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -261,11 +270,6 @@ export default function FounderCandidateDrawer({
               </div>
             </section>
           ) : null}
-
-          <section>
-            <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Why they match</h3>
-            <p className="text-sm text-white/80 leading-relaxed">{candidate.whyTheyMatch}</p>
-          </section>
 
           {candidate.teasers?.agentTrace ? (
             <section className="rounded-2xl border border-[#fa7d22]/20 bg-[#fa7d22]/[0.06] p-4">

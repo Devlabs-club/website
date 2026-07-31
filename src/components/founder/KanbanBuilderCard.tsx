@@ -89,7 +89,16 @@ export default function KanbanBuilderCard({
             </span>
           </div>
 
-          <p className="text-xs text-white/50 mt-2 line-clamp-2">{candidate.whyTheyMatch || candidate.bio}</p>
+          {(candidate.whyTheyMatch || candidate.bio) ? (
+            <div className="mt-2 rounded-lg border border-[#fa7d22]/25 bg-[#fa7d22]/[0.08] px-2.5 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#ffb580]">
+                Reason to hire
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-white/80 line-clamp-3">
+                {candidate.whyTheyMatch || candidate.bio}
+              </p>
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-1 mt-3">
             {(candidate.topSkills || []).slice(0, 4).map((skill) => (

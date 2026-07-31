@@ -72,8 +72,7 @@ export default defineConfig({
       },
     },
     // Lock dependency pre-bundling to a fixed list so cache invalidation (504 Outdated
-    // Optimize Dep) does not happen on every config save. react-markdown is lazy-loaded
-    // in ChatMarkdown.tsx — do not pre-bundle it (aria-query hangs esbuild for minutes).
+    // Optimize Dep) does not happen on every config save.
     optimizeDeps: {
       noDiscovery: true,
       include: [
@@ -83,7 +82,7 @@ export default defineConfig({
         "react/jsx-dev-runtime",
         "@astrojs/react/client.js",
       ],
-      exclude: ["@xenova/transformers", "react-markdown"],
+      exclude: ["@xenova/transformers"],
     },
     ssr: {
       noExternal: ["react-tweet"],

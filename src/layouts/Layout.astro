@@ -93,7 +93,7 @@ const metaKeywords = keywords ?? defaultKeywords;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link
@@ -109,14 +109,8 @@ const metaKeywords = keywords ?? defaultKeywords;
       />
     </noscript>
   </head>
-  <body class:list={['text-gray-400 bg-[hsl(8,8%,3.5%)]', !skipPageLoader && 'loader-visible']}>
+  <body class:list={['bg-paper text-ink antialiased', !skipPageLoader && 'loader-visible']}>
     {!skipPageLoader ? <PageLoader /> : null}
-    <!-- Fixed background: texture + grain -->
-    <div class="fixed inset-0 pointer-events-none z-0">
-      <div class="absolute inset-0 bg-texture"></div>
-      <div class="absolute inset-0 app-surface-overlay"></div>
-      <div class="absolute inset-0 bg-noise opacity-[0.06] mix-blend-overlay"></div>
-    </div>
 
     {!hideNavbar && <Navbar />}
     <main class="relative z-10">
@@ -128,11 +122,12 @@ const metaKeywords = keywords ?? defaultKeywords;
 </html>
 <style>
   html {
-    font-family: Manrope, sans-serif;
+    font-family: Manrope, system-ui, sans-serif;
   }
 
   body {
-    background-color: hsl(8 8% 3.5%);
+    background-color: #fbf6f3;
+    color: #050505;
   }
 
   body.loader-visible {

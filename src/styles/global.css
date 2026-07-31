@@ -30,41 +30,50 @@
 
 @layer base {
   :root {
-    --surface-base: 8 8 9;
-    --surface-elevated: 12 12 14;
+    /* Landing paper theme — cream surface, near-black ink, DevLabs orange */
+    --paper: 251 246 243;
+    --ink: 5 5 5;
+    --brand: 255 116 23;
+    --brand-deep: 191 79 8;
 
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --surface-base: 251 246 243;
+    --surface-elevated: 255 250 247;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --background: 30 50% 97%;
+    --foreground: 0 0% 2%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --card: 40 60% 99%;
+    --card-foreground: 0 0% 2%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --popover: 40 60% 99%;
+    --popover-foreground: 0 0% 2%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --secondary: 30 25% 94%;
+    --secondary-foreground: 0 0% 8%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 30 20% 94%;
+    --muted-foreground: 0 0% 38%;
+
+    --accent: 24 100% 96%;
+    --accent-foreground: 24 90% 32%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 10% 88%;
+    --input: 30 10% 88%;
+    --ring: 24 100% 55%;
 
     --radius: 0.5rem;
   }
 
   .dark {
+    --surface-base: 8 8 9;
+    --surface-elevated: 12 12 14;
+
     --background: 0 0% 6%;
     --foreground: 0 0% 96%;
 
@@ -74,8 +83,8 @@
     --popover: 0 0% 9%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 0 0% 96%;
-    --primary-foreground: 0 0% 8%;
+    --primary: 24 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 14%;
     --secondary-foreground: 0 0% 94%;
@@ -91,7 +100,7 @@
 
     --border: 0 0% 22%;
     --input: 0 0% 22%;
-    --ring: 0 0% 72%;
+    --ring: 24 100% 55%;
   }
 }
 
@@ -357,14 +366,37 @@
   }
 
   .app-surface-overlay {
-    background-color: hsl(var(--surface-base) / 0.55);
+    background-color: transparent;
   }
 
-  .bg-texture {
-    background-image: url("/texture.webp");
-    background-size: cover;
-    background-position: center;
-    background-repeat: repeat;
+  /* Paper grid — replaces the old dark texture.webp backdrop */
+  .bg-paper {
+    background-color: #fbf6f3;
+    color: #050505;
+  }
+
+  .text-ink {
+    color: #050505;
+  }
+
+  .bg-texture,
+  .bg-paper-grid {
+    background-color: #fbf6f3;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(5, 5, 5, 0.024) 0,
+        rgba(5, 5, 5, 0.024) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(5, 5, 5, 0.022) 0,
+        rgba(5, 5, 5, 0.022) 1px,
+        transparent 1px,
+        transparent 24px
+      );
   }
 
   .bg-noise {

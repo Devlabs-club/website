@@ -159,6 +159,12 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
   const id = url.searchParams.get('id');
   if (id) {
     if (!mongoose.Types.ObjectId.isValid(id)) return json({ success: false, error: 'Invalid builder id.' }, 400);
+    const { user } = await resolveUser(request, locals);
+    if (!user) return json({ success: false, error: 'Please log in to continue.' }, 401);
+    const role = String(user.role || '');
+    if (role !== 'founder' && role !== 'admin') {
+      return json({ success: false, error: 'You do not have access to this profile.' }, 403);
+    }
     const profile = await BuilderProfile.findById(id).lean() as any;
     const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
     return json({ success: Boolean(profile), profile: serializeBuilderProfile(profile, projects) });
@@ -166,6 +172,9 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 
   const { user, runtime } = await resolveUser(request, locals);
   if (!user) return json({ success: false, error: 'Please log in to continue.' }, 401);
+  if (String(user.role || '') !== 'builder' && String(user.role || '') !== 'admin') {
+    return json({ success: false, error: 'Builder account required.' }, 403);
+  }
 
   const userEmail = String(user.email || '').toLowerCase().trim();
   const profile = await BuilderProfile.findOne({

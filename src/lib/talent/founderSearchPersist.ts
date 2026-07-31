@@ -8,6 +8,7 @@ import {
   collectBuilderSkillTokens,
   matchedSkills,
 } from '@/lib/talent/discovery/roleSkillTiers';
+import { invalidateTtlCachePrefix } from '@/lib/talent/ttlCache';
 
 function logFounderSearchPersist(event: string, meta: Record<string, unknown> = {}) {
   console.info(`[founder-search-persist] ${event}`, meta);
@@ -148,6 +149,8 @@ export async function persistDiscoveryCandidates(params: {
     durationMs: Date.now() - shortlistStartedAt,
     totalDurationMs: Date.now() - startedAt,
   });
+
+  invalidateTtlCachePrefix(`role-recs:${opportunityId}`);
 
   return { shortlistDoc, candidatesWithIds };
 }

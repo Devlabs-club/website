@@ -1,0 +1,42 @@
+---
+import '../styles/global.css';
+import StatusRoutePage from '../components/status/StatusRoutePage.astro';
+
+const ascii404 = `
+ ██╗  ██╗ ██████╗ ██╗  ██╗
+ ██║  ██║██╔═══██╗██║  ██║
+ ███████║██║   ██║███████║
+ ╚════██║██║   ██║╚════██║
+      ██║╚██████╔╝     ██║
+      ╚═╝ ╚═════╝      ╚═╝
+`.replace(/^\n/, '').trimEnd();
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="This page doesn’t exist, or you don’t have permission to view it." />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <title>Page not found · DevLabs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#fbf6f3] text-[#050505] antialiased">
+    <StatusRoutePage
+      ascii={ascii404}
+      headline="Page not found"
+      description="This page doesn’t exist, or you don’t have permission to view it."
+      primaryHref="/"
+      primaryLabel="Back to DevLabs"
+      secondaryHref="/auth/signup"
+      secondaryLabel="Start hiring"
+    />
+  </body>
+</html>

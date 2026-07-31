@@ -19,25 +19,28 @@ export type RankingWeights = {
   agentTraceFit: number;
   githubActivityFit: number;
   sponsorshipFit: number;
+  /** Role-plan evidence dimensions (custom per role family). */
+  roleDimensionFit: number;
   negativeSignalPenalty: number;
   missingEvidencePenalty: number;
 };
 
 export const DEFAULT_WEIGHTS: RankingWeights = {
-  deterministicSkillFit: 0.22,
-  semanticRoleFit: 0.16,
-  semanticProjectFit: 0.16,
-  proofStrength: 0.12,
-  contributionClarity: 0.08,
-  founderPreferenceFit: 0.10,
-  hireTypeFit: 0.05,
-  availabilityFit: 0.04,
+  deterministicSkillFit: 0.2,
+  semanticRoleFit: 0.14,
+  semanticProjectFit: 0.14,
+  proofStrength: 0.1,
+  contributionClarity: 0.07,
+  founderPreferenceFit: 0.09,
+  hireTypeFit: 0.04,
+  availabilityFit: 0.03,
   profileQuality: 0.03,
-  startupReadiness: 0.06,
+  startupReadiness: 0.05,
   agentTraceFit: 0.02,
-  githubActivityFit: 0.08,
-  sponsorshipFit: 0.06,
-  negativeSignalPenalty: 0.10,
+  githubActivityFit: 0.06,
+  sponsorshipFit: 0.05,
+  roleDimensionFit: 0.18,
+  negativeSignalPenalty: 0.1,
   missingEvidencePenalty: 0.05,
 };
 
@@ -55,6 +58,7 @@ const POSITIVE_WEIGHT_KEYS: Array<keyof RankingWeights> = [
   'agentTraceFit',
   'githubActivityFit',
   'sponsorshipFit',
+  'roleDimensionFit',
 ];
 
 const PENALTY_WEIGHT_KEYS: Array<keyof RankingWeights> = [
@@ -132,7 +136,12 @@ export function buildSearchStrategy(params: {
   const semanticConcepts = buildSemanticConcepts(roleTitle, skills, builderWillDo, requirementTexts);
   const negativeSignals: string[] = [];
 
-  const weights = computeDynamicWeights({ opportunity, roleSkillTiers, searchMode });
+  const weights = computeDynamicWeights({
+    opportunity,
+    roleSkillTiers,
+    searchMode,
+    hasEvidenceDimensions: Boolean(opportunity.searchPlan?.evidenceDimensions?.length),
+  });
 
   return {
     opportunityId: oppId,
@@ -320,8 +329,9 @@ export function computeDynamicWeights(params: {
   opportunity: OpportunityInput;
   roleSkillTiers: RoleSkillTiers;
   searchMode: SearchMode;
+  hasEvidenceDimensions?: boolean;
 }): RankingWeights {
-  const { opportunity, roleSkillTiers, searchMode } = params;
+  const { opportunity, roleSkillTiers, searchMode, hasEvidenceDimensions } = params;
   let weights: RankingWeights = { ...DEFAULT_WEIGHTS };
 
   const mustCount = countMustSearchRequirements(opportunity);
@@ -337,6 +347,16 @@ export function computeDynamicWeights(params: {
   }
 
   weights = applyDomainNudges(weights, roleSkillTiers.domain);
+
+  // When a role plan exists, evidence dimensions become the primary ranking signal.
+  if (hasEvidenceDimensions) {
+    weights.roleDimensionFit = Math.max(weights.roleDimensionFit, 0.32);
+    weights.deterministicSkillFit *= 0.82;
+    weights.semanticRoleFit *= 0.9;
+    weights.semanticProjectFit *= 0.9;
+  } else {
+    weights.roleDimensionFit = 0.02;
+  }
 
   if (searchMode === 'broad') {
     weights.deterministicSkillFit *= 0.85;

@@ -132,6 +132,7 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
   const [paused, setPaused] = useState(false);
   const [exportState, setExportState] = useState<'idle' | 'working' | 'done'>('idle');
   const pointerDownAt = useRef(0);
+  const holdingRef = useRef(false);
   const frameRef = useRef<HTMLDivElement>(null);
   const total = order.length;
   const reduceMotion = useReducedMotion();
@@ -167,19 +168,46 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [activeIndex, goTo]);
 
-  const handlePointerDown = () => {
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    // Ignore non-primary mouse buttons; allow touch + pen + primary click.
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     pointerDownAt.current = Date.now();
+    holdingRef.current = true;
     setPaused(true);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers reject capture mid-gesture; hold still works via state.
+    }
+  };
+
+  const endHold = (event?: React.PointerEvent<HTMLDivElement>) => {
+    holdingRef.current = false;
+    setPaused(false);
+    if (event) {
+      try {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+      } catch {
+        // no-op
+      }
+    }
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
-    setPaused(false);
-    const held = Date.now() - pointerDownAt.current;
-    if (held >= HOLD_THRESHOLD_MS) return;
+    const heldMs = Date.now() - pointerDownAt.current;
+    endHold(event);
+    // Press-and-hold: stay on this slide (already paused during hold).
+    if (heldMs >= HOLD_THRESHOLD_MS) return;
     const rect = event.currentTarget.getBoundingClientRect();
-    const relativeX = (event.clientX - rect.left) / rect.width;
+    const relativeX = (event.clientX - rect.left) / Math.max(1, rect.width);
     if (relativeX < 0.32) goTo(activeIndex - 1);
     else goTo(activeIndex + 1);
+  };
+
+  const handlePointerCancel = (event: React.PointerEvent<HTMLDivElement>) => {
+    endHold(event);
   };
 
   const activeCard = order[activeIndex];
@@ -501,10 +529,12 @@ export const WrappedStoryPlayer: React.FC<Props> = ({
         <style>{`@keyframes devlabs-wrapped-progress { from { width: 0%; } to { width: 100%; } }`}</style>
 
         <div
-          className="relative select-none"
+          className="relative select-none touch-none [-webkit-touch-callout:none]"
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerUp}
-          onPointerLeave={() => setPaused(false)}
+          onPointerCancel={handlePointerCancel}
+          onContextMenu={(event) => event.preventDefault()}
+          style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
         >
           <AnimatePresence mode="wait">
             <motion.div

@@ -1,0 +1,47 @@
+---
+import '../styles/global.css';
+import StatusRoutePage from '../components/status/StatusRoutePage.astro';
+
+const area = Astro.url.searchParams.get('area');
+const label =
+  area === 'founder' ? 'the founder workspace' : area === 'builder' ? 'the builder workspace' : 'this page';
+
+const ascii403 = `
+ ██╗  ██╗ ██████╗ ██████╗
+ ██║  ██║██╔═══██╗╚════██╗
+ ███████║██║   ██║ █████╔╝
+ ╚════██║██║   ██║ ╚═══██╗
+      ██║╚██████╔╝██████╔╝
+      ╚═╝ ╚═════╝ ╚═════╝
+`.replace(/^\n/, '').trimEnd();
+---
+
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content={`You don’t have access to ${label}.`} />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <title>Access denied · DevLabs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-[#fbf6f3] text-[#050505] antialiased">
+    <StatusRoutePage
+      ascii={ascii403}
+      asciiAccent="#050505"
+      headline={`No access to ${label}`}
+      description="You’re signed in, but this account can’t open that page. Switch roles or go back to your home."
+      primaryHref="/dashboard"
+      primaryLabel="Go to your home"
+      secondaryHref="/auth/select-role"
+      secondaryLabel="Choose role"
+    />
+  </body>
+</html>

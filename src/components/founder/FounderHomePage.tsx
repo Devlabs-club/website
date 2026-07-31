@@ -138,9 +138,13 @@ const FounderHomeInner: React.FC = () => {
       const redirect = `${window.location.pathname}${window.location.search}`;
       window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
     }
-    if (!loading && user && user.accountType !== "founder" && user.role !== "founder") {
-      const redirect = `${window.location.pathname}${window.location.search}`;
-      window.location.href = `/auth/select-role?redirect=${encodeURIComponent(redirect)}`;
+    if (!loading && user && user.accountType !== "founder" && user.role !== "founder" && user.role !== "admin") {
+      if (user.role === "user" && !user.accountType) {
+        const redirect = `${window.location.pathname}${window.location.search}`;
+        window.location.href = `/auth/select-role?redirect=${encodeURIComponent(redirect)}`;
+      } else {
+        window.location.href = "/access-denied?area=founder";
+      }
     }
   }, [loading, user]);
 

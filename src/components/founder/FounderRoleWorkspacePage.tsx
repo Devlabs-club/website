@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ExternalLink,
   Eye,
-  FileText,
   Github,
   Globe,
   Linkedin,
@@ -242,6 +241,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
@@ -287,16 +287,32 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   };
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        // Load the role and its saved chat history together so reopening a role resumes
-        // the same conversation the agent already has context for.
+        // Phase 1: paint the role shell immediately (no recommendations).
+        const liteRes = await fetch(`/api/founder/roles/${roleId}?lite=1`, { credentials: "include" });
+        const liteData = await liteRes.json().catch(() => null);
+        if (cancelled) return;
+        if (liteData?.success) {
+          setJob(liteData.job);
+          setLoading(false);
+        } else {
+          setError(liteData?.error || "Could not load role.");
+          setLoading(false);
+          return;
+        }
+
+        // Phase 2: recommendations + chat history in parallel (non-blocking for first paint).
+        setRecommendationsLoading(true);
         const [roleRes, chatRes] = await Promise.all([
           fetch(`/api/founder/roles/${roleId}`, { credentials: "include" }),
           fetch(`/api/founder/roles/${roleId}/chat`, { credentials: "include" }),
         ]);
-        const data = await roleRes.json();
-        if (data.success) {
+        if (cancelled) return;
+
+        const data = await roleRes.json().catch(() => null);
+        if (data?.success) {
           setJob(data.job);
           const recs = data.recommendations || [];
           setRecommendations(recs);
@@ -306,9 +322,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           } else if (recs.length > 0) {
             setRightPane("recommended");
           }
-        } else {
-          setError(data.error || "Could not load role.");
         }
+        if (!cancelled) setRecommendationsLoading(false);
 
         const chatData = await chatRes.json().catch(() => null);
         if (chatData?.success) {
@@ -319,11 +334,17 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           if (history.length) setChat(history);
         }
       } catch {
-        setError("Network error. Please try again.");
+        if (!cancelled) setError("Network error. Please try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setRecommendationsLoading(false);
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [roleId]);
 
   const form = useMemo(() => {
@@ -1465,6 +1486,11 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                     <Loader2 className="h-5 w-5 animate-spin" />
                     Searching builders with real proof-of-work for this role…
                   </div>
+                ) : recommendationsLoading && buckets.recommended.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#e3ddd4] p-10 text-center text-sm text-black/45">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Loading saved recommendations…
+                  </div>
                 ) : buckets.recommended.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#e3ddd4] p-8 text-center text-sm text-black/45">
                     No new recommendations right now.
@@ -1707,185 +1733,127 @@ const RecommendationCard: React.FC<{
   const verified = Boolean(rec.builderVerificationLabel && rec.builderVerificationLabel !== "Unverified");
   const experiences = rec.experiences || [];
   const projects = rec.projects || [];
-  const points = proofPoints(rec);
-  const founderSignals = (rec.founderSignals || []).slice(0, 4);
+  const reasonToHire = cleanHireReason(
+    String(rec.whyTheyMatch || "").trim() ||
+      String(rec.teasers?.agentTrace?.roleFitTrace?.roleSummary || "").trim() ||
+      String(rec.teasers?.agentTrace?.visibleInsight || "").trim() ||
+      null
+  );
+  const proofBullets = pickProofBullets(rec, reasonToHire).slice(0, 2);
   const primaryProject = strongestProject(rec);
-  const visibleSkills = (rec.domainSkillsMatched?.length ? rec.domainSkillsMatched : rec.topSkills || []).slice(0, 5);
+  const visibleSkills = (rec.domainSkillsMatched?.length ? rec.domainSkillsMatched : rec.topSkills || []).slice(0, 4);
   const hasTrace = Boolean(rec.teasers?.agentTrace);
   const traceLocked = Boolean(rec.teasers?.agentTrace?.locked);
-  const proofLabel = rec.proofStrengthLabel || (projects.length ? `${projects.length} project${projects.length === 1 ? "" : "s"}` : "Profile proof");
   const currentExperience = experiences.find((experience) => experience.isCurrent) || experiences[0];
+  const location = cleanLocation(rec.location);
   const projectHref = primaryProject?.links?.demo || primaryProject?.links?.github || primaryProject?.links?.devpost || null;
 
   return (
-    <article className="rounded-2xl border border-[#ece7e1] bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)]">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px]">
-        <div className="min-w-0">
-          <div className="flex min-w-0 gap-3">
-            <Avatar name={rec.name} avatarUrl={rec.avatarUrl} className="h-11 w-11 shrink-0" />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button type="button" onClick={onOpenProfile} className="text-base font-semibold text-black hover:underline">
-                  {rec.name}
-                </button>
-                {verified && <BadgeCheck className="h-4 w-4 text-[#ec9149]" />}
-                {rec.teasers?.agentTrace?.hasAgentWrapped ? (
-                  <span className="rounded-full border border-[#ec9149]/30 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#9a4f0c]">
-                    Verified trace
-                  </span>
-                ) : null}
-                {rec.matchLabel ? (
-                  <span className="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#c56a12]">
-                    {rec.matchLabel}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-0.5 line-clamp-1 text-sm text-black/55">{rec.headline || rec.bio}</p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-black/40">
-                {rec.location ? <span>{rec.location}</span> : null}
-                {currentExperience?.company ? (
-                  <span className="inline-flex items-center gap-1.5">
-                    {currentExperience.companyLogoUrl ? (
-                      <img src={currentExperience.companyLogoUrl} alt="" className="h-4 w-4 rounded object-cover" />
-                    ) : null}
-                    {currentExperience.company}
-                    {currentExperience.isCurrent ? " · Present" : ""}
-                  </span>
-                ) : null}
-                <span>{proofLabel}</span>
-              </div>
-            </div>
-          </div>
-
-          {hasTrace && rec.teasers?.agentTrace ? (
-            <div className="mt-3">
-              <AgentTraceTeaserSection
-                teaser={rec.teasers.agentTrace}
-                compact
-                onExpand={onOpenTrace}
-              />
-            </div>
-          ) : null}
-
-          {founderSignals.length ? (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              {founderSignals.map((signal) => (
-                <div key={`${signal.label}-${signal.detail}`} className="rounded-xl border border-[#ece7e1] bg-[#fffcfa] p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#c56a12]">{signal.label}</p>
-                    <span className="shrink-0 rounded-full bg-[#f3ede4] px-2 py-0.5 text-[10px] font-medium text-black/45">
-                      {signal.source}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-black/70">{signal.detail}</p>
-                </div>
-              ))}
-            </div>
-          ) : points.length ? (
-            <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              {points.map((point, index) => (
-                <div key={`${point}-${index}`} className="border-l border-[#ec9149]/25 pl-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-black/35">
-                    {index === 0 ? "Why matched" : index === 1 ? "Proof signal" : "Founder signal"}
-                  </p>
-                  <p className="mt-1 line-clamp-3 text-xs leading-relaxed text-black/70">{point}</p>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {primaryProject ? (
-              projectHref ? (
-                <a
-                  href={projectHref}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60 hover:bg-[#f3ede4]"
-                >
-                  <span className="truncate">Project: {primaryProject.projectName}</span>
-                  <ExternalLink className="h-2.5 w-2.5 shrink-0" />
-                </a>
-              ) : (
-                <span className="inline-flex max-w-full rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60">
-                  <span className="truncate">Project: {primaryProject.projectName}</span>
+    <article className="rounded-2xl border border-[#ece7e1] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 gap-3">
+          <Avatar name={rec.name} avatarUrl={rec.avatarUrl} className="h-12 w-12 shrink-0" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button type="button" onClick={onOpenProfile} className="text-lg font-semibold text-black hover:underline">
+                {rec.name}
+              </button>
+              {verified ? <BadgeCheck className="h-4 w-4 text-[#ec9149]" /> : null}
+              {rec.matchLabel ? (
+                <span className="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[10px] font-semibold text-[#c56a12]">
+                  {rec.matchLabel}
                 </span>
-              )
-            ) : null}
-            {projects.length > 1 ? (
-              <span className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/40">
-                +{projects.length - 1} more projects
-              </span>
-            ) : null}
-            {visibleSkills.map((skill) => (
-              <span key={skill} className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/55">
-                {skill}
-              </span>
-            ))}
+              ) : null}
+            </div>
+            <p className="mt-0.5 line-clamp-1 text-sm text-black/55">{rec.headline || "Builder"}</p>
+            <p className="mt-1 text-[11px] text-black/40">
+              {[location, currentExperience?.company, rec.availabilityNote].filter(Boolean).join(" · ")}
+            </p>
           </div>
         </div>
-
-        <div className="flex flex-col gap-3 rounded-xl border border-[#ece7e1] bg-[#fffcfa] p-3">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Skill fit</p>
-            <div className="mt-1 flex items-end gap-1">
-              <span className="text-3xl font-semibold text-black">{Math.round(rec.matchScore || 0)}</span>
-              <span className="pb-1 text-sm font-medium text-black/45">%</span>
-            </div>
-          </div>
-          {rec.availabilityNote ? (
-            <p className="text-[11px] font-medium text-black/50">
-              {rec.availabilityNote}
-            </p>
-          ) : null}
-
-          {hasTrace ? (
-            <button
-              type="button"
-              onClick={onOpenTrace}
-              className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-[#ec9149]/30 bg-[#fff7ef] px-3 text-xs font-semibold text-[#c56a12] hover:bg-[#ffead8]"
-            >
-              <Eye className="h-3.5 w-3.5" />
-              {traceLocked ? "Unlock trace" : "Full trace"}
-            </button>
-          ) : null}
-
-          <div className="flex flex-wrap gap-1.5">
-            {links.linkedin && (
-              <a href={links.linkedin} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} LinkedIn`}>
-                <Linkedin className="h-3.5 w-3.5" />
-              </a>
-            )}
-            {links.github && (
-              <a href={links.github} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} GitHub`}>
-                <Github className="h-3.5 w-3.5" />
-              </a>
-            )}
-            {links.portfolio && (
-              <a href={links.portfolio} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} portfolio`}>
-                <Globe className="h-3.5 w-3.5" />
-              </a>
-            )}
-            {links.resume && (
-              <a href={links.resume} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-white hover:text-black" aria-label={`${rec.name} resume`}>
-                <FileText className="h-3.5 w-3.5" />
-              </a>
-            )}
-          </div>
+        <div className="shrink-0 text-right">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-black/35">Fit</p>
+          <p className="text-2xl font-semibold text-black">{Math.round(rec.matchScore || 0)}%</p>
         </div>
       </div>
 
+      <div className="mt-4 rounded-xl border border-[#ec9149]/35 bg-[#fff7ef] px-4 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#c56a12]">Why hire</p>
+        <p className="mt-1.5 text-[15px] font-medium leading-relaxed text-black/90">
+          {reasonToHire || "Strong role signal from projects and profile proof."}
+        </p>
+      </div>
+
+      {proofBullets.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {proofBullets.map((bullet) => (
+            <li key={bullet} className="flex gap-2 text-sm leading-snug text-black/65">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#ec9149]" />
+              <span className="line-clamp-2">{bullet}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {primaryProject ? (
+          projectHref ? (
+            <a
+              href={projectHref}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60 hover:bg-[#f3ede4]"
+            >
+              <span className="truncate">{primaryProject.projectName}</span>
+              <ExternalLink className="h-2.5 w-2.5 shrink-0" />
+            </a>
+          ) : (
+            <span className="inline-flex max-w-full rounded-full border border-[#ece7e1] bg-[#fdfaf7] px-2.5 py-1 text-[11px] font-medium text-black/60">
+              <span className="truncate">{primaryProject.projectName}</span>
+            </span>
+          )
+        ) : null}
+        {visibleSkills.map((skill) => (
+          <span key={skill} className="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[11px] text-black/55">
+            {skill}
+          </span>
+        ))}
+      </div>
+
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7e1] pt-3">
-        <button type="button" onClick={onOpenProfile} className="inline-flex h-9 items-center rounded-lg bg-[#f3ede4] px-3 text-sm font-medium text-black hover:bg-[#ece3d5]">
-          View full profile
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {links.linkedin ? (
+            <a href={links.linkedin} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-[#fdfaf7] hover:text-black" aria-label={`${rec.name} LinkedIn`}>
+              <Linkedin className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+          {links.github ? (
+            <a href={links.github} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-[#fdfaf7] hover:text-black" aria-label={`${rec.name} GitHub`}>
+              <Github className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+          {links.portfolio ? (
+            <a href={links.portfolio} target="_blank" rel="noreferrer" className="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45 hover:bg-[#fdfaf7] hover:text-black" aria-label={`${rec.name} portfolio`}>
+              <Globe className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+          <button type="button" onClick={onOpenProfile} className="inline-flex h-8 items-center rounded-lg px-2 text-xs font-medium text-black/55 hover:bg-[#fdfaf7] hover:text-black">
+            Full profile
+          </button>
+          {hasTrace ? (
+            <button type="button" onClick={onOpenTrace} className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-[#c56a12] hover:bg-[#fff7ef]">
+              <Eye className="h-3.5 w-3.5" />
+              {traceLocked ? "Unlock trace" : "Trace"}
+            </button>
+          ) : null}
+        </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onReject}
             className="inline-flex h-9 items-center rounded-lg border border-[#ece7e1] px-3 text-sm font-semibold text-black hover:bg-[#fdfaf7]"
           >
-            Reject
+            Pass
           </button>
           <button
             type="button"
@@ -1901,6 +1869,49 @@ const RecommendationCard: React.FC<{
     </article>
   );
 };
+
+function cleanLocation(value?: string | null): string | null {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  if (/privacy|cookie|choices|consent|california privacy/i.test(text)) return null;
+  return text;
+}
+
+function cleanHireReason(value: string | null): string | null {
+  if (!value) return null;
+  return value
+    .replace(/\s*[·•|]\s*/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\.\s*\./g, ".")
+    .trim();
+}
+
+function pickProofBullets(rec: Recommendation, reasonToHire: string | null): string[] {
+  const bullets: string[] = [];
+  const seen = new Set<string>();
+  const push = (value?: string | null) => {
+    const text = String(value || "").trim();
+    if (!text || text.length < 8) return;
+    const key = text.toLowerCase();
+    if (seen.has(key)) return;
+    if (reasonToHire && key.includes(reasonToHire.toLowerCase().slice(0, 40))) return;
+    seen.add(key);
+    bullets.push(text);
+  };
+
+  for (const signal of rec.founderSignals || []) {
+    if (/role-?fit|why (they )?match|reason to hire/i.test(signal.label)) continue;
+    push(signal.detail);
+    if (bullets.length >= 2) break;
+  }
+  if (bullets.length < 2) {
+    for (const point of proofPoints(rec)) push(point);
+  }
+  if (bullets.length < 2 && rec.projects?.[0]?.projectName) {
+    push(`Shipped ${rec.projects[0].projectName}`);
+  }
+  return bullets;
+}
 
 const Field: React.FC<{ label: string; value: string; placeholder?: string; onChange: (value: string) => void }> = ({
   label,
@@ -1951,8 +1962,32 @@ const SectionCard: React.FC<{ number: number; title: string; open: boolean; onTo
 
 export const FounderRoleWorkspacePage: React.FC<{ roleId: string }> = ({ roleId }) => (
   <AuthProvider>
-    <FounderRoleWorkspaceInner roleId={roleId} />
+    <FounderRoleAuthGate>
+      <FounderRoleWorkspaceInner roleId={roleId} />
+    </FounderRoleAuthGate>
   </AuthProvider>
 );
+
+const FounderRoleAuthGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      const redirect = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/auth/login?redirect=${encodeURIComponent(redirect)}`;
+    }
+  }, [loading, user]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white text-black/45">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+  if (!user) return null;
+  return <>{children}</>;
+};
 
 export default FounderRoleWorkspacePage;

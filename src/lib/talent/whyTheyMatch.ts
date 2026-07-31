@@ -7,9 +7,16 @@ import type { SponsorshipInference } from '@/lib/talent/sponsorshipInference';
 import { opportunityDoesNotSponsor } from '@/lib/talent/sponsorshipInference';
 import type { GithubActivitySnapshot } from '@/lib/talent/githubActivity';
 import { opportunityAsksGithubActivity } from '@/lib/talent/githubActivity';
+import {
+  buildReasonToHireFromDimensions,
+  scoreRoleDimensions,
+  type RoleDimensionScore,
+} from '@/lib/talent/roleEvidenceDimensions';
+import { getPlanEvidenceDimensions } from '@/lib/talent/searchPlan';
 
 /**
  * Conversation/JD-aware one-liner for recommendation cards.
+ * Prefers role-plan evidence dimensions when available.
  */
 export function buildConversationAwareWhyTheyMatch(params: {
   builder: any;
@@ -19,9 +26,34 @@ export function buildConversationAwareWhyTheyMatch(params: {
   requirementFindings?: Array<{ text: string; met: 'yes' | 'partial' | 'no'; evidence: string }>;
   sponsorship?: SponsorshipInference | null;
   githubActivity?: GithubActivitySnapshot | null;
+  roleDimensionScore?: RoleDimensionScore | null;
 }): string {
-  const { builder, projects, opportunity, components, requirementFindings = [], sponsorship, githubActivity } =
-    params;
+  const {
+    builder,
+    projects,
+    opportunity,
+    components,
+    requirementFindings = [],
+    sponsorship,
+    githubActivity,
+    roleDimensionScore,
+  } = params;
+
+  const dimensionScore =
+    roleDimensionScore ||
+    scoreRoleDimensions({
+      dimensions: getPlanEvidenceDimensions(opportunity?.searchPlan),
+      builder,
+      projects,
+    });
+  const fromDimensions = buildReasonToHireFromDimensions({
+    dimensionScore,
+    builder,
+    projects,
+    roleTitle: opportunity?.roleTitle || opportunity?.title,
+  });
+  if (fromDimensions) return fromDimensions;
+
   const tiers = buildRoleSkillTiers(opportunity);
   const tokens = collectBuilderSkillTokens(builder, projects);
   const skillHits = matchedSkills(
