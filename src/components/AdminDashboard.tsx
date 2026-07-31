@@ -130,7 +130,7 @@ interface SearchWarningModal {
 }
 
 const AdminDashboard: React.FC = () => {
-  const { logout } = useAuth();
+  const { logout, user, loading: authLoading } = useAuth();
   const [adminSection, setAdminSection] = useState<AdminSection>('applications');
 
   // Applications state
@@ -167,6 +167,13 @@ const AdminDashboard: React.FC = () => {
     tokenCount: 0,
     recommendedMode: null,
   });
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user || user.role !== 'admin') {
+      window.location.replace('/404');
+    }
+  }, [authLoading, user]);
 
   const determineSearchType = async (query: string) => {
     const res = await fetch('/api/search/determine-search-type', {
@@ -432,6 +439,14 @@ const AdminDashboard: React.FC = () => {
       setSelectedApplicationData(null);
     }
   };
+
+  if (authLoading || !user || user.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#fbf6f3]">
+        <LoaderFour text="Verifying access" />
+      </div>
+    );
+  }
 
   if (loading) {
     return (

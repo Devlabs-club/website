@@ -44,7 +44,67 @@ function shortlistCandidateFromDiscovery(
 }
 
 /**
+ * Fast path for page loads: drop dead builder IDs and trim to plan limit.
+ * Never runs discovery — that belongs on explicit search/repair only.
+ */
+export async function pruneInvalidShortlistBuilders(params: {
+  shortlist: any;
+  opportunity: any;
+  entitlements: FounderEntitlements;
+  BuilderProfile: any;
+}) {
+  const profileLimit =
+    params.opportunity?.profileLimitApplied ??
+    params.shortlist.profileLimitApplied ??
+    params.entitlements.profileLimitPerRole;
+  if (profileLimit === null || profileLimit === undefined) return params.shortlist;
+
+  const candidateIds = (params.shortlist.candidates || [])
+    .map((candidate: any) => String(candidate.builderId))
+    .filter((id: string) => mongoose.Types.ObjectId.isValid(id));
+
+  const liveBuilders = candidateIds.length
+    ? await params.BuilderProfile.find(
+        searchableBuilderFilter({
+          _id: { $in: candidateIds.map((id: string) => new mongoose.Types.ObjectId(id)) },
+        })
+      )
+        .select('_id')
+        .lean()
+    : [];
+  const liveIdSet = new Set(liveBuilders.map((builder: any) => String(builder._id)));
+  const validCandidates = (params.shortlist.candidates || [])
+    .filter((candidate: any) => liveIdSet.has(String(candidate.builderId)))
+    .slice(0, profileLimit);
+
+  const unchanged =
+    validCandidates.length === (params.shortlist.candidates || []).length &&
+    validCandidates.every(
+      (candidate: any, index: number) =>
+        String(candidate.builderId) === String(params.shortlist.candidates[index]?.builderId)
+    );
+  if (unchanged) return params.shortlist;
+
+  const repaired = await Shortlist.findOneAndUpdate(
+    { _id: params.shortlist._id },
+    {
+      $set: {
+        candidates: validCandidates,
+        totalMatches: validCandidates.length,
+        strongMatchCount: validCandidates.filter(
+          (candidate: any) => candidate.matchLabel === 'Strong Match'
+        ).length,
+        profileLimitApplied: profileLimit,
+      },
+    },
+    { new: true }
+  ).lean();
+  return repaired || params.shortlist;
+}
+
+/**
  * Replace stale shortlist builder IDs (search-index ghosts) and backfill up to the plan limit.
+ * Expensive — only call from search / explicit repair flows, never from role page GET.
  */
 export async function repairShortlistMissingBuilders(params: {
   shortlist: any;
@@ -60,44 +120,19 @@ export async function repairShortlistMissingBuilders(params: {
     params.entitlements.profileLimitPerRole;
   if (profileLimit === null || profileLimit === undefined) return params.shortlist;
 
-  const candidateIds = (params.shortlist.candidates || [])
-    .map((candidate: any) => String(candidate.builderId))
-    .filter((id: string) => mongoose.Types.ObjectId.isValid(id));
+  // Always start with the cheap prune so we never rediscover already-valid cards.
+  const pruned = await pruneInvalidShortlistBuilders({
+    shortlist: params.shortlist,
+    opportunity: params.opportunity,
+    entitlements: params.entitlements,
+    BuilderProfile: params.BuilderProfile,
+  });
 
-  const liveBuilders = candidateIds.length
-    ? await params.BuilderProfile.find(searchableBuilderFilter({
-        _id: { $in: candidateIds.map((id: string) => new mongoose.Types.ObjectId(id)) },
-      }))
-      .select('_id')
-      .lean()
-    : [];
-  const liveIdSet = new Set(liveBuilders.map((builder: any) => String(builder._id)));
-  const validCandidates = (params.shortlist.candidates || []).filter((candidate: any) =>
-    liveIdSet.has(String(candidate.builderId))
-  );
-
-  if (validCandidates.length > profileLimit) {
-    const trimmed = validCandidates.slice(0, profileLimit);
-    const repaired = await Shortlist.findOneAndUpdate(
-      { _id: params.shortlist._id },
-      {
-        $set: {
-          candidates: trimmed,
-          totalMatches: trimmed.length,
-          strongMatchCount: trimmed.filter((candidate: any) => candidate.matchLabel === 'Strong Match').length,
-          profileLimitApplied: profileLimit,
-        },
-      },
-      { new: true }
-    ).lean();
-    return repaired || params.shortlist;
-  }
-
+  const validCandidates = pruned.candidates || [];
   const needed = profileLimit - validCandidates.length;
-  if (needed <= 0 && validCandidates.length === (params.shortlist.candidates || []).length) {
-    return params.shortlist;
-  }
+  if (needed <= 0) return pruned;
 
+  const liveIdSet = new Set(validCandidates.map((candidate: any) => String(candidate.builderId)));
   const excludeIds = validCandidates.map((candidate: any) => candidate.builderId);
   const { builders, projectsByBuilder } = await retrieveRoleShapedBuilderPool({
     opportunity: params.opportunity,
@@ -110,25 +145,9 @@ export async function repairShortlistMissingBuilders(params: {
   });
 
   const supplementalBuilders = builders.filter((builder) => !liveIdSet.has(String(builder._id)));
-  if (!supplementalBuilders.length) {
-    if (validCandidates.length !== (params.shortlist.candidates || []).length) {
-      const repaired = await Shortlist.findOneAndUpdate(
-        { _id: params.shortlist._id },
-        {
-          $set: {
-            candidates: validCandidates.slice(0, profileLimit),
-            totalMatches: Math.min(validCandidates.length, profileLimit),
-            strongMatchCount: validCandidates.filter((candidate: any) => candidate.matchLabel === 'Strong Match').length,
-          },
-        },
-        { new: true }
-      ).lean();
-      return repaired || params.shortlist;
-    }
-    return params.shortlist;
-  }
+  if (!supplementalBuilders.length) return pruned;
 
-  const opportunityId = String(params.shortlist.opportunityId || params.opportunity._id);
+  const opportunityId = String(pruned.opportunityId || params.opportunity._id);
   const discovery = await runFounderDiscoveryPipeline({
     opportunity: params.opportunity,
     founderId: String(params.opportunity.founderId || ''),
@@ -138,20 +157,7 @@ export async function repairShortlistMissingBuilders(params: {
     limit: needed,
   });
 
-  if (!discovery.candidates.length) {
-    const repaired = await Shortlist.findOneAndUpdate(
-      { _id: params.shortlist._id },
-      {
-        $set: {
-          candidates: validCandidates.slice(0, profileLimit),
-          totalMatches: Math.min(validCandidates.length, profileLimit),
-          strongMatchCount: validCandidates.filter((candidate: any) => candidate.matchLabel === 'Strong Match').length,
-        },
-      },
-      { new: true }
-    ).lean();
-    return repaired || params.shortlist;
-  }
+  if (!discovery.candidates.length) return pruned;
 
   const matchPayloads = discovery.candidates.map((candidate) => ({
     builderId: candidate.builderId,
@@ -186,28 +192,22 @@ export async function repairShortlistMissingBuilders(params: {
     .select('_id builderId')
     .lean();
   const matchByBuilder = new Map(matches.map((match: any) => [String(match.builderId), match]));
-  const backfillCandidates = discovery.candidates.map((candidate) =>
+
+  const supplemental = discovery.candidates.map((candidate) =>
     shortlistCandidateFromDiscovery(candidate, opportunityId, matchByBuilder, params.opportunity)
   );
-
-  const mergedCandidates = [...validCandidates, ...backfillCandidates]
-    .filter((candidate, index, list) =>
-      list.findIndex((entry) => String(entry.builderId) === String(candidate.builderId)) === index
-    )
-    .slice(0, profileLimit);
-
+  const merged = [...validCandidates, ...supplemental].slice(0, profileLimit);
   const repaired = await Shortlist.findOneAndUpdate(
-    { _id: params.shortlist._id },
+    { _id: pruned._id },
     {
       $set: {
-        candidates: mergedCandidates,
-        totalMatches: mergedCandidates.length,
-        strongMatchCount: mergedCandidates.filter((candidate) => candidate.matchLabel === 'Strong Match').length,
+        candidates: merged,
+        totalMatches: merged.length,
+        strongMatchCount: merged.filter((candidate: any) => candidate.matchLabel === 'Strong Match').length,
         profileLimitApplied: profileLimit,
       },
     },
     { new: true }
   ).lean();
-
-  return repaired || params.shortlist;
+  return repaired || pruned;
 }

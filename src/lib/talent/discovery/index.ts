@@ -36,6 +36,14 @@ import {
   opportunityRequiresInternship,
   type RoleEvidenceDossier,
 } from '@/lib/talent/roleEvidenceDossier';
+import {
+  buildFallbackSearchPlan,
+  getPlanEvidenceDimensions,
+} from '@/lib/talent/searchPlan';
+import {
+  scoreRoleDimensions,
+  type RoleDimensionScore,
+} from '@/lib/talent/roleEvidenceDimensions';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -62,6 +70,7 @@ export type RankedCandidate = ScoredCandidate & {
   sponsorship?: SponsorshipInference;
   githubActivity?: GithubActivitySnapshot | null;
   evidenceDossier?: RoleEvidenceDossier | null;
+  roleDimensionScore?: RoleDimensionScore | null;
 };
 
 export type DiscoveryResult = {
@@ -97,6 +106,18 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   const oppId = String(opportunity._id ?? '');
   const excludeSet = new Set(excludeBuilderIds.map(String));
   const jobDoesNotSponsor = opportunityDoesNotSponsor(opportunity);
+
+  // Ensure every discovery run has role-shaped dimensions even if compile was skipped.
+  if (!getPlanEvidenceDimensions(opportunity?.searchPlan).length) {
+    const fallbackPlan = buildFallbackSearchPlan(opportunity);
+    opportunity.searchPlan = {
+      ...fallbackPlan,
+      requirements: opportunity.searchPlan?.requirements?.length
+        ? opportunity.searchPlan.requirements
+        : fallbackPlan.requirements,
+      roleEvidence: opportunity.searchPlan?.roleEvidence || fallbackPlan.roleEvidence,
+    };
+  }
 
   // Stage 1: build search strategy
   let strategy = buildSearchStrategy({ opportunity, founderId, searchMode });
@@ -161,6 +182,11 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     }
 
     const githubActivity = githubByBuilder.get(builderId) || null;
+    const roleDimensionScore = scoreRoleDimensions({
+      dimensions: getPlanEvidenceDimensions(opportunity?.searchPlan),
+      builder,
+      projects,
+    });
 
     let components = scoreBuilderFromProfile({
       builder,
@@ -173,6 +199,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       agentWrappedScore: wrappedByBuilder.get(builderId)?.score ?? null,
       githubActivity,
       sponsorship,
+      roleDimensionScore,
     });
 
     const githubActivityScore =
@@ -212,6 +239,9 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     // generic C/C++ web projects even when skill-bag fit looks similar.
     if (evidenceDossier) {
       overallFit = Math.min(1, overallFit * 0.35 + evidenceDossier.evidenceFit * 0.65);
+    } else if (roleDimensionScore) {
+      // Role-plan dimensions steer ranking when no evidence dossier is active.
+      overallFit = Math.min(1, overallFit * 0.55 + roleDimensionScore.overall * 0.45);
     }
     overallFit = capOverallFitForMustGate(overallFit, mustHaveGate);
     const matchLabel = scoreMatchLabel(overallFit);
@@ -225,13 +255,18 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       roleSkillTiers: strategy.roleSkillTiers,
       githubActivity,
       sponsorship,
+      roleDimensionScore,
     });
-    if (evidenceDossier?.whyTheyMatch) {
+    const hasStrongDimensionWhy = Boolean(
+      roleDimensionScore?.winningHits?.some((hit) => hit.score >= 0.35)
+    );
+    if (!hasStrongDimensionWhy && evidenceDossier?.whyTheyMatch) {
       explanation.whyTheyMatch = evidenceDossier.whyTheyMatch;
     }
 
     const sources: string[] = ['deterministic_keyword'];
     if (evidenceDossier) sources.push('evidence_dossier');
+    if (roleDimensionScore) sources.push('role_dimensions');
     if (sem?.profileScore && sem.profileScore > 0.3) sources.push('semantic_profile');
     if (sem?.projectScore && sem.projectScore > 0.3) sources.push('semantic_project');
     if (wrappedByBuilder.has(builderId)) sources.push('agent_trace');
@@ -251,16 +286,17 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       sponsorship,
       githubActivity,
       evidenceDossier,
+      roleDimensionScore,
     });
   }
 
-  // Stage 4: must-passers first, then evidence dossier fit, then overallFit.
+  // Stage 4: must-passers first, then evidence dossier / role dimensions, then overallFit.
   allScored.sort((a, b) => {
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
     }
-    const aEvidence = a.evidenceDossier?.evidenceFit ?? 0;
-    const bEvidence = b.evidenceDossier?.evidenceFit ?? 0;
+    const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
+    const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;
     if (aEvidence !== bEvidence) return bEvidence - aEvidence;
     return b.overallFit - a.overallFit;
   });
@@ -306,8 +342,8 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
     }
-    const aEvidence = a.evidenceDossier?.evidenceFit ?? 0;
-    const bEvidence = b.evidenceDossier?.evidenceFit ?? 0;
+    const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
+    const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;
     if (aEvidence !== bEvidence) return bEvidence - aEvidence;
     return b.overallFit - a.overallFit;
   });

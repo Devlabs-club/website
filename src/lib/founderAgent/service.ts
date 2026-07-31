@@ -106,6 +106,7 @@ Style:
 - Talk like a real person texting a founder, not an AI assistant. Warm, direct, a little casual. Never say things like "as an AI", "I'd be happy to", "let me assist you", or other assistant-speak.
 - Never use em-dashes (—) or en-dashes (–). Use a comma, a period, or split into two sentences instead.
 - Keep simple acknowledgements short. For a new search, rerank, comparison, or talent-pool question, use concise Markdown with headings and bullets.
+- Never use markdown tables (| col | col |). Always use numbered lists and short bullets instead. Chat is too narrow for tables.
 - Do not split a structured Markdown response into artificial separate messages.
 - Say things like "Cool, got it" only when it actually adds something.
 - Ask one focused follow-up when a required detail is missing. Do not create the job in the same turn as that follow-up.
@@ -156,7 +157,7 @@ Starting the search:
 
 Talking about search results:
 - Be direct and evidence-grounded. State when no verified candidates meet a preference, and distinguish unavailable evidence from evidence that a builder does not have that quality.
-- After a search or rerank, explain the pool in Markdown: overview, top recommendations, meaningful trade-offs, and material unknowns. Use only facts returned by tools.
+- After a search or rerank, explain the pool in Markdown: overview, top recommendations as a numbered list (not a table), meaningful trade-offs, and material unknowns. Use only facts returned by tools.
 - For a nuanced talent-pool question, use inspect_talent_pool before answering. It is a read-only, role-scoped evidence tool.`;
 
 const TOOLS: ToolDefinition[] = [
@@ -679,7 +680,7 @@ async function buildFounderPoolNarrative(summary: PoolSummary): Promise<string> 
       maxTokens: 1300,
       systemPrompt: `You are writing an honest founder-facing hiring summary.
 Return Markdown only. Use only the JSON facts supplied. Do not invent qualifications, social activity, work authorization, GitHub activity, or counts.
-Include: a short pool overview, 3-5 top recommendations, material trade-offs, and evidence coverage.
+Include: a short pool overview, 3-5 top recommendations as a numbered list with short bullets (never a markdown table), material trade-offs, and evidence coverage.
 Treat missing evidence as unknown. If a requested preference has no verified matches, say that plainly.`,
       userPrompt: JSON.stringify(summary),
     });
@@ -1152,16 +1153,26 @@ async function runSearchForJob(
     }
   }
 
-  // Compile founder requirements once (cached on job until requirements change).
+  // Compile a role-shaped search plan once (cached on job until JD/requirements change).
+  // Always compile when the role has enough signal — dimensions matter even without must/nice prefs.
   {
     const openRequirementsForPlan = normalizeSearchRequirements(oppPlain.searchRequirements).length
       ? normalizeSearchRequirements(oppPlain.searchRequirements)
       : normalizeSearchRequirements(oppPlain.requirements);
-    if (openRequirementsForPlan.length) {
+    const hasRoleSignal = Boolean(
+      oppPlain.roleTitle ||
+        oppPlain.title ||
+        oppPlain.builderWillDo ||
+        oppPlain.description ||
+        (oppPlain.skillsNeeded || []).length ||
+        openRequirementsForPlan.length
+    );
+    if (hasRoleSignal) {
       logFounderAgent('search_talent:compile_search_plan:start', {
         jobId,
         requirementCount: openRequirementsForPlan.length,
         cachedHash: oppPlain.searchPlan?.sourceHash || null,
+        cachedVersion: oppPlain.searchPlan?.version || null,
       });
       const searchPlan = await compileSearchPlan(oppPlain);
       job.searchPlan = searchPlan;
@@ -1170,6 +1181,12 @@ async function runSearchForJob(
       logFounderAgent('search_talent:compile_search_plan:done', {
         jobId,
         compiledBy: searchPlan.compiledBy,
+        roleFamily: searchPlan.roleFamily,
+        dimensionCount: searchPlan.evidenceDimensions.length,
+        dimensions: searchPlan.evidenceDimensions.map((dimension) => ({
+          id: dimension.id,
+          weight: dimension.weight,
+        })),
         retrievalTermCount: searchPlan.retrievalTerms.length,
         matchTokenCount: searchPlan.requirements.reduce((sum, item) => sum + item.matchAnyOf.length, 0),
       });

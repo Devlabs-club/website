@@ -1,0 +1,585 @@
+/**
+ * Role-shaped evidence dimensions: a fixed catalog the search-plan compiler
+ * selects and weights per role. One scoring engine; many role plans.
+ */
+
+export const EVIDENCE_DIMENSION_IDS = [
+  'ship_proof',
+  'teaching',
+  'community',
+  'oss_packages',
+  'domain_depth',
+  'design_craft',
+  'growth_experiments',
+  'systems_depth',
+  'research_depth',
+  'stack_fit',
+] as const;
+
+export type EvidenceDimensionId = (typeof EVIDENCE_DIMENSION_IDS)[number];
+
+export type RoleFamily =
+  | 'builder'
+  | 'teacher_advocate'
+  | 'researcher'
+  | 'designer'
+  | 'operator'
+  | 'hybrid';
+
+export type PlannedEvidenceDimension = {
+  id: EvidenceDimensionId;
+  label: string;
+  weight: number;
+  /** Tokens/phrases that score this dimension when found in profile evidence. */
+  matchAnyOf: string[];
+  retrievalTerms: string[];
+  rationale: string;
+};
+
+export type DimensionHit = {
+  id: EvidenceDimensionId;
+  label: string;
+  score: number;
+  weight: number;
+  evidence: string[];
+};
+
+export type RoleDimensionScore = {
+  overall: number;
+  hits: DimensionHit[];
+  /** Top dimensions that should drive the hire reason. */
+  winningHits: DimensionHit[];
+};
+
+const DIMENSION_LABELS: Record<EvidenceDimensionId, string> = {
+  ship_proof: 'Shipped product proof',
+  teaching: 'Teaching & content',
+  community: 'Community & events',
+  oss_packages: 'Open-source & packages',
+  domain_depth: 'Domain depth',
+  design_craft: 'Design craft',
+  growth_experiments: 'Growth experiments',
+  systems_depth: 'Systems depth',
+  research_depth: 'Research depth',
+  stack_fit: 'Stack fit',
+};
+
+/** Default lexical signals when the plan does not expand a dimension. */
+const DIMENSION_DEFAULTS: Record<EvidenceDimensionId, string[]> = {
+  ship_proof: [
+    'shipped',
+    'deployed',
+    'launched',
+    'production',
+    'demo',
+    'mvp',
+    'users',
+    'live',
+    'vercel',
+    'app store',
+  ],
+  teaching: [
+    'mentor',
+    'tutoring',
+    'tutor',
+    'teaching assistant',
+    'workshop',
+    'tutorial',
+    'blog',
+    'speaker',
+    'docs',
+    'documentation',
+    'course',
+    'newsletter',
+    'section leader',
+  ],
+  community: [
+    'hackathon',
+    'community',
+    'organizer',
+    'ambassador',
+    'campus',
+    'soda',
+    'devrel',
+    'developer advocate',
+    'developer relations',
+    'meetup',
+    'club',
+    'society',
+    'discord',
+  ],
+  oss_packages: [
+    'open source',
+    'opensource',
+    'maintainer',
+    'contributor',
+    'npm',
+    'pypi',
+    'package',
+    'sdk',
+    'library',
+    'github.com',
+  ],
+  domain_depth: [],
+  design_craft: [
+    'figma',
+    'design system',
+    'ux',
+    'ui design',
+    'prototype',
+    'wireframe',
+    'visual design',
+    'product design',
+    'interaction design',
+  ],
+  growth_experiments: [
+    'growth',
+    'acquisition',
+    'retention',
+    'funnel',
+    'a/b test',
+    'experiment',
+    'conversion',
+    'seo',
+    'activation',
+    'metrics',
+  ],
+  systems_depth: [
+    'distributed',
+    'infrastructure',
+    'scalability',
+    'latency',
+    'throughput',
+    'kubernetes',
+    'terraform',
+    'observability',
+    'microservices',
+    'ci/cd',
+  ],
+  research_depth: [
+    'research',
+    'paper',
+    'arxiv',
+    'publication',
+    'benchmark',
+    'dataset',
+    'experiment',
+    'lab',
+    'thesis',
+  ],
+  stack_fit: [],
+};
+
+const FAMILY_PRESETS: Record<RoleFamily, Array<{ id: EvidenceDimensionId; weight: number }>> = {
+  teacher_advocate: [
+    { id: 'teaching', weight: 0.26 },
+    { id: 'community', weight: 0.2 },
+    { id: 'oss_packages', weight: 0.16 },
+    { id: 'ship_proof', weight: 0.14 },
+    { id: 'domain_depth', weight: 0.14 },
+    { id: 'stack_fit', weight: 0.1 },
+  ],
+  builder: [
+    { id: 'ship_proof', weight: 0.26 },
+    { id: 'stack_fit', weight: 0.2 },
+    { id: 'domain_depth', weight: 0.18 },
+    { id: 'systems_depth', weight: 0.14 },
+    { id: 'oss_packages', weight: 0.12 },
+    { id: 'community', weight: 0.1 },
+  ],
+  researcher: [
+    { id: 'research_depth', weight: 0.28 },
+    { id: 'domain_depth', weight: 0.24 },
+    { id: 'ship_proof', weight: 0.16 },
+    { id: 'oss_packages', weight: 0.12 },
+    { id: 'stack_fit', weight: 0.12 },
+    { id: 'teaching', weight: 0.08 },
+  ],
+  designer: [
+    { id: 'design_craft', weight: 0.34 },
+    { id: 'ship_proof', weight: 0.22 },
+    { id: 'domain_depth', weight: 0.14 },
+    { id: 'growth_experiments', weight: 0.12 },
+    { id: 'community', weight: 0.1 },
+    { id: 'stack_fit', weight: 0.08 },
+  ],
+  operator: [
+    { id: 'growth_experiments', weight: 0.28 },
+    { id: 'ship_proof', weight: 0.2 },
+    { id: 'community', weight: 0.16 },
+    { id: 'domain_depth', weight: 0.14 },
+    { id: 'systems_depth', weight: 0.12 },
+    { id: 'stack_fit', weight: 0.1 },
+  ],
+  hybrid: [
+    { id: 'ship_proof', weight: 0.22 },
+    { id: 'domain_depth', weight: 0.18 },
+    { id: 'stack_fit', weight: 0.16 },
+    { id: 'oss_packages', weight: 0.14 },
+    { id: 'teaching', weight: 0.1 },
+    { id: 'community', weight: 0.1 },
+    { id: 'systems_depth', weight: 0.1 },
+  ],
+};
+
+function norm(value: string): string {
+  return value.toLowerCase().trim();
+}
+
+function uniqueStrings(values: Array<string | null | undefined>, max = 40): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const cleaned = String(value || '').trim();
+    if (!cleaned) continue;
+    const key = cleaned.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(cleaned);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+export function isEvidenceDimensionId(value: unknown): value is EvidenceDimensionId {
+  return EVIDENCE_DIMENSION_IDS.includes(String(value || '') as EvidenceDimensionId);
+}
+
+export function inferRoleFamily(opportunity: any): RoleFamily {
+  const blob = norm(
+    [
+      opportunity?.roleTitle,
+      opportunity?.title,
+      opportunity?.builderWillDo,
+      opportunity?.description,
+      ...(opportunity?.skillsNeeded || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+
+  // Explicit role-family phrases win over generic "engineer/developer" in the title.
+  if (
+    /devrel|developer relations|developer advocate|advocate|community engineer|developer experience|\bdx\b|evangelist|campus ambassador|technical writer|docs engineer/.test(
+      blob
+    )
+  ) {
+    return 'teacher_advocate';
+  }
+  if (/\b(product )?design(er)?\b|ux\b|ui\/ux|figma|visual design/.test(blob)) {
+    return 'designer';
+  }
+  if (/research(er)?|scientist|phd|ml research|applied research/.test(blob)) {
+    return 'researcher';
+  }
+  if (/growth|marketing|gtm|operations|community manager|product ops/.test(blob)) {
+    return 'operator';
+  }
+
+  const teacher = /educator|mentor|workshop|tutorial|hackathon organizer/.test(blob);
+  const builder =
+    /engineer|developer|full[\s-]?stack|backend|frontend|founding|software|sde|swe|mobile|ios|android/.test(
+      blob
+    );
+
+  if (teacher && builder) return 'hybrid';
+  if (teacher) return 'teacher_advocate';
+  if (builder) return 'builder';
+  return 'hybrid';
+}
+
+function domainTokensFromOpportunity(opportunity: any): string[] {
+  return uniqueStrings(
+    [
+      ...(opportunity?.skillsNeeded || []),
+      opportunity?.roleTitle,
+      opportunity?.industry,
+    ]
+      .flatMap((value) =>
+        String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9+#.\s-]/g, ' ')
+          .split(/\s+/)
+          .filter((token) => token.length >= 3)
+      )
+      .filter(
+        (token) =>
+          ![
+            'the',
+            'and',
+            'for',
+            'with',
+            'engineer',
+            'developer',
+            'software',
+            'role',
+            'intern',
+          ].includes(token)
+      ),
+    16
+  );
+}
+
+/** Build a dimension plan from role family + JD when LLM is unavailable. */
+export function buildFallbackEvidenceDimensions(
+  opportunity: any,
+  roleFamily?: RoleFamily
+): PlannedEvidenceDimension[] {
+  const family = roleFamily || inferRoleFamily(opportunity);
+  const domainTokens = domainTokensFromOpportunity(opportunity);
+  const stackTokens = uniqueStrings(
+    (opportunity?.skillsNeeded || []).map((skill: string) => String(skill || '').trim()),
+    12
+  );
+
+  return FAMILY_PRESETS[family].map((preset) => {
+    const defaults = DIMENSION_DEFAULTS[preset.id];
+    let matchAnyOf = [...defaults];
+    if (preset.id === 'domain_depth' || preset.id === 'stack_fit') {
+      matchAnyOf = uniqueStrings([...matchAnyOf, ...domainTokens, ...stackTokens], 20);
+    }
+    return {
+      id: preset.id,
+      label: DIMENSION_LABELS[preset.id],
+      weight: preset.weight,
+      matchAnyOf,
+      retrievalTerms: uniqueStrings([...matchAnyOf.slice(0, 10), ...domainTokens.slice(0, 6)], 14),
+      rationale: `Fallback ${family} preset for ${preset.id}.`,
+    };
+  });
+}
+
+export function sanitizeEvidenceDimensions(
+  raw: unknown,
+  opportunity: any,
+  roleFamily?: RoleFamily
+): PlannedEvidenceDimension[] {
+  const family = roleFamily || inferRoleFamily(opportunity);
+  const fallback = buildFallbackEvidenceDimensions(opportunity, family);
+  const rawList = Array.isArray(raw) ? raw : [];
+
+  const parsed: PlannedEvidenceDimension[] = [];
+  for (const item of rawList) {
+    const id = String((item as any)?.id || '');
+    if (!isEvidenceDimensionId(id)) continue;
+    const weight = Number((item as any)?.weight);
+    if (!Number.isFinite(weight) || weight <= 0) continue;
+    const matchAnyOf = uniqueStrings(
+      [
+        ...((item as any)?.matchAnyOf || []),
+        ...(DIMENSION_DEFAULTS[id] || []),
+        ...(id === 'domain_depth' || id === 'stack_fit' ? domainTokensFromOpportunity(opportunity) : []),
+      ].map((value) => String(value || '').slice(0, 80)),
+      24
+    );
+    parsed.push({
+      id,
+      label: String((item as any)?.label || DIMENSION_LABELS[id]).slice(0, 80),
+      weight,
+      matchAnyOf,
+      retrievalTerms: uniqueStrings(
+        [
+          ...((item as any)?.retrievalTerms || []),
+          ...matchAnyOf.slice(0, 10),
+        ].map((value) => String(value || '').slice(0, 64)),
+        16
+      ),
+      rationale: String((item as any)?.rationale || '').slice(0, 200) || `Selected for ${family}.`,
+    });
+  }
+
+  const dimensions = (parsed.length >= 3 ? parsed : fallback).slice(0, 7);
+  const weightSum = dimensions.reduce((sum, item) => sum + item.weight, 0) || 1;
+  return dimensions.map((item) => ({
+    ...item,
+    weight: Math.round((item.weight / weightSum) * 1000) / 1000,
+  }));
+}
+
+function buildEvidenceBlob(builder: any, projects: any[]): string {
+  return [
+    builder?.name,
+    builder?.headline,
+    builder?.bio,
+    builder?.universityOrCompany,
+    ...(builder?.skills || []),
+    ...(builder?.rolePreference || []),
+    ...(builder?.experiences || []).flatMap((experience: any) => [
+      experience?.title,
+      experience?.company,
+      experience?.description,
+      ...(experience?.skills || []),
+    ]),
+    ...(builder?.education || []).flatMap((education: any) => [
+      education?.school,
+      education?.degree,
+      education?.field,
+    ]),
+    ...(builder?.enrichmentInsights?.founderHighlights || []).flatMap((highlight: any) => [
+      highlight?.title,
+      highlight?.detail,
+    ]),
+    ...(projects || []).flatMap((project: any) => [
+      project?.projectName,
+      project?.description,
+      project?.problemSolved,
+      project?.builderContribution,
+      ...(project?.techStack || []),
+      ...(project?.contributionTags || []),
+      project?.links?.github,
+      project?.links?.demo,
+      project?.links?.devpost,
+    ]),
+  ]
+    .map((value) => norm(String(value || '')))
+    .join(' | ');
+}
+
+function countTokenHits(blob: string, tokens: string[]): { count: number; evidence: string[] } {
+  const evidence: string[] = [];
+  let count = 0;
+  for (const token of tokens) {
+    const needle = norm(token);
+    if (needle.length < 2) continue;
+    if (blob.includes(needle)) {
+      count += 1;
+      if (evidence.length < 3) evidence.push(token);
+    }
+  }
+  return { count, evidence };
+}
+
+function structuralBoost(
+  id: EvidenceDimensionId,
+  builder: any,
+  projects: any[]
+): { boost: number; evidence: string[] } {
+  const links = builder?.links || {};
+  const evidence: string[] = [];
+  let boost = 0;
+
+  if (id === 'ship_proof') {
+    const liveDemos = (projects || []).filter((project: any) =>
+      String(project?.links?.demo || '').startsWith('http')
+    ).length;
+    if (liveDemos) {
+      boost += Math.min(0.35, liveDemos * 0.12);
+      evidence.push(`${liveDemos} live demo${liveDemos === 1 ? '' : 's'}`);
+    }
+    if (links.portfolio || links.personalWebsite) {
+      boost += 0.1;
+      evidence.push('portfolio');
+    }
+  }
+
+  if (id === 'oss_packages') {
+    if (links.github) {
+      boost += 0.2;
+      evidence.push('GitHub linked');
+    }
+    const ghProjects = (projects || []).filter((project: any) =>
+      String(project?.links?.github || '').startsWith('http')
+    ).length;
+    if (ghProjects) {
+      boost += Math.min(0.25, ghProjects * 0.05);
+      evidence.push(`${ghProjects} public repo${ghProjects === 1 ? '' : 's'}`);
+    }
+  }
+
+  if (id === 'teaching' || id === 'community') {
+    if (links.twitter) {
+      boost += 0.12;
+      evidence.push('Twitter/X linked');
+    }
+    if (links.devpost) {
+      boost += 0.08;
+      evidence.push('Devpost linked');
+    }
+  }
+
+  if (id === 'design_craft') {
+    if (links.portfolio || links.personalWebsite) {
+      boost += 0.2;
+      evidence.push('portfolio');
+    }
+  }
+
+  return { boost, evidence };
+}
+
+/** Score a builder against the planned evidence dimensions. */
+export function scoreRoleDimensions(params: {
+  dimensions: PlannedEvidenceDimension[] | null | undefined;
+  builder: any;
+  projects: any[];
+}): RoleDimensionScore | null {
+  const dimensions = params.dimensions;
+  if (!dimensions?.length) return null;
+
+  const blob = buildEvidenceBlob(params.builder, params.projects);
+  const hits: DimensionHit[] = [];
+
+  for (const dimension of dimensions) {
+    const { count, evidence } = countTokenHits(blob, dimension.matchAnyOf);
+    const lexical = Math.min(1, count / Math.max(3, Math.min(8, dimension.matchAnyOf.length || 4)));
+    const structural = structuralBoost(dimension.id, params.builder, params.projects);
+    const score = Math.max(0, Math.min(1, lexical * 0.7 + structural.boost));
+    hits.push({
+      id: dimension.id,
+      label: dimension.label,
+      score,
+      weight: dimension.weight,
+      evidence: uniqueStrings([...evidence, ...structural.evidence], 4),
+    });
+  }
+
+  const overall = hits.reduce((sum, hit) => sum + hit.score * hit.weight, 0);
+  const winningHits = [...hits]
+    .filter((hit) => hit.score >= 0.28)
+    .sort((a, b) => b.score * b.weight - a.score * a.weight)
+    .slice(0, 3);
+
+  return {
+    overall: Math.max(0, Math.min(1, overall)),
+    hits,
+    winningHits: winningHits.length ? winningHits : [...hits].sort((a, b) => b.score - a.score).slice(0, 2),
+  };
+}
+
+/** Founder-facing hire reason from winning role dimensions. */
+export function buildReasonToHireFromDimensions(params: {
+  dimensionScore: RoleDimensionScore | null | undefined;
+  builder?: any;
+  projects?: any[];
+  roleTitle?: string | null;
+}): string | null {
+  const { dimensionScore, builder, projects, roleTitle } = params;
+  if (!dimensionScore?.winningHits?.length) return null;
+
+  const top = dimensionScore.winningHits[0];
+  const second = dimensionScore.winningHits[1];
+  const projectName = (projects || []).find((project: any) => project?.projectName)?.projectName;
+
+  const leadProof = top.evidence[0] || top.label.toLowerCase();
+  let sentence = `${capitalize(top.label)} stands out (${leadProof})`;
+  if (second) {
+    const secondProof = second.evidence[0] || second.label.toLowerCase();
+    sentence += `, plus ${second.label.toLowerCase()} (${secondProof})`;
+  }
+  if (projectName) {
+    sentence += `. Strongest proof: ${String(projectName).slice(0, 48)}`;
+  }
+  if (roleTitle) {
+    sentence += `. Best fit for ${roleTitle}`;
+  } else {
+    sentence += '. Best fit for this role';
+  }
+
+  return sentence.replace(/\s+/g, ' ').trim().slice(0, 220);
+}
+
+function capitalize(value: string): string {
+  const text = String(value || '').trim();
+  if (!text) return text;
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

@@ -465,11 +465,24 @@ const events = [
     box-shadow: inset 0 0 0 2px rgba(246, 161, 24, 0.5);
   }
 
-  /* Base texture – photo layers sit on top and fade into this at top/bottom */
+  /* Base paper — photo layers sit on top and fade into this at top/bottom */
   .events-showcase-texture-bg {
-    background-image: url('/texture.webp');
-    background-size: cover;
-    background-position: center;
+    background-color: #fbf6f3;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(5, 5, 5, 0.024) 0,
+        rgba(5, 5, 5, 0.024) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(5, 5, 5, 0.022) 0,
+        rgba(5, 5, 5, 0.022) 1px,
+        transparent 1px,
+        transparent 24px
+      );
   }
 
   /* Background photo layers: gradual mask into transparent at top and bottom so texture shows */
@@ -500,11 +513,24 @@ const events = [
     -webkit-mask-size: 100% 100%;
   }
 
-  /* Texture merge layer: radial blend at sides (keeps edges consistent) */
+  /* Paper merge layer: radial blend at sides (keeps edges consistent) */
   .events-showcase-texture-merge {
-    background-image: url('/texture.webp');
-    background-size: cover;
-    background-position: center;
+    background-color: #fbf6f3;
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        rgba(5, 5, 5, 0.024) 0,
+        rgba(5, 5, 5, 0.024) 1px,
+        transparent 1px,
+        transparent 24px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(5, 5, 5, 0.022) 0,
+        rgba(5, 5, 5, 0.022) 1px,
+        transparent 1px,
+        transparent 24px
+      );
     opacity: 1;
     mask-image: radial-gradient(
       ellipse 140% 120% at center,

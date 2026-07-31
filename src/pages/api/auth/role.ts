@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
 import { updateUserAccount } from '../../../lib/adminMongo';
-import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
+import { generateToken, verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
+import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
 import { runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, headers?: HeadersInit) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
   });
 }
 
@@ -40,8 +41,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     if (!updated) return json({ success: false, message: 'User not found' }, 404);
 
+    // Re-issue the session cookie so middleware role checks see founder/builder immediately.
+    const freshToken = generateToken(updated, runtime);
     const next = accountType === 'founder' ? '/founder/onboarding/linkedin' : '/builder/home';
-    return json({ success: true, accountType, next });
+    return json(
+      { success: true, accountType, next },
+      200,
+      { 'Set-Cookie': buildAuthTokenCookie(freshToken) }
+    );
   } catch (error) {
     console.error('Set account type error:', error);
     return json({ success: false, message: 'Internal server error' }, 500);

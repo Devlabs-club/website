@@ -86,6 +86,7 @@ function normalizeWeights(weights: RankingWeights): RankingWeights {
     'deterministicSkillFit', 'semanticRoleFit', 'semanticProjectFit', 'proofStrength',
     'contributionClarity', 'founderPreferenceFit', 'hireTypeFit', 'availabilityFit',
     'profileQuality', 'startupReadiness', 'agentTraceFit', 'githubActivityFit', 'sponsorshipFit',
+    'roleDimensionFit',
   ];
   const penaltyKeys: Array<keyof RankingWeights> = ['negativeSignalPenalty', 'missingEvidencePenalty'];
 

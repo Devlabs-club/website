@@ -143,13 +143,13 @@ export function shortCardParam(card: WrappedCardKey | string | undefined | null)
   return CARD_TO_SHORT[key];
 }
 
-export function getBuildprintSignupHref(nextPath = '/builder/buildprint/get?step=command') {
+export function getBuildprintSignupHref(nextPath = '/builder/home') {
   const redirect = encodeURIComponent(nextPath);
   return `/auth/signup?redirect=${redirect}`;
 }
 
 export function getBuildprintCtaHref(viewer: 'signed_out' | 'builder' | 'founder' | 'owner') {
   if (viewer === 'founder') return '/founder/home';
-  if (viewer === 'builder' || viewer === 'owner') return '/builder/buildprint/get?step=command';
+  if (viewer === 'builder' || viewer === 'owner') return '/builder/home';
   return getBuildprintSignupHref();
 }

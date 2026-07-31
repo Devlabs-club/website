@@ -394,6 +394,10 @@ export const BuilderHome: React.FC = () => {
         window.location.href = '/login';
         return;
       }
+      if (res.status === 403) {
+        window.location.href = '/access-denied?area=builder';
+        return;
+      }
       const json: ProfileResponse = await res.json();
       setData(json);
       const isVerified = Boolean(json.phoneVerified);
