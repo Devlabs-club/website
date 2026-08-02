@@ -13,6 +13,9 @@ import {
   Plus,
 } from "lucide-react";
 
+/** Matches the API allowlist for hard-deleting roles (testing only). */
+const ROLE_DELETE_ALLOWLIST = new Set(["dkalaise@asu.edu"]);
+
 type Role = FounderRoleTileData;
 
 type Question = {
@@ -102,6 +105,7 @@ const FounderHomeInner: React.FC = () => {
     open: false,
     upgradeTarget: "growth",
   });
+  const [deletingRoleId, setDeletingRoleId] = useState<string | null>(null);
 
   // Jump straight into a new role when linked here from "+ New Search" elsewhere in the app.
   useEffect(() => {
@@ -203,7 +207,33 @@ const FounderHomeInner: React.FC = () => {
   }, []);
 
   const firstName = useMemo(() => (user?.name || "there").split(" ")[0], [user]);
+  const canDeleteRoles = Boolean(user?.email && ROLE_DELETE_ALLOWLIST.has(user.email.toLowerCase().trim()));
   const current = questions[step];
+
+  const deleteRole = async (roleId: string) => {
+    const role = roles.find((item) => item.id === roleId);
+    const label = role?.title || role?.roleTitle || "this role";
+    if (!confirm(`Permanently delete "${label}" and its search data? This cannot be undone.`)) return;
+
+    setDeletingRoleId(roleId);
+    setError("");
+    try {
+      const res = await fetch(`/api/founder/roles/${roleId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.error || "Could not delete the role.");
+
+      const nextRoles = roles.filter((item) => item.id !== roleId);
+      setRoles(nextRoles);
+      if (nextRoles.length === 0) startNewRole();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete the role.");
+    } finally {
+      setDeletingRoleId(null);
+    }
+  };
 
   /** Fade the current question out, apply the step change, then fade the next one in. */
   const animateTo = (apply: () => void) => {
@@ -324,9 +354,16 @@ const FounderHomeInner: React.FC = () => {
 
             <div className="grid gap-4">
               {roles.map((role) => (
-                <FounderRoleTile key={role.id} role={role} />
+                <FounderRoleTile
+                  key={role.id}
+                  role={role}
+                  canDelete={canDeleteRoles}
+                  deleting={deletingRoleId === role.id}
+                  onDelete={(id) => void deleteRole(id)}
+                />
               ))}
             </div>
+            {error && <p className="mt-4 text-sm font-medium text-red-500">{error}</p>}
           </section>
         ) : (
           <section className="relative z-10 flex min-h-[calc(100vh-4rem)] items-center justify-center px-5 py-10">

@@ -1,0 +1,167 @@
+---
+import { tryForFreeHref } from "../../lib/productCta";
+
+const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
+---
+
+<section id="product" class="landing-hero scroll-mt-24" data-landing-hero>
+  <div class="landing-hero-visual">
+    <video
+      class="landing-hero-video"
+      src="/landing/hero-bg.mp4"
+      autoplay
+      muted
+      loop
+      playsinline
+      preload="auto"
+      aria-label="DevLabs product animation"
+    >
+    </video>
+
+    <div class="landing-hero-scrim" aria-hidden="true"></div>
+
+    <div class="landing-hero-copy">
+      <h1 class="landing-hero-headline">
+        Hire builders who can
+        <span class="landing-hero-headline-em">actually ship.</span>
+      </h1>
+      <p class="landing-hero-sub">
+        DevLabs turns real shipped work, event signal, and founder context into a shortlist you can act on.
+      </p>
+      <div class="landing-hero-ctas">
+        <a
+          href={tryForFreeHref}
+          class="nav-cut-button border-black bg-[#050505] text-white hover:border-[#ff7417] hover:bg-[#ff7417]"
+        >
+          Try for Free
+        </a>
+        <a
+          href={bookCallHref}
+          class="nav-cut-button border-black/15 bg-[#fffaf7]/92 text-black hover:border-[#ff7417] hover:text-[#bf4f08]"
+        >
+          Book a Call
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .landing-hero {
+    position: relative;
+    width: 100%;
+    background: #fbf6f3;
+    padding-top: 3.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .landing-hero {
+      padding-top: 4rem;
+    }
+  }
+
+  .landing-hero-visual {
+    position: relative;
+    width: 100%;
+    height: clamp(20rem, 58vw, 40rem);
+    overflow: hidden;
+    background: #ffe4e2;
+  }
+
+  .landing-hero-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-hero-video {
+      display: none;
+    }
+  }
+
+  .landing-hero-scrim {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: min(70%, 22rem);
+    background: linear-gradient(
+      180deg,
+      rgba(251, 246, 243, 0) 0%,
+      rgba(251, 246, 243, 0.55) 42%,
+      rgba(251, 246, 243, 0.88) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .landing-hero-copy {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    max-width: min(42rem, calc(100% - 2.5rem));
+    padding: 1.25rem 1.25rem 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .landing-hero-copy {
+      padding: 1.75rem 2rem 2rem;
+      gap: 1.15rem;
+      max-width: min(44rem, calc(100% - 4rem));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .landing-hero-copy {
+      padding: 2rem 2.5rem 2.5rem;
+      max-width: min(48rem, 52%);
+    }
+  }
+
+  .landing-hero-headline {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.9rem, 4.2vw, 3.6rem);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    color: #050505;
+    text-wrap: balance;
+  }
+
+  .landing-hero-headline-em {
+    display: inline;
+    color: #111;
+  }
+
+  .landing-hero-sub {
+    margin: 0;
+    max-width: 28rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(0.95rem, 1.25vw, 1.12rem);
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    color: rgb(5 5 5 / 0.62);
+  }
+
+  .landing-hero-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    margin-top: 0.15rem;
+  }
+
+  .landing-hero-ctas :global(.nav-cut-button) {
+    height: 2.5rem;
+    padding-inline: 1.15rem;
+    font-size: 0.72rem;
+  }
+</style>

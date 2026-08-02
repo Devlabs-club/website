@@ -3,14 +3,24 @@ import mongoose from 'mongoose';
 import { connectAdminDB } from '@/lib/mongodb';
 import { resolveFounderIdentity, okJson, errorJson } from '@/lib/founderAgent/service';
 import JobPosting from '@/models/founder/JobPosting';
+import FounderChatSession from '@/models/founder/FounderChatSession';
+import FounderChatMessage from '@/models/founder/FounderChatMessage';
 import Shortlist from '@/models/talent/Shortlist';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import ProjectRecord from '@/models/talent/ProjectRecord';
 import MatchRecord from '@/models/talent/MatchRecord';
+import IntroRequest from '@/models/talent/IntroRequest';
+import MessageThread from '@/models/talent/MessageThread';
+import Message from '@/models/talent/Message';
+import CallSchedule from '@/models/talent/CallSchedule';
+import CandidateFeedback from '@/models/talent/CandidateFeedback';
 import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
 import { getFounderEntitlements } from '@/lib/billing/entitlements';
 import { pruneInvalidShortlistBuilders } from '@/lib/talent/shortlistRepair';
 import { getTtlCache, setTtlCache, invalidateTtlCachePrefix } from '@/lib/talent/ttlCache';
+
+/** Test-only hard-delete allowlist. Do not broaden without an intentional product decision. */
+const ROLE_DELETE_ALLOWLIST = new Set(['dkalaise@asu.edu']);
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -178,6 +188,53 @@ export const PUT: APIRoute = async ({ request, locals, params }) => {
   invalidateTtlCachePrefix(`role-recs:${String(job._id)}`);
 
   return okJson({ job: serializeJob(job) });
+};
+
+/** Hard-delete a role and related search artifacts. Gated to a test allowlist. */
+export const DELETE: APIRoute = async ({ request, locals, params }) => {
+  const identity = await resolveFounderIdentity(request, locals);
+  if ('error' in identity) return errorJson(identity.error, identity.status);
+
+  if (!ROLE_DELETE_ALLOWLIST.has(identity.email.toLowerCase().trim())) {
+    return errorJson('Role delete is not enabled for this account.', 403);
+  }
+
+  await connectAdminDB();
+  const job = await loadJob(identity, params.id!);
+  if (!job) return errorJson('Role not found.', 404);
+
+  const jobId = job._id;
+  const opportunityId = String(jobId);
+  const oppFilter = { opportunityId: jobId };
+  const oppStringFilter = { opportunityId };
+
+  const threadIds = (await MessageThread.find(oppFilter).select('_id').lean()).map((t) => t._id);
+  const sessionIds = (
+    await FounderChatSession.find({ jobId }).select('_id').lean()
+  ).map((s) => s._id);
+
+  const results = {
+    job: (await JobPosting.deleteOne({ _id: jobId, founderEmail: identity.email })).deletedCount,
+    shortlists: (await Shortlist.deleteMany({ ...oppFilter, founderEmail: identity.email })).deletedCount,
+    matchRecords: (await MatchRecord.deleteMany(oppFilter)).deletedCount,
+    introRequests: (await IntroRequest.deleteMany(oppFilter)).deletedCount,
+    messageThreads: (await MessageThread.deleteMany(oppFilter)).deletedCount,
+    messages: threadIds.length
+      ? (await Message.deleteMany({ threadId: { $in: threadIds } })).deletedCount
+      : 0,
+    callSchedules: (await CallSchedule.deleteMany(oppFilter)).deletedCount,
+    candidateFeedback: (await CandidateFeedback.deleteMany(oppStringFilter)).deletedCount,
+    chatSessions: (await FounderChatSession.deleteMany({ jobId, founderEmail: identity.email })).deletedCount,
+    chatMessages: sessionIds.length
+      ? (await FounderChatMessage.deleteMany({
+          $or: [{ jobId }, { sessionId: { $in: sessionIds } }],
+        })).deletedCount
+      : (await FounderChatMessage.deleteMany({ jobId })).deletedCount,
+  };
+
+  invalidateTtlCachePrefix(`role-recs:${opportunityId}`);
+
+  return okJson({ deleted: true, results });
 };
 
 export const prerender = false;

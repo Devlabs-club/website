@@ -1,0 +1,1149 @@
+---
+const steps = [
+  { id: "talent", label: "Looking for the best talent" },
+  { id: "github", label: "Checking their GitHub repositories" },
+  { id: "hackathon", label: "Checking their hackathon projects" },
+  { id: "social", label: "Looking into their social presence" },
+  { id: "quality", label: "Verifying their code quality" },
+];
+
+const builders = [
+  {
+    id: "isha",
+    name: "Isha R.",
+    initials: "IR",
+    role: "Full-stack · Payments",
+    match: 96,
+    ship: "9.2",
+    shipped: 7,
+    why: "Shipped Stripe Connect billing in production and mentored two payment integrations at DevHacks.",
+    ex: "ex-Google",
+    repos: ["stripe-connect", "saas-billing"],
+    signals: ["GitHub", "Hackathon", "LinkedIn"],
+    activity: [2, 5, 3, 7, 4, 8, 6, 9, 5, 8, 7, 9],
+    accent: "#ff7417",
+  },
+  {
+    id: "maya",
+    name: "Maya T.",
+    initials: "MT",
+    role: "Full-stack · Infra",
+    match: 94,
+    ship: "9.0",
+    shipped: 8,
+    why: "Built webhook-resilient Stripe hooks used across 3 live SaaS products.",
+    ex: "ex-Amazon",
+    repos: ["stripe-hooks", "supabase-app"],
+    signals: ["GitHub", "Projects", "Traces"],
+    activity: [5, 7, 4, 8, 6, 9, 5, 7, 8, 6, 9, 8],
+    accent: "#181411",
+  },
+  {
+    id: "dev",
+    name: "Dev P.",
+    initials: "DP",
+    role: "Payments engineer",
+    match: 93,
+    ship: "8.8",
+    shipped: 5,
+    why: "Checkout kit with PCI-aware flows and real dispute handling in production.",
+    ex: "ex-Amazon",
+    repos: ["checkout-kit", "next-pay"],
+    signals: ["GitHub", "LinkedIn"],
+    activity: [3, 4, 6, 5, 8, 4, 7, 6, 9, 5, 8, 7],
+    accent: "#bf4f08",
+  },
+];
+---
+
+<section
+  id="demo"
+  class="product-demo"
+  data-product-demo
+  aria-label="Product demo"
+>
+  <div class="product-demo-backdrop" aria-hidden="true"></div>
+
+  <div class="product-demo-frame">
+    <div class="product-demo-stage" data-demo-stage>
+      <div class="product-demo-camera" data-demo-camera>
+        <div class="product-demo-chrome" data-demo-chrome>
+          <div class="product-demo-chrome-bar">
+            <div class="product-demo-dots" aria-hidden="true">
+              <span></span><span></span><span></span>
+            </div>
+            <p class="product-demo-chrome-label">Founder agent</p>
+            <span class="product-demo-live" data-demo-live>idle</span>
+          </div>
+
+          <div class="product-demo-body">
+            <div class="product-demo-search" data-demo-search>
+              <svg class="product-demo-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
+              <p class="product-demo-query" aria-live="polite">
+                <span data-demo-typewriter></span><span class="product-demo-caret" data-demo-caret></span>
+              </p>
+            </div>
+
+            <div class="product-demo-think" data-demo-think hidden>
+              <div class="product-demo-think-head">
+                <span class="product-demo-think-pulse" aria-hidden="true"></span>
+                <span data-demo-think-label>Thinking</span>
+                <span class="product-demo-think-time" data-demo-think-time>0.0s</span>
+              </div>
+              <ul class="product-demo-steps" data-demo-steps>
+                {steps.map((step) => (
+                  <li class="product-demo-step" data-step={step.id}>
+                    <span class="product-demo-step-mark" aria-hidden="true"></span>
+                    <span class="product-demo-step-label">{step.label}</span>
+                    <span class="product-demo-step-chip" data-step-chip></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div class="product-demo-results" data-demo-results hidden>
+              <div class="product-demo-results-head">
+                <p>Shortlist ready</p>
+                <span data-demo-count>0 builders</span>
+              </div>
+              <div class="product-demo-cards" data-demo-cards>
+                {builders.map((b, i) => (
+                  <article
+                    class="product-demo-card"
+                    data-demo-card
+                    data-card-id={b.id}
+                    data-index={i}
+                    style={`--card-accent: ${b.accent}`}
+                    tabindex="0"
+                    role="button"
+                    aria-label={`Expand ${b.name}`}
+                  >
+                    <div class="product-demo-card-top">
+                      <div class="product-demo-avatar" style={`background:${b.accent}`}>{b.initials}</div>
+                      <div class="product-demo-card-meta">
+                        <p class="product-demo-card-name">{b.name}</p>
+                        <p class="product-demo-card-role">{b.role}</p>
+                      </div>
+                      <span class="product-demo-match">{b.match}%</span>
+                    </div>
+
+                    <p class="product-demo-why">{b.why}</p>
+
+                    <div class="product-demo-stats">
+                      <div>
+                        <span>Ship</span>
+                        <strong>{b.ship}</strong>
+                      </div>
+                      <div>
+                        <span>Shipped</span>
+                        <strong>{b.shipped}</strong>
+                      </div>
+                      <div>
+                        <span>Signal</span>
+                        <strong>{b.ex}</strong>
+                      </div>
+                    </div>
+
+                    <div class="product-demo-spark" aria-hidden="true">
+                      {b.activity.map((v) => (
+                        <span style={`height:${(v / 9) * 100}%`}></span>
+                      ))}
+                    </div>
+
+                    <div class="product-demo-tags">
+                      {b.repos.map((r) => <span class="product-demo-repo">{r}</span>)}
+                      {b.signals.map((s) => <span class="product-demo-signal">{s}</span>)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="product-demo-zoom" data-demo-zoom hidden>
+        <button type="button" class="product-demo-zoom-close" data-demo-zoom-close aria-label="Close">
+          Close
+        </button>
+        <div class="product-demo-zoom-panel" data-demo-zoom-panel></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const QUERY = "Give me a developer who has experience in Stripe integration";
+  const STEP_MS = 980;
+  const TYPE_MS = 28;
+
+  function initProductDemo(root: HTMLElement) {
+    const typewriter = root.querySelector<HTMLElement>("[data-demo-typewriter]");
+    const caret = root.querySelector<HTMLElement>("[data-demo-caret]");
+    const search = root.querySelector<HTMLElement>("[data-demo-search]");
+    const think = root.querySelector<HTMLElement>("[data-demo-think]");
+    const thinkLabel = root.querySelector<HTMLElement>("[data-demo-think-label]");
+    const thinkTime = root.querySelector<HTMLElement>("[data-demo-think-time]");
+    const steps = [...root.querySelectorAll<HTMLElement>("[data-step]")];
+    const results = root.querySelector<HTMLElement>("[data-demo-results]");
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-demo-card]")];
+    const count = root.querySelector<HTMLElement>("[data-demo-count]");
+    const live = root.querySelector<HTMLElement>("[data-demo-live]");
+    const stage = root.querySelector<HTMLElement>("[data-demo-stage]");
+    const camera = root.querySelector<HTMLElement>("[data-demo-camera]");
+    const chrome = root.querySelector<HTMLElement>("[data-demo-chrome]");
+    const zoom = root.querySelector<HTMLElement>("[data-demo-zoom]");
+    const zoomPanel = root.querySelector<HTMLElement>("[data-demo-zoom-panel]");
+    const zoomClose = root.querySelector<HTMLElement>("[data-demo-zoom-close]");
+
+    if (!typewriter || !think || !results || !stage || !chrome || !camera) return;
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let timer = 0;
+    let running = false;
+    let thinkStart = 0;
+    let tickRaf = 0;
+
+    const setLive = (text: string) => {
+      if (live) live.textContent = text;
+    };
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => {
+        timer = window.setTimeout(resolve, reduce ? Math.min(ms, 80) : ms);
+      });
+
+    /**
+     * Measure an element in camera-local space by briefly clearing the camera
+     * transform. Safe for infrequent calls (fit / phase changes), not every keystroke.
+     */
+    const localBox = (el: HTMLElement) => {
+      const prevTransform = camera.style.transform;
+      const prevTransition = camera.style.transition;
+      camera.style.transition = "none";
+      camera.style.transform = "translate3d(0,0,0) scale(1)";
+      void camera.offsetWidth;
+
+      const stageRect = stage.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const box = {
+        left: elRect.left - stageRect.left,
+        top: elRect.top - stageRect.top,
+        width: elRect.width,
+        height: elRect.height,
+      };
+
+      camera.style.transform = prevTransform;
+      void camera.offsetWidth;
+      camera.style.transition = prevTransition;
+      return box;
+    };
+
+    /** Tip of typed text via canvas measure — no transform clear, no flicker. */
+    const measureCanvas = document.createElement("canvas");
+    const typedTip = () => {
+      const queryEl = typewriter.parentElement ?? typewriter;
+      let x = 0;
+      let y = 0;
+      let node: HTMLElement | null = queryEl;
+      while (node && node !== camera) {
+        x += node.offsetLeft;
+        y += node.offsetTop;
+        const parent = node.offsetParent as HTMLElement | null;
+        if (!parent || parent === camera) break;
+        if (!camera.contains(parent)) break;
+        node = parent;
+      }
+      const qTop = y;
+      const qHeight = queryEl.offsetHeight || typewriter.offsetHeight || 20;
+
+      const cs = getComputedStyle(queryEl);
+      const ctx = measureCanvas.getContext("2d");
+      let textW = typewriter.offsetWidth;
+      if (ctx) {
+        ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        textW = ctx.measureText(typewriter.textContent || "").width;
+      }
+      return {
+        x: x + textW,
+        y: qTop + qHeight / 2,
+      };
+    };
+
+    const applyCamera = (x: number, y: number, s: number, durationMs = 700) => {
+      if (reduce) {
+        camera.style.transition = "none";
+        camera.style.transform = "translate3d(0,0,0) scale(1)";
+        return;
+      }
+      camera.style.transition =
+        durationMs <= 0
+          ? "none"
+          : `transform ${durationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`;
+      camera.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${s})`;
+    };
+
+    /**
+     * Place a local-space point at a fraction of the stage (viewX/viewY in 0–1).
+     * Typing uses viewX ≈ 0.82 so the caret sits on the right and recent words stay visible to the left.
+     */
+    const focusPoint = (
+      x: number,
+      y: number,
+      {
+        scale = 1.55,
+        viewX = 0.5,
+        viewY = 0.5,
+        durationMs = 700,
+      }: { scale?: number; viewX?: number; viewY?: number; durationMs?: number } = {},
+    ) => {
+      if (reduce) {
+        applyCamera(0, 0, 1, 0);
+        return;
+      }
+      const vx = stage.clientWidth * viewX;
+      const vy = stage.clientHeight * viewY;
+      applyCamera(vx - x * scale, vy - y * scale, scale, durationMs);
+    };
+
+    /** Fit elements fully inside the stage — never center-crops the query. */
+    const fitElements = (
+      els: Array<HTMLElement | null | undefined>,
+      {
+        paddingX = 28,
+        paddingY = 36,
+        maxScale = 1.35,
+        minScale = 1,
+        viewY = 0.42,
+        durationMs = 800,
+      }: {
+        paddingX?: number;
+        paddingY?: number;
+        maxScale?: number;
+        minScale?: number;
+        viewY?: number;
+        durationMs?: number;
+      } = {},
+    ) => {
+      const visible = els.filter((el): el is HTMLElement => Boolean(el) && !el.hidden);
+      if (!visible.length || reduce) {
+        applyCamera(0, 0, 1, durationMs);
+        return;
+      }
+      const boxes = visible.map(localBox);
+      const left = Math.min(...boxes.map((b) => b.left));
+      const top = Math.min(...boxes.map((b) => b.top));
+      const right = Math.max(...boxes.map((b) => b.left + b.width));
+      const bottom = Math.max(...boxes.map((b) => b.top + b.height));
+      const width = Math.max(1, right - left);
+      const height = Math.max(1, bottom - top);
+      const sw = stage.clientWidth;
+      const sh = stage.clientHeight;
+      const scale = Math.min(
+        maxScale,
+        Math.max(minScale, Math.min(sw / (width + paddingX * 2), sh / (height + paddingY * 2))),
+      );
+      const cx = left + width / 2;
+      const cy = top + height / 2;
+      focusPoint(cx, cy, { scale, viewX: 0.5, viewY, durationMs });
+    };
+
+    const zoomOut = (durationMs = 900) => applyCamera(0, 0, 1, durationMs);
+
+    const reset = () => {
+      window.clearTimeout(timer);
+      cancelAnimationFrame(tickRaf);
+      typewriter.textContent = "";
+      if (caret) caret.style.opacity = "1";
+      think.hidden = true;
+      results.hidden = true;
+      thinkLabel && (thinkLabel.textContent = "Thinking");
+      thinkTime && (thinkTime.textContent = "0.0s");
+      steps.forEach((s) => {
+        s.classList.remove("is-active", "is-done");
+        const chip = s.querySelector("[data-step-chip]");
+        if (chip) chip.textContent = "";
+      });
+      cards.forEach((c) => c.classList.remove("is-in"));
+      closeZoom();
+      applyCamera(0, 0, 1, 0);
+      setLive("idle");
+    };
+
+    const typeQuery = () =>
+      new Promise<void>((resolve) => {
+        setLive("typing");
+        // Start near the left of the search field
+        if (search) {
+          const sb = localBox(search);
+          focusPoint(sb.left + 48, sb.top + sb.height / 2, {
+            scale: 1.7,
+            viewX: 0.3,
+            viewY: 0.42,
+            durationMs: 650,
+          });
+        }
+
+        let i = 0;
+        const tick = () => {
+          typewriter.textContent = QUERY.slice(0, i);
+          void typewriter.offsetWidth;
+
+          const progress = QUERY.length === 0 ? 1 : i / QUERY.length;
+          const tip = typedTip();
+          // Mild zoom — follow the last few words, caret on the right
+          const scale = 1.65 + progress * 0.12;
+          const viewX = i < 12 ? 0.3 + (i / 12) * 0.5 : 0.82;
+          focusPoint(tip.x, tip.y, {
+            scale,
+            viewX,
+            viewY: 0.42,
+            durationMs: i < 2 ? 400 : 0,
+          });
+
+          i += 1;
+          if (i <= QUERY.length) {
+            timer = window.setTimeout(tick, reduce ? 0 : TYPE_MS);
+          } else {
+            if (caret) caret.style.opacity = "0";
+            resolve();
+          }
+        };
+        tick();
+      });
+
+    const runThinkClock = () => {
+      thinkStart = performance.now();
+      const tick = () => {
+        const s = ((performance.now() - thinkStart) / 1000).toFixed(1);
+        if (thinkTime) thinkTime.textContent = `${s}s`;
+        tickRaf = requestAnimationFrame(tick);
+      };
+      tickRaf = requestAnimationFrame(tick);
+    };
+
+    const runSteps = () =>
+      new Promise<void>((resolve) => {
+        think.hidden = false;
+        setLive("searching");
+        runThinkClock();
+        void think.offsetHeight;
+
+        const head = think.querySelector<HTMLElement>(".product-demo-think-head");
+        // Pull back so the FULL query stays readable, thinking just under it
+        fitElements([search, head ?? think], {
+          paddingX: 20,
+          paddingY: 36,
+          maxScale: 1.22,
+          viewY: 0.34,
+          durationMs: 950,
+        });
+
+        let i = 0;
+        const next = () => {
+          if (i > 0) {
+            const prev = steps[i - 1];
+            prev?.classList.remove("is-active");
+            prev?.classList.add("is-done");
+            const chip = prev?.querySelector("[data-step-chip]");
+            if (chip) chip.textContent = "done";
+          }
+          if (i >= steps.length) {
+            cancelAnimationFrame(tickRaf);
+            if (thinkLabel) thinkLabel.textContent = "Done";
+            resolve();
+            return;
+          }
+          const step = steps[i];
+          step.classList.add("is-active");
+          const chip = step.querySelector("[data-step-chip]");
+          if (chip) chip.textContent = "running";
+          if (thinkLabel) thinkLabel.textContent = "Thinking";
+          // Keep the full search query in frame while walking down the steps
+          fitElements([search, step], {
+            paddingX: 20,
+            paddingY: 28,
+            maxScale: 1.25,
+            viewY: 0.36,
+            durationMs: 640,
+          });
+          i += 1;
+          timer = window.setTimeout(next, reduce ? 80 : STEP_MS);
+        };
+        timer = window.setTimeout(next, reduce ? 40 : 750);
+      });
+
+    const openZoom = (card: HTMLElement) => {
+      if (!zoom || !zoomPanel) return;
+      zoomPanel.innerHTML = "";
+      const clone = card.cloneNode(true) as HTMLElement;
+      clone.classList.add("is-zoomed");
+      clone.removeAttribute("tabindex");
+      clone.removeAttribute("role");
+      zoomPanel.appendChild(clone);
+      zoom.hidden = false;
+      stage.classList.add("is-zoomed");
+      chrome.classList.add("is-dimmed");
+      requestAnimationFrame(() => zoom.classList.add("is-open"));
+    };
+
+    const closeZoom = () => {
+      if (!zoom) return;
+      zoom.classList.remove("is-open");
+      stage.classList.remove("is-zoomed");
+      chrome.classList.remove("is-dimmed");
+      window.setTimeout(() => {
+        zoom.hidden = true;
+        if (zoomPanel) zoomPanel.innerHTML = "";
+      }, 220);
+    };
+
+    const run = async () => {
+      if (running) return;
+      running = true;
+      reset();
+      await wait(320);
+      await typeQuery();
+      await wait(500);
+      await runSteps();
+      await wait(380);
+      // Pull camera back, then cards pop into the full frame
+      think.hidden = true;
+      results.hidden = false;
+      if (count) count.textContent = `${cards.length} builders`;
+      zoomOut(1000);
+      await wait(780);
+      setLive("shortlist");
+      await new Promise<void>((resolve) => {
+        if (cards.length === 0) {
+          resolve();
+          return;
+        }
+        cards.forEach((card, idx) => {
+          timer = window.setTimeout(() => {
+            card.classList.add("is-in");
+            if (idx === cards.length - 1) resolve();
+          }, reduce ? 0 : 140 + idx * 210);
+        });
+      });
+      running = false;
+      timer = window.setTimeout(() => {
+        if (!root.isConnected) return;
+        running = false;
+        void run();
+      }, reduce ? 4000 : 7500);
+    };
+
+    cards.forEach((card) => {
+      card.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openZoom(card);
+      });
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openZoom(card);
+        }
+      });
+    });
+    zoomClose?.addEventListener("click", closeZoom);
+    zoom?.addEventListener("click", (e) => {
+      if (e.target === zoom) closeZoom();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeZoom();
+    });
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            void run();
+            io.disconnect();
+          }
+        }
+      },
+      { threshold: 0.35 },
+    );
+    io.observe(root);
+
+    return () => {
+      io.disconnect();
+      window.clearTimeout(timer);
+      cancelAnimationFrame(tickRaf);
+    };
+  }
+
+  const root = document.querySelector<HTMLElement>("[data-product-demo]");
+  if (root) {
+    const cleanup = initProductDemo(root);
+    window.addEventListener("pagehide", () => cleanup?.());
+  }
+</script>
+
+<style>
+  .product-demo {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* Full-bleed “video” plate under the looping demo */
+    background: #1a1410;
+    padding: clamp(2.5rem, 6vw, 4.5rem) 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .product-demo {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .product-demo {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .product-demo-backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255, 116, 23, 0.22), transparent 55%),
+      radial-gradient(ellipse at 80% 100%, rgba(255, 116, 23, 0.1), transparent 45%),
+      linear-gradient(180deg, #241a14 0%, #14100d 55%, #0f0c0a 100%);
+  }
+
+  .product-demo-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.35;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+  }
+
+  .product-demo-frame {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    /* Video-player bezel */
+    padding: 0.55rem;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    background: rgb(8 6 5 / 0.72);
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 0.4),
+      0 40px 100px rgb(0 0 0 / 0.45);
+  }
+
+  .product-demo-stage {
+    position: relative;
+    overflow: hidden;
+    /* Fixed “viewfinder” so camera pans feel intentional */
+    min-height: clamp(24rem, 56vw, 32rem);
+  }
+
+  .product-demo-camera {
+    position: relative;
+    width: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  .product-demo-chrome {
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #fffaf7;
+    overflow: hidden;
+    transition:
+      filter 320ms ease,
+      opacity 320ms ease;
+  }
+
+  .product-demo-stage.is-zoomed .product-demo-chrome.is-dimmed {
+    filter: blur(1.5px);
+    opacity: 0.55;
+  }
+
+  .product-demo-chrome-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid rgb(5 5 5 / 0.1);
+    background: #f3f0ed;
+  }
+
+  .product-demo-dots {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .product-demo-dots span {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: rgb(5 5 5 / 0.18);
+  }
+
+  .product-demo-dots span:first-child {
+    background: #ff7417;
+  }
+
+  .product-demo-chrome-label {
+    margin: 0;
+    flex: 1;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .product-demo-live {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #bf4f08;
+    border: 1px solid rgb(255 116 23 / 0.35);
+    background: #fff5ef;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .product-demo-body {
+    padding: 1rem;
+    min-height: 28rem;
+  }
+
+  @media (min-width: 768px) {
+    .product-demo-body {
+      padding: 1.25rem 1.35rem 1.5rem;
+      min-height: 30rem;
+    }
+  }
+
+  .product-demo-search {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border: 1px solid #050505;
+    background: #fff;
+    padding: 0.85rem 1rem;
+  }
+
+  .product-demo-search-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+    color: #ff7417;
+  }
+
+  .product-demo-query {
+    margin: 0;
+    min-height: 1.5rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(0.92rem, 1.5vw, 1.15rem);
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+    color: #050505;
+  }
+
+  .product-demo-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 1px;
+    vertical-align: -0.12em;
+    background: #ff7417;
+    animation: product-demo-blink 0.9s steps(1) infinite;
+  }
+
+  @keyframes product-demo-blink {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  .product-demo-think {
+    margin-top: 1rem;
+    border: 1px solid rgb(5 5 5 / 0.1);
+    background: #f7f3ef;
+    padding: 0.9rem 1rem 1rem;
+  }
+
+  .product-demo-think-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.85rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.55);
+  }
+
+  .product-demo-think-pulse {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: #ff7417;
+    box-shadow: 0 0 0 0 rgb(255 116 23 / 0.5);
+    animation: product-demo-pulse 1.2s ease-out infinite;
+  }
+
+  @keyframes product-demo-pulse {
+    70% {
+      box-shadow: 0 0 0 8px rgb(255 116 23 / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(255 116 23 / 0);
+    }
+  }
+
+  .product-demo-think-time {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    color: #bf4f08;
+  }
+
+  .product-demo-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .product-demo-step {
+    display: grid;
+    grid-template-columns: 1rem 1fr auto;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid transparent;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: rgb(5 5 5 / 0.38);
+    transition:
+      color 200ms ease,
+      background-color 200ms ease,
+      border-color 200ms ease;
+  }
+
+  .product-demo-step.is-active {
+    color: #050505;
+    background: #fffaf7;
+    border-color: rgb(255 116 23 / 0.35);
+  }
+
+  .product-demo-step.is-done {
+    color: rgb(5 5 5 / 0.72);
+  }
+
+  .product-demo-step-mark {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    border: 1.5px solid rgb(5 5 5 / 0.25);
+    background: transparent;
+  }
+
+  .product-demo-step.is-active .product-demo-step-mark {
+    border-color: #ff7417;
+    background: #ff7417;
+  }
+
+  .product-demo-step.is-done .product-demo-step-mark {
+    border-color: #181411;
+    background: #181411;
+  }
+
+  .product-demo-step-chip {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #bf4f08;
+  }
+
+  .product-demo-step.is-done .product-demo-step-chip {
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .product-demo-results {
+    margin-top: 1rem;
+  }
+
+  .product-demo-results-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+    font-family: Manrope, system-ui, sans-serif;
+  }
+
+  .product-demo-results-head p {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.5);
+  }
+
+  .product-demo-results-head span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #bf4f08;
+  }
+
+  .product-demo-cards {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 900px) {
+    .product-demo-cards {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .product-demo-card {
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #fff;
+    padding: 0.95rem;
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+    cursor: pointer;
+    transition:
+      opacity 420ms ease,
+      transform 420ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .product-demo-card.is-in {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  .product-demo-card:hover,
+  .product-demo-card:focus-visible {
+    border-color: rgb(255 116 23 / 0.55);
+    box-shadow: 0 16px 40px rgb(5 5 5 / 0.08);
+    outline: none;
+  }
+
+  .product-demo-card-top {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .product-demo-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.35rem;
+    height: 2.35rem;
+    flex-shrink: 0;
+    color: #fff;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .product-demo-card-meta {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .product-demo-card-name {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #050505;
+  }
+
+  .product-demo-card-role {
+    margin: 0.15rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(5 5 5 / 0.5);
+  }
+
+  .product-demo-match {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #bf4f08;
+    border: 1px solid rgb(255 116 23 / 0.35);
+    background: #fff5ef;
+    padding: 0.28rem 0.45rem;
+  }
+
+  .product-demo-why {
+    margin: 0.75rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: rgb(5 5 5 / 0.68);
+  }
+
+  .product-demo-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.85rem;
+  }
+
+  .product-demo-stats div {
+    border: 1px solid rgb(5 5 5 / 0.08);
+    background: #fbf6f3;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .product-demo-stats span {
+    display: block;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.42);
+  }
+
+  .product-demo-stats strong {
+    display: block;
+    margin-top: 0.2rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #050505;
+  }
+
+  .product-demo-spark {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 2rem;
+    margin-top: 0.75rem;
+  }
+
+  .product-demo-spark span {
+    flex: 1;
+    min-height: 15%;
+    background: linear-gradient(180deg, #ff7417, rgb(255 116 23 / 0.35));
+  }
+
+  .product-demo-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+  }
+
+  .product-demo-repo,
+  .product-demo-signal {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    padding: 0.22rem 0.4rem;
+  }
+
+  .product-demo-repo {
+    border: 1px solid rgb(5 5 5 / 0.14);
+    background: #fff;
+    color: #050505;
+  }
+
+  .product-demo-signal {
+    border: 1px solid rgb(255 116 23 / 0.3);
+    background: #fff5ef;
+    color: #bf4f08;
+  }
+
+  .product-demo-zoom {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgb(5 5 5 / 0.18);
+    opacity: 0;
+    transition: opacity 220ms ease;
+  }
+
+  .product-demo-zoom.is-open {
+    opacity: 1;
+  }
+
+  .product-demo-zoom-panel {
+    width: min(100%, 28rem);
+    transform: scale(0.92);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .product-demo-zoom.is-open .product-demo-zoom-panel {
+    transform: scale(1);
+  }
+
+  .product-demo-zoom-panel :global(.product-demo-card) {
+    opacity: 1;
+    transform: none;
+    box-shadow: 0 28px 80px rgb(5 5 5 / 0.22);
+    border-color: #050505;
+    cursor: default;
+  }
+
+  .product-demo-zoom-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 6;
+    border: 1px solid #050505;
+    background: #fffaf7;
+    padding: 0.4rem 0.7rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product-demo-caret,
+    .product-demo-think-pulse {
+      animation: none;
+    }
+
+    .product-demo-card,
+    .product-demo-chrome,
+    .product-demo-zoom,
+    .product-demo-zoom-panel {
+      transition: none;
+    }
+  }
+</style>

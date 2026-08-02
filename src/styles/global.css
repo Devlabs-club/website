@@ -159,6 +159,58 @@
     background: #ff8f3d;
   }
 
+  .nav-industrial-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: rgb(5 5 5 / 0.78);
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+    transition: color 160ms ease;
+  }
+
+  .nav-industrial-link:hover,
+  .nav-industrial-link[data-active="true"] {
+    color: #050505;
+  }
+
+  .nav-cut-button {
+    display: inline-flex;
+    height: 2.125rem;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #050505;
+    padding-inline: 0.95rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    text-transform: uppercase;
+    box-shadow: none;
+    /* Twenty-style: single clipped bottom-right corner */
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.55rem),
+      calc(100% - 0.55rem) 100%,
+      0 100%
+    );
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .nav-cut-button:hover {
+    border-color: #bf4f08;
+  }
+
   .builder-dashboard {
     font-family: Manrope, system-ui, sans-serif;
     letter-spacing: 0;

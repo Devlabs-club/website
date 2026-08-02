@@ -3,8 +3,10 @@ import {
   ArrowRight,
   Briefcase,
   Clock,
+  Loader2,
   MapPin,
   Sparkles,
+  Trash2,
   Users,
 } from "lucide-react";
 
@@ -81,7 +83,12 @@ function pipelineStats(role: FounderRoleTileData): PipelineStat[] {
   ];
 }
 
-export const FounderRoleTile: React.FC<{ role: FounderRoleTileData }> = ({ role }) => {
+export const FounderRoleTile: React.FC<{
+  role: FounderRoleTileData;
+  canDelete?: boolean;
+  deleting?: boolean;
+  onDelete?: (roleId: string) => void;
+}> = ({ role, canDelete = false, deleting = false, onDelete }) => {
   const title = role.title || role.roleTitle || "Untitled role";
   const status = role.statusPresentation || { label: "Setting up", tone: "neutral" as const };
   const skills = (role.skillsNeeded || []).slice(0, 4);
@@ -114,10 +121,28 @@ export const FounderRoleTile: React.FC<{ role: FounderRoleTileData }> = ({ role 
             </p>
           )}
         </div>
-        <span className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[#ec9149] px-4 text-xs font-bold text-white transition group-hover:bg-[#dd7f36]">
-          Open
-          <ArrowRight className="h-3.5 w-3.5" />
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {canDelete && (
+            <button
+              type="button"
+              disabled={deleting}
+              aria-label={`Delete ${title}`}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onDelete?.(role.id);
+              }}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Delete
+            </button>
+          )}
+          <span className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#ec9149] px-4 text-xs font-bold text-white transition group-hover:bg-[#dd7f36]">
+            Open
+            <ArrowRight className="h-3.5 w-3.5" />
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs text-black/55">

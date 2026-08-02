@@ -4,16 +4,12 @@ export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import PricingSection from "../components/PricingSection.astro";
 import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import LandingMarketingNav from "../components/landing/LandingMarketingNav.astro";
+import LandingHero from "../components/landing/LandingHero.astro";
+import LandingProductDemo from "../components/landing/LandingProductDemo.astro";
 import { tryForFreeHref } from "../lib/productCta";
 
-const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 const ctaHref = tryForFreeHref;
-
-const navLinks = [
-  { label: "Sponsor", href: "/sponsor" },
-  { label: "Events", href: "/events" },
-  { label: "Our Story", href: "/about" },
-];
 
 const folksLogos = [
   { label: "browser-use", src: "/sponsors/browser-use.png" },
@@ -165,37 +161,6 @@ function sourceIconSvg(key: string) {
   return icons[key as keyof typeof icons] ?? icons.globe;
 }
 
-const heroSearchCards = [
-  {
-    name: "Aarav V.",
-    initials: "AV",
-    role: "iOS + AI",
-    match: "94%",
-    ship: "9.1",
-    shipped: "6",
-    sources: 4,
-    avatarClass: "bg-[#ff7417] text-white",
-    ex: { label: "ex-Google", domain: "google.com" },
-    repos: ["campus-rides", "receipt-vision"],
-    activity: [4, 6, 5, 8, 7, 9, 6, 8, 5, 9, 7, 8],
-    sourceKeys: ["github", "globe", "linkedin", "briefcase"],
-  },
-  {
-    name: "Niki K.",
-    initials: "NK",
-    role: "Mobile",
-    match: "91%",
-    ship: "8.7",
-    shipped: "5",
-    sources: 3,
-    avatarClass: "bg-black text-white",
-    ex: { label: "ex-Waymo", domain: "waymo.com" },
-    repos: ["rn-proto", "ship-lab"],
-    activity: [3, 5, 7, 4, 8, 6, 5, 9, 7, 6, 8, 7],
-    sourceKeys: ["github", "globe", "linkedin"],
-  },
-];
-
 const evidenceBento = [
   {
     title: "Shipped Projects",
@@ -324,243 +289,13 @@ const testimonials = [
   skipSmoothScroll
 >
   <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-    <header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
-        <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
-      </a>
+    <LandingMarketingNav />
 
-      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
-        {navLinks.map((link) => (
-          <a href={link.href} class="transition-colors hover:text-[#ff7417]">
-            {link.label}
-          </a>
-        ))}
-        <a
-          href={ctaHref}
-          class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
-        >
-          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-          Hire now
-        </a>
-      </nav>
+    <LandingHero />
 
-      <a
-        href={ctaHref}
-        class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden"
-      >
-        Hire now
-      </a>
-    </header>
+    <LandingProductDemo />
 
-    <section class="hero-section ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center overflow-hidden px-6 pb-24 pt-24 text-center sm:px-8 lg:px-10">
-      <canvas
-        class="ascii-star hero-star-left absolute left-[max(-12rem,-13vw)] top-32 h-[clamp(22rem,32vw,32rem)] w-[clamp(22rem,32vw,32rem)] -rotate-[22deg]"
-        data-star-canvas
-        aria-hidden="true"
-      ></canvas>
-      <canvas
-        class="ascii-star hero-star-right absolute right-[max(-11rem,-12vw)] top-20 h-[clamp(20rem,30vw,30rem)] w-[clamp(20rem,30vw,30rem)] rotate-[10deg]"
-        data-star-canvas
-        aria-hidden="true"
-      ></canvas>
-
-      <h1 data-hero-headline class="relative z-10 max-w-4xl text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
-        Hire
-        <br class="sm:hidden" />
-        <span class="relative inline-block font-extrabold">
-          builders
-         </span>
-        <br class="sm:hidden" />
-        who can<br />
-        actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
-      </h1>
-
-      <div
-        data-hero-cta
-        class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
-      >
-        <a
-          href={tryForFreeHref}
-          class="hero-start-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
-        >
-          <canvas
-            class="hero-start-cta-ripple absolute inset-0 h-full w-full"
-            data-ascii-ripple="compact"
-            aria-hidden="true"
-          ></canvas>
-          <span class="relative z-10">Try for Free</span>
-        </a>
-        <a
-          href={bookCallHref}
-          class="hero-book-call-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-9 text-sm font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.06)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-white hover:text-[#bf4f08] hover:shadow-[0_16px_36px_rgba(255,116,23,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
-        >
-          Book a Call
-          <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12h14"></path>
-            <path d="m12 5 7 7-7 7"></path>
-          </svg>
-        </a>
-      </div>
-
-      <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
-        <div class="relative flex min-h-[auto] items-center justify-center overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] px-7 py-8 shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[420px] sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12 lg:py-12">
-          <img
-            src="/landing/hero-meadow.png"
-            alt=""
-            loading="eager"
-            class="absolute inset-0 h-full w-full object-cover"
-          />
-          <div class="absolute inset-0 bg-white/5"></div>
-
-          <span class="selection-dot left-7 top-7"></span>
-          <span class="selection-dot right-7 top-7"></span>
-          <span class="selection-dot bottom-7 left-7"></span>
-          <span class="selection-dot bottom-7 right-7"></span>
-
-          <div class="hero-builder-card relative z-10 w-full max-w-[22.5rem] border-2 border-black bg-white p-3 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] min-[400px]:max-w-[26rem] min-[400px]:p-3.5 sm:max-w-[min(76%,720px)] sm:p-4 lg:max-w-[760px] lg:p-5">
-            <div class="mb-2.5 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-2.5 py-1.5 text-sm font-semibold text-[#bf4f08]">
-              <span class="text-[#ff7417]">✦</span>
-              Builder search
-            </div>
-
-            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label="Find me a cracked App dev with expertise in stripe integration">
-              <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-              </svg>
-              <p class="min-w-0 flex-1 overflow-hidden py-0.5 text-[0.68rem] font-normal leading-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)] sm:leading-[1.35]">
-                <span class="hero-typewriter-text">Find me a cracked App dev with expertise in stripe integration</span>
-              </p>
-              <a
-                href="/auth/signup"
-                aria-label="Search builders"
-                class="hero-search-submit hidden h-10 w-10 shrink-0 place-items-center border border-black text-[#ff7417] transition-colors hover:bg-[#ff7417] hover:text-white sm:grid"
-              >
-                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M5 12h14"></path>
-                  <path d="m12 5 7 7-7 7"></path>
-                </svg>
-              </a>
-              <div class="hero-loading-row" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-
-            <div class="mt-3 grid gap-2.5 md:grid-cols-2">
-              {heroSearchCards.map((card, index) => (
-                <article class={`hero-result-card border border-black/15 bg-[#fffaf7] p-2.5 sm:p-3 ${index === 1 ? "hero-result-card-two" : ""}`}>
-                  <div class="flex items-start justify-between gap-2">
-                    <div class="flex min-w-0 items-center gap-2">
-                      <div class={`grid h-8 w-8 shrink-0 place-items-center text-[0.68rem] font-extrabold sm:h-9 sm:w-9 sm:text-sm ${card.avatarClass}`}>
-                        {card.initials}
-                      </div>
-                      <div class="min-w-0">
-                        <p class="truncate text-sm font-black text-black">{card.name}</p>
-                        <p class="mt-0.5 text-[0.58rem] font-extrabold uppercase tracking-[0.12em] text-black/38">
-                          {card.role}
-                        </p>
-                      </div>
-                    </div>
-                    <span class="shrink-0 text-xs font-black text-[#bf4f08]">{card.match}</span>
-                  </div>
-
-                  <div class="mt-2.5">
-                    <div class="flex items-center justify-between">
-                      <p class="text-[0.55rem] font-extrabold uppercase tracking-[0.14em] text-black/34">
-                        Ship activity
-                      </p>
-                      <p class="text-[0.55rem] font-bold text-black/34">12w</p>
-                    </div>
-                    <div class="mt-1 flex h-6 items-end gap-[2px]" aria-hidden="true">
-                      {card.activity.map((level) => (
-                        <span
-                          class="profile-activity-bar flex-1 rounded-[1px] bg-[#ff7417]"
-                          style={`height: ${18 + level * 7}%; opacity: ${0.22 + level * 0.07}`}
-                        ></span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div class="mt-2.5 grid grid-cols-3 gap-1.5 border-y border-black/[0.07] py-2">
-                    <div class="text-left">
-                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.ship}</p>
-                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Ship</p>
-                    </div>
-                    <div class="text-left">
-                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.shipped}</p>
-                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Shipped</p>
-                    </div>
-                    <div class="text-left">
-                      <p class="text-[0.88rem] font-black leading-none tracking-[-0.04em] text-black">{card.sources}</p>
-                      <p class="mt-1 text-[0.52rem] font-bold uppercase tracking-[0.1em] text-black/38">Sources</p>
-                    </div>
-                  </div>
-
-                  <div class="mt-2 flex flex-wrap items-center gap-1">
-                    <span class="inline-flex items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.58rem] font-extrabold text-black/70">
-                      <img
-                        src={companyLogoUrl(card.ex.domain)}
-                        alt=""
-                        width="11"
-                        height="11"
-                        class="h-2.5 w-2.5 object-contain"
-                        loading="lazy"
-                      />
-                      {card.ex.label}
-                    </span>
-                    {card.repos.map((repo) => (
-                      <span class="inline-flex max-w-full items-center gap-1 border border-black/10 bg-white px-1.5 py-0.5 text-[0.58rem] font-bold text-black/68">
-                        <svg class="h-2.5 w-2.5 shrink-0 text-black/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={icons.github}></svg>
-                        <span class="truncate">{repo}</span>
-                      </span>
-                    ))}
-                  </div>
-
-                  <div class="mt-2 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-1">
-                      {card.sourceKeys.map((key) => (
-                        <span class="grid h-4 w-4 place-items-center border border-black/8 bg-white text-black/55">
-                          <svg class="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
-                        </span>
-                      ))}
-                    </div>
-                    <p class="text-[0.52rem] font-extrabold uppercase tracking-[0.1em] text-black/34">
-                      Scraped proof
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
-              {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
-                <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-1 text-[0.7rem] font-semibold text-[#bf4f08] sm:px-2.5 sm:text-xs">
-                  {signal}
-                </span>
-              ))}
-            </div>
-
-            <span class="hero-search-cursor" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M4.2 2.8 20.8 12l-7.1 1.4 3.9 6.7-3.1 1.8-3.8-6.6-4.8 5.4L4.2 2.8Z"></path>
-              </svg>
-            </span>
-          </div>
-        </div>
-
-        <span class="corner-square -left-2 -top-2"></span>
-        <span class="corner-square -right-2 -top-2"></span>
-        <span class="corner-square -bottom-2 -left-2"></span>
-        <span class="corner-square -bottom-2 -right-2"></span>
-      </div>
-    </section>
-
-    <section class="ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10">
+    <section class="relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10">
       <div class="ruler-rails" aria-hidden="true"></div>
       <canvas
         class="ascii-wave absolute inset-0 h-full w-full opacity-100 mix-blend-multiply"
@@ -1268,7 +1003,7 @@ const testimonials = [
 
     <!-- Dark cinematic close: testimonials → footer -->
     <LandingDarkClose ctaHref={ctaHref}>
-      <section class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
+      <section id="customers" class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
         <div class="relative z-10 mx-auto w-full max-w-7xl">
           <div class="mx-auto max-w-4xl text-center">
             <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">proof, not promises</p>
@@ -1762,7 +1497,6 @@ const testimonials = [
 <script>
   import gsap from "gsap";
   import { ScrollTrigger } from "gsap/ScrollTrigger";
-  import SplitType from "split-type";
 
   gsap.registerPlugin(ScrollTrigger);
 
@@ -1773,42 +1507,13 @@ const testimonials = [
       ? document.fonts.ready
       : Promise.resolve();
 
-  // 1 — Hero: nav fades down, headline reveals line-by-line, search card slides up.
+  // Nav entrance (hero content rebuilt separately)
   function initHero() {
     const nav = document.querySelector<HTMLElement>("[data-nav]");
-    const headline = document.querySelector<HTMLElement>("[data-hero-headline]");
-    const cta = document.querySelector<HTMLElement>("[data-hero-cta]");
-    const card = document.querySelector<HTMLElement>("[data-hero-card]");
-
-    if (reduce) return;
-
-    // Hide synchronously so there's no flash before the timeline runs.
-    if (nav) gsap.set(nav, { opacity: 0, y: -16 });
-    if (cta) gsap.set(cta, { opacity: 0, y: 22 });
-    if (card) gsap.set(card, { opacity: 0, y: 40 });
-    if (headline) gsap.set(headline, { opacity: 0 });
-
+    if (reduce || !nav) return;
+    gsap.set(nav, { opacity: 0, y: -16 });
     ready.then(() => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-      if (nav) tl.to(nav, { opacity: 1, y: 0, duration: 0.7 }, 0);
-
-      if (headline) {
-        try {
-          const split = new SplitType(headline, { types: "lines" });
-          gsap.set(headline, { opacity: 1 });
-          gsap.set(split.lines, { opacity: 0, y: 28 });
-          tl.to(
-            split.lines,
-            { opacity: 1, y: 0, duration: 0.85, stagger: 0.14 },
-            0.12,
-          );
-        } catch {
-          tl.to(headline, { opacity: 1, duration: 0.8 }, 0.12);
-        }
-      }
-
-      if (cta) tl.to(cta, { opacity: 1, y: 0, duration: 0.72 }, 0.42);
-      if (card) tl.to(card, { opacity: 1, y: 0, duration: 0.95 }, 0.5);
+      gsap.to(nav, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" });
     });
   }
 
@@ -2029,142 +1734,16 @@ const testimonials = [
   .landing-page {
     font-family: Manrope, system-ui, sans-serif;
     letter-spacing: 0;
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        rgba(5, 5, 5, 0.024) 0,
-        rgba(5, 5, 5, 0.024) 1px,
-        transparent 1px,
-        transparent 24px
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(5, 5, 5, 0.022) 0,
-        rgba(5, 5, 5, 0.022) 1px,
-        transparent 1px,
-        transparent 24px
-      );
   }
 
-  .hero-start-cta::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    border-radius: inherit;
-    background: radial-gradient(circle at center, #ff7417 0%, #ff7417 24%, rgba(255, 116, 23, 0) 70%);
-    opacity: 0;
-    transition: opacity 220ms ease;
-    pointer-events: none;
-  }
 
-  .hero-start-cta-ripple {
-    inset: -3.5rem;
-    width: calc(100% + 7rem);
-    height: calc(100% + 7rem);
-    z-index: 0;
-    opacity: 0;
-    transition: opacity 220ms ease;
-    pointer-events: none;
-  }
 
-  .hero-start-cta:hover .hero-start-cta-ripple,
-  .hero-start-cta:focus-visible .hero-start-cta-ripple {
-    opacity: 0.95;
-  }
-
-  .hero-start-cta:hover::after,
-  .hero-start-cta:focus-visible::after {
-    opacity: 1;
-  }
 
   [data-fluid-panel] {
     position: relative;
   }
 
   @media (max-width: 639px) {
-    .hero-section {
-      padding: 4rem 1.25rem 5rem !important;
-    }
-
-    .hero-star-left {
-      left: -7rem !important;
-      top: 5rem !important;
-      width: 14rem !important;
-      height: 14rem !important;
-    }
-
-    .hero-star-right {
-      right: -4rem !important;
-      top: 5rem !important;
-      width: 12rem !important;
-      height: 12rem !important;
-    }
-
-    [data-hero-headline] {
-      max-width: 22rem !important;
-      font-size: clamp(2.1rem, 10.8vw, 3.4rem) !important;
-      line-height: 1.08 !important;
-      letter-spacing: 0 !important;
-    }
-
-    [data-hero-card] {
-      margin-top: 2.5rem !important;
-    }
-
-    [data-hero-cta] {
-      margin-top: 1.5rem !important;
-      gap: 0.65rem !important;
-    }
-
-    .hero-start-cta,
-    .hero-book-call-cta {
-      min-width: 9.75rem !important;
-      height: 3.05rem !important;
-      padding-inline: 1.65rem !important;
-    }
-
-    [data-hero-card] > div {
-      min-height: 0 !important;
-      border-radius: 20px !important;
-      padding: 2rem 1.65rem !important;
-    }
-
-    .hero-builder-card {
-      width: 100% !important;
-      max-width: 21.5rem !important;
-      padding: 0.7rem !important;
-    }
-
-    .hero-builder-card > .mt-3 {
-      gap: 0.55rem !important;
-    }
-
-    .hero-builder-card > .mt-2\.5 {
-      gap: 0.35rem !important;
-    }
-
-    .hero-loading-row {
-      left: 2.4rem;
-      bottom: -1.2rem;
-    }
-
-    [data-hero-card] .selection-dot.left-7 {
-      left: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.right-7 {
-      right: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.top-7 {
-      top: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.bottom-7 {
-      bottom: 1.1rem !important;
-    }
-
     .metrics-section {
       padding-left: 1.25rem !important;
       padding-right: 1.25rem !important;
@@ -2209,11 +1788,6 @@ const testimonials = [
 
   .ruler-section {
     position: relative;
-    background-image:
-      linear-gradient(to right, rgba(5, 5, 5, 0.032) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
-    background-size: 40px 40px;
-    background-position: center top;
   }
 
   .ruler-section::before,
@@ -2460,297 +2034,6 @@ const testimonials = [
   @media (prefers-reduced-motion: reduce) {
     .bento-chip {
       animation: none;
-    }
-  }
-
-  .hero-builder-card {
-    --hero-search-cycle: 7s;
-    overflow: visible;
-  }
-
-  .hero-search-input {
-    transition:
-      border-color 240ms ease,
-      box-shadow 240ms ease;
-    animation: hero-input-focus var(--hero-search-cycle) ease-in-out infinite;
-  }
-
-  .hero-typewriter-text {
-    display: inline-block;
-    max-width: 100%;
-    width: 0;
-    overflow: hidden;
-    vertical-align: bottom;
-    white-space: nowrap;
-    border-right: 2px solid transparent;
-    animation: hero-typewriter var(--hero-search-cycle) steps(62, end) infinite;
-  }
-
-  .hero-loading-row {
-    position: absolute;
-    left: 3.35rem;
-    bottom: -1.6rem;
-    display: flex;
-    gap: 0.36rem;
-    opacity: 0;
-    transform: translateY(-4px);
-    animation: hero-loading-row var(--hero-search-cycle) ease-in-out infinite;
-  }
-
-  .hero-loading-row span {
-    display: block;
-    width: 0.46rem;
-    height: 0.46rem;
-    border-radius: 999px;
-    background: #ff7417;
-    animation: hero-loading-dot 0.72s ease-in-out infinite;
-  }
-
-  .hero-loading-row span:nth-child(2) {
-    animation-delay: 0.12s;
-  }
-
-  .hero-loading-row span:nth-child(3) {
-    animation-delay: 0.24s;
-  }
-
-  .hero-search-submit {
-    animation: hero-submit-pulse var(--hero-search-cycle) ease-in-out infinite;
-  }
-
-  .hero-result-card,
-  .hero-signal-chip {
-    opacity: 0;
-    transform: translateY(12px);
-    animation: hero-result-in var(--hero-search-cycle) ease-in-out infinite;
-  }
-
-  .hero-result-card-two {
-    animation-delay: 0.18s;
-  }
-
-  .hero-signal-chip:nth-child(1) {
-    animation-delay: 0.28s;
-  }
-
-  .hero-signal-chip:nth-child(2) {
-    animation-delay: 0.38s;
-  }
-
-  .hero-signal-chip:nth-child(3) {
-    animation-delay: 0.48s;
-  }
-
-  .hero-signal-chip:nth-child(4) {
-    animation-delay: 0.58s;
-  }
-
-  .hero-search-cursor {
-    position: absolute;
-    left: 74%;
-    top: -12%;
-    z-index: 20;
-    display: block;
-    width: 2.1rem;
-    height: 2.1rem;
-    color: #050505;
-    filter: drop-shadow(0 9px 12px rgba(5, 5, 5, 0.2));
-    opacity: 0;
-    pointer-events: none;
-    transform: translate(-50%, -50%) rotate(-10deg);
-    animation: hero-cursor-path var(--hero-search-cycle) cubic-bezier(0.72, 0, 0.28, 1) infinite;
-  }
-
-  .hero-search-cursor svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  @keyframes hero-cursor-path {
-    0% {
-      left: 76%;
-      top: -11%;
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(0.96) rotate(-10deg);
-    }
-    7% {
-      opacity: 1;
-    }
-    16% {
-      left: 33%;
-      top: 37%;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-    }
-    19% {
-      left: 33%;
-      top: 37%;
-      transform: translate(-50%, -50%) scale(0.82) rotate(-10deg);
-    }
-    22% {
-      left: 33%;
-      top: 37%;
-      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-    }
-    47% {
-      left: 91%;
-      top: 37%;
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-    }
-    50% {
-      left: 91%;
-      top: 37%;
-      transform: translate(-50%, -50%) scale(0.82) rotate(-10deg);
-    }
-    54% {
-      left: 91%;
-      top: 37%;
-      opacity: 0;
-      transform: translate(-50%, -50%) scale(1) rotate(-10deg);
-    }
-    100% {
-      left: 91%;
-      top: 37%;
-      opacity: 0;
-    }
-  }
-
-  @keyframes hero-input-focus {
-    0%,
-    15%,
-    54%,
-    100% {
-      border-color: #050505;
-      box-shadow: none;
-    }
-    18%,
-    49% {
-      border-color: #ff7417;
-      box-shadow: inset 0 0 0 1px rgba(255, 116, 23, 0.7), 0 0 0 4px rgba(255, 116, 23, 0.08);
-    }
-  }
-
-  @keyframes hero-typewriter {
-    0%,
-    20% {
-      width: 0;
-      border-right-color: transparent;
-    }
-    22%,
-    44% {
-      border-right-color: #050505;
-    }
-    45%,
-    88% {
-      width: 100%;
-      border-right-color: transparent;
-    }
-    96%,
-    100% {
-      width: 0;
-      border-right-color: transparent;
-    }
-  }
-
-  @keyframes hero-loading-row {
-    0%,
-    49%,
-    68%,
-    100% {
-      opacity: 0;
-      transform: translateY(-4px);
-    }
-    53%,
-    63% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes hero-loading-dot {
-    0%,
-    100% {
-      transform: translateY(0);
-      opacity: 0.4;
-    }
-    50% {
-      transform: translateY(-4px);
-      opacity: 1;
-    }
-  }
-
-  @keyframes hero-submit-pulse {
-    0%,
-    47%,
-    55%,
-    100% {
-      background: #fff;
-      color: #ff7417;
-      transform: scale(1);
-    }
-    50% {
-      background: #ff7417;
-      color: #fff;
-      transform: scale(0.94);
-    }
-  }
-
-  @keyframes hero-result-in {
-    0%,
-    61% {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-    68%,
-    88% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    96%,
-    100% {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-  }
-
-  @media (max-width: 639px) {
-    .hero-search-cursor {
-      width: 1.7rem;
-      height: 1.7rem;
-    }
-
-    .hero-loading-row {
-      left: 3rem;
-      bottom: -1.35rem;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .hero-search-input,
-    .hero-typewriter-text,
-    .hero-loading-row,
-    .hero-loading-row span,
-    .hero-search-submit,
-    .hero-result-card,
-    .hero-signal-chip,
-    .hero-search-cursor {
-      animation: none;
-    }
-
-    .hero-typewriter-text {
-      width: auto;
-    }
-
-    .hero-result-card,
-    .hero-signal-chip {
-      opacity: 1;
-      transform: none;
-    }
-
-    .hero-search-cursor,
-    .hero-loading-row {
-      display: none;
     }
   }
 

@@ -2,30 +2,10 @@
   .landing-page {
     font-family: Manrope, system-ui, sans-serif;
     letter-spacing: 0;
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        rgba(5, 5, 5, 0.024) 0,
-        rgba(5, 5, 5, 0.024) 1px,
-        transparent 1px,
-        transparent 24px
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(5, 5, 5, 0.022) 0,
-        rgba(5, 5, 5, 0.022) 1px,
-        transparent 1px,
-        transparent 24px
-      );
   }
 
   .ruler-section {
     position: relative;
-    background-image:
-      linear-gradient(to right, rgba(5, 5, 5, 0.032) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
-    background-size: 40px 40px;
-    background-position: center top;
   }
 
   .ruler-section::before,
@@ -163,20 +143,6 @@
   }
 
   @media (max-width: 639px) {
-    .hero-star-left {
-      left: -7rem !important;
-      top: 5rem !important;
-      width: 14rem !important;
-      height: 14rem !important;
-    }
-
-    .hero-star-right {
-      right: -4rem !important;
-      top: 5rem !important;
-      width: 12rem !important;
-      height: 12rem !important;
-    }
-
     .ruler-rails {
       display: none;
     }

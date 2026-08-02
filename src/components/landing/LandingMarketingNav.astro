@@ -2,48 +2,71 @@
 import { tryForFreeHref } from "../../lib/productCta";
 
 interface Props {
-  active?: "sponsor" | "events" | "about";
+  active?: "product" | "pricing" | "events" | "about" | "sponsor";
 }
 
 const { active } = Astro.props;
 
 const links = [
-  { id: "sponsor" as const, label: "Sponsor", href: "/sponsor" },
+  { id: "product" as const, label: "Product", href: "/#product" },
+  { id: "pricing" as const, label: "Pricing", href: "/#pricing" },
   { id: "events" as const, label: "Events", href: "/events" },
   { id: "about" as const, label: "Our Story", href: "/about" },
 ];
 ---
 
-<header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-  <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
-    <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
-  </a>
+<header
+  data-nav
+  class="fixed inset-x-0 top-0 z-50 border-b border-black/[0.07] bg-[#f7f4f1]/90 backdrop-blur-xl"
+>
+  <div
+    class="mx-auto flex h-[3.75rem] w-full max-w-[86rem] items-center justify-between gap-4 px-5 sm:h-16 sm:px-8 lg:px-10"
+  >
+    <a
+      href="/"
+      aria-label="DevLabs home"
+      class="grid h-10 w-10 shrink-0 place-items-center transition opacity-90 hover:opacity-100"
+    >
+      <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
+    </a>
 
-  <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
-    {links.map((link) => (
+    <nav class="hidden flex-1 items-center justify-center lg:flex">
+      {links.map((link, index) => (
+        <>
+          <a
+            href={link.href}
+            data-active={active === link.id ? "true" : undefined}
+            class="nav-industrial-link"
+          >
+            {link.label}
+          </a>
+          {index < links.length - 1 ? (
+            <span class="mx-4 h-3 w-px bg-black/20 sm:mx-5" aria-hidden="true" />
+          ) : null}
+        </>
+      ))}
+    </nav>
+
+    <div class="hidden shrink-0 items-center gap-2.5 md:flex">
       <a
-        href={link.href}
-        class:list={[
-          "transition-colors hover:text-[#ff7417]",
-          active === link.id ? "text-[#ff7417]" : "",
-        ]}
+        href="/auth/login"
+        class="nav-cut-button bg-transparent text-black hover:text-[#bf4f08]"
       >
-        {link.label}
+        Sign In
       </a>
-    ))}
+      <a
+        href={tryForFreeHref}
+        class="nav-cut-button border-black bg-[#050505] text-white hover:border-[#ff7417] hover:bg-[#ff7417]"
+      >
+        Hire Now
+      </a>
+    </div>
+
     <a
       href={tryForFreeHref}
-      class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
+      class="nav-cut-button border-black bg-[#050505] px-3.5 text-white md:hidden"
     >
-      <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-      <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-      <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-      <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-      Hire now
+      Hire Now
     </a>
-  </nav>
-
-  <a href={tryForFreeHref} class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden">
-    Hire now
-  </a>
+  </div>
 </header>
