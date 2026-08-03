@@ -1,23 +1,39 @@
 <style is:global>
   .landing-page {
+    --landing-ink: #050505;
+    --landing-cream: #fbf6f3;
+    --landing-band: #f3ebe4;
+    --landing-hairline: rgb(5 5 5 / 0.12);
+    --landing-hairline-soft: rgb(5 5 5 / 0.07);
+    --landing-rail-w: min(calc(100% - 2.5rem), 86rem);
+    --landing-gutter: clamp(1.25rem, 3vw, 2.5rem);
     font-family: Manrope, system-ui, sans-serif;
     letter-spacing: 0;
   }
 
-  .ruler-section {
-    position: relative;
+  @media (min-width: 640px) {
+    .landing-page {
+      --landing-rail-w: min(calc(100% - 4rem), 86rem);
+    }
   }
 
+  /* ── Section frame: Cartesia-style modular bands ── */
+  .ruler-section {
+    position: relative;
+    isolation: isolate;
+  }
+
+  /* Full-bleed horizontal dividers */
   .ruler-section::before,
   .ruler-section::after {
     content: "";
     position: absolute;
     left: 50%;
-    z-index: 0;
+    z-index: 6;
     width: 100vw;
     height: 1px;
     transform: translateX(-50%);
-    background: rgba(5, 5, 5, 0.1);
+    background: var(--landing-hairline);
     pointer-events: none;
   }
 
@@ -29,14 +45,15 @@
     bottom: 0;
   }
 
+  /* Vertical rails + mid-column guides */
   .ruler-rails {
     position: absolute;
     inset-block: 0;
     left: 50%;
-    z-index: 0;
-    width: min(calc(100% - 3rem), 80rem);
+    z-index: 5;
+    width: var(--landing-rail-w);
     transform: translateX(-50%);
-    border-inline: 1px solid rgba(5, 5, 5, 0.08);
+    border-inline: 1px solid var(--landing-hairline);
     pointer-events: none;
   }
 
@@ -46,15 +63,143 @@
     position: absolute;
     inset-block: 0;
     width: 1px;
-    background: rgba(5, 5, 5, 0.055);
+    background: var(--landing-hairline-soft);
   }
 
   .ruler-rails::before {
-    left: 25%;
+    left: 33.333%;
   }
 
   .ruler-rails::after {
-    right: 25%;
+    left: 66.666%;
+  }
+
+  /* Edge-only rails for grids that define their own columns */
+  .ruler-rails--edges-only::before,
+  .ruler-rails--edges-only::after {
+    display: none;
+  }
+
+  /* Junction crosses where horizontal dividers meet side rails */
+  .ruler-section > .ruler-rails {
+    --cross: 9px;
+  }
+
+  .ruler-section > .ruler-rails::marker {
+    display: none;
+  }
+
+  /* Top-left / top-right / bottom-left / bottom-right crosses via layered shadows on rails */
+  .ruler-crosses {
+    position: absolute;
+    inset-block: 0;
+    left: 50%;
+    z-index: 6;
+    width: var(--landing-rail-w);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .ruler-crosses span {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+  }
+
+  .ruler-crosses span::before,
+  .ruler-crosses span::after {
+    content: "";
+    position: absolute;
+    background: rgb(5 5 5 / 0.38);
+  }
+
+  .ruler-crosses span::before {
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+
+  .ruler-crosses span::after {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  .ruler-crosses .tl {
+    top: -4px;
+    left: -4px;
+  }
+
+  .ruler-crosses .tr {
+    top: -4px;
+    right: -4px;
+  }
+
+  .ruler-crosses .bl {
+    bottom: -4px;
+    left: -4px;
+  }
+
+  .ruler-crosses .br {
+    bottom: -4px;
+    right: -4px;
+  }
+
+  /* Mid-rail crosses along top + bottom edges */
+  .ruler-crosses .mt-1 {
+    top: -4px;
+    left: calc(33.333% - 4px);
+  }
+
+  .ruler-crosses .mt-2 {
+    top: -4px;
+    left: calc(66.666% - 4px);
+  }
+
+  .ruler-crosses .mb-1 {
+    bottom: -4px;
+    left: calc(33.333% - 4px);
+  }
+
+  .ruler-crosses .mb-2 {
+    bottom: -4px;
+    left: calc(66.666% - 4px);
+  }
+
+  .ruler-crosses--corners-only .mt-1,
+  .ruler-crosses--corners-only .mt-2,
+  .ruler-crosses--corners-only .mb-1,
+  .ruler-crosses--corners-only .mb-2 {
+    display: none;
+  }
+
+  /* Skip top or bottom hairline when sections abut a hero / dark block */
+  .ruler-section--no-top::before,
+  .ruler-section--no-bottom::after {
+    display: none;
+  }
+
+  /* Alternating band — soft shift without leaving the cream family */
+  .landing-band {
+    background: var(--landing-band);
+  }
+
+  .landing-band-cream {
+    background: var(--landing-cream);
+  }
+
+  /* Shared content shell width — keeps copy aligned to rails */
+  .landing-shell {
+    position: relative;
+    z-index: 4;
+    width: var(--landing-rail-w);
+    max-width: 100%;
+    margin-inline: auto;
+    padding-inline: 0;
   }
 
   .ascii-star {
@@ -115,13 +260,13 @@
 
   .dark-glow {
     width: min(80%, 70rem);
-    height: 280px;
+    height: 320px;
     top: 40px;
     background: radial-gradient(
       ellipse at 50% 30%,
-      rgba(255, 140, 50, 0.55) 0%,
-      rgba(200, 80, 20, 0.28) 34%,
-      rgba(120, 50, 12, 0.12) 56%,
+      rgba(255, 140, 50, 0.62) 0%,
+      rgba(200, 80, 20, 0.32) 34%,
+      rgba(120, 50, 12, 0.14) 56%,
       transparent 74%
     );
     filter: blur(64px);
@@ -142,9 +287,264 @@
     position: relative;
   }
 
-  @media (max-width: 639px) {
-    .ruler-rails {
+  /* ── Industrial wash: hero orange glow + fluted glass ── */
+  .landing-wash {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .landing-wash__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 90% 50% at 72% 18%, rgb(255 116 23 / 0.18), transparent 58%),
+      radial-gradient(ellipse 75% 55% at 50% 48%, rgb(255 180 120 / 0.26), transparent 68%),
+      radial-gradient(ellipse 70% 42% at 42% 78%, rgb(255 210 170 / 0.22), transparent 70%),
+      linear-gradient(
+        180deg,
+        rgb(251 246 243 / 0) 0%,
+        rgb(255 232 214 / 0.55) 42%,
+        rgb(255 228 208 / 0.35) 62%,
+        rgb(251 246 243 / 0) 100%
+      );
+  }
+
+  .landing-wash__dots {
+    position: absolute;
+    inset: 18% 8% 22%;
+    opacity: 0.14;
+    background-image: radial-gradient(rgb(191 79 8 / 0.3) 0.55px, transparent 0.7px);
+    background-size: 7px 7px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 45%, #000 10%, transparent 72%);
+    mask-image: radial-gradient(ellipse at 50% 45%, #000 10%, transparent 72%);
+  }
+
+  .landing-wash__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0.42;
+    mix-blend-mode: multiply;
+    -webkit-mask-image: radial-gradient(ellipse 78% 70% at 50% 45%, #000 20%, transparent 78%);
+    mask-image: radial-gradient(ellipse 78% 70% at 50% 45%, #000 20%, transparent 78%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .landing-wash__video {
       display: none;
+    }
+  }
+
+  /* Vertical fluted glass blades — hero / pricing language */
+  .landing-flute {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: clamp(0.35rem, 1.1vw, 0.85rem);
+    padding-inline: clamp(0.5rem, 2vw, 1.5rem);
+    opacity: 0.55;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(ellipse 88% 78% at 50% 50%, #000 18%, transparent 78%);
+    mask-image: radial-gradient(ellipse 88% 78% at 50% 50%, #000 18%, transparent 78%);
+  }
+
+  .landing-flute span {
+    display: block;
+    height: 100%;
+    border-radius: 1.35rem;
+    border: 1px solid rgb(255 255 255 / 0.55);
+    background:
+      linear-gradient(
+        180deg,
+        rgb(255 255 255 / 0) 0%,
+        rgb(255 239 228 / 0.14) 18%,
+        rgb(255 239 228 / 0.48) 36%,
+        rgb(255 250 247 / 0.28) 68%,
+        rgb(255 255 255 / 0) 100%
+      ),
+      linear-gradient(90deg, rgb(255 255 255 / 0.06), rgb(255 116 23 / 0.14), rgb(24 20 17 / 0.03));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.65),
+      0 18px 60px rgb(255 116 23 / 0.06);
+    backdrop-filter: blur(8px);
+  }
+
+  .landing-flute--soft {
+    opacity: 0.32;
+  }
+
+  .landing-flute--edges {
+    -webkit-mask-image:
+      linear-gradient(90deg, #000 0%, transparent 28%, transparent 72%, #000 100%),
+      radial-gradient(ellipse 100% 80% at 50% 50%, #000 30%, transparent 80%);
+    mask-image:
+      linear-gradient(90deg, #000 0%, transparent 28%, transparent 72%, #000 100%),
+      radial-gradient(ellipse 100% 80% at 50% 50%, #000 30%, transparent 80%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  /* Cut-corner stage — matches hire cards / Hire Now CTA */
+  .landing-stage {
+    --cut: 0.65rem;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border: 1px solid var(--landing-hairline);
+    background: rgb(255 250 247 / 0.72);
+    box-shadow:
+      0 18px 48px rgb(5 5 5 / 0.06),
+      inset 0 1px 0 rgb(255 255 255 / 0.7);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+  }
+
+  .landing-stage--solid {
+    background: #fffaf7;
+  }
+
+  .landing-stage--dark {
+    background: #181411;
+    border-color: rgb(255 255 255 / 0.1);
+    box-shadow: 0 22px 60px rgb(5 5 5 / 0.18);
+  }
+
+  .landing-stage__cross {
+    position: absolute;
+    z-index: 3;
+    width: 9px;
+    height: 9px;
+    pointer-events: none;
+  }
+
+  .landing-stage__cross::before,
+  .landing-stage__cross::after {
+    content: "";
+    position: absolute;
+    background: rgb(5 5 5 / 0.38);
+  }
+
+  .landing-stage__cross::before {
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+
+  .landing-stage__cross::after {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  .landing-stage__cross--tl {
+    top: -4px;
+    left: -4px;
+  }
+
+  .landing-stage__cross--tr {
+    top: -4px;
+    right: -4px;
+  }
+
+  .landing-stage__cross--bl {
+    bottom: -4px;
+    left: -4px;
+  }
+
+  .landing-stage__cross--br {
+    bottom: calc(var(--cut) * 0.35);
+    right: calc(var(--cut) * 0.35);
+  }
+
+  .landing-stage--dark .landing-stage__cross::before,
+  .landing-stage--dark .landing-stage__cross::after {
+    background: rgb(255 255 255 / 0.35);
+  }
+
+  /* Cartesia-style tick ruler between modules */
+  .landing-tick-rail {
+    position: relative;
+    z-index: 4;
+    width: var(--landing-rail-w);
+    max-width: 100%;
+    height: 1.15rem;
+    margin-inline: auto;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        rgb(5 5 5 / 0.22) 0,
+        rgb(5 5 5 / 0.22) 1px,
+        transparent 1px,
+        transparent 12px
+      );
+    background-position: center;
+    background-size: 100% 7px;
+    background-repeat: no-repeat;
+    border-block: 1px solid var(--landing-hairline);
+  }
+
+  .landing-tick-rail::before,
+  .landing-tick-rail::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    transform: translateY(-50%);
+    background:
+      linear-gradient(rgb(5 5 5 / 0.4), rgb(5 5 5 / 0.4)) center / 1px 100% no-repeat,
+      linear-gradient(rgb(5 5 5 / 0.4), rgb(5 5 5 / 0.4)) center / 100% 1px no-repeat;
+  }
+
+  .landing-tick-rail::before {
+    left: -4px;
+  }
+
+  .landing-tick-rail::after {
+    right: -4px;
+  }
+
+  .landing-cut {
+    --cut: 0.55rem;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+  }
+
+  @media (max-width: 639px) {
+    .ruler-rails::before,
+    .ruler-rails::after,
+    .ruler-crosses .mt-1,
+    .ruler-crosses .mt-2,
+    .ruler-crosses .mb-1,
+    .ruler-crosses .mb-2 {
+      display: none;
+    }
+
+    .landing-flute {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      opacity: 0.4;
     }
   }
 </style>

@@ -1,0 +1,1451 @@
+---
+const problems = [
+  {
+    id: "resume",
+    index: "01",
+    tag: "Surface",
+    title: "Resumes don’t prove someone can ship",
+    body: "A resume tells you where someone worked—not how they solve problems, make decisions, or build real products.",
+    accent: "#bf4f08",
+  },
+  {
+    id: "builders",
+    index: "02",
+    tag: "Funnel",
+    title: "The builders you want aren’t applying",
+    body: "The strongest builders are already shipping projects and earning trust inside communities. They are rarely submitting applications through traditional job boards.",
+    accent: "#d95c0c",
+  },
+  {
+    id: "noise",
+    index: "03",
+    tag: "Noise",
+    title: "You don’t need more applicants. You need the right builder.",
+    body: "Job boards flood founders with hundreds of candidates. More profiles create more noise—not more confidence in whom to hire.",
+    accent: "#ef6a12",
+  },
+  {
+    id: "late",
+    index: "04",
+    tag: "Cost",
+    title: "You discover the wrong hire too late",
+    body: "Interviews can create confidence, but real ability becomes clear only after the person starts working. By then, the wrong hire has already cost time, runway, and momentum.",
+    accent: "#ff7417",
+  },
+];
+---
+
+<section
+  class="hire-estate ruler-section ruler-section--no-top landing-band-cream"
+  data-hire-estate
+  aria-label="Problems with the current hiring estate"
+>
+  <div class="ruler-rails" aria-hidden="true"></div>
+  <div class="ruler-crosses" aria-hidden="true">
+    <span class="tl"></span>
+    <span class="tr"></span>
+    <span class="bl"></span>
+    <span class="br"></span>
+    <span class="mt-1"></span>
+    <span class="mt-2"></span>
+    <span class="mb-1"></span>
+    <span class="mb-2"></span>
+  </div>
+  <div class="hire-estate__shell">
+    <!-- One sticky unit: header + cards + tagline + scenes leave together -->
+    <div class="hire-estate__pin" data-hire-pin>
+      <header class="hire-estate__head" data-hire-head>
+        <div>
+          <p class="hire-estate__kicker">02 / Estate</p>
+          <h2 class="hire-estate__title">
+            Problems with the current
+            <span class="hire-estate__title-em">hiring estate</span>
+          </h2>
+        </div>
+        <p class="hire-estate__aside">
+          Four faults that turn hiring into guesswork.
+        </p>
+      </header>
+
+      <div class="hire-estate__layout">
+        <div class="hire-estate__left">
+          <div class="hire-estate__stack" data-hire-stack>
+            {
+              problems.map((p, i) => (
+                <article
+                  class="hire-card"
+                  data-hire-card
+                  data-hire-index={i}
+                  style={`--i: ${i}; --hire-in: ${i === 0 ? 1 : 0};`}
+                >
+                  <div class="hire-card__motion">
+                    <div class="hire-card__top">
+                      <span class="hire-card__index">{p.index}</span>
+                      <span class="hire-card__tag">{p.tag}</span>
+                    </div>
+                    <h3 class="hire-card__title">{p.title}</h3>
+                    <p class="hire-card__body">{p.body}</p>
+                    <div class="hire-card__rail" aria-hidden="true" />
+                  </div>
+                </article>
+              ))
+            }
+          </div>
+
+          <p class="hire-estate__tagline">
+            Find builders from their
+            <br />
+            <span class="hire-estate__tagline-em">natural habitat</span>
+          </p>
+        </div>
+
+        <aside class="hire-estate__stage-col" aria-hidden="true">
+          <div class="hire-estate__stage" data-hire-stage>
+            <div class="hire-estate__frame">
+              <div class="hire-estate__glow"></div>
+              <span class="hire-estate__cross hire-estate__cross--tl"></span>
+              <span class="hire-estate__cross hire-estate__cross--tr"></span>
+              <span class="hire-estate__cross hire-estate__cross--bl"></span>
+              <span class="hire-estate__cross hire-estate__cross--br"></span>
+
+              <div class="hire-estate__scenes">
+                <!-- 01 Resume hides shipped work -->
+                <div class="hire-scene is-active" data-hire-scene="0">
+                  <p class="hire-scene__label">// resume surface</p>
+                  <div class="scene-resume">
+                    <div class="scene-resume__ghost scene-resume__ghost--a scene-panel scene-panel--muted">
+                      <span class="scene-panel__kicker">Shipped</span>
+                      <span class="scene-panel__line scene-panel__line--name" />
+                      <span class="scene-panel__line" />
+                      <span class="scene-panel__line scene-panel__line--short" />
+                    </div>
+                    <div class="scene-resume__ghost scene-resume__ghost--b scene-panel scene-panel--muted">
+                      <span class="scene-panel__kicker">Commits</span>
+                      <span class="scene-panel__line scene-panel__line--name" />
+                      <span class="scene-panel__line" />
+                    </div>
+                    <div class="scene-resume__ghost scene-resume__ghost--c scene-panel scene-panel--muted">
+                      <span class="scene-panel__kicker">Demo</span>
+                      <span class="scene-panel__line scene-panel__line--name" />
+                      <span class="scene-panel__line scene-panel__line--short" />
+                    </div>
+                    <div class="scene-resume__front scene-panel">
+                      <div class="scene-resume__front-top">
+                        <span class="scene-resume__avatar">JM</span>
+                        <div>
+                          <p class="scene-resume__name">Jordan Miles</p>
+                          <p class="scene-resume__role">Software Engineer</p>
+                        </div>
+                        <span class="scene-resume__stamp">Resume</span>
+                      </div>
+                      <span class="scene-panel__line scene-panel__line--name" />
+                      <span class="scene-panel__line" />
+                      <span class="scene-panel__line" />
+                      <span class="scene-panel__line scene-panel__line--short" />
+                      <p class="scene-resume__veil">Shipped work hidden</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 02 Builders outside the funnel -->
+                <div class="hire-scene" data-hire-scene="1">
+                  <p class="hire-scene__label">// outside the funnel</p>
+                  <div class="scene-funnel">
+                    <div class="scene-funnel__inbox scene-panel">
+                      <div class="scene-funnel__inbox-top">
+                        <span>Applications</span>
+                        <strong>0</strong>
+                      </div>
+                      <div class="scene-funnel__empty">
+                        <span class="scene-funnel__empty-mark" />
+                        <p>Inbox empty</p>
+                        <p class="scene-funnel__empty-sub">No top builders applied</p>
+                      </div>
+                    </div>
+                    <div class="scene-funnel__ship scene-panel">
+                      <div class="scene-funnel__ship-top">
+                        <span class="scene-funnel__live">Live</span>
+                        <span>Deploy</span>
+                      </div>
+                      <p class="scene-funnel__ship-title">payments-kit v2.4</p>
+                      <div class="scene-funnel__bars">
+                        <i style="width: 92%" />
+                        <i style="width: 74%" />
+                        <i style="width: 88%" />
+                      </div>
+                      <p class="scene-funnel__ship-meta">Shipping outside job boards</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 03 Noise vs right builder -->
+                <div class="hire-scene" data-hire-scene="2">
+                  <p class="hire-scene__label">// noise vs signal</p>
+                  <div class="scene-noise">
+                    <div class="scene-noise__pile" aria-hidden="true">
+                      {
+                        Array.from({ length: 9 }).map((_, i) => (
+                          <div
+                            class={`scene-noise__chip scene-panel scene-panel--muted scene-noise__chip--${i}`}
+                          >
+                            <span class="scene-noise__dot" />
+                            <span class="scene-panel__line scene-panel__line--name" />
+                            <span class="scene-panel__line scene-panel__line--short" />
+                          </div>
+                        ))
+                      }
+                    </div>
+                    <div class="scene-noise__picks">
+                      <div class="scene-noise__pick scene-panel">
+                        <span class="scene-noise__badge">Proven</span>
+                        <p class="scene-noise__pick-name">Isha R.</p>
+                        <p class="scene-noise__pick-meta">7 ships · Stripe</p>
+                      </div>
+                      <div class="scene-noise__pick scene-panel">
+                        <span class="scene-noise__badge">Proven</span>
+                        <p class="scene-noise__pick-name">Dev P.</p>
+                        <p class="scene-noise__pick-meta">5 ships · Payments</p>
+                      </div>
+                      <div class="scene-noise__pick scene-panel">
+                        <span class="scene-noise__badge">Proven</span>
+                        <p class="scene-noise__pick-name">Maya T.</p>
+                        <p class="scene-noise__pick-meta">8 ships · Infra</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 04 Wrong hire too late -->
+                <div class="hire-scene" data-hire-scene="3">
+                  <p class="hire-scene__label">// late discovery</p>
+                  <div class="scene-late">
+                    <div class="scene-late__hire scene-panel">
+                      <div class="scene-late__hire-row">
+                        <span class="scene-late__avatar">AK</span>
+                        <div>
+                          <p class="scene-late__name">Offer accepted</p>
+                          <p class="scene-late__role">“Perfect” on paper</p>
+                        </div>
+                        <span class="scene-late__check">✓</span>
+                      </div>
+                    </div>
+                    <div class="scene-late__fallout">
+                      <div class="scene-late__chip scene-panel scene-panel--warn">
+                        Missed deadline
+                      </div>
+                      <div class="scene-late__chip scene-panel scene-panel--warn">
+                        Launch slipped 6w
+                      </div>
+                    </div>
+                    <div class="scene-late__runway scene-panel">
+                      <div class="scene-late__runway-top">
+                        <span>Runway</span>
+                        <strong>Shrinking</strong>
+                      </div>
+                      <div class="scene-late__meter">
+                        <i />
+                      </div>
+                      <div class="scene-late__ticks">
+                        <span>12mo</span>
+                        <span>6mo</span>
+                        <span class="is-bad">2mo</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="hire-estate__pager" data-hire-pager>
+                <span>0<span data-hire-page>1</span></span>
+                <span>/ 04</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+    <!-- Scroll runway: pin stays put while this track scrolls through -->
+    <div
+      class="hire-estate__track"
+      data-hire-track
+      aria-hidden="true"
+      style={`--hire-steps: ${Math.max(problems.length - 1, 1)};`}
+    ></div>
+  </div>
+</section>
+
+<script>
+  function initHireEstate(root: HTMLElement) {
+    if (root.dataset.hireBound === "1") return () => {};
+    root.dataset.hireBound = "1";
+
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-hire-card]")];
+    const scenes = [...root.querySelectorAll<HTMLElement>("[data-hire-scene]")];
+    const pageEl = root.querySelector<HTMLElement>("[data-hire-page]");
+    const head = root.querySelector<HTMLElement>("[data-hire-head]");
+    const track = root.querySelector<HTMLElement>("[data-hire-track]");
+    const stack = root.querySelector<HTMLElement>("[data-hire-stack]");
+    const pin = root.querySelector<HTMLElement>("[data-hire-pin]");
+    if (!cards.length || !scenes.length || !track || !pin) return () => {};
+
+    let active = -1;
+    let frame = 0;
+    const steps = Math.max(cards.length - 1, 1);
+
+    const syncMetrics = () => {
+      const nav = document.querySelector<HTMLElement>("[data-nav]");
+      const navH = nav?.getBoundingClientRect().height ?? 64;
+      const headH = head?.getBoundingClientRect().height ?? 136;
+      const cardH = Math.max(
+        ...cards.map((card) => {
+          const motion = card.querySelector<HTMLElement>(".hire-card__motion");
+          return (motion ?? card).getBoundingClientRect().height;
+        }),
+        200,
+      );
+      const peekRaw = getComputedStyle(root).getPropertyValue("--estate-peek");
+      const peek = Number.parseFloat(peekRaw) || 34;
+      const peekPx = peekRaw.includes("rem") ? peek * 16 : peek;
+      root.style.setProperty("--estate-nav", `${Math.ceil(navH)}px`);
+      root.style.setProperty("--estate-head", `${Math.ceil(headH)}px`);
+      root.style.setProperty("--estate-card-h", `${Math.ceil(cardH)}px`);
+      if (stack) {
+        stack.style.height = `${Math.ceil(cardH + (cards.length - 1) * peekPx)}px`;
+      }
+    };
+
+    const setActive = (index: number) => {
+      if (index === active) return;
+      active = index;
+      cards.forEach((card, i) => {
+        card.classList.toggle("is-active", i === index);
+      });
+      scenes.forEach((scene, i) => {
+        scene.classList.toggle("is-active", i === index);
+      });
+      if (pageEl) pageEl.textContent = String(index + 1);
+    };
+
+    const syncFromScroll = () => {
+      if (!track.isConnected || !pin.isConnected) return;
+
+      const pinH = pin.offsetHeight;
+      const trackH = Math.max(track.offsetHeight, 1);
+      const trackTop = track.getBoundingClientRect().top;
+      // 0 when the track sits just under the sticky pin; 1 when it has fully passed
+      const progress = Math.min(1, Math.max(0, (pinH - trackTop) / trackH));
+      const scaled = progress * steps;
+      const index = Math.min(cards.length - 1, Math.floor(scaled + 1e-6));
+      const local = Math.min(1, Math.max(0, scaled - index));
+
+      setActive(index);
+
+      cards.forEach((card, i) => {
+        let t = 0;
+        if (i <= index) t = 1;
+        else if (i === index + 1) t = local * local * (3 - 2 * local);
+        card.style.setProperty("--hire-in", t.toFixed(4));
+      });
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        syncFromScroll();
+      });
+    };
+
+    const onResize = () => {
+      syncMetrics();
+      syncFromScroll();
+    };
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    syncMetrics();
+
+    if (reduce) {
+      cards.forEach((card) => card.style.setProperty("--hire-in", "1"));
+      setActive(cards.length - 1);
+      return () => {};
+    }
+
+    syncFromScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      delete root.dataset.hireBound;
+    };
+  }
+
+  const roots = document.querySelectorAll<HTMLElement>("[data-hire-estate]");
+  const w = window as Window & { __hireEstateCleanups?: Array<(() => void) | undefined> };
+  w.__hireEstateCleanups?.forEach((fn) => fn?.());
+  roots.forEach((root) => {
+    delete root.dataset.hireBound;
+  });
+  w.__hireEstateCleanups = [...roots].map((root) => initHireEstate(root));
+
+  window.addEventListener("pagehide", () => {
+    w.__hireEstateCleanups?.forEach((fn) => fn?.());
+    w.__hireEstateCleanups = [];
+  });
+</script>
+
+<style>
+  .hire-estate {
+    --estate-nav: 4rem;
+    --estate-head: 8.5rem;
+    --estate-stack-gap: 1.35rem;
+    --estate-card-h: 13.5rem;
+    --estate-peek: 2.15rem;
+    --estate-tagline-h: 6.5rem;
+    --estate-panel-h: calc(
+      var(--estate-card-h) + (3 * var(--estate-peek)) + var(--estate-tagline-h) +
+        1.15rem
+    );
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    padding: 0 0 clamp(2.5rem, 5vw, 4rem);
+    background: #fbf6f3;
+    color: #050505;
+  }
+
+  .hire-estate__shell {
+    position: relative;
+    z-index: 4;
+    width: var(--landing-rail-w, min(100%, 86rem));
+    margin-inline: auto;
+    padding-inline: clamp(0.85rem, 2.5vw, 2rem);
+  }
+
+  /* Entire visual block sticks, then leaves with the section as one unit */
+  .hire-estate__pin {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: calc(var(--estate-nav) + 0.75rem) 0 1.25rem;
+    background: #fbf6f3;
+  }
+
+  .hire-estate__pin::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    z-index: -1;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: #fbf6f3;
+    pointer-events: none;
+  }
+
+  .hire-estate__track {
+    /* One viewport of scroll per card transition + a short climax beat */
+    height: calc((var(--hire-steps, 3) + 0.45) * 85svh);
+    pointer-events: none;
+  }
+
+  .hire-estate__head {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1rem 2rem;
+    align-items: end;
+    margin-bottom: clamp(1.75rem, 3.5vw, 2.5rem);
+    padding: 0 0 1.05rem;
+    border-bottom: 1px solid rgb(5 5 5 / 0.1);
+  }
+
+  @media (min-width: 900px) {
+    .hire-estate__head {
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr);
+    }
+  }
+
+  .hire-estate__kicker {
+    margin: 0 0 0.55rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .hire-estate__title {
+    margin: 0;
+    max-width: 18ch;
+    font-family: Manrope, system-ui, sans-serif;
+    font-weight: 400;
+    font-size: clamp(2rem, 4.8vw, 3.35rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: rgb(5 5 5 / 0.72);
+  }
+
+  .hire-estate__title-em {
+    font-weight: 600;
+    color: #ff7417;
+  }
+
+  .hire-estate__aside {
+    margin: 0;
+    max-width: 16rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    line-height: 1.45;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.78);
+  }
+
+  @media (min-width: 900px) {
+    .hire-estate__aside {
+      justify-self: end;
+      text-align: right;
+    }
+  }
+
+  .hire-estate__layout {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 960px) {
+    .hire-estate__layout {
+      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+      gap: 1.75rem 2rem;
+      align-items: stretch;
+      padding-bottom: 0;
+    }
+  }
+
+  .hire-estate__left {
+    position: relative;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+    min-height: var(--estate-panel-h);
+  }
+
+  .hire-estate__tagline {
+    margin: auto 0 0;
+    padding: 0;
+    max-width: none;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(2.1rem, 3.6vw, 3rem);
+    font-weight: 500;
+    letter-spacing: -0.045em;
+    line-height: 1.04;
+    text-transform: none;
+    color: #050505;
+    white-space: nowrap;
+  }
+
+  .hire-estate__tagline-em {
+    display: inline;
+    color: #ff7417;
+    font-weight: 500;
+  }
+
+  .hire-estate__stack {
+    position: relative;
+    flex: 0 0 auto;
+    height: calc(var(--estate-card-h) + (3 * var(--estate-peek)));
+    overflow: hidden;
+  }
+
+  .hire-card {
+    --peek: var(--estate-peek);
+    --cut: 0.55rem;
+    --hire-in: 1;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--i) * var(--peek));
+    z-index: calc(10 + var(--i));
+    margin: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .hire-card.is-active {
+    pointer-events: auto;
+  }
+
+  .hire-card__motion {
+    display: grid;
+    gap: 0.7rem;
+    min-height: 12.5rem;
+    padding: 1.05rem 1.25rem 1.3rem;
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #fffefb;
+    color: #050505;
+    box-shadow:
+      0 12px 28px rgb(5 5 5 / 0.06),
+      0 1px 0 rgb(255 255 255 / 0.8) inset;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+    opacity: var(--hire-in);
+    transform: translateY(calc((1 - var(--hire-in)) * 1.15 * 100%))
+      scale(calc(0.96 + (var(--hire-in) * 0.04)));
+    transform-origin: 50% 0%;
+    will-change: transform, opacity;
+    transition:
+      border-color 220ms ease,
+      box-shadow 220ms ease;
+  }
+
+  .hire-card:nth-of-type(1) .hire-card__motion {
+    background: #fffefb;
+  }
+
+  .hire-card:nth-of-type(2) .hire-card__motion {
+    background: #f7f2ee;
+  }
+
+  .hire-card:nth-of-type(3) .hire-card__motion {
+    background: #f1ebe6;
+  }
+
+  .hire-card:nth-of-type(4) .hire-card__motion {
+    background: #ebe4de;
+  }
+
+  .hire-card.is-active .hire-card__motion {
+    border-color: rgb(5 5 5 / 0.2);
+    box-shadow:
+      0 16px 36px rgb(5 5 5 / 0.1),
+      0 1px 0 rgb(255 255 255 / 0.9) inset;
+  }
+
+  .hire-card:not(.is-active) .hire-card__body {
+    opacity: 0.78;
+  }
+
+  .hire-card__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 1.5rem;
+  }
+
+  .hire-card__index,
+  .hire-card__tag {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .hire-card__index {
+    color: rgb(5 5 5 / 0.42);
+  }
+
+  .hire-card__tag {
+    padding: 0.22rem 0.45rem;
+    border: 1px solid rgb(5 5 5 / 0.16);
+    color: rgb(5 5 5 / 0.62);
+  }
+
+  .hire-card__title {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-weight: 650;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    color: #050505;
+  }
+
+  .hire-card__body {
+    margin: 0;
+    max-width: 38ch;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.92rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: rgb(5 5 5 / 0.68);
+  }
+
+  .hire-card__rail {
+    width: 2.5rem;
+    height: 2px;
+    margin-top: 0.35rem;
+    background: rgb(5 5 5 / 0.18);
+  }
+
+  .hire-estate__stage-col {
+    position: relative;
+    min-height: 100%;
+    align-self: stretch;
+  }
+
+  .hire-estate__stage {
+    position: relative;
+    height: 100%;
+    min-height: var(--estate-panel-h);
+  }
+
+  @media (min-width: 960px) {
+    .hire-estate__stage {
+      min-height: var(--estate-panel-h);
+    }
+  }
+
+  .hire-estate__glow {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 70% 55% at 50% 18%,
+      rgb(255 255 255 / 0.18),
+      transparent 62%
+    );
+  }
+
+  .hire-estate__frame {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    align-content: stretch;
+    height: 100%;
+    min-height: inherit;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid rgb(140 50 0 / 0.18);
+    /* Bright flat brand orange */
+    background-color: #ff7417;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 39px,
+        rgb(255 255 255 / 0.07) 39px,
+        rgb(255 255 255 / 0.07) 40px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 39px,
+        rgb(255 255 255 / 0.07) 39px,
+        rgb(255 255 255 / 0.07) 40px
+      );
+    box-shadow: 0 18px 40px rgb(191 79 8 / 0.18);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.55rem),
+      calc(100% - 0.55rem) 100%,
+      0 100%
+    );
+  }
+
+  .hire-estate__cross {
+    position: absolute;
+    z-index: 3;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+
+  .hire-estate__cross::before,
+  .hire-estate__cross::after {
+    content: "";
+    position: absolute;
+    background: rgb(255 255 255 / 0.55);
+  }
+
+  .hire-estate__cross::before {
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+
+  .hire-estate__cross::after {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  .hire-estate__cross--tl { top: 0.55rem; left: 0.55rem; }
+  .hire-estate__cross--tr { top: 0.55rem; right: 0.55rem; }
+  .hire-estate__cross--bl { bottom: 0.55rem; left: 0.55rem; }
+  .hire-estate__cross--br { bottom: 0.9rem; right: 0.9rem; }
+
+  .hire-estate__scenes {
+    position: relative;
+    z-index: 2;
+    min-height: 20rem;
+    height: 100%;
+    padding: 1.5rem 1.35rem 3.25rem;
+  }
+
+  .hire-scene {
+    position: absolute;
+    inset: 1.5rem 1.35rem 3.25rem;
+    display: grid;
+    align-content: start;
+    gap: 1rem;
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+    pointer-events: none;
+    transition:
+      opacity 320ms ease,
+      transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .hire-scene.is-active {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .hire-scene__label {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.78);
+  }
+
+  .hire-estate__pager {
+    position: absolute;
+    right: 1.1rem;
+    bottom: 0.9rem;
+    z-index: 4;
+    display: inline-flex;
+    gap: 0.25rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.72);
+  }
+
+  /* Shared white/grey cut-corner panels (Hire Now edge language) */
+  .scene-panel {
+    --cut: 0.55rem;
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #fffefb;
+    box-shadow:
+      0 14px 34px rgb(5 5 5 / 0.1),
+      0 2px 0 rgb(255 255 255 / 0.65) inset;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+  }
+
+  .scene-panel--muted {
+    background: #efeae5;
+    border-color: rgb(5 5 5 / 0.08);
+    box-shadow: 0 8px 20px rgb(5 5 5 / 0.06);
+  }
+
+  .scene-panel--warn {
+    background: #fff8f3;
+    border-color: rgb(255 116 23 / 0.28);
+    color: #bf4f08;
+  }
+
+  .scene-panel__kicker {
+    display: inline-block;
+    margin-bottom: 0.45rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.5rem;
+    font-weight: 650;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.4);
+  }
+
+  .scene-panel__line {
+    display: block;
+    height: 0.35rem;
+    margin-top: 0.4rem;
+    background: rgb(5 5 5 / 0.08);
+  }
+
+  .scene-panel__line--name {
+    width: 58%;
+    height: 0.5rem;
+    background: rgb(5 5 5 / 0.14);
+  }
+
+  .scene-panel__line--short {
+    width: 38%;
+  }
+
+  /* Scene 01: resume surface */
+  .scene-resume {
+    position: relative;
+    height: 17rem;
+    margin-top: 0.35rem;
+  }
+
+  .scene-resume__ghost {
+    position: absolute;
+    width: min(11.5rem, 48%);
+    padding: 0.75rem;
+    opacity: 0.55;
+    filter: blur(0.4px);
+  }
+
+  .scene-resume__ghost--a {
+    left: 4%;
+    top: 0.4rem;
+    transform: rotate(-8deg);
+    z-index: 1;
+  }
+
+  .scene-resume__ghost--b {
+    right: 6%;
+    top: 1.2rem;
+    transform: rotate(7deg);
+    z-index: 1;
+  }
+
+  .scene-resume__ghost--c {
+    left: 18%;
+    bottom: 0.4rem;
+    transform: rotate(3deg);
+    z-index: 1;
+  }
+
+  .scene-resume__front {
+    position: absolute;
+    left: 50%;
+    top: 1.6rem;
+    z-index: 3;
+    width: min(16.5rem, 72%);
+    padding: 1rem;
+    transform: translateX(-50%) rotate(-1.5deg);
+  }
+
+  .scene-resume__front-top {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.65rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .scene-resume__avatar {
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #e8e2dc;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgb(5 5 5 / 0.55);
+  }
+
+  .scene-resume__name {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  .scene-resume__role {
+    margin: 0.12rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .scene-resume__stamp {
+    padding: 0.18rem 0.35rem;
+    border: 1px solid rgb(5 5 5 / 0.16);
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.5rem;
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .scene-resume__veil {
+    margin: 0.85rem 0 0;
+    padding-top: 0.65rem;
+    border-top: 1px dashed rgb(5 5 5 / 0.14);
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #bf4f08;
+  }
+
+  /* Scene 02: outside funnel */
+  .scene-funnel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    margin-top: 0.5rem;
+    align-items: stretch;
+  }
+
+  .scene-funnel__inbox,
+  .scene-funnel__ship {
+    padding: 0.95rem;
+    min-height: 14.5rem;
+  }
+
+  .scene-funnel__inbox-top,
+  .scene-funnel__ship-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.42);
+  }
+
+  .scene-funnel__inbox-top strong {
+    font-size: 1.6rem;
+    font-weight: 650;
+    letter-spacing: -0.04em;
+    color: rgb(5 5 5 / 0.35);
+  }
+
+  .scene-funnel__empty {
+    display: grid;
+    place-items: center;
+    gap: 0.35rem;
+    min-height: 8.5rem;
+    border: 1px dashed rgb(5 5 5 / 0.14);
+    background: rgb(5 5 5 / 0.02);
+    text-align: center;
+  }
+
+  .scene-funnel__empty-mark {
+    width: 1.6rem;
+    height: 1.6rem;
+    border: 1.5px solid rgb(5 5 5 / 0.2);
+    border-radius: 50%;
+    position: relative;
+  }
+
+  .scene-funnel__empty-mark::before,
+  .scene-funnel__empty-mark::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.7rem;
+    height: 1.5px;
+    background: rgb(5 5 5 / 0.25);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .scene-funnel__empty-mark::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  .scene-funnel__empty p {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: rgb(5 5 5 / 0.55);
+  }
+
+  .scene-funnel__empty-sub {
+    font-size: 0.58rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.38) !important;
+  }
+
+  .scene-funnel__live {
+    padding: 0.15rem 0.35rem;
+    background: #ff7417;
+    color: #fff;
+    letter-spacing: 0.1em;
+  }
+
+  .scene-funnel__ship-title {
+    margin: 0 0 0.85rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  .scene-funnel__bars {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .scene-funnel__bars i {
+    display: block;
+    height: 0.4rem;
+    background: linear-gradient(90deg, #ff7417, rgb(255 116 23 / 0.35));
+  }
+
+  .scene-funnel__ship-meta {
+    margin: 1rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #bf4f08;
+  }
+
+  /* Scene 03: noise vs signal */
+  .scene-noise {
+    position: relative;
+    min-height: 16.5rem;
+    margin-top: 0.35rem;
+  }
+
+  .scene-noise__pile {
+    position: absolute;
+    inset: 0 0 4.5rem;
+  }
+
+  .scene-noise__chip {
+    position: absolute;
+    width: 7.2rem;
+    padding: 0.55rem 0.6rem;
+    opacity: 0.72;
+  }
+
+  .scene-noise__dot {
+    display: block;
+    width: 0.85rem;
+    height: 0.85rem;
+    margin-bottom: 0.35rem;
+    background: rgb(5 5 5 / 0.12);
+  }
+
+  .scene-noise__chip--0 { left: 2%; top: 4%; transform: rotate(-6deg); }
+  .scene-noise__chip--1 { left: 18%; top: 0%; transform: rotate(4deg); }
+  .scene-noise__chip--2 { left: 34%; top: 8%; transform: rotate(-3deg); }
+  .scene-noise__chip--3 { left: 50%; top: 2%; transform: rotate(5deg); }
+  .scene-noise__chip--4 { left: 66%; top: 10%; transform: rotate(-4deg); }
+  .scene-noise__chip--5 { left: 8%; top: 38%; transform: rotate(3deg); }
+  .scene-noise__chip--6 { left: 28%; top: 42%; transform: rotate(-5deg); }
+  .scene-noise__chip--7 { left: 48%; top: 36%; transform: rotate(2deg); }
+  .scene-noise__chip--8 { left: 68%; top: 40%; transform: rotate(-2deg); }
+
+  .scene-noise__picks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .scene-noise__pick {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .scene-noise__badge {
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    padding: 0.15rem 0.35rem;
+    border: 1px solid rgb(255 116 23 / 0.35);
+    background: rgb(255 116 23 / 0.1);
+    color: #bf4f08;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.5rem;
+    font-weight: 650;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .scene-noise__pick-name {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+  }
+
+  .scene-noise__pick-meta {
+    margin: 0.2rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  /* Scene 04: late discovery */
+  .scene-late {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.35rem;
+  }
+
+  .scene-late__hire {
+    padding: 0.95rem;
+  }
+
+  .scene-late__hire-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .scene-late__avatar {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: #e8e2dc;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgb(5 5 5 / 0.55);
+  }
+
+  .scene-late__name {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 650;
+  }
+
+  .scene-late__role {
+    margin: 0.15rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .scene-late__check {
+    display: grid;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    background: #050505;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.28rem),
+      calc(100% - 0.28rem) 100%,
+      0 100%
+    );
+  }
+
+  .scene-late__fallout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+
+  .scene-late__chip {
+    padding: 0.7rem 0.8rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .scene-late__runway {
+    padding: 0.9rem;
+  }
+
+  .scene-late__runway-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.7rem;
+    font-family: Manrope, system-ui, sans-serif;
+  }
+
+  .scene-late__runway-top span {
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.42);
+  }
+
+  .scene-late__runway-top strong {
+    font-size: 0.9rem;
+    font-weight: 650;
+    color: #ff7417;
+  }
+
+  .scene-late__meter {
+    height: 0.55rem;
+    background: rgb(5 5 5 / 0.08);
+    overflow: hidden;
+  }
+
+  .scene-late__meter i {
+    display: block;
+    width: 28%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff7417, #bf4f08);
+  }
+
+  .scene-late__ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.45rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.35);
+  }
+
+  .scene-late__ticks .is-bad {
+    color: #bf4f08;
+  }
+
+  @media (max-width: 959px) {
+    .hire-estate {
+      padding-top: clamp(3rem, 8vw, 5rem);
+    }
+
+    .hire-estate__pin {
+      position: relative;
+      top: auto;
+      padding: 0;
+    }
+
+    .hire-estate__pin::before {
+      display: none;
+    }
+
+    .hire-estate__track {
+      display: none;
+    }
+
+    .hire-estate__head {
+      padding: 0 0 1rem;
+    }
+
+    .hire-estate__left {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      gap: 1.25rem;
+    }
+
+    .hire-estate__tagline {
+      order: 2;
+      margin-top: 0.25rem;
+      white-space: normal;
+      font-size: clamp(1.85rem, 7.5vw, 2.45rem);
+      line-height: 1.08;
+    }
+
+    .hire-estate__stack {
+      position: relative;
+      order: 1;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .hire-card {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      --hire-in: 1;
+    }
+
+    .hire-card__motion {
+      opacity: 1;
+      transform: none;
+    }
+
+    .hire-estate__stage-col {
+      order: -1;
+    }
+
+    .hire-estate__stage {
+      min-height: 22rem;
+    }
+
+    .hire-estate__scenes {
+      min-height: 22rem;
+    }
+
+    .scene-funnel {
+      grid-template-columns: 1fr;
+    }
+
+    .scene-noise__picks {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hire-scene {
+      transition: none;
+    }
+
+    .hire-card {
+      --hire-in: 1;
+    }
+
+    .hire-card__motion {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

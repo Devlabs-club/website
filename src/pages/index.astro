@@ -5,9 +5,13 @@ import Layout from "../layouts/Layout.astro";
 import PricingSection from "../components/PricingSection.astro";
 import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
 import LandingMarketingNav from "../components/landing/LandingMarketingNav.astro";
+import LandingMarketingStyles from "../components/landing/LandingMarketingStyles.astro";
+import LandingSectionChrome from "../components/landing/LandingSectionChrome.astro";
+import LandingIndustrialWash from "../components/landing/LandingIndustrialWash.astro";
 import LandingHero from "../components/landing/LandingHero.astro";
 import LandingLogoGrid from "../components/landing/LandingLogoGrid.astro";
 import LandingResumePile from "../components/landing/LandingResumePile.astro";
+import LandingHiringEstate from "../components/landing/LandingHiringEstate.astro";
 import { tryForFreeHref } from "../lib/productCta";
 
 const ctaHref = tryForFreeHref;
@@ -289,7 +293,8 @@ const testimonials = [
   skipParallax
   skipSmoothScroll
 >
-  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+  <LandingMarketingStyles />
+  <main class="landing-page min-h-screen overflow-x-clip bg-[#fbf6f3] text-[#050505]">
     <LandingMarketingNav />
 
     <LandingHero />
@@ -298,119 +303,22 @@ const testimonials = [
 
     <LandingResumePile />
 
-    <section class="metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10">
+    <LandingHiringEstate />
+
+    <section class="agent-section pricing-flow-before ruler-section ruler-section--no-top landing-band relative isolate overflow-hidden px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
+      <LandingSectionChrome />
+      <LandingIndustrialWash video soft edges />
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <!-- <div class="grid gap-10 border-x border-black/10 px-8 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
-          <div>
-            
-            <h2 class="mt-5 max-w-4xl text-[clamp(3.6rem,7.2vw,7.8rem)] font-black leading-[0.9] tracking-[-0.055em] text-black">
-              Built from a real builder ecosystem.
-            </h2>
-          </div>
-          <div class="flex items-end">
-            <p class="max-w-xl text-[clamp(1.1rem,1.65vw,1.45rem)] font-medium leading-relaxed text-black/58">
-              DevLabs sees builders before a resume does: who shows up, what they ship, and who founders trust when the deadline is real.
-            </p>
-          </div>
-        </div> -->
-
-        <div data-fluid-panel class="grid border border-black/10 lg:grid-cols-3">
-          <article class="metric-card metric-card-orange relative min-h-[24rem] overflow-hidden border-b border-black/10 bg-[#ff7417] p-8 text-white lg:border-b-0 lg:border-r">
-            <div class="relative z-10 flex h-full flex-col justify-between">
-              <div class="flex items-center justify-between">
-                <span class="rounded-full bg-white/[0.18] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em]">
-                  network
-                </span>
-                <span class="grid h-10 w-10 place-items-center border border-white/30 bg-white/10 text-lg font-black">01</span>
-              </div>
-
-              <div>
-                <p class="metric-number text-[clamp(5rem,6vw,7rem)] font-black leading-none tracking-[-0.07em] 2xl:text-[clamp(5.5rem,6vw,8rem)]">
-                  <span data-count="2000" data-count-suffix="+">2,000+</span>
-                </p>
-                <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                  Builders in the DevLabs network
-                </p>
-              </div>
-            </div>
-            
-          </article>
-
-          <article class="metric-card relative min-h-[24rem] overflow-hidden border-b border-black/10 bg-[#1a1a1a] p-8 text-white lg:border-b-0 lg:border-r">
-            <div class="metric-bars absolute left-12 right-12 top-14 grid gap-3">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <div class="relative z-10 flex h-full flex-col justify-end">
-              <p class="metric-number text-[clamp(5.5rem,6vw,7.5rem)] font-black leading-none tracking-[-0.07em] 2xl:text-[clamp(6rem,6vw,8.5rem)]">
-                <span data-count="50" data-count-suffix="+">50+</span>
-              </p>
-              <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                Projects shipped through our programs
-              </p>
-            </div>
-          </article>
-
-          <article class="metric-card relative min-h-[24rem] overflow-hidden bg-[#c6d99b] p-8 text-[#20311d]">
-            <div class="absolute right-8 top-8 grid grid-cols-3 gap-2">
-              <span class="h-4 w-4 rounded-full bg-[#20311d]/70"></span>
-              <span class="h-4 w-4 rounded-full bg-white/70"></span>
-              <span class="h-4 w-4 rounded-full bg-[#ff7417]/80"></span>
-            </div>
-            <div class="metric-rings absolute -bottom-20 -right-16 h-64 w-64 rounded-full border border-[#20311d]/20"></div>
-            <div class="metric-rings metric-rings-delay absolute -bottom-8 -right-4 h-40 w-40 rounded-full border border-[#20311d]/25"></div>
-            <div class="relative z-10 flex h-full flex-col justify-end">
-              <p class="metric-number text-[clamp(5.5rem,6vw,7.5rem)] font-black leading-none tracking-[-0.07em] 2xl:text-[clamp(6rem,6vw,8.5rem)]">
-                <span data-count="25" data-count-suffix="+">25+</span>
-              </p>
-              <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                Events hosted for builders and founders
-              </p>
-            </div>
-          </article>
-        </div>
-
-        <div data-fluid-panel class="grid border-x border-black/10 bg-[#fffaf7]/86 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
-          <div class="relative overflow-hidden border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
-            <div class="absolute inset-y-0 left-0 w-1 bg-[#ff7417]"></div>
-            <p class="max-w-4xl text-[clamp(1.8rem,3.4vw,3.5rem)] font-black leading-[1.02] tracking-[-0.045em] text-black">
-              A DevLabs builder was hired by
-              <span class="inline-flex items-center gap-3 whitespace-nowrap">
-                <img src="/sponsors/supermemory.png" alt="" class="h-8 w-auto object-contain" style="filter: grayscale(1) brightness(0);" />
-              </span>
-              after proving their work through the community.
-            </p>
-          </div>
-          <div class="border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
-            <p class="metric-number text-[clamp(3.8rem,5vw,5.8rem)] font-black leading-none tracking-[-0.06em] text-black">
-              <span data-count="100" data-count-suffix="+">100+</span>
-            </p>
-            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
-              Founders joined Momentum
-            </p>
-          </div>
-          <div class="p-8 lg:p-10">
-            <p class="metric-number text-[clamp(3.6rem,5vw,5.5rem)] font-black leading-none tracking-[-0.06em] text-black">
-              <span data-count="150" data-count-prefix="$" data-count-suffix="K+">$150K+</span>
-            </p>
-            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
-              Raised to support builder programs
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="agent-section pricing-flow-before ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
-
-      <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div data-fluid-panel class="role-search-panel relative my-16 min-h-[38rem] overflow-hidden sm:my-24 sm:min-h-[44rem] lg:my-28 lg:min-h-[48rem]">
+        <div data-fluid-panel class="role-search-panel landing-stage relative my-16 min-h-[38rem] overflow-hidden sm:my-24 sm:min-h-[44rem] lg:my-28 lg:min-h-[48rem]">
+          <span class="landing-stage__cross landing-stage__cross--tl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--tr" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--bl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--br" aria-hidden="true"></span>
           <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#fbf6f3] via-[#fbf6f3]/82 to-transparent"></div>
           <div class="profile-marquee profile-marquee-one absolute top-10 flex gap-5 sm:top-12 sm:gap-6">
             {[...roleSearchCardsTop, ...roleSearchCardsTop].map((card) => (
-              <article class="profile-card w-[17.5rem] shrink-0 border border-black/10 bg-white/82 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
+              <article class="profile-card landing-cut w-[17.5rem] shrink-0 border border-black/10 bg-[#fffaf7]/88 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex min-w-0 items-center gap-2.5">
                     <div class="grid h-9 w-9 shrink-0 place-items-center bg-[#ff7417] text-[0.7rem] font-extrabold text-white">
@@ -496,7 +404,7 @@ const testimonials = [
 
           <div class="profile-marquee profile-marquee-two absolute bottom-10 flex gap-5 sm:bottom-12 sm:gap-6">
             {[...roleSearchCardsBottom, ...roleSearchCardsBottom].map((card) => (
-              <article class="profile-card w-[17.5rem] shrink-0 border border-black/10 bg-white/82 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
+              <article class="profile-card landing-cut w-[17.5rem] shrink-0 border border-black/10 bg-[#fffaf7]/88 p-3.5 shadow-[0_16px_40px_rgba(0,0,0,0.05)] sm:w-[19.5rem] sm:p-4">
                 <div class="flex items-start justify-between gap-3">
                   <div class="flex min-w-0 items-center gap-2.5">
                     <div class="grid h-9 w-9 shrink-0 place-items-center bg-black text-[0.7rem] font-extrabold text-white">
@@ -583,13 +491,13 @@ const testimonials = [
           <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,#fbf6f3_0%,#fbf6f3_30%,rgba(251,246,243,0.82)_48%,rgba(251,246,243,0.22)_72%,transparent_100%),linear-gradient(90deg,#fbf6f3_0%,rgba(251,246,243,0.18)_22%,rgba(251,246,243,0.18)_78%,#fbf6f3_100%)]"></div>
 
           <div class="role-search-content relative z-10 mx-auto flex min-h-[38rem] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[44rem] sm:px-8 sm:py-20 lg:min-h-[48rem] lg:py-24">
-            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
-              search by role
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-black/42">
+              03 / Agent
             </p>
             <h3 class="mt-4 text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
-              Tell the agent what you need.
+              Tell the agent what you <span class="text-[#ff7417]">need.</span>
             </h3>
-            <div class="mt-8 w-full border-2 border-black bg-white px-3 py-3 text-left shadow-[0_22px_60px_rgba(0,0,0,0.08)] sm:mt-10 sm:px-5 sm:py-4">
+            <div class="landing-cut mt-8 w-full border-2 border-black bg-white px-3 py-3 text-left shadow-[0_22px_60px_rgba(0,0,0,0.08)] sm:mt-10 sm:px-5 sm:py-4">
               <div class="flex items-center gap-4">
                 <svg class="h-6 w-6 shrink-0 text-[#ff7417]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="11" cy="11" r="7"></circle>
@@ -598,7 +506,7 @@ const testimonials = [
                 <p class="min-w-0 flex-1 py-0.5 text-sm font-semibold leading-normal text-black min-[380px]:text-base sm:truncate sm:text-[clamp(1.2rem,2vw,1.7rem)] sm:leading-[1.35]">
                   full stack dev with expertise in payment integration
                 </p>
-                <span class="grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-white sm:h-11 sm:w-11">
+                <span class="landing-cut grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-white sm:h-11 sm:w-11">
                   <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M5 12h14"></path>
                     <path d="m12 5 7 7-7 7"></path>
@@ -615,22 +523,28 @@ const testimonials = [
           </div>
         </div>
 
-        <div data-fluid-panel class="founder-agent-story relative mt-0 min-h-[30rem] overflow-hidden rounded-[22px] border border-black/10 bg-white p-4 shadow-[0_28px_90px_rgba(5,5,5,0.06)] sm:min-h-[38rem] sm:rounded-[34px] sm:p-5 lg:min-h-[44rem] lg:p-8">
+        <div class="landing-tick-rail my-2 sm:my-3" aria-hidden="true"></div>
+
+        <div data-fluid-panel class="founder-agent-story landing-stage landing-stage--solid relative mt-0 min-h-[30rem] overflow-hidden p-4 sm:min-h-[38rem] sm:p-5 lg:min-h-[44rem] lg:p-8">
+          <span class="landing-stage__cross landing-stage__cross--tl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--tr" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--bl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--br" aria-hidden="true"></span>
+          <LandingIndustrialWash soft />
           <canvas
-            class="ascii-ripple absolute inset-0 h-full w-full"
+            class="ascii-ripple absolute inset-0 h-full w-full opacity-40"
             data-ascii-ripple
             aria-hidden="true"
           ></canvas>
-          <div class="absolute inset-0 "></div>
 
           <div class="relative z-10 flex min-h-[27rem] items-center justify-center sm:min-h-[34rem] lg:min-h-[40rem]">
             <div class="mx-auto max-w-6xl px-2 py-10 text-center sm:px-12 sm:py-12 lg:px-16 lg:py-16">
-              <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/36">
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-black/42">
                 founder agent
               </p>
               <h2 class="mx-auto mt-6 max-w-5xl text-[clamp(2.2rem,11vw,6.6rem)] font-black leading-[0.94] text-black sm:leading-[0.92]">
                 <span class="text-black/18">A bad early</span>
-                hire costs more than money.
+                hire costs more than <span class="text-[#ff7417]">money.</span>
               </h2>
               <p class="mx-auto mt-8 max-w-4xl text-[clamp(1.1rem,1.75vw,1.55rem)] font-medium leading-relaxed text-black/62">
                 The agent turns vague founder needs into evidence-ranked builders, match reasons, and outreach-ready next steps.
@@ -641,9 +555,136 @@ const testimonials = [
       </div>
     </section>
 
+    <section class="metrics-section ruler-section ruler-section--no-top landing-band-cream relative isolate overflow-hidden px-6 pb-16 pt-24 text-black sm:px-8 lg:px-10">
+      <LandingSectionChrome />
+      <LandingIndustrialWash soft edges />
+
+      <div class="relative z-10 mx-auto w-full max-w-7xl">
+        <header class="mb-10 flex flex-col gap-3 border-b border-black/10 pb-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-black/42">04 / Network</p>
+            <h2 class="mt-3 max-w-3xl text-[clamp(2.2rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.04em] text-black">
+              Built from a real <span class="text-[#ff7417]">builder ecosystem.</span>
+            </h2>
+          </div>
+          <p class="max-w-md text-sm font-medium leading-relaxed text-black/55 sm:text-base">
+            DevLabs sees builders before a resume does — who shows up, what they ship, and who founders trust when the deadline is real.
+          </p>
+        </header>
+
+        <div data-fluid-panel class="landing-stage landing-stage--solid grid overflow-hidden lg:grid-cols-3">
+          <span class="landing-stage__cross landing-stage__cross--tl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--tr" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--bl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--br" aria-hidden="true"></span>
+          <article class="metric-card metric-card-orange relative min-h-[22rem] overflow-hidden border-b border-black/10 bg-[#ff7417] p-8 text-white lg:border-b-0 lg:border-r">
+            <div class="relative z-10 flex h-full flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="border border-white/30 bg-white/[0.14] px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em]">
+                  network
+                </span>
+                <span class="grid h-10 w-10 place-items-center border border-white/30 bg-white/10 text-lg font-black">01</span>
+              </div>
+
+              <div>
+                <p class="metric-number text-[clamp(5rem,6vw,7rem)] font-black leading-none tracking-[-0.07em] 2xl:text-[clamp(5.5rem,6vw,8rem)]">
+                  <span data-count="2000" data-count-suffix="+">2,000+</span>
+                </p>
+                <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
+                  Builders in the DevLabs network
+                </p>
+              </div>
+            </div>
+            
+          </article>
+
+          <article class="metric-card relative min-h-[22rem] overflow-hidden border-b border-black/10 bg-[#fff1e8] p-8 text-black lg:border-b-0 lg:border-r">
+            <div class="metric-bars absolute left-12 right-12 top-14 grid gap-3 opacity-70">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="relative z-10 flex h-full flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="border border-black/10 bg-white/70 px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em] text-black/45">
+                  shipped
+                </span>
+                <span class="grid h-10 w-10 place-items-center border border-black/10 bg-white text-lg font-black text-black/55">02</span>
+              </div>
+              <div>
+                <p class="metric-number text-[clamp(5.5rem,6vw,7.5rem)] font-black leading-none tracking-[-0.07em] text-[#bf4f08] 2xl:text-[clamp(6rem,6vw,8.5rem)]">
+                  <span data-count="50" data-count-suffix="+">50+</span>
+                </p>
+                <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em] text-black">
+                  Projects shipped through our programs
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article class="metric-card relative min-h-[22rem] overflow-hidden bg-[#fbf6f3] p-8 text-black">
+            <div class="absolute right-8 top-8 grid grid-cols-3 gap-2">
+              <span class="h-4 w-4 border border-black/15 bg-[#ff7417]/80"></span>
+              <span class="h-4 w-4 border border-black/15 bg-black/70"></span>
+              <span class="h-4 w-4 border border-black/15 bg-white"></span>
+            </div>
+            <div class="metric-rings absolute -bottom-20 -right-16 h-64 w-64 rounded-full border border-[#ff7417]/20"></div>
+            <div class="metric-rings metric-rings-delay absolute -bottom-8 -right-4 h-40 w-40 rounded-full border border-black/10"></div>
+            <div class="relative z-10 flex h-full flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="border border-black/10 bg-white px-3 py-1 text-xs font-extrabold uppercase tracking-[0.18em] text-black/45">
+                  rooms
+                </span>
+                <span class="grid h-10 w-10 place-items-center border border-black/10 bg-white text-lg font-black text-black/55">03</span>
+              </div>
+              <div>
+                <p class="metric-number text-[clamp(5.5rem,6vw,7.5rem)] font-black leading-none tracking-[-0.07em] text-black 2xl:text-[clamp(6rem,6vw,8.5rem)]">
+                  <span data-count="25" data-count-suffix="+">25+</span>
+                </p>
+                <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
+                  Events hosted for builders and founders
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="landing-tick-rail my-0" aria-hidden="true"></div>
+
+        <div data-fluid-panel class="grid border-x border-b border-black/10 bg-[#fffaf7]/86 lg:grid-cols-[1.4fr_0.6fr_0.6fr]">
+          <div class="relative overflow-hidden border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
+            <div class="absolute inset-y-0 left-0 w-1 bg-[#ff7417]"></div>
+            <p class="max-w-4xl text-[clamp(1.8rem,3.4vw,3.5rem)] font-black leading-[1.02] tracking-[-0.045em] text-black">
+              A DevLabs builder was hired by
+              <span class="inline-flex items-center gap-3 whitespace-nowrap">
+                <img src="/sponsors/supermemory.png" alt="" class="h-8 w-auto object-contain" style="filter: grayscale(1) brightness(0);" />
+              </span>
+              after proving their work through the community.
+            </p>
+          </div>
+          <div class="border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
+            <p class="metric-number text-[clamp(3.8rem,5vw,5.8rem)] font-black leading-none tracking-[-0.06em] text-[#bf4f08]">
+              <span data-count="100" data-count-suffix="+">100+</span>
+            </p>
+            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
+              Founders joined Momentum
+            </p>
+          </div>
+          <div class="p-8 lg:p-10">
+            <p class="metric-number text-[clamp(3.6rem,5vw,5.5rem)] font-black leading-none tracking-[-0.06em] text-black">
+              <span data-count="150" data-count-prefix="$" data-count-suffix="K+">$150K+</span>
+            </p>
+            <p class="mt-4 text-lg font-bold leading-tight text-black/58">
+              Raised to support builder programs
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     {/* builder-profile / evidence section commented out for now
-    <section id="evidence" class="evidence-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-24 pt-0 text-black sm:px-8 sm:pt-0 lg:px-10 lg:pt-0">
-      <div class="ruler-rails" aria-hidden="true"></div>
+    <section id="evidence" class="evidence-section ruler-section ruler-section--no-top landing-band relative isolate overflow-hidden px-6 pb-24 pt-0 text-black sm:px-8 sm:pt-0 lg:px-10 lg:pt-0">
+      <LandingSectionChrome />
       <div class="section-linework absolute inset-0" aria-hidden="true"></div>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
@@ -784,16 +825,24 @@ const testimonials = [
 
     <PricingSection />
 
-    <section class="howitworks-section pricing-flow-after ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-24 pt-4 text-black sm:px-8 sm:pb-32 sm:pt-6 lg:px-10">
+    <section class="howitworks-section pricing-flow-after ruler-section ruler-section--no-top landing-band relative isolate overflow-hidden px-5 pb-24 pt-4 text-black sm:px-8 sm:pb-32 sm:pt-6 lg:px-10">
+      <LandingSectionChrome />
+      <LandingIndustrialWash video soft edges />
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
-        <div class="grind-panel relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden rounded-[22px] border border-black/10 bg-[#fffaf7]/84 sm:rounded-[34px]">
-          <div class="grind-content relative z-20 flex min-h-[clamp(22rem,42vw,34rem)] flex-col items-center justify-center overflow-hidden rounded-[22px] px-4 py-14 text-center sm:rounded-[34px] sm:px-8 sm:py-20">
+        <div class="landing-tick-rail mb-6 sm:mb-8" aria-hidden="true"></div>
+        <div class="grind-panel landing-stage landing-stage--solid relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden">
+          <span class="landing-stage__cross landing-stage__cross--tl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--tr" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--bl" aria-hidden="true"></span>
+          <span class="landing-stage__cross landing-stage__cross--br" aria-hidden="true"></span>
+          <div class="grind-content relative z-20 flex min-h-[clamp(22rem,42vw,34rem)] flex-col items-center justify-center overflow-hidden px-4 py-14 text-center sm:px-8 sm:py-20">
             <div class="contrib-wall-backdrop absolute inset-0 z-0 overflow-hidden" data-contrib-wall-backdrop aria-hidden="true"></div>
             <div class="grind-vignette pointer-events-none absolute inset-0 z-10" aria-hidden="true"></div>
             <div class="relative z-20 flex flex-col items-center justify-center">
-              <h2 class="text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
-                Our builders are grinding every second.
+              <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-black/42">05 / Live signal</p>
+              <h2 class="mt-4 text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
+                Our builders are grinding every <span class="text-[#ff7417]">second.</span>
               </h2>
               <p class="mt-5 flex items-center justify-center gap-2 text-sm font-semibold text-black/45">
                 <span class="grind-live-dot" aria-hidden="true"></span>
@@ -930,20 +979,21 @@ const testimonials = [
     <!-- Dark cinematic close: testimonials → footer -->
     <LandingDarkClose ctaHref={ctaHref}>
       <section id="customers" class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
+        <div class="pointer-events-none absolute inset-x-0 top-24 z-[1] mx-auto hidden h-px w-[min(calc(100%-2.5rem),86rem)] bg-white/12 sm:block" aria-hidden="true"></div>
         <div class="relative z-10 mx-auto w-full max-w-7xl">
           <div class="mx-auto max-w-4xl text-center">
-            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">proof, not promises</p>
+            <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-white/40">07 / Proof</p>
             <h2 class="mx-auto mt-6 max-w-3xl text-[clamp(2.35rem,11.5vw,6.4rem)] font-black leading-[0.96] text-white sm:leading-[0.94]">
-              Don't take our word for it.
+              Don't take our word for <span class="text-[#ff7417]">it.</span>
             </h2>
           </div>
 
-          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3">
+          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-5 lg:grid-cols-3">
             {testimonials.map((t) => (
-              <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-5 backdrop-blur-sm sm:min-h-[21rem] sm:p-8">
+              <figure class="landing-cut relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-5 sm:min-h-[21rem] sm:p-8">
                 <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
                 <div class="flex items-start justify-between gap-5">
-                  <span class="inline-flex h-12 max-w-full items-center rounded-full border border-white/10 bg-white/[0.04] px-4 sm:min-w-[14rem]">
+                  <span class="inline-flex h-12 max-w-full items-center border border-white/10 bg-white/[0.04] px-4 sm:min-w-[14rem]">
                     <img src={t.logo} alt={t.logoAlt} loading="lazy" class={t.logoClass} />
                   </span>
                   <span class="text-5xl font-black leading-none text-[#ff7417]/22">“</span>
@@ -958,7 +1008,7 @@ const testimonials = [
                     src={t.avatar}
                     alt={t.name}
                     loading="lazy"
-                    class="h-16 w-16 shrink-0 border border-[#ff7417]/45 object-cover shadow-[0_0_0_4px_rgba(255,116,23,0.08)]"
+                    class="landing-cut h-16 w-16 shrink-0 border border-[#ff7417]/45 object-cover shadow-[0_0_0_4px_rgba(255,116,23,0.08)]"
                   />
                   <span class="min-w-0">
                     <span class="block truncate text-sm font-black text-white">{t.name}</span>
@@ -1700,48 +1750,33 @@ const testimonials = [
       letter-spacing: 0 !important;
     }
 
-    .ruler-rails {
-      width: calc(100% - 2.5rem);
-    }
-
-    .ruler-rails::before,
-    .ruler-rails::after,
-    .section-linework::before,
-    .section-linework::after {
-      display: none;
-    }
+  .ruler-rails {
+    width: calc(100% - 2.5rem);
   }
+
+  .ruler-rails::before,
+  .ruler-rails::after,
+  .section-linework::before,
+  .section-linework::after,
+  .ruler-crosses .mt-1,
+  .ruler-crosses .mt-2,
+  .ruler-crosses .mb-1,
+  .ruler-crosses .mb-2 {
+    display: none;
+  }
+}
 
   .ruler-section {
     position: relative;
   }
 
-  .ruler-section::before,
-  .ruler-section::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    z-index: 0;
-    width: 100vw;
-    height: 1px;
-    transform: translateX(-50%);
-    background: rgba(5, 5, 5, 0.1);
-    pointer-events: none;
-  }
-
-  .ruler-section::before {
-    top: 0;
-  }
-
-  .ruler-section::after {
-    bottom: 0;
-  }
+  /* Page-local overrides keep pricing fades / stacked junctions intact.
+     Base hairlines + rails live in LandingMarketingStyles. */
 
   .pricing-flow-after::before {
     display: none;
   }
 
-  .metrics-section::after,
   .agent-section::before {
     display: none;
   }
@@ -1777,10 +1812,10 @@ const testimonials = [
     position: absolute;
     inset-block: 0;
     left: 50%;
-    z-index: 0;
-    width: min(calc(100% - 3rem), 80rem);
+    z-index: 5;
+    width: var(--landing-rail-w, min(calc(100% - 3rem), 86rem));
     transform: translateX(-50%);
-    border-inline: 1px solid rgba(5, 5, 5, 0.08);
+    border-inline: 1px solid var(--landing-hairline, rgb(5 5 5 / 0.12));
     pointer-events: none;
   }
 
@@ -1790,15 +1825,16 @@ const testimonials = [
     position: absolute;
     inset-block: 0;
     width: 1px;
-    background: rgba(5, 5, 5, 0.055);
+    background: var(--landing-hairline-soft, rgb(5 5 5 / 0.07));
   }
 
   .ruler-rails::before {
-    left: 25%;
+    left: 33.333%;
   }
 
   .ruler-rails::after {
-    right: 25%;
+    left: 66.666%;
+    right: auto;
   }
 
   .section-linework {
@@ -1885,8 +1921,14 @@ const testimonials = [
 
   .metric-card:nth-child(3)::before {
     background-image:
-      linear-gradient(rgba(32, 49, 29, 0.08) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(32, 49, 29, 0.08) 1px, transparent 1px);
+      linear-gradient(rgba(5, 5, 5, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(5, 5, 5, 0.06) 1px, transparent 1px);
+  }
+
+  .metric-card:nth-child(2)::before {
+    background-image:
+      linear-gradient(rgba(191, 79, 8, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(191, 79, 8, 0.08) 1px, transparent 1px);
   }
 
   .metric-search {
@@ -1896,7 +1938,7 @@ const testimonials = [
   .metric-bars span {
     display: block;
     height: 10px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.85), rgba(255, 116, 23, 0.72));
+    background: linear-gradient(90deg, rgba(255, 116, 23, 0.85), rgba(191, 79, 8, 0.45));
   }
 
   .metric-bars span:nth-child(2) {
@@ -2360,7 +2402,8 @@ const testimonials = [
 
   .grind-vignette {
     background:
-      radial-gradient(ellipse 52% 48% at 50% 46%, rgba(255, 250, 247, 0.72) 0%, rgba(255, 250, 247, 0.28) 58%, rgba(255, 250, 247, 0.06) 100%);
+      radial-gradient(ellipse 70% 60% at 50% 50%, transparent 28%, rgba(251, 246, 243, 0.55) 78%),
+      linear-gradient(180deg, rgba(255, 232, 214, 0.4) 0%, transparent 30%, transparent 70%, rgba(251, 246, 243, 0.5) 100%);
   }
 
   .contrib-wall-backdrop {

@@ -1,0 +1,53 @@
+---
+/**
+ * Hero-matching industrial atmosphere: orange glow, optional video, fluted glass.
+ */
+interface Props {
+  /** Include muted looping hero video under the wash. */
+  video?: boolean;
+  /** Soften flute opacity. */
+  soft?: boolean;
+  /** Keep flutes only toward the left/right edges. */
+  edges?: boolean;
+  /** How many flute blades (desktop). Default 12. */
+  blades?: number;
+  class?: string;
+}
+
+const {
+  video = false,
+  soft = false,
+  edges = false,
+  blades = 12,
+  class: className,
+} = Astro.props;
+
+const count = Math.max(4, Math.min(blades, 16));
+---
+
+<div class:list={["landing-wash", className]} aria-hidden="true">
+  {
+    video ? (
+      <video
+        class="landing-wash__video"
+        src="/landing/hero-bg.mp4"
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+      />
+    ) : null
+  }
+  <div class="landing-wash__glow"></div>
+  <div class="landing-wash__dots"></div>
+  <div
+    class:list={[
+      "landing-flute",
+      soft && "landing-flute--soft",
+      edges && "landing-flute--edges",
+    ]}
+  >
+    {Array.from({ length: count }).map(() => <span />)}
+  </div>
+</div>

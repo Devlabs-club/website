@@ -58,10 +58,21 @@ const resumes = [
 ---
 
 <section
-  class="resume-pile"
+  class="resume-pile ruler-section ruler-section--no-top landing-band"
   data-resume-pile
   aria-label="The real problem: resume hell"
 >
+  <div class="ruler-rails" aria-hidden="true"></div>
+  <div class="ruler-crosses" aria-hidden="true">
+    <span class="tl"></span>
+    <span class="tr"></span>
+    <span class="bl"></span>
+    <span class="br"></span>
+    <span class="mt-1"></span>
+    <span class="mt-2"></span>
+    <span class="mb-1"></span>
+    <span class="mb-2"></span>
+  </div>
   <div class="resume-pile__track" data-resume-track>
     <div class="resume-pile__sticky" data-resume-sticky>
       <div class="resume-pile__atmosphere" aria-hidden="true">
@@ -89,70 +100,91 @@ const resumes = [
           <span class="resume-pile__cross resume-pile__cross--bl" aria-hidden="true"></span>
           <span class="resume-pile__cross resume-pile__cross--br" aria-hidden="true"></span>
 
-          <div class="resume-pile__stack" data-resume-stack aria-hidden="true">
-            <div class="resume-pile__plate">
-              <p class="resume-pile__plate-label">Applicant stack</p>
-              <p class="resume-pile__plate-meta">unsorted / unverified</p>
+          <div class="resume-pile__body">
+            <div class="resume-pile__stack" data-resume-stack aria-hidden="true">
+              <div class="resume-pile__plate">
+                <p class="resume-pile__plate-label">Applicant stack</p>
+                <p class="resume-pile__plate-meta">unsorted / unverified</p>
+              </div>
+
+              {
+                resumes.map((r, i) => (
+                  <article
+                    class="resume-card"
+                    data-resume-card
+                    style={`--r: ${r.rotate * 0.55}deg; --tx: ${r.x * 0.7}px; --ty: ${r.y * 0.7}px; --z: ${i + 1};`}
+                  >
+                    <div class="resume-card__stamp">{r.stamp}</div>
+                    <div class="resume-card__header">
+                      <span class="resume-card__avatar" />
+                      <div>
+                        <p class="resume-card__name">{r.name}</p>
+                        <p class="resume-card__role">{r.role}</p>
+                      </div>
+                    </div>
+                    <p class="resume-card__company">{r.company}</p>
+                    <div class="resume-card__lines" aria-hidden="true">
+                      <span /><span /><span /><span /><span />
+                    </div>
+                    <div class="resume-card__bars" aria-hidden="true">
+                      <span /><span /><span />
+                    </div>
+                  </article>
+                ))
+              }
             </div>
 
-            {
-              resumes.map((r, i) => (
-                <article
-                  class="resume-card"
-                  data-resume-card
-                  style={`--r: ${r.rotate * 0.55}deg; --tx: ${r.x * 0.7}px; --ty: ${r.y * 0.7}px; --z: ${i + 1};`}
-                >
-                  <div class="resume-card__stamp">{r.stamp}</div>
-                  <div class="resume-card__header">
-                    <span class="resume-card__avatar" />
-                    <div>
-                      <p class="resume-card__name">{r.name}</p>
-                      <p class="resume-card__role">{r.role}</p>
-                    </div>
-                  </div>
-                  <p class="resume-card__company">{r.company}</p>
-                  <div class="resume-card__lines" aria-hidden="true">
-                    <span /><span /><span /><span /><span />
-                  </div>
-                  <div class="resume-card__bars" aria-hidden="true">
-                    <span /><span /><span />
-                  </div>
-                </article>
-              ))
-            }
+            <div class="resume-pile__copy" data-resume-copy>
+              <p class="resume-pile__keyword">
+                <span class="resume-pile__keyword-slash" aria-hidden="true">//</span>
+                <span class="resume-pile__keyword-icon" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 3.5 10.5 8 6 12.5"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                      stroke-linecap="square"
+                      stroke-linejoin="miter"
+                    />
+                  </svg>
+                </span>
+                <span class="resume-pile__keyword-text">Resume hell</span>
+                <span class="resume-pile__keyword-slash" aria-hidden="true">\\</span>
+              </p>
+
+              <p class="resume-pile__stat" data-resume-stat>
+                <span class="resume-pile__stat-num">500+</span>
+                <span class="resume-pile__stat-label">applications per role</span>
+              </p>
+
+              <p class="resume-pile__punch" data-resume-punch>
+                You'll never know who's lying and who's a real builder.
+              </p>
+
+              <p class="resume-pile__help" data-resume-help>
+                DevLabs finds people we've already watched ship.
+              </p>
+            </div>
           </div>
 
-          <div class="resume-pile__copy" data-resume-copy>
-            <p class="resume-pile__keyword">
-              <span class="resume-pile__keyword-slash" aria-hidden="true">//</span>
-              <span class="resume-pile__keyword-icon" aria-hidden="true">
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path
-                    d="M6 3.5 10.5 8 6 12.5"
-                    stroke="currentColor"
-                    stroke-width="2.2"
-                    stroke-linecap="square"
-                    stroke-linejoin="miter"
-                  />
-                </svg>
-              </span>
-              <span class="resume-pile__keyword-text">Resume hell</span>
-              <span class="resume-pile__keyword-slash" aria-hidden="true">\\</span>
-            </p>
-
-            <p class="resume-pile__stat" data-resume-stat>
-              <span class="resume-pile__stat-num">500+</span>
-              <span class="resume-pile__stat-label">applications per role</span>
-            </p>
-
-            <p class="resume-pile__punch" data-resume-punch>
-              You'll never know who's lying and who's a real builder.
-            </p>
-
-            <p class="resume-pile__help" data-resume-help>
-              DevLabs finds people we've already watched ship.
-            </p>
-          </div>
+          <footer class="resume-pile__telemetry" data-resume-telemetry aria-hidden="true">
+            <div class="resume-pile__telem-cell">
+              <span class="resume-pile__telem-k">Applicants</span>
+              <span class="resume-pile__telem-v">500+</span>
+            </div>
+            <div class="resume-pile__telem-cell">
+              <span class="resume-pile__telem-k">Verified builders</span>
+              <span class="resume-pile__telem-v resume-pile__telem-v--warn">0</span>
+            </div>
+            <div class="resume-pile__telem-cell">
+              <span class="resume-pile__telem-k">Signal</span>
+              <span class="resume-pile__telem-v resume-pile__telem-v--warn">None</span>
+            </div>
+            <div class="resume-pile__telem-cell">
+              <span class="resume-pile__telem-k">Method</span>
+              <span class="resume-pile__telem-v">Guesswork</span>
+            </div>
+          </footer>
         </div>
       </div>
     </div>
@@ -174,6 +206,7 @@ const resumes = [
     const stat = root.querySelector<HTMLElement>("[data-resume-stat]");
     const punch = root.querySelector<HTMLElement>("[data-resume-punch]");
     const help = root.querySelector<HTMLElement>("[data-resume-help]");
+    const telemetry = root.querySelector<HTMLElement>("[data-resume-telemetry]");
     const cards = [...root.querySelectorAll<HTMLElement>("[data-resume-card]")];
 
     if (!track || !sticky || !stage || !stack || !copy || !cards.length) return () => {};
@@ -182,7 +215,7 @@ const resumes = [
     const mm = gsap.matchMedia();
 
     if (reduce) {
-      root.classList.add("is-static");
+      root.classList.add("is-static", "is-climax");
       gsap.set(cards, {
         opacity: 0.55,
         x: (i: number) => (i % 2 === 0 ? -14 : 14) + i * 3,
@@ -190,7 +223,7 @@ const resumes = [
         rotate: (i: number) => (i % 2 === 0 ? -6 : 5) + i,
         scale: 1,
       });
-      gsap.set([stack, copy, stat, punch, help], { clearProps: "all" });
+      gsap.set([stack, copy, stat, punch, help, telemetry], { clearProps: "all" });
       return () => {};
     }
 
@@ -203,10 +236,11 @@ const resumes = [
       filter: "blur(0px)",
     });
     gsap.set(stack, { x: 0, y: 0, scale: 1, opacity: 1, rotate: 0 });
-    gsap.set(copy, { opacity: 0, x: 48, y: 12 });
+    gsap.set(copy, { opacity: 0, x: 28, y: 10 });
     if (stat) gsap.set(stat, { opacity: 0, y: 18 });
     if (punch) gsap.set(punch, { opacity: 0, y: 12 });
     if (help) gsap.set(help, { opacity: 0, y: 12 });
+    if (telemetry) gsap.set(telemetry, { opacity: 0, y: 14 });
 
     mm.add(
       {
@@ -226,6 +260,9 @@ const resumes = [
             anticipatePin: 1,
             invalidateOnRefresh: true,
             pinType: "fixed",
+            onUpdate: (self) => {
+              root.classList.toggle("is-climax", self.progress > 0.58);
+            },
           },
         });
 
@@ -267,25 +304,16 @@ const resumes = [
         tl.to({}, { duration: beat * 0.4 }, pileDone);
 
         if (isDesktop) {
-          const plate = stack.querySelector<HTMLElement>(".resume-pile__plate");
-          const climaxScale = 0.92;
-
+          // Dock into the left grid column via CSS .is-climax; keep transform clean.
           tl.to(
             stack,
             {
-              x: () => {
-                const stageW = stage.offsetWidth;
-                const pileW = (plate?.offsetWidth ?? 320) * climaxScale;
-                const padPx = parseFloat(getComputedStyle(copy).paddingRight) || 44;
-                // Keep pile left edge inset equal to copy's right edge inset.
-                return padPx - stageW / 2 + pileW / 2;
-              },
-              xPercent: 0,
+              x: 0,
               y: 0,
-              scale: climaxScale,
+              scale: 1,
               opacity: 1,
               rotate: 0,
-              duration: beat * 1.4,
+              duration: beat * 1.2,
               ease: "power2.inOut",
             },
             pileDone + beat * 0.35,
@@ -307,10 +335,10 @@ const resumes = [
             stack,
             {
               x: 0,
-              y: "-16vh",
-              scale: 0.74,
+              y: "-10vh",
+              scale: 0.8,
               opacity: 0.95,
-              rotate: -2,
+              rotate: 0,
               duration: beat * 1.3,
               ease: "power2.inOut",
             },
@@ -319,7 +347,7 @@ const resumes = [
 
           tl.fromTo(
             copy,
-            { opacity: 0, x: 0, y: 36 },
+            { opacity: 0, x: 0, y: 28 },
             {
               opacity: 1,
               x: 0,
@@ -328,6 +356,19 @@ const resumes = [
               ease: "power3.out",
             },
             pileDone + beat * 0.55,
+          );
+        }
+
+        if (telemetry) {
+          tl.to(
+            telemetry,
+            {
+              opacity: 1,
+              y: 0,
+              duration: beat * 0.85,
+              ease: "power2.out",
+            },
+            pileDone + beat * 0.75,
           );
         }
 
@@ -400,13 +441,15 @@ const resumes = [
 <style>
   .resume-pile {
     position: relative;
+    isolation: isolate;
     width: 100%;
-    background: #fbf6f3;
+    background: var(--landing-band, #f3ebe4);
     color: #050505;
   }
 
   .resume-pile__track {
     position: relative;
+    z-index: 4;
     height: 360vh;
   }
 
@@ -433,7 +476,7 @@ const resumes = [
     inset: 0;
     background:
       radial-gradient(ellipse 50% 45% at 30% 60%, rgb(255 116 23 / 0.08), transparent 70%),
-      linear-gradient(180deg, #fbf6f3 0%, #f7f4f1 50%, #fbf6f3 100%);
+      linear-gradient(180deg, #f3ebe4 0%, #efe6de 50%, #f3ebe4 100%);
   }
 
   .resume-pile__dots {
@@ -443,7 +486,7 @@ const resumes = [
   .resume-pile__shell {
     position: relative;
     z-index: 2;
-    width: min(100%, 86rem);
+    width: var(--landing-rail-w, min(100%, 86rem));
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -512,13 +555,13 @@ const resumes = [
   .resume-pile__stage {
     position: relative;
     width: 100%;
-    min-height: min(60vh, 34rem);
-    display: grid;
-    place-items: center;
+    min-height: min(56vh, 32rem);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     border: 1px solid rgb(5 5 5 / 0.14);
     border-radius: 0;
-    --stage-pad: clamp(1.5rem, 2.8vw, 2.5rem);
+    --stage-pad: clamp(1.25rem, 2.4vw, 2rem);
     --grid-size: 40px;
     background: #fffefb;
     box-shadow: none;
@@ -529,6 +572,25 @@ const resumes = [
       calc(100% - 0.75rem) 100%,
       0 100%
     );
+  }
+
+  .resume-pile__body {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: grid;
+    align-items: center;
+    min-height: 0;
+    padding: var(--stage-pad);
+    padding-bottom: 1rem;
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile__body {
+      grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+      column-gap: 0;
+      align-items: center;
+    }
   }
 
   .resume-pile__grid {
@@ -579,15 +641,6 @@ const resumes = [
   .resume-pile__cross--bl { bottom: 0.55rem; left: 0.55rem; }
   .resume-pile__cross--br { bottom: 0.9rem; right: 0.9rem; }
 
-  @media (min-width: 900px) {
-    .resume-pile__stage {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: stretch;
-      min-height: min(56vh, 32rem);
-    }
-  }
-
   .resume-pile__stack {
     position: absolute;
     inset: 0;
@@ -599,10 +652,37 @@ const resumes = [
     will-change: transform, opacity;
   }
 
+  @media (min-width: 900px) {
+    .resume-pile.is-climax .resume-pile__stack,
+    .resume-pile.is-static .resume-pile__stack {
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: auto;
+      width: 54%;
+      place-items: center;
+      transform: none;
+    }
+
+    .resume-pile.is-climax .resume-pile__plate,
+    .resume-pile.is-static .resume-pile__plate {
+      inset: 6% 5% 6% 6%;
+      width: auto;
+      height: auto;
+      max-height: none;
+    }
+
+    .resume-pile.is-climax .resume-card,
+    .resume-pile.is-static .resume-card {
+      width: min(16.5rem, 62%);
+    }
+  }
+
   .resume-pile__plate {
     position: absolute;
-    width: min(22rem, 72vw);
-    height: min(25rem, 52vh);
+    width: min(20rem, 70%);
+    height: min(23rem, 48vh);
+    max-height: 100%;
     border: 1px solid rgb(5 5 5 / 0.2);
     border-radius: 0;
     background: #ff7417;
@@ -649,7 +729,7 @@ const resumes = [
 
   .resume-card {
     position: absolute;
-    width: min(16.5rem, 58vw);
+    width: min(15.5rem, 54vw);
     aspect-ratio: 8.5 / 11;
     padding: 1rem 1.05rem 1.15rem;
     border: 1px solid rgb(5 5 5 / 0.16);
@@ -661,6 +741,13 @@ const resumes = [
     z-index: var(--z, 1);
     opacity: 0;
     will-change: transform, opacity, filter;
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile.is-climax .resume-card,
+    .resume-pile.is-static .resume-card {
+      width: min(16rem, 72%);
+    }
   }
 
   .resume-card__stamp {
@@ -765,11 +852,11 @@ const resumes = [
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: flex-end;
+    align-items: flex-start;
     width: 100%;
-    padding-block: clamp(1.5rem, 3.5vw, 2.5rem);
-    padding-inline: var(--stage-pad, clamp(1.5rem, 2.8vw, 2.5rem));
-    text-align: right;
+    max-width: 26rem;
+    padding: 0;
+    text-align: left;
     opacity: 0;
     will-change: transform, opacity;
     background: transparent;
@@ -779,10 +866,10 @@ const resumes = [
     .resume-pile__copy {
       grid-column: 2;
       justify-self: stretch;
-      align-self: stretch;
+      align-self: center;
       max-width: none;
-      text-align: right;
-      padding-inline: var(--stage-pad);
+      padding-left: 1.75rem;
+      border-left: 1px solid rgb(5 5 5 / 0.14);
     }
   }
 
@@ -790,8 +877,8 @@ const resumes = [
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    margin: 0 0 1.35rem;
-    padding-bottom: 0.85rem;
+    margin: 0 0 1.15rem;
+    padding-bottom: 0.75rem;
     border-bottom: 1px solid rgb(5 5 5 / 0.12);
     font-family: Manrope, system-ui, sans-serif;
     color: #050505;
@@ -840,15 +927,15 @@ const resumes = [
   .resume-pile__stat {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 0.35rem;
-    margin: 0 0 1.35rem;
+    align-items: flex-start;
+    gap: 0.3rem;
+    margin: 0 0 1.15rem;
     opacity: 0;
   }
 
   .resume-pile__stat-num {
     font-family: Manrope, system-ui, sans-serif;
-    font-size: clamp(3.75rem, 7.5vw, 5.75rem);
+    font-size: clamp(3.5rem, 7vw, 5.25rem);
     font-weight: 650;
     line-height: 0.9;
     letter-spacing: -0.05em;
@@ -867,9 +954,8 @@ const resumes = [
   .resume-pile__punch {
     margin: 0;
     max-width: 22rem;
-    margin-left: auto;
     font-family: Manrope, system-ui, sans-serif;
-    font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+    font-size: clamp(1.1rem, 1.55vw, 1.35rem);
     font-weight: 550;
     line-height: 1.35;
     letter-spacing: -0.02em;
@@ -878,10 +964,9 @@ const resumes = [
   }
 
   .resume-pile__help {
-    margin: 1.25rem 0 0;
-    max-width: 20rem;
-    margin-left: auto;
-    padding-top: 1rem;
+    margin: 1.1rem 0 0;
+    max-width: 22rem;
+    padding-top: 0.9rem;
     border-top: 1px solid rgb(5 5 5 / 0.1);
     font-family: Manrope, system-ui, sans-serif;
     font-size: 0.6875rem;
@@ -890,6 +975,70 @@ const resumes = [
     line-height: 1.5;
     text-transform: uppercase;
     color: #bf4f08;
+  }
+
+  .resume-pile__telemetry {
+    position: relative;
+    z-index: 12;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin: 0;
+    border-top: 1px solid rgb(5 5 5 / 0.12);
+    background: #fffefb;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+
+  @media (min-width: 700px) {
+    .resume-pile__telemetry {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .resume-pile__telem-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    padding: 0.9rem 1rem;
+    border-right: 1px solid rgb(5 5 5 / 0.1);
+    background: rgb(255 116 23 / 0.05);
+  }
+
+  .resume-pile__telem-cell:last-child {
+    border-right: none;
+  }
+
+  @media (max-width: 699px) {
+    .resume-pile__telem-cell:nth-child(2n) {
+      border-right: none;
+    }
+
+    .resume-pile__telem-cell:nth-child(-n + 2) {
+      border-bottom: 1px solid rgb(5 5 5 / 0.1);
+    }
+  }
+
+  .resume-pile__telem-k {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.55rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.42);
+  }
+
+  .resume-pile__telem-v {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: #050505;
+  }
+
+  .resume-pile__telem-v--warn {
+    color: #ff7417;
   }
 
   .resume-pile.is-static .resume-pile__track {
@@ -903,14 +1052,11 @@ const resumes = [
   }
 
   .resume-pile.is-static .resume-pile__stage {
-    min-height: 24rem;
+    min-height: 26rem;
   }
 
-  .resume-pile.is-static .resume-pile__stack {
-    position: relative;
-    inset: auto;
-    opacity: 1;
-    min-height: 18rem;
+  .resume-pile.is-static .resume-pile__body {
+    min-height: 20rem;
   }
 
   .resume-pile.is-static .resume-card {
@@ -920,20 +1066,9 @@ const resumes = [
   .resume-pile.is-static .resume-pile__copy,
   .resume-pile.is-static .resume-pile__stat,
   .resume-pile.is-static .resume-pile__punch,
-  .resume-pile.is-static .resume-pile__help {
+  .resume-pile.is-static .resume-pile__help,
+  .resume-pile.is-static .resume-pile__telemetry {
     opacity: 1;
-  }
-
-  @media (min-width: 900px) {
-    .resume-pile.is-static .resume-pile__stack {
-      position: relative;
-      grid-column: 1;
-      transform: none;
-    }
-
-    .resume-pile.is-static .resume-pile__copy {
-      opacity: 1;
-    }
   }
 
   @media (max-width: 899px) {
@@ -946,8 +1081,12 @@ const resumes = [
     }
 
     .resume-pile__stage {
-      min-height: min(68vh, 34rem);
-      border-radius: 0;
+      min-height: min(72vh, 38rem);
+    }
+
+    .resume-pile__body {
+      align-content: end;
+      padding-bottom: 0.75rem;
     }
 
     .resume-card {
@@ -955,29 +1094,36 @@ const resumes = [
     }
 
     .resume-pile__plate {
-      width: min(18.5rem, 72vw);
-      height: min(21rem, 44vh);
-      border-radius: 0;
+      width: min(17.5rem, 70vw);
+      height: min(20rem, 42vh);
     }
 
     .resume-pile__copy {
       align-self: end;
-      align-items: flex-end;
       width: 100%;
       max-width: none;
       margin: 0;
-      text-align: right;
-      background: linear-gradient(180deg, transparent 0%, rgb(255 254 251 / 0.9) 35%);
+      padding: 1.15rem 0 0.25rem;
+      background: linear-gradient(180deg, transparent 0%, rgb(255 254 251 / 0.94) 28%);
     }
 
     .resume-pile.is-static .resume-pile__stage {
       display: flex;
       flex-direction: column;
-      gap: 0;
+      min-height: auto;
+    }
+
+    .resume-pile.is-static .resume-pile__body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
       min-height: auto;
     }
 
     .resume-pile.is-static .resume-pile__stack {
+      position: relative;
+      inset: auto;
+      width: 100%;
       min-height: 14rem;
       order: -1;
     }
@@ -985,7 +1131,8 @@ const resumes = [
 
   @media (prefers-reduced-motion: reduce) {
     .resume-pile__stat,
-    .resume-pile__punch {
+    .resume-pile__punch,
+    .resume-pile__telemetry {
       opacity: 1;
     }
   }

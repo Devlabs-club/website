@@ -28,9 +28,16 @@ const padLogos: LogoItem[] =
 ---
 
 <section
-  class:list={["landing-logo-grid", className]}
+  class:list={["landing-logo-grid", "ruler-section", "landing-band-cream", "ruler-section--no-top", className]}
   aria-label="Trusted by"
 >
+  <div class="ruler-rails ruler-rails--edges-only" aria-hidden="true"></div>
+  <div class="ruler-crosses ruler-crosses--corners-only" aria-hidden="true">
+    <span class="tl"></span>
+    <span class="tr"></span>
+    <span class="bl"></span>
+    <span class="br"></span>
+  </div>
   <div class="landing-logo-grid__frame">
     {
       padLogos.map((item) => (
@@ -86,29 +93,20 @@ const padLogos: LogoItem[] =
 
 <style>
   .landing-logo-grid {
+    position: relative;
+    isolation: isolate;
     width: 100%;
     background: #fbf6f3;
-    padding: 0 1.25rem 0;
-  }
-
-  @media (min-width: 640px) {
-    .landing-logo-grid {
-      padding-inline: 2rem;
-    }
-  }
-
-  @media (min-width: 1024px) {
-    .landing-logo-grid {
-      padding-inline: 2.5rem;
-    }
+    padding: 0;
   }
 
   .landing-logo-grid__frame {
     position: relative;
+    z-index: 4;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: 100%;
-    max-width: 72rem;
+    width: var(--landing-rail-w, min(calc(100% - 2.5rem), 86rem));
+    max-width: 100%;
     margin-inline: auto;
     border-top: 1px solid rgb(5 5 5 / 0.12);
     border-left: 1px solid rgb(5 5 5 / 0.12);
