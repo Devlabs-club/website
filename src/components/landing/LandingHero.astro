@@ -1,10 +1,13 @@
 ---
 import { tryForFreeHref } from "../../lib/productCta";
+import LandingProductDemo from "./LandingProductDemo.astro";
 
 const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 ---
 
 <section id="product" class="landing-hero scroll-mt-24" data-landing-hero>
+  <div class="landing-hero-atmosphere" aria-hidden="true"></div>
+
   <div class="landing-hero-visual">
     <video
       class="landing-hero-video"
@@ -44,12 +47,15 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
       </div>
     </div>
   </div>
+
+  <LandingProductDemo />
 </section>
 
 <style>
   .landing-hero {
     position: relative;
     width: 100%;
+    overflow-x: hidden;
     background: #fbf6f3;
     padding-top: 3.75rem;
   }
@@ -60,12 +66,45 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
     }
   }
 
+  /* One continuous atmosphere behind visual + demo — nothing seams between them */
+  .landing-hero-atmosphere {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 90% 45% at 70% 8%, rgb(255 116 23 / 0.16), transparent 58%),
+      radial-gradient(ellipse 80% 50% at 50% 42%, rgb(255 180 120 / 0.28), transparent 68%),
+      radial-gradient(ellipse 70% 40% at 50% 62%, rgb(255 210 170 / 0.35), transparent 70%),
+      linear-gradient(
+        180deg,
+        #fbf6f3 0%,
+        #fbf6f3 22%,
+        #ffe8d6 48%,
+        #ffe4d0 62%,
+        #fbf6f3 88%,
+        #fbf6f3 100%
+      );
+  }
+
+  .landing-hero-atmosphere::after {
+    content: "";
+    position: absolute;
+    inset: 38% 6% 18%;
+    opacity: 0.16;
+    background-image: radial-gradient(rgb(191 79 8 / 0.28) 0.55px, transparent 0.7px);
+    background-size: 7px 7px;
+    mask-image: radial-gradient(ellipse at 50% 40%, #000 12%, transparent 72%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 12%, transparent 72%);
+  }
+
   .landing-hero-visual {
     position: relative;
+    z-index: 1;
     width: 100%;
     height: clamp(20rem, 58vw, 40rem);
     overflow: hidden;
-    background: #ffe4e2;
+    background: transparent;
   }
 
   .landing-hero-video {
@@ -74,6 +113,23 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
     height: 100%;
     object-fit: cover;
     object-position: center;
+    /* Soft dissolve so video melts into the shared atmosphere */
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 42%,
+      rgba(0, 0, 0, 0.8) 64%,
+      rgba(0, 0, 0, 0.35) 82%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      #000 0%,
+      #000 42%,
+      rgba(0, 0, 0, 0.8) 64%,
+      rgba(0, 0, 0, 0.35) 82%,
+      transparent 100%
+    );
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -85,12 +141,13 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
   .landing-hero-scrim {
     position: absolute;
     inset: auto 0 0 0;
-    height: min(70%, 22rem);
+    height: min(72%, 24rem);
     background: linear-gradient(
       180deg,
       rgba(251, 246, 243, 0) 0%,
-      rgba(251, 246, 243, 0.55) 42%,
-      rgba(251, 246, 243, 0.88) 100%
+      rgba(255, 232, 214, 0.28) 40%,
+      rgba(255, 220, 190, 0.5) 78%,
+      rgba(255, 232, 214, 0.15) 100%
     );
     pointer-events: none;
     z-index: 1;
@@ -106,12 +163,12 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
     align-items: flex-start;
     gap: 1rem;
     max-width: min(42rem, calc(100% - 2.5rem));
-    padding: 1.25rem 1.25rem 1.5rem;
+    padding: 1.25rem 1.25rem 2.25rem;
   }
 
   @media (min-width: 640px) {
     .landing-hero-copy {
-      padding: 1.75rem 2rem 2rem;
+      padding: 1.75rem 2rem 2.75rem;
       gap: 1.15rem;
       max-width: min(44rem, calc(100% - 4rem));
     }
@@ -119,7 +176,7 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 
   @media (min-width: 1024px) {
     .landing-hero-copy {
-      padding: 2rem 2.5rem 2.5rem;
+      padding: 2rem 2.5rem 3rem;
       max-width: min(48rem, 52%);
     }
   }
@@ -163,5 +220,18 @@ const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
     height: 2.5rem;
     padding-inline: 1.15rem;
     font-size: 0.72rem;
+  }
+
+  /* Demo is a block inside the hero — transparent so shared atmosphere shows through */
+  .landing-hero :global(.product-demo) {
+    position: relative;
+    z-index: 1;
+    margin-top: 0;
+    padding-top: clamp(2rem, 4.5vw, 3.25rem);
+    background: transparent;
+  }
+
+  .landing-hero :global(.product-demo-wash) {
+    display: none;
   }
 </style>

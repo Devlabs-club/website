@@ -6,19 +6,20 @@ import PricingSection from "../components/PricingSection.astro";
 import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
 import LandingMarketingNav from "../components/landing/LandingMarketingNav.astro";
 import LandingHero from "../components/landing/LandingHero.astro";
-import LandingProductDemo from "../components/landing/LandingProductDemo.astro";
+import LandingLogoGrid from "../components/landing/LandingLogoGrid.astro";
+import LandingResumePile from "../components/landing/LandingResumePile.astro";
 import { tryForFreeHref } from "../lib/productCta";
 
 const ctaHref = tryForFreeHref;
 
 const folksLogos = [
-  { label: "browser-use", src: "/sponsors/browser-use.png" },
-  { label: "supermemory", src: "/sponsors/supermemory.png" },
-  { label: "Google DeepMind", src: "/sponsors/deepmind.png" },
-  { label: "AirGarage", src: "/sponsors/airgarage.png" },
-  { label: "Product Hunt", src: "/sponsors/ph.png" },
-  { label: "Kickstart", src: "/landing/kickstart-logo.png" },
-  { label: "Stripe", src: "/sponsors/momentum/stripe.png" },
+  { name: "browser-use", logo: "/sponsors/browser-use.png", alt: "browser-use" },
+  { name: "supermemory", logo: "/sponsors/supermemory.png", alt: "supermemory" },
+  { name: "Google DeepMind", logo: "/sponsors/deepmind.png", alt: "Google DeepMind" },
+  { name: "AirGarage", logo: "/sponsors/airgarage.png", alt: "AirGarage" },
+  { name: "Product Hunt", logo: "/sponsors/ph.png", alt: "Product Hunt" },
+  { name: "Kickstart", logo: "/landing/kickstart-logo.png", alt: "Kickstart" },
+  { name: "Stripe", logo: "/sponsors/momentum/stripe.png", alt: "Stripe" },
 ];
 
 const icons = {
@@ -293,84 +294,9 @@ const testimonials = [
 
     <LandingHero />
 
-    <LandingProductDemo />
+    <LandingLogoGrid logos={folksLogos} />
 
-    <section class="relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10">
-      <div class="ruler-rails" aria-hidden="true"></div>
-      <canvas
-        class="ascii-wave absolute inset-0 h-full w-full opacity-100 mix-blend-multiply"
-        data-ascii-wave
-        aria-hidden="true"
-      ></canvas>
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_38%,rgba(255,116,23,0.24),rgba(255,116,23,0.1)_34%,transparent_68%),linear-gradient(90deg,#fbf6f3_0%,rgba(251,246,243,0.2)_18%,rgba(251,246,243,0)_50%,rgba(251,246,243,0.2)_82%,#fbf6f3_100%),linear-gradient(180deg,rgba(251,246,243,0.34),rgba(251,246,243,0.52)_72%)]"></div>
-      <div class="absolute inset-x-0 top-0 h-px bg-black/10"></div>
-
-      <div class="relative z-10 mx-auto w-full max-w-7xl py-16 sm:py-20">
-        <div data-fluid-panel class="overflow-hidden rounded-none border border-black/10 bg-[#fbf6f3]/82 backdrop-blur-[1px]">
-          <div class="border-b border-black/10 px-6 py-6 sm:px-10">
-            <p class="text-[clamp(1.15rem,1.8vw,1.55rem)] font-semibold tracking-[-0.02em] text-black/68">
-              Worked with folks from
-            </p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
-            <div class="flex min-h-[15rem] flex-col justify-between border-b border-black/10 bg-[#f4f1ed]/88 p-8 sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:border-b-0 lg:border-r">
-               <div>
-                <p class="text-[clamp(2.5rem,4vw,3.8rem)] font-black leading-none tracking-[-0.04em] text-[#ff7417]">
-                Backed by
-                </p>
-                <p class="mt-5 max-w-xs text-base font-medium leading-relaxed text-black/62">
-                  Teams that have watched our builders ship — then hired them.
-                </p>
-              </div>
-            </div>
-
-            {folksLogos.map((logo) => (
-              <div class="logo-cell flex min-h-[8.5rem] items-center justify-center border-b border-black/10 p-8 sm:border-r lg:min-h-[9.5rem]">
-                <img
-                  src={logo.src}
-                  alt={logo.label}
-                  loading="lazy"
-                  class="max-h-10 max-w-[9.5rem] object-contain opacity-54 transition duration-300 hover:opacity-90"
-                  style="filter: grayscale(1) brightness(0);"
-                />
-              </div>
-            ))}
-
-            <div class="logo-cell hidden min-h-[9.5rem] items-center justify-center border-b border-black/10 p-8 text-center text-sm font-semibold leading-relaxed text-black/38 lg:flex">
-              Builders seen in the room, not just on paper
-            </div>
-          </div>
-        </div>
-
-        <div data-fluid-panel class="mx-auto mt-24 max-w-[22rem] text-center sm:mt-28 sm:max-w-5xl">
-          <h2 class="text-[clamp(2rem,9.8vw,6.4rem)] font-black leading-[0.96] tracking-[-0.04em] text-black sm:leading-[0.93]">
-            Hiring
-            <br class="sm:hidden" />
-            through
-            <br class="sm:hidden" />
-            resumes is
-            <br class="sm:hidden" />
-            broken.
-            <span class="mt-3 block font-normal text-black/72">
-              You need
-              <br class="sm:hidden" />
-              people
-              <br class="sm:hidden" />
-              who can
-              <br class="sm:hidden" />
-              <span class="relative inline-block font-black text-black">
-                ship
-               </span>
-            </span>
-          </h2>
-
-          <p class="mx-auto mt-9 max-w-3xl text-[clamp(1.1rem,2vw,1.6rem)] font-medium leading-relaxed text-black/58">
-            DevLabs already knows those people because we watch them build at our events.
-          </p>
-        </div>
-      </div>
-    </section>
+    <LandingResumePile />
 
     <section class="metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10">
 

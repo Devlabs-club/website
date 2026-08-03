@@ -1,0 +1,357 @@
+---
+/**
+ * Custom WebGL recreation of the Unicorn Studio hero scene.
+ * Effect stack (bottom → top): Background → Beam → Gradient Map → Noise → Blinds → Dither
+ */
+---
+
+<canvas
+  class="landing-hero-gl"
+  data-landing-hero-gl
+  aria-hidden="true"
+></canvas>
+
+<script>
+  type HeroGlHandles = {
+    destroy: () => void;
+  };
+
+  function createHeroGl(canvas: HTMLCanvasElement): HeroGlHandles | null {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const gl = canvas.getContext("webgl", {
+      alpha: false,
+      antialias: false,
+      premultipliedAlpha: false,
+      powerPreference: "high-performance",
+    });
+    if (!gl) return null;
+
+    const VERT = `
+      attribute vec2 a_pos;
+      varying vec2 v_uv;
+      void main() {
+        v_uv = a_pos * 0.5 + 0.5;
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+      }
+    `;
+
+    // Recreates Unicorn stack using authored parameter ratios (0–100 → normalized).
+    const FRAG = `
+      precision highp float;
+
+      varying vec2 v_uv;
+      uniform vec2 u_res;
+      uniform float u_time;
+      uniform vec2 u_mouse;
+      uniform float u_beamScale;
+      uniform float u_reduce;
+
+      // Background #FFE4E2
+      const vec3 BG = vec3(1.0, 0.894, 0.886);
+
+      // Gradient map stops
+      vec3 gradMap(float t) {
+        t = clamp(t, 0.0, 1.0);
+        vec3 c0 = vec3(1.0, 0.894, 0.886);      // #FFE4E2 @ 0
+        vec3 c25 = vec3(1.0, 0.918, 0.718);     // #FFEAB7 @ 25
+        vec3 c50 = vec3(1.0, 0.533, 0.0);        // #FF8800 @ 50
+        vec3 c75 = vec3(1.0, 0.667, 0.522);      // #FFAA85 @ 75
+        vec3 c100 = vec3(1.0, 0.969, 0.929);     // #FFF7ED @ 100
+        if (t < 0.25) return mix(c0, c25, t / 0.25);
+        if (t < 0.50) return mix(c25, c50, (t - 0.25) / 0.25);
+        if (t < 0.75) return mix(c50, c75, (t - 0.50) / 0.25);
+        return mix(c75, c100, (t - 0.75) / 0.25);
+      }
+
+      // --- Simplex 2S-ish noise ---
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec2 mod289(vec2 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec3 permute(vec3 x) { return mod289(((x * 34.0) + 1.0) * x); }
+
+      float snoise(vec2 v) {
+        const vec4 C = vec4(
+          0.211324865405187,
+          0.366025403784439,
+         -0.577350269189626,
+          0.024390243902439
+        );
+        vec2 i = floor(v + dot(v, C.yy));
+        vec2 x0 = v - i + dot(i, C.xx);
+        vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+        vec4 x12 = x0.xyxy + C.xxzz;
+        x12.xy -= i1;
+        i = mod289(i);
+        vec3 p = permute(permute(i.y + vec3(0.0, i1.y, 1.0)) + i.x + vec3(0.0, i1.x, 1.0));
+        vec3 m = max(0.5 - vec3(dot(x0, x0), dot(x12.xy, x12.xy), dot(x12.zw, x12.zw)), 0.0);
+        m = m * m;
+        m = m * m;
+        vec3 x = 2.0 * fract(p * C.www) - 1.0;
+        vec3 h = abs(x) - 0.5;
+        vec3 ox = floor(x + 0.5);
+        vec3 a0 = x - ox;
+        m *= 1.79284291400159 - 0.85373472095314 * (a0 * a0 + h * h);
+        vec3 g;
+        g.x = a0.x * x0.x + h.x * x0.y;
+        g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+        return 130.0 * dot(m, g);
+      }
+
+      float fbm(vec2 p) {
+        float f = 0.0;
+        float a = 0.5;
+        for (int i = 0; i < 4; i++) {
+          f += a * snoise(p);
+          p *= 2.02;
+          a *= 0.5;
+        }
+        return f;
+      }
+
+      // Exclusion blend
+      vec3 blendExclusion(vec3 base, vec3 blend, float opacity) {
+        vec3 r = base + blend - 2.0 * base * blend;
+        return mix(base, r, opacity);
+      }
+
+      float hash21(vec2 p) {
+        p = fract(p * vec2(123.34, 456.21));
+        p += dot(p, p + 45.32);
+        return fract(p.x * p.y);
+      }
+
+      void main() {
+        vec2 uv = v_uv;
+        float aspect = u_res.x / max(u_res.y, 1.0);
+        vec2 p = (uv - 0.5) * vec2(aspect, 1.0);
+
+        float t = u_time;
+        float beamSpeed = 0.35;
+        float blindsSpeed = 0.50;
+        float ditherSpeed = 0.50;
+        float gradSpeed = 0.50;
+        float noiseSpeed = 0.015;
+
+        // ---- Beam (Point @ 74.6/45.6, angle 86, thickness 45, skew 88, opacity 63, exclusion, mouse track)
+        float beamScale = max(u_beamScale, 0.001) * 0.55;
+        vec2 beamCenter = mix(vec2(0.746, 0.456), u_mouse, 0.9);
+        vec2 bp = (uv - beamCenter) * vec2(aspect, 1.0);
+
+        float ang = radians(86.0);
+        float ca = cos(ang);
+        float sa = sin(ang);
+        vec2 br = vec2(ca * bp.x - sa * bp.y, sa * bp.x + ca * bp.y);
+        br.x *= 1.0 + 0.88 * 4.0; // skew 88
+        br /= beamScale;
+
+        float phase = 0.61 + t * beamSpeed * 0.4;
+        float beamY = abs(br.y) / (0.18 + 0.45 * 0.4);
+        float beamCore = exp(-pow(beamY, 1.45));
+        float beamLen = exp(-pow(abs(br.x) * 0.22, 2.0));
+        float beamPulse = 0.5 + 0.5 * sin(phase * 6.28318 + br.x * 0.9);
+        float beamMask = beamCore * beamLen * beamPulse * 0.63 * smoothstep(0.0, 0.12, u_beamScale);
+
+        vec3 col = BG;
+        // Exclusion with warm lift
+        vec3 beamTint = vec3(1.0, 0.72, 0.55);
+        col = blendExclusion(col, mix(BG, beamTint, beamMask), beamMask);
+        col = mix(col, vec3(1.0, 0.55, 0.12), beamMask * 0.72);
+
+        // ---- Noise field (Simplex, scale 49, amp 33, skew 50, angle 12)
+        float nAng = radians(12.0);
+        vec2 nUV = uv - 0.5;
+        nUV = vec2(cos(nAng) * nUV.x - sin(nAng) * nUV.y, sin(nAng) * nUV.x + cos(nAng) * nUV.y);
+        nUV.x *= 1.5;
+        float nScale = 4.2; // ~49 mapped
+        float nField = fbm(nUV * nScale + vec2(t * noiseSpeed * 3.0, t * noiseSpeed * 1.7));
+        nField = nField * 0.33 + 0.5;
+
+        // ---- Blinds FIRST as luminance modulator (freq 42.4, amount -60, angle 73, distortion 50)
+        float bAng = radians(73.0);
+        vec2 bDir = vec2(cos(bAng), sin(bAng));
+        float blindsCoord = dot(uv - vec2(0.502, 0.504), bDir) * 14.8 + t * blindsSpeed * 0.85;
+        // Stepped jagged blinds
+        float cell = blindsCoord * 5.5;
+        float cellId = floor(cell);
+        float cellF = fract(cell);
+        float jag = mix(smoothstep(0.2, 0.8, cellF), step(0.5, cellF), 0.5); // distortion 50
+        float blindsWave = sin(blindsCoord * 6.28318);
+        float blindsMask = clamp(0.5 + 0.5 * blindsWave + (jag - 0.5) * 0.6, 0.0, 1.0);
+        // Amount -60 → strong contrast banding
+        float band = pow(blindsMask, 0.75) * 0.85;
+
+        // Luminance for gradient map (phase 20, scale 45, wrap repeat)
+        float gPhase = 0.20 + t * gradSpeed * 0.1;
+        float lum = fract(nField * 0.45 + band * 0.75 + beamMask * 0.55 + gPhase);
+        // Push midtones toward #FF8800 stop
+        lum = mix(lum, 0.5, band * 0.35);
+        vec3 mapped = gradMap(lum);
+
+        // Compose: cream base → mapped bands
+        float coverage = clamp(band * 1.15 + beamMask * 0.85 + (nField - 0.35) * 0.4, 0.0, 1.0);
+        col = mix(BG, mapped, coverage);
+        // Hot orange core in blinds peaks
+        col = mix(col, vec3(1.0, 0.533, 0.0), pow(band, 2.2) * 0.55 * u_beamScale);
+        // Soft peach wash
+        col = mix(col, vec3(1.0, 0.667, 0.522), beamMask * 0.25);
+
+        // Secondary blinds displacement shimmer
+        float shimmer = fbm(uv * 6.0 + bDir * blindsCoord * 0.2 + t * 0.15);
+        col += (shimmer - 0.5) * band * 0.08;
+
+        // ---- Dither (Random, threshold 56, mix 19) + fine grain
+        float rnd = hash21(gl_FragCoord.xy + floor(t * ditherSpeed * 28.0));
+        float dither = step(0.56, rnd) * 2.0 - 1.0;
+        col += dither * 0.19 * 0.1;
+        float grain = (hash21(gl_FragCoord.xy * 1.91 + t * 90.0) - 0.5) * 0.09;
+        col += grain;
+
+        // Slight overall warm lift so it doesn't go muddy
+        col = mix(col, BG, 0.06);
+
+        if (u_reduce > 0.5) {
+          col = mix(BG, gradMap(0.48), 0.4);
+        }
+
+        gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
+      }
+    `;
+
+    function compile(type: number, src: string) {
+      const s = gl!.createShader(type)!;
+      gl!.shaderSource(s, src);
+      gl!.compileShader(s);
+      if (!gl!.getShaderParameter(s, gl!.COMPILE_STATUS)) {
+        console.error(gl!.getShaderInfoLog(s));
+        gl!.deleteShader(s);
+        return null;
+      }
+      return s;
+    }
+
+    const vs = compile(gl.VERTEX_SHADER, VERT);
+    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+    if (!vs || !fs) return null;
+
+    const program = gl.createProgram()!;
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(program));
+      return null;
+    }
+    gl.useProgram(program);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW,
+    );
+    const aPos = gl.getAttribLocation(program, "a_pos");
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+    const uRes = gl.getUniformLocation(program, "u_res");
+    const uTime = gl.getUniformLocation(program, "u_time");
+    const uMouse = gl.getUniformLocation(program, "u_mouse");
+    const uBeamScale = gl.getUniformLocation(program, "u_beamScale");
+    const uReduce = gl.getUniformLocation(program, "u_reduce");
+
+    let raf = 0;
+    let start = performance.now();
+    let mouseTarget = { x: 0.746, y: 0.456 };
+    let mouseSmooth = { x: 0.746, y: 0.456 };
+    // Momentum 100 → very followy but smoothed
+    const mouseLerp = 0.045;
+
+    const resize = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = parent.clientWidth;
+      const h = parent.clientHeight;
+      canvas.width = Math.max(1, Math.floor(w * dpr));
+      canvas.height = Math.max(1, Math.floor(h * dpr));
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      gl!.viewport(0, 0, canvas.width, canvas.height);
+    };
+
+    const onPointer = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+      mouseTarget.x = (e.clientX - rect.left) / rect.width;
+      mouseTarget.y = 1.0 - (e.clientY - rect.top) / rect.height;
+    };
+
+    // Ease-in-out for beam scale 0→1 over 4000ms (then hold / soft pulse)
+    const beamScaleAt = (ms: number) => {
+      const loop = 4250;
+      const local = ms % loop;
+      if (local <= 4000) {
+        const x = local / 4000;
+        // smoothstep ease
+        return x * x * (3 - 2 * x);
+      }
+      return 1;
+    };
+
+    const frame = (now: number) => {
+      const elapsed = (now - start) / 1000;
+      mouseSmooth.x += (mouseTarget.x - mouseSmooth.x) * mouseLerp;
+      mouseSmooth.y += (mouseTarget.y - mouseSmooth.y) * mouseLerp;
+
+      gl!.uniform2f(uRes, canvas.width, canvas.height);
+      gl!.uniform1f(uTime, elapsed);
+      gl!.uniform2f(uMouse, mouseSmooth.x, mouseSmooth.y);
+      gl!.uniform1f(uBeamScale, reduce ? 1 : beamScaleAt(now - start));
+      gl!.uniform1f(uReduce, reduce ? 1 : 0);
+      gl!.drawArrays(gl!.TRIANGLES, 0, 6);
+
+      if (!reduce) raf = requestAnimationFrame(frame);
+    };
+
+    resize();
+    const ro = new ResizeObserver(resize);
+    if (canvas.parentElement) ro.observe(canvas.parentElement);
+    window.addEventListener("pointermove", onPointer, { passive: true });
+
+    gl.uniform1f(uReduce, reduce ? 1 : 0);
+    raf = requestAnimationFrame(frame);
+    if (reduce) {
+      // draw once
+      requestAnimationFrame(frame);
+    }
+
+    return {
+      destroy() {
+        cancelAnimationFrame(raf);
+        ro.disconnect();
+        window.removeEventListener("pointermove", onPointer);
+        gl.deleteProgram(program);
+        gl.deleteShader(vs);
+        gl.deleteShader(fs);
+        gl.deleteBuffer(buf);
+      },
+    };
+  }
+
+  const canvas = document.querySelector<HTMLCanvasElement>("[data-landing-hero-gl]");
+  let handles: HeroGlHandles | null = null;
+  if (canvas) handles = createHeroGl(canvas);
+
+  window.addEventListener("pagehide", () => {
+    handles?.destroy();
+    handles = null;
+  });
+</script>
+
+<style>
+  .landing-hero-gl {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>

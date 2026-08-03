@@ -1,0 +1,992 @@
+---
+const resumes = [
+  {
+    name: "Alex M.",
+    role: "Software Engineer",
+    company: "Acme Corp",
+    stamp: "PDF",
+    rotate: -7,
+    x: -28,
+    y: 8,
+  },
+  {
+    name: "Jordan K.",
+    role: "Full-Stack Developer",
+    company: "Nimbus Labs",
+    stamp: "ATTACHED",
+    rotate: 5,
+    x: 22,
+    y: -6,
+  },
+  {
+    name: "Sam R.",
+    role: "Backend Engineer",
+    company: "Orbit Systems",
+    stamp: "RESUME",
+    rotate: -3,
+    x: -12,
+    y: 14,
+  },
+  {
+    name: "Casey L.",
+    role: "Frontend Engineer",
+    company: "Pixel & Co",
+    stamp: "PDF",
+    rotate: 8,
+    x: 30,
+    y: 4,
+  },
+  {
+    name: "Riley P.",
+    role: "Platform Engineer",
+    company: "Stackhouse",
+    stamp: "CV",
+    rotate: -5,
+    x: -18,
+    y: -10,
+  },
+  {
+    name: "Morgan T.",
+    role: "Software Engineer",
+    company: "Brightline",
+    stamp: "URGENT",
+    rotate: 4,
+    x: 8,
+    y: 12,
+  },
+];
+---
+
+<section
+  class="resume-pile"
+  data-resume-pile
+  aria-label="The real problem: resume hell"
+>
+  <div class="resume-pile__track" data-resume-track>
+    <div class="resume-pile__sticky" data-resume-sticky>
+      <div class="resume-pile__atmosphere" aria-hidden="true">
+        <div class="resume-pile__wash"></div>
+        <div class="resume-pile__dots"></div>
+      </div>
+
+      <div class="resume-pile__shell">
+        <header class="resume-pile__section-head">
+          <div class="resume-pile__section-title-wrap">
+            <p class="resume-pile__section-kicker">01 / Diagnosis</p>
+            <h2 class="resume-pile__section-title">
+              The real <span class="resume-pile__section-title-em">problem</span>
+            </h2>
+          </div>
+          <p class="resume-pile__section-aside">
+            Hiring through resumes is a guessing game.
+          </p>
+        </header>
+
+        <div class="resume-pile__stage" data-resume-stage>
+          <div class="resume-pile__grid" aria-hidden="true"></div>
+          <span class="resume-pile__cross resume-pile__cross--tl" aria-hidden="true"></span>
+          <span class="resume-pile__cross resume-pile__cross--tr" aria-hidden="true"></span>
+          <span class="resume-pile__cross resume-pile__cross--bl" aria-hidden="true"></span>
+          <span class="resume-pile__cross resume-pile__cross--br" aria-hidden="true"></span>
+
+          <div class="resume-pile__stack" data-resume-stack aria-hidden="true">
+            <div class="resume-pile__plate">
+              <p class="resume-pile__plate-label">Applicant stack</p>
+              <p class="resume-pile__plate-meta">unsorted / unverified</p>
+            </div>
+
+            {
+              resumes.map((r, i) => (
+                <article
+                  class="resume-card"
+                  data-resume-card
+                  style={`--r: ${r.rotate * 0.55}deg; --tx: ${r.x * 0.7}px; --ty: ${r.y * 0.7}px; --z: ${i + 1};`}
+                >
+                  <div class="resume-card__stamp">{r.stamp}</div>
+                  <div class="resume-card__header">
+                    <span class="resume-card__avatar" />
+                    <div>
+                      <p class="resume-card__name">{r.name}</p>
+                      <p class="resume-card__role">{r.role}</p>
+                    </div>
+                  </div>
+                  <p class="resume-card__company">{r.company}</p>
+                  <div class="resume-card__lines" aria-hidden="true">
+                    <span /><span /><span /><span /><span />
+                  </div>
+                  <div class="resume-card__bars" aria-hidden="true">
+                    <span /><span /><span />
+                  </div>
+                </article>
+              ))
+            }
+          </div>
+
+          <div class="resume-pile__copy" data-resume-copy>
+            <p class="resume-pile__keyword">
+              <span class="resume-pile__keyword-slash" aria-hidden="true">//</span>
+              <span class="resume-pile__keyword-icon" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M6 3.5 10.5 8 6 12.5"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="square"
+                    stroke-linejoin="miter"
+                  />
+                </svg>
+              </span>
+              <span class="resume-pile__keyword-text">Resume hell</span>
+              <span class="resume-pile__keyword-slash" aria-hidden="true">\\</span>
+            </p>
+
+            <p class="resume-pile__stat" data-resume-stat>
+              <span class="resume-pile__stat-num">500+</span>
+              <span class="resume-pile__stat-label">applications per role</span>
+            </p>
+
+            <p class="resume-pile__punch" data-resume-punch>
+              You'll never know who's lying and who's a real builder.
+            </p>
+
+            <p class="resume-pile__help" data-resume-help>
+              DevLabs finds people we've already watched ship.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import gsap from "gsap";
+  import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+  gsap.registerPlugin(ScrollTrigger);
+
+  function initResumePile(root: HTMLElement) {
+    const track = root.querySelector<HTMLElement>("[data-resume-track]");
+    const sticky = root.querySelector<HTMLElement>("[data-resume-sticky]");
+    const stage = root.querySelector<HTMLElement>("[data-resume-stage]");
+    const stack = root.querySelector<HTMLElement>("[data-resume-stack]");
+    const copy = root.querySelector<HTMLElement>("[data-resume-copy]");
+    const stat = root.querySelector<HTMLElement>("[data-resume-stat]");
+    const punch = root.querySelector<HTMLElement>("[data-resume-punch]");
+    const help = root.querySelector<HTMLElement>("[data-resume-help]");
+    const cards = [...root.querySelectorAll<HTMLElement>("[data-resume-card]")];
+
+    if (!track || !sticky || !stage || !stack || !copy || !cards.length) return () => {};
+
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mm = gsap.matchMedia();
+
+    if (reduce) {
+      root.classList.add("is-static");
+      gsap.set(cards, {
+        opacity: 0.55,
+        x: (i: number) => (i % 2 === 0 ? -14 : 14) + i * 3,
+        y: (i: number) => i * 5,
+        rotate: (i: number) => (i % 2 === 0 ? -6 : 5) + i,
+        scale: 1,
+      });
+      gsap.set([stack, copy, stat, punch, help], { clearProps: "all" });
+      return () => {};
+    }
+
+    gsap.set(cards, {
+      opacity: 0,
+      y: -140,
+      x: 0,
+      rotate: 0,
+      scale: 1.04,
+      filter: "blur(0px)",
+    });
+    gsap.set(stack, { x: 0, y: 0, scale: 1, opacity: 1, rotate: 0 });
+    gsap.set(copy, { opacity: 0, x: 48, y: 12 });
+    if (stat) gsap.set(stat, { opacity: 0, y: 18 });
+    if (punch) gsap.set(punch, { opacity: 0, y: 12 });
+    if (help) gsap.set(help, { opacity: 0, y: 12 });
+
+    mm.add(
+      {
+        isDesktop: "(min-width: 900px)",
+        isMobile: "(max-width: 899px)",
+      },
+      (context) => {
+        const { isDesktop } = context.conditions as { isDesktop: boolean };
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: track,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: 0.65,
+            pin: sticky,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+            pinType: "fixed",
+          },
+        });
+
+        const beat = 1;
+        cards.forEach((card, i) => {
+          const rotate = getComputedStyle(card).getPropertyValue("--r").trim() || "0deg";
+          const tx = parseFloat(getComputedStyle(card).getPropertyValue("--tx")) || 0;
+          const ty = parseFloat(getComputedStyle(card).getPropertyValue("--ty")) || 0;
+
+          tl.to(
+            card,
+            {
+              opacity: 1,
+              y: ty,
+              x: tx,
+              rotate,
+              scale: 1,
+              duration: beat,
+              ease: "power2.out",
+            },
+            i * beat,
+          );
+
+          if (i > 0) {
+            tl.to(
+              cards.slice(0, i),
+              {
+                opacity: 0.72,
+                filter: "blur(0.55px)",
+                duration: beat * 0.55,
+                ease: "none",
+              },
+              i * beat,
+            );
+          }
+        });
+
+        const pileDone = cards.length * beat;
+        tl.to({}, { duration: beat * 0.4 }, pileDone);
+
+        if (isDesktop) {
+          const plate = stack.querySelector<HTMLElement>(".resume-pile__plate");
+          const climaxScale = 0.92;
+
+          tl.to(
+            stack,
+            {
+              x: () => {
+                const stageW = stage.offsetWidth;
+                const pileW = (plate?.offsetWidth ?? 320) * climaxScale;
+                const padPx = parseFloat(getComputedStyle(copy).paddingRight) || 44;
+                // Keep pile left edge inset equal to copy's right edge inset.
+                return padPx - stageW / 2 + pileW / 2;
+              },
+              xPercent: 0,
+              y: 0,
+              scale: climaxScale,
+              opacity: 1,
+              rotate: 0,
+              duration: beat * 1.4,
+              ease: "power2.inOut",
+            },
+            pileDone + beat * 0.35,
+          );
+
+          tl.to(
+            copy,
+            {
+              opacity: 1,
+              x: 0,
+              y: 0,
+              duration: beat * 1.25,
+              ease: "power3.out",
+            },
+            pileDone + beat * 0.55,
+          );
+        } else {
+          tl.to(
+            stack,
+            {
+              x: 0,
+              y: "-16vh",
+              scale: 0.74,
+              opacity: 0.95,
+              rotate: -2,
+              duration: beat * 1.3,
+              ease: "power2.inOut",
+            },
+            pileDone + beat * 0.35,
+          );
+
+          tl.fromTo(
+            copy,
+            { opacity: 0, x: 0, y: 36 },
+            {
+              opacity: 1,
+              x: 0,
+              y: 0,
+              duration: beat * 1.2,
+              ease: "power3.out",
+            },
+            pileDone + beat * 0.55,
+          );
+        }
+
+        if (stat) {
+          tl.to(
+            stat,
+            {
+              opacity: 1,
+              y: 0,
+              duration: beat * 0.9,
+              ease: "power2.out",
+            },
+            pileDone + beat * 0.7,
+          );
+        }
+
+        if (punch) {
+          tl.to(
+            punch,
+            {
+              opacity: 1,
+              y: 0,
+              duration: beat * 0.85,
+              ease: "power2.out",
+            },
+            pileDone + beat * 1.05,
+          );
+        }
+
+        if (help) {
+          tl.to(
+            help,
+            {
+              opacity: 1,
+              y: 0,
+              duration: beat * 0.8,
+              ease: "power2.out",
+            },
+            pileDone + beat * 1.25,
+          );
+        }
+
+        tl.to({}, { duration: beat * 0.7 });
+
+        return () => {
+          tl.scrollTrigger?.kill();
+          tl.kill();
+        };
+      },
+    );
+
+    return () => {
+      mm.revert();
+    };
+  }
+
+  const roots = document.querySelectorAll<HTMLElement>("[data-resume-pile]");
+  const cleanups = [...roots].map((root) => initResumePile(root));
+
+  const refresh = () => ScrollTrigger.refresh();
+  requestAnimationFrame(refresh);
+  window.addEventListener("load", refresh);
+
+  window.addEventListener("pagehide", () => {
+    cleanups.forEach((fn) => fn?.());
+    window.removeEventListener("load", refresh);
+  });
+</script>
+
+<style>
+  .resume-pile {
+    position: relative;
+    width: 100%;
+    background: #fbf6f3;
+    color: #050505;
+  }
+
+  .resume-pile__track {
+    position: relative;
+    height: 360vh;
+  }
+
+  .resume-pile__sticky {
+    position: relative;
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: clamp(1.25rem, 3vh, 2.5rem) clamp(0.85rem, 2.5vw, 2rem);
+  }
+
+  .resume-pile__atmosphere {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .resume-pile__wash {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 50% 45% at 30% 60%, rgb(255 116 23 / 0.08), transparent 70%),
+      linear-gradient(180deg, #fbf6f3 0%, #f7f4f1 50%, #fbf6f3 100%);
+  }
+
+  .resume-pile__dots {
+    display: none;
+  }
+
+  .resume-pile__shell {
+    position: relative;
+    z-index: 2;
+    width: min(100%, 86rem);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-inline: clamp(0.25rem, 1vw, 0.5rem);
+  }
+
+  .resume-pile__section-head {
+    display: grid;
+    gap: 1rem 2rem;
+    align-items: end;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgb(5 5 5 / 0.1);
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile__section-head {
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+    }
+  }
+
+  .resume-pile__section-kicker {
+    margin: 0 0 0.55rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.45);
+  }
+
+  .resume-pile__section-title {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-weight: 400;
+    font-size: clamp(2.1rem, 5.5vw, 3.75rem);
+    line-height: 1;
+    letter-spacing: -0.035em;
+    color: rgb(5 5 5 / 0.72);
+  }
+
+  .resume-pile__section-title-em {
+    font-weight: 600;
+    color: #ff7417;
+  }
+
+  .resume-pile__section-aside {
+    margin: 0;
+    max-width: 17rem;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    line-height: 1.45;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.78);
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile__section-aside {
+      justify-self: end;
+      text-align: right;
+      padding-bottom: 0.15rem;
+    }
+  }
+
+  .resume-pile__stage {
+    position: relative;
+    width: 100%;
+    min-height: min(60vh, 34rem);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgb(5 5 5 / 0.14);
+    border-radius: 0;
+    --stage-pad: clamp(1.5rem, 2.8vw, 2.5rem);
+    --grid-size: 40px;
+    background: #fffefb;
+    box-shadow: none;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.75rem),
+      calc(100% - 0.75rem) 100%,
+      0 100%
+    );
+  }
+
+  .resume-pile__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(rgb(5 5 5 / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(5 5 5 / 0.06) 1px, transparent 1px);
+    background-size: var(--grid-size) var(--grid-size);
+    background-position: 0 0;
+  }
+
+  .resume-pile__cross {
+    position: absolute;
+    z-index: 3;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+  }
+
+  .resume-pile__cross::before,
+  .resume-pile__cross::after {
+    content: "";
+    position: absolute;
+    background: rgb(5 5 5 / 0.35);
+  }
+
+  .resume-pile__cross::before {
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+
+  .resume-pile__cross::after {
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  .resume-pile__cross--tl { top: 0.55rem; left: 0.55rem; }
+  .resume-pile__cross--tr { top: 0.55rem; right: 0.55rem; }
+  .resume-pile__cross--bl { bottom: 0.55rem; left: 0.55rem; }
+  .resume-pile__cross--br { bottom: 0.9rem; right: 0.9rem; }
+
+  @media (min-width: 900px) {
+    .resume-pile__stage {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: stretch;
+      min-height: min(56vh, 32rem);
+    }
+  }
+
+  .resume-pile__stack {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    transform-origin: 50% 50%;
+    will-change: transform, opacity;
+  }
+
+  .resume-pile__plate {
+    position: absolute;
+    width: min(22rem, 72vw);
+    height: min(25rem, 52vh);
+    border: 1px solid rgb(5 5 5 / 0.2);
+    border-radius: 0;
+    background: #ff7417;
+    box-shadow: none;
+    opacity: 1;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.65rem),
+      calc(100% - 0.65rem) 100%,
+      0 100%
+    );
+  }
+
+  .resume-pile__plate::after {
+    display: none;
+  }
+
+  .resume-pile__plate-label,
+  .resume-pile__plate-meta {
+    position: absolute;
+    z-index: 2;
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.9);
+  }
+
+  .resume-pile__plate-label {
+    top: 0.95rem;
+    left: 1rem;
+    font-size: 0.58rem;
+    font-weight: 600;
+  }
+
+  .resume-pile__plate-meta {
+    bottom: 0.95rem;
+    left: 1rem;
+    font-size: 0.55rem;
+    font-weight: 500;
+    color: rgb(255 255 255 / 0.7);
+  }
+
+  .resume-card {
+    position: absolute;
+    width: min(16.5rem, 58vw);
+    aspect-ratio: 8.5 / 11;
+    padding: 1rem 1.05rem 1.15rem;
+    border: 1px solid rgb(5 5 5 / 0.16);
+    border-radius: 0;
+    background: #fffefb;
+    box-shadow: none;
+    transform: translate3d(var(--tx, 0), var(--ty, 0), 0) rotate(var(--r, 0deg));
+    transform-origin: 50% 60%;
+    z-index: var(--z, 1);
+    opacity: 0;
+    will-change: transform, opacity, filter;
+  }
+
+  .resume-card__stamp {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.18rem 0.35rem;
+    border: 1px solid rgb(5 5 5 / 0.2);
+    border-radius: 0;
+    color: #bf4f08;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.52rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transform: none;
+    opacity: 0.9;
+  }
+
+  .resume-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .resume-card__avatar {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    border-radius: 0;
+    border: 1px solid rgb(5 5 5 / 0.16);
+    background: #ff7417;
+  }
+
+  .resume-card__name {
+    margin: 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.88rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+    color: #050505;
+  }
+
+  .resume-card__role {
+    margin: 0.1rem 0 0;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.48);
+  }
+
+  .resume-card__company {
+    margin: 0.75rem 0 0;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgb(5 5 5 / 0.1);
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.58rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.4);
+  }
+
+  .resume-card__lines {
+    display: grid;
+    gap: 0.34rem;
+    margin-top: 0.85rem;
+  }
+
+  .resume-card__lines span {
+    display: block;
+    height: 0.28rem;
+    border-radius: 0;
+    background: rgb(5 5 5 / 0.08);
+  }
+
+  .resume-card__lines span:nth-child(1) { width: 92%; }
+  .resume-card__lines span:nth-child(2) { width: 78%; }
+  .resume-card__lines span:nth-child(3) { width: 86%; }
+  .resume-card__lines span:nth-child(4) { width: 64%; }
+  .resume-card__lines span:nth-child(5) { width: 72%; }
+
+  .resume-card__bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.3rem;
+    margin-top: 0.95rem;
+  }
+
+  .resume-card__bars span {
+    height: 2rem;
+    border-radius: 0;
+    border: 1px solid rgb(5 5 5 / 0.1);
+    background: #f7f4f1;
+  }
+
+  .resume-pile__copy {
+    position: relative;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    width: 100%;
+    padding-block: clamp(1.5rem, 3.5vw, 2.5rem);
+    padding-inline: var(--stage-pad, clamp(1.5rem, 2.8vw, 2.5rem));
+    text-align: right;
+    opacity: 0;
+    will-change: transform, opacity;
+    background: transparent;
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile__copy {
+      grid-column: 2;
+      justify-self: stretch;
+      align-self: stretch;
+      max-width: none;
+      text-align: right;
+      padding-inline: var(--stage-pad);
+    }
+  }
+
+  .resume-pile__keyword {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.35rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgb(5 5 5 / 0.12);
+    font-family: Manrope, system-ui, sans-serif;
+    color: #050505;
+  }
+
+  .resume-pile__keyword-slash {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: rgb(5 5 5 / 0.28);
+    user-select: none;
+  }
+
+  .resume-pile__keyword-icon {
+    display: grid;
+    place-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 0;
+    border: 1px solid #050505;
+    background: #ff7417;
+    color: #fff;
+    box-shadow: none;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.22rem),
+      calc(100% - 0.22rem) 100%,
+      0 100%
+    );
+  }
+
+  .resume-pile__keyword-icon svg {
+    width: 0.62rem;
+    height: 0.62rem;
+  }
+
+  .resume-pile__keyword-text {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #050505;
+  }
+
+  .resume-pile__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.35rem;
+    margin: 0 0 1.35rem;
+    opacity: 0;
+  }
+
+  .resume-pile__stat-num {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(3.75rem, 7.5vw, 5.75rem);
+    font-weight: 650;
+    line-height: 0.9;
+    letter-spacing: -0.05em;
+    color: #ff7417;
+  }
+
+  .resume-pile__stat-label {
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(5 5 5 / 0.48);
+  }
+
+  .resume-pile__punch {
+    margin: 0;
+    max-width: 22rem;
+    margin-left: auto;
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: clamp(1.15rem, 1.7vw, 1.45rem);
+    font-weight: 550;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    color: #050505;
+    opacity: 0;
+  }
+
+  .resume-pile__help {
+    margin: 1.25rem 0 0;
+    max-width: 20rem;
+    margin-left: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgb(5 5 5 / 0.1);
+    font-family: Manrope, system-ui, sans-serif;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    color: #bf4f08;
+  }
+
+  .resume-pile.is-static .resume-pile__track {
+    height: auto;
+  }
+
+  .resume-pile.is-static .resume-pile__sticky {
+    height: auto;
+    min-height: auto;
+    padding-block: clamp(3rem, 8vw, 5.5rem);
+  }
+
+  .resume-pile.is-static .resume-pile__stage {
+    min-height: 24rem;
+  }
+
+  .resume-pile.is-static .resume-pile__stack {
+    position: relative;
+    inset: auto;
+    opacity: 1;
+    min-height: 18rem;
+  }
+
+  .resume-pile.is-static .resume-card {
+    opacity: 0.55;
+  }
+
+  .resume-pile.is-static .resume-pile__copy,
+  .resume-pile.is-static .resume-pile__stat,
+  .resume-pile.is-static .resume-pile__punch,
+  .resume-pile.is-static .resume-pile__help {
+    opacity: 1;
+  }
+
+  @media (min-width: 900px) {
+    .resume-pile.is-static .resume-pile__stack {
+      position: relative;
+      grid-column: 1;
+      transform: none;
+    }
+
+    .resume-pile.is-static .resume-pile__copy {
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 899px) {
+    .resume-pile__track {
+      height: 320vh;
+    }
+
+    .resume-pile__section-title {
+      font-size: clamp(2rem, 9vw, 2.85rem);
+    }
+
+    .resume-pile__stage {
+      min-height: min(68vh, 34rem);
+      border-radius: 0;
+    }
+
+    .resume-card {
+      width: min(14rem, 54vw);
+    }
+
+    .resume-pile__plate {
+      width: min(18.5rem, 72vw);
+      height: min(21rem, 44vh);
+      border-radius: 0;
+    }
+
+    .resume-pile__copy {
+      align-self: end;
+      align-items: flex-end;
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      text-align: right;
+      background: linear-gradient(180deg, transparent 0%, rgb(255 254 251 / 0.9) 35%);
+    }
+
+    .resume-pile.is-static .resume-pile__stage {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: auto;
+    }
+
+    .resume-pile.is-static .resume-pile__stack {
+      min-height: 14rem;
+      order: -1;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .resume-pile__stat,
+    .resume-pile__punch {
+      opacity: 1;
+    }
+  }
+</style>

@@ -56,124 +56,126 @@ const builders = [
 ];
 ---
 
-<section
+<div
   id="demo"
   class="product-demo"
   data-product-demo
   aria-label="Product demo"
 >
-  <div class="product-demo-backdrop" aria-hidden="true"></div>
+  <div class="product-demo-wash" aria-hidden="true"></div>
 
-  <div class="product-demo-frame">
-    <div class="product-demo-stage" data-demo-stage>
-      <div class="product-demo-camera" data-demo-camera>
-        <div class="product-demo-chrome" data-demo-chrome>
-          <div class="product-demo-chrome-bar">
-            <div class="product-demo-dots" aria-hidden="true">
-              <span></span><span></span><span></span>
-            </div>
-            <p class="product-demo-chrome-label">Founder agent</p>
-            <span class="product-demo-live" data-demo-live>idle</span>
-          </div>
-
-          <div class="product-demo-body">
-            <div class="product-demo-search" data-demo-search>
-              <svg class="product-demo-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-              </svg>
-              <p class="product-demo-query" aria-live="polite">
-                <span data-demo-typewriter></span><span class="product-demo-caret" data-demo-caret></span>
-              </p>
-            </div>
-
-            <div class="product-demo-think" data-demo-think hidden>
-              <div class="product-demo-think-head">
-                <span class="product-demo-think-pulse" aria-hidden="true"></span>
-                <span data-demo-think-label>Thinking</span>
-                <span class="product-demo-think-time" data-demo-think-time>0.0s</span>
+  <div class="product-demo-shell">
+    <div class="product-demo-frame">
+      <div class="product-demo-stage" data-demo-stage>
+        <div class="product-demo-camera" data-demo-camera>
+          <div class="product-demo-chrome" data-demo-chrome>
+            <div class="product-demo-chrome-bar">
+              <div class="product-demo-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
               </div>
-              <ul class="product-demo-steps" data-demo-steps>
-                {steps.map((step) => (
-                  <li class="product-demo-step" data-step={step.id}>
-                    <span class="product-demo-step-mark" aria-hidden="true"></span>
-                    <span class="product-demo-step-label">{step.label}</span>
-                    <span class="product-demo-step-chip" data-step-chip></span>
-                  </li>
-                ))}
-              </ul>
+              <p class="product-demo-chrome-label">Founder agent</p>
+              <span class="product-demo-live" data-demo-live>idle</span>
             </div>
 
-            <div class="product-demo-results" data-demo-results hidden>
-              <div class="product-demo-results-head">
-                <p>Shortlist ready</p>
-                <span data-demo-count>0 builders</span>
+            <div class="product-demo-body">
+              <div class="product-demo-search" data-demo-search>
+                <svg class="product-demo-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <p class="product-demo-query" aria-live="polite">
+                  <span data-demo-typewriter></span><span class="product-demo-caret" data-demo-caret></span>
+                </p>
               </div>
-              <div class="product-demo-cards" data-demo-cards>
-                {builders.map((b, i) => (
-                  <article
-                    class="product-demo-card"
-                    data-demo-card
-                    data-card-id={b.id}
-                    data-index={i}
-                    style={`--card-accent: ${b.accent}`}
-                    tabindex="0"
-                    role="button"
-                    aria-label={`Expand ${b.name}`}
-                  >
-                    <div class="product-demo-card-top">
-                      <div class="product-demo-avatar" style={`background:${b.accent}`}>{b.initials}</div>
-                      <div class="product-demo-card-meta">
-                        <p class="product-demo-card-name">{b.name}</p>
-                        <p class="product-demo-card-role">{b.role}</p>
-                      </div>
-                      <span class="product-demo-match">{b.match}%</span>
-                    </div>
 
-                    <p class="product-demo-why">{b.why}</p>
+              <div class="product-demo-think" data-demo-think hidden>
+                <div class="product-demo-think-head">
+                  <span class="product-demo-think-pulse" aria-hidden="true"></span>
+                  <span data-demo-think-label>Thinking</span>
+                  <span class="product-demo-think-time" data-demo-think-time>0.0s</span>
+                </div>
+                <ul class="product-demo-steps" data-demo-steps>
+                  {steps.map((step) => (
+                    <li class="product-demo-step" data-step={step.id}>
+                      <span class="product-demo-step-mark" aria-hidden="true"></span>
+                      <span class="product-demo-step-label">{step.label}</span>
+                      <span class="product-demo-step-chip" data-step-chip></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
-                    <div class="product-demo-stats">
-                      <div>
-                        <span>Ship</span>
-                        <strong>{b.ship}</strong>
+              <div class="product-demo-results" data-demo-results hidden>
+                <div class="product-demo-results-head">
+                  <p>Shortlist ready</p>
+                  <span data-demo-count>0 builders</span>
+                </div>
+                <div class="product-demo-cards" data-demo-cards>
+                  {builders.map((b, i) => (
+                    <article
+                      class="product-demo-card"
+                      data-demo-card
+                      data-card-id={b.id}
+                      data-index={i}
+                      style={`--card-accent: ${b.accent}`}
+                      tabindex="0"
+                      role="button"
+                      aria-label={`Expand ${b.name}`}
+                    >
+                      <div class="product-demo-card-top">
+                        <div class="product-demo-avatar" style={`background:${b.accent}`}>{b.initials}</div>
+                        <div class="product-demo-card-meta">
+                          <p class="product-demo-card-name">{b.name}</p>
+                          <p class="product-demo-card-role">{b.role}</p>
+                        </div>
+                        <span class="product-demo-match">{b.match}%</span>
                       </div>
-                      <div>
-                        <span>Shipped</span>
-                        <strong>{b.shipped}</strong>
-                      </div>
-                      <div>
-                        <span>Signal</span>
-                        <strong>{b.ex}</strong>
-                      </div>
-                    </div>
 
-                    <div class="product-demo-spark" aria-hidden="true">
-                      {b.activity.map((v) => (
-                        <span style={`height:${(v / 9) * 100}%`}></span>
-                      ))}
-                    </div>
+                      <p class="product-demo-why">{b.why}</p>
 
-                    <div class="product-demo-tags">
-                      {b.repos.map((r) => <span class="product-demo-repo">{r}</span>)}
-                      {b.signals.map((s) => <span class="product-demo-signal">{s}</span>)}
-                    </div>
-                  </article>
-                ))}
+                      <div class="product-demo-stats">
+                        <div>
+                          <span>Ship</span>
+                          <strong>{b.ship}</strong>
+                        </div>
+                        <div>
+                          <span>Shipped</span>
+                          <strong>{b.shipped}</strong>
+                        </div>
+                        <div>
+                          <span>Signal</span>
+                          <strong>{b.ex}</strong>
+                        </div>
+                      </div>
+
+                      <div class="product-demo-spark" aria-hidden="true">
+                        {b.activity.map((v) => (
+                          <span style={`height:${(v / 9) * 100}%`}></span>
+                        ))}
+                      </div>
+
+                      <div class="product-demo-tags">
+                        {b.repos.map((r) => <span class="product-demo-repo">{r}</span>)}
+                        {b.signals.map((s) => <span class="product-demo-signal">{s}</span>)}
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="product-demo-zoom" data-demo-zoom hidden>
-        <button type="button" class="product-demo-zoom-close" data-demo-zoom-close aria-label="Close">
-          Close
-        </button>
-        <div class="product-demo-zoom-panel" data-demo-zoom-panel></div>
+        <div class="product-demo-zoom" data-demo-zoom hidden>
+          <button type="button" class="product-demo-zoom-close" data-demo-zoom-close aria-label="Close">
+            Close
+          </button>
+          <div class="product-demo-zoom-panel" data-demo-zoom-panel></div>
+        </div>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 <script>
   const QUERY = "Give me a developer who has experience in Stripe integration";
@@ -588,15 +590,17 @@ const builders = [
   .product-demo {
     position: relative;
     width: 100%;
-    overflow: hidden;
-    /* Full-bleed “video” plate under the looping demo */
-    background: #1a1410;
-    padding: clamp(2.5rem, 6vw, 4.5rem) 1.25rem;
+    overflow: visible;
+    /* Transparent when nested in hero — parent atmosphere carries the wash */
+    background: transparent;
+    margin-top: 0;
+    padding: 0.5rem 1.25rem clamp(2rem, 5vw, 3.25rem);
   }
 
   @media (min-width: 640px) {
     .product-demo {
       padding-inline: 2rem;
+      padding-top: 0.75rem;
     }
   }
 
@@ -606,48 +610,61 @@ const builders = [
     }
   }
 
-  .product-demo-backdrop {
+  /* Fallback wash if rendered standalone (hidden when nested in .landing-hero) */
+  .product-demo-wash {
     position: absolute;
-    inset: 0;
+    inset: -10% -8% 16%;
     pointer-events: none;
+    z-index: 0;
     background:
-      radial-gradient(ellipse at 50% 0%, rgba(255, 116, 23, 0.22), transparent 55%),
-      radial-gradient(ellipse at 80% 100%, rgba(255, 116, 23, 0.1), transparent 45%),
-      linear-gradient(180deg, #241a14 0%, #14100d 55%, #0f0c0a 100%);
+      radial-gradient(ellipse 85% 55% at 55% 28%, rgb(255 116 23 / 0.18), transparent 65%),
+      radial-gradient(ellipse 95% 60% at 45% 48%, rgb(255 180 120 / 0.22), transparent 72%),
+      linear-gradient(
+        180deg,
+        rgb(255 220 190 / 0.45) 0%,
+        rgb(255 232 214 / 0.3) 40%,
+        #fbf6f3 100%
+      );
   }
 
-  .product-demo-backdrop::after {
+  .product-demo-wash::after {
     content: "";
     position: absolute;
-    inset: 0;
-    opacity: 0.35;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
+    inset: 18% 8% 28%;
+    opacity: 0.18;
+    background-image: radial-gradient(rgb(191 79 8 / 0.28) 0.55px, transparent 0.7px);
+    background-size: 7px 7px;
+    mask-image: radial-gradient(ellipse at 50% 40%, #000 8%, transparent 68%);
+    -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 8%, transparent 68%);
   }
 
-  .product-demo-frame {
+  .product-demo-shell {
     position: relative;
     z-index: 1;
     width: 100%;
     max-width: 72rem;
     margin-inline: auto;
-    /* Video-player bezel */
-    padding: 0.55rem;
-    border: 1px solid rgb(255 255 255 / 0.1);
-    background: rgb(8 6 5 / 0.72);
+  }
+
+  .product-demo-frame {
+    position: relative;
+    width: 100%;
+    padding: 0.65rem;
+    border: 1px solid rgb(5 5 5 / 0.1);
+    border-radius: 0.35rem;
+    background: #fffaf7;
     box-shadow:
-      0 0 0 1px rgb(0 0 0 / 0.4),
-      0 40px 100px rgb(0 0 0 / 0.45);
+      0 1px 0 rgb(255 255 255 / 0.85) inset,
+      0 32px 90px rgb(5 5 5 / 0.12),
+      0 10px 28px rgb(255 116 23 / 0.08);
   }
 
   .product-demo-stage {
     position: relative;
     overflow: hidden;
-    /* Fixed “viewfinder” so camera pans feel intentional */
     min-height: clamp(24rem, 56vw, 32rem);
+    border: 1px solid rgb(5 5 5 / 0.08);
+    background: #fff;
   }
 
   .product-demo-camera {
@@ -658,7 +675,7 @@ const builders = [
   }
 
   .product-demo-chrome {
-    border: 1px solid rgb(5 5 5 / 0.12);
+    border: none;
     background: #fffaf7;
     overflow: hidden;
     transition:

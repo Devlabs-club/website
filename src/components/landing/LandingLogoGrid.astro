@@ -1,0 +1,262 @@
+---
+interface LogoItem {
+  name: string;
+  logo: string;
+  alt?: string;
+  url?: string;
+}
+
+interface Props {
+  logos: LogoItem[];
+  class?: string;
+}
+
+const { logos, class: className } = Astro.props;
+
+/** Pad to a clean 8-cell grid (2×4 mobile / 4×2 desktop). */
+const padLogos: LogoItem[] =
+  logos.length === 7
+    ? [
+        ...logos,
+        {
+          name: "Cloudflare",
+          logo: "/sponsors/cloudflare.svg",
+          alt: "Cloudflare",
+        },
+      ]
+    : logos;
+---
+
+<section
+  class:list={["landing-logo-grid", className]}
+  aria-label="Trusted by"
+>
+  <div class="landing-logo-grid__frame">
+    {
+      padLogos.map((item) => (
+        <div class="landing-logo-grid__cell">
+          <span class="landing-logo-grid__cross landing-logo-grid__cross--tl" aria-hidden="true" />
+          <img
+            src={item.logo}
+            alt={item.alt ?? item.name}
+            loading="lazy"
+            class="landing-logo-grid__logo"
+          />
+        </div>
+      ))
+    }
+    {/* Outer edge crosses: top-right of each row-end cell + full bottom row */}
+    <span class="landing-logo-grid__cross landing-logo-grid__cross--tr" aria-hidden="true" />
+    <span class="landing-logo-grid__cross landing-logo-grid__cross--bl" aria-hidden="true" />
+    <span class="landing-logo-grid__cross landing-logo-grid__cross--br" aria-hidden="true" />
+    {
+      /* Mid-edge crosses along bottom (desktop 4-col, mobile 2-col) */
+      [1, 2, 3].map((i) => (
+        <span
+          class:list={[
+            "landing-logo-grid__cross",
+            "landing-logo-grid__cross--bottom",
+            i > 1 && "landing-logo-grid__cross--desktop-only",
+          ]}
+          style={`--i: ${i};`}
+          aria-hidden="true"
+        />
+      ))
+    }
+    {
+      [1].map((i) => (
+        <span
+          class="landing-logo-grid__cross landing-logo-grid__cross--right landing-logo-grid__cross--desktop-mid"
+          style={`--i: ${i};`}
+          aria-hidden="true"
+        />
+      ))
+    }
+    {
+      [1, 2, 3].map((i) => (
+        <span
+          class="landing-logo-grid__cross landing-logo-grid__cross--right landing-logo-grid__cross--mobile-mid"
+          style={`--i: ${i};`}
+          aria-hidden="true"
+        />
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .landing-logo-grid {
+    width: 100%;
+    background: #fbf6f3;
+    padding: 0 1.25rem 0;
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid {
+      padding-inline: 2rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .landing-logo-grid {
+      padding-inline: 2.5rem;
+    }
+  }
+
+  .landing-logo-grid__frame {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    border-top: 1px solid rgb(5 5 5 / 0.12);
+    border-left: 1px solid rgb(5 5 5 / 0.12);
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__frame {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .landing-logo-grid__cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 5.25rem;
+    padding: 1.25rem 1rem;
+    border-right: 1px solid rgb(5 5 5 / 0.12);
+    border-bottom: 1px solid rgb(5 5 5 / 0.12);
+    background: #fbf6f3;
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__cell {
+      min-height: 6.25rem;
+      padding: 1.6rem 1.25rem;
+    }
+  }
+
+  .landing-logo-grid__logo {
+    max-height: 2rem;
+    max-width: 7.5rem;
+    width: auto;
+    object-fit: contain;
+    opacity: 0.48;
+    filter: grayscale(1) brightness(0);
+    transition: opacity 220ms ease;
+  }
+
+  .landing-logo-grid__cell:hover .landing-logo-grid__logo {
+    opacity: 0.85;
+  }
+
+  .landing-logo-grid__cross {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .landing-logo-grid__cross::before,
+  .landing-logo-grid__cross::after {
+    content: "";
+    position: absolute;
+    background: rgb(5 5 5 / 0.38);
+  }
+
+  .landing-logo-grid__cross::before {
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+
+  .landing-logo-grid__cross::after {
+    top: 50%;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    transform: translateY(-50%);
+  }
+
+  /* Top-left of every cell */
+  .landing-logo-grid__cross--tl {
+    top: 0;
+    left: 0;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Frame outer corners */
+  .landing-logo-grid__cross--tr {
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+  }
+
+  .landing-logo-grid__cross--bl {
+    bottom: 0;
+    left: 0;
+    transform: translate(-50%, 50%);
+  }
+
+  .landing-logo-grid__cross--br {
+    bottom: 0;
+    right: 0;
+    transform: translate(50%, 50%);
+  }
+
+  /* Bottom edge mids: i/2 mobile, i/4 desktop */
+  .landing-logo-grid__cross--bottom {
+    bottom: 0;
+    left: calc(var(--i) / 2 * 100%);
+    transform: translate(-50%, 50%);
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__cross--bottom {
+      left: calc(var(--i) / 4 * 100%);
+    }
+  }
+
+  .landing-logo-grid__cross--desktop-only {
+    display: none;
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__cross--desktop-only {
+      display: block;
+    }
+  }
+
+  /* Right edge mids — mobile (4 rows → at 25/50/75%) */
+  .landing-logo-grid__cross--mobile-mid {
+    right: 0;
+    top: calc(var(--i) / 4 * 100%);
+    transform: translate(50%, -50%);
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__cross--mobile-mid {
+      display: none;
+    }
+  }
+
+  /* Right edge mid — desktop (2 rows → mid at 50%) */
+  .landing-logo-grid__cross--desktop-mid {
+    display: none;
+    right: 0;
+    top: 50%;
+    transform: translate(50%, -50%);
+  }
+
+  @media (min-width: 640px) {
+    .landing-logo-grid__cross--desktop-mid {
+      display: block;
+    }
+  }
+</style>
