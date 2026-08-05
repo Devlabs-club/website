@@ -79,6 +79,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   // /founder → founders only (admins allowed for ops). Unscoped role → pick one.
   if (matchesPrefix(pathname, '/founder')) {
+    // The claim landing turns any authenticated user into a founder (binds a role
+    // DevLabs pre-built for them), so it must run before the founder-role gate.
+    if (pathname.startsWith('/founder/claim/')) return next();
     if (hasRole(payload, ['founder', 'admin'])) return next();
     if (hasRole(payload, ['user'])) {
       return context.redirect(`/auth/select-role?redirect=${encodeURIComponent(`${pathname}${search || ''}`)}`);
