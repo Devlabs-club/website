@@ -74,10 +74,15 @@ async function callOpenRouter(body: Record<string, unknown>): Promise<Record<str
     throw new Error(`OpenRouter request failed (${res.status}): ${details}`);
   }
   const data = await res.json();
+  const usage = (data as any)?.usage || {};
   console.info('[openrouter] chat completion ok', {
     model: body.model,
     durationMs: Date.now() - startedAt,
     hasTools: Array.isArray(body.tools),
+    promptTokens: usage.prompt_tokens ?? null,
+    completionTokens: usage.completion_tokens ?? null,
+    totalTokens: usage.total_tokens ?? null,
+    costUsd: usage.cost ?? usage.total_cost ?? null,
   });
   return data;
 }

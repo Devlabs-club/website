@@ -91,7 +91,7 @@ export function computeOverallFit(components: CandidateScoreComponents, weights:
     missingEvidencePenalty: weights.missingEvidencePenalty ?? 0,
   };
 
-  const llmAdj = Math.max(-0.08, Math.min(0.08, components.llmRerankAdjustment || 0));
+  const llmAdj = Math.max(-0.25, Math.min(0.25, components.llmRerankAdjustment || 0));
 
   const raw =
     components.deterministicSkillFit * w.deterministicSkillFit +

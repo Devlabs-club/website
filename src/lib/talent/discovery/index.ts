@@ -360,21 +360,21 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       limit: 35,
     });
     const rerankedById = new Map(reranked.map((candidate) => [candidate.builderId, candidate]));
-    // Re-cap LLM adjustment and re-apply must-have gate so LLM cannot override unmet musts.
+    // Apply LLM adjustment on top of the already dossier-blended overallFit.
+    // Recomputing from components alone would drop the domain evidence blend.
     finalCandidates = allScored.map((original) => {
       const candidate = (rerankedById.get(original.builderId) as RankedCandidate | undefined) || original;
-      return (() => {
-        const adj = Math.max(-0.08, Math.min(0.08, candidate.components.llmRerankAdjustment || 0));
-        const components = { ...candidate.components, llmRerankAdjustment: adj };
-        let overallFit = computeOverallFit(components, strategy.weights);
-        overallFit = capOverallFitForMustGate(overallFit, candidate.mustHaveGate);
-        return {
-          ...candidate,
-          components,
-          overallFit,
-          matchLabel: scoreMatchLabel(overallFit),
-        };
-      })();
+      const adj = Math.max(-0.25, Math.min(0.25, candidate.components.llmRerankAdjustment || 0));
+      const components = { ...candidate.components, llmRerankAdjustment: adj };
+      let overallFit = Math.max(0, Math.min(1, original.overallFit + adj));
+      overallFit = capOverallFitForMustGate(overallFit, candidate.mustHaveGate);
+      return {
+        ...candidate,
+        components,
+        overallFit,
+        matchLabel: scoreMatchLabel(overallFit),
+        explanation: candidate.explanation || original.explanation,
+      };
     });
   } else {
     finalCandidates = allScored;
@@ -383,6 +383,14 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   finalCandidates.sort((a, b) => {
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
+    }
+    // After LLM rerank, overallFit already includes domain blend + judgment.
+    // Prefer it so qualitative domain wins can reorder the shortlist.
+    if (enableLlmRerank && generateReply) {
+      if (a.overallFit !== b.overallFit) return b.overallFit - a.overallFit;
+      const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
+      const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;
+      return bEvidence - aEvidence;
     }
     const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
     const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;

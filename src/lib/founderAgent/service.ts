@@ -1510,7 +1510,7 @@ async function runSearchForJob(
             systemPrompt,
             userPrompt,
             temperature: 0,
-            maxTokens: 3200,
+            maxTokens: 4500,
           })
       : undefined,
     semanticScores,
