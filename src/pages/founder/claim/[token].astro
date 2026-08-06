@@ -1,0 +1,158 @@
+---
+import crypto from 'node:crypto';
+import { connectAdminDB } from '@/lib/mongodb';
+import { runtimeEnvFromLocals } from '@/lib/workosEnv';
+import { extractTokenFromCookies, verifyToken, generateToken } from '@/lib/auth';
+import { updateUserAccount } from '@/lib/adminMongo';
+import FounderRoleClaim from '@/models/talent/FounderRoleClaim';
+import JobPosting from '@/models/founder/JobPosting';
+import Shortlist from '@/models/talent/Shortlist';
+import FounderProfile from '@/models/talent/FounderProfile';
+
+export const prerender = false;
+
+const runtime = runtimeEnvFromLocals(Astro.locals);
+const rawToken = Astro.params.token || '';
+const claimPath = `/founder/claim/${encodeURIComponent(rawToken)}`;
+
+// Middleware already guards /founder/*, but verify the session defensively so this
+// page is safe even if that guard ever changes. Unauthenticated → login, and the
+// login round-trip returns here via the existing `redirect` param.
+const cookieHeader = Astro.request.headers.get('cookie') || '';
+const sessionToken = extractTokenFromCookies(cookieHeader);
+const payload = sessionToken ? verifyToken(sessionToken, runtime) : null;
+if (!payload?.userId) {
+  return Astro.redirect(`/auth/login?redirect=${encodeURIComponent(claimPath)}`);
+}
+
+function hashToken(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+let errorMessage: string | null = null;
+
+try {
+  await connectAdminDB();
+  const claim = rawToken ? await FounderRoleClaim.findOne({ tokenHash: hashToken(rawToken) }) : null;
+
+  if (!claim) {
+    errorMessage = 'This claim link is invalid or has already been used.';
+  } else if (claim.status === 'expired' || (claim.expiresAt && new Date(claim.expiresAt).getTime() < Date.now())) {
+    if (claim.status !== 'expired') {
+      claim.status = 'expired';
+      await claim.save();
+    }
+    errorMessage = 'This claim link has expired. Reach out to DevLabs for a fresh one.';
+  } else {
+    const email = String(payload.email || '').toLowerCase().trim();
+    const userId = String(payload.userId);
+
+    // 1. Promote to founder if they signed in as a fresh/unscoped account, and
+    //    refresh the session cookie so the redirect to /founder/* isn't bounced by
+    //    the role gate (the JWT is stateless — a DB update alone won't update it).
+    const role = String(payload.role || '');
+    if (role !== 'founder' && role !== 'admin') {
+      const updated = await updateUserAccount(userId, { role: 'founder', accountType: 'founder' }, runtime);
+      if (updated) {
+        const fresh = generateToken({ _id: userId, email, role: 'founder' } as any, runtime);
+        Astro.cookies.set('auth-token', fresh, {
+          httpOnly: true,
+          path: '/',
+          maxAge: 604800,
+          sameSite: 'lax',
+          secure: import.meta.env.PROD,
+        });
+      }
+    }
+
+    const oppIds = (claim.opportunityIds || []).map((id: any) => id);
+    const firstOpp = oppIds.length ? await JobPosting.findById(oppIds[0]).lean() : null;
+    const companyName = claim.company || (firstOpp as any)?.company || 'My company';
+
+    // 2. Ensure a FounderProfile exists (minimal; onboarding can enrich later).
+    await FounderProfile.updateOne(
+      { userId },
+      {
+        $setOnInsert: {
+          userId,
+          founderEmail: email,
+          founderName: email.split('@')[0] || null,
+          company: companyName,
+        },
+      },
+      { upsert: true }
+    );
+
+    // 3. Bind the pre-built role(s) + shortlist(s) to whichever account claimed —
+    //    authorization comes from the token, identity from the login session.
+    if (oppIds.length) {
+      await JobPosting.updateMany(
+        { _id: { $in: oppIds } },
+        { $set: { founderEmail: email, founderId: userId } }
+      );
+      await Shortlist.updateMany(
+        { opportunityId: { $in: oppIds } },
+        { $set: { founderEmail: email } }
+      );
+    }
+
+    // 4. Consume the token (single use).
+    claim.status = 'consumed';
+    claim.consumedByUserId = userId;
+    claim.consumedByEmail = email;
+    claim.consumedAt = new Date();
+    await claim.save();
+
+    const destination = oppIds.length === 1 ? `/founder/roles/${oppIds[0]}` : '/founder/home';
+    return Astro.redirect(destination);
+  }
+} catch (err) {
+  console.error('[founder/claim] failed', err);
+  errorMessage = 'Something went wrong claiming your role. Please try again, or contact DevLabs.';
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claim your role · DevLabs</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0b0b0f;
+        color: #f5f5f7;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      .card {
+        max-width: 440px;
+        padding: 2.5rem;
+        text-align: center;
+        border: 1px solid #26262e;
+        border-radius: 16px;
+        background: #131319;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+      p { color: #b6b6c0; line-height: 1.5; margin: 0 0 1.5rem; }
+      a {
+        display: inline-block;
+        padding: 0.65rem 1.25rem;
+        border-radius: 10px;
+        background: #5b5bd6;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>We couldn't open this shortlist</h1>
+      <p>{errorMessage}</p>
+      <a href="/founder/home">Go to your dashboard</a>
+    </div>
+  </body>
+</html>
