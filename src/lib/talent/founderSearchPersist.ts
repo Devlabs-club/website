@@ -2,6 +2,7 @@ import MatchRecord from '@/models/talent/MatchRecord';
 import Shortlist from '@/models/talent/Shortlist';
 import type { DiscoveryResult } from '@/lib/talent/discovery/index';
 import { buildMatchEvidenceFromExplanation } from '@/lib/talent/matchEvidence';
+import { resolveCandidateNarrative } from '@/lib/talent/discovery/scoring';
 import { entitlementSnapshot, type FounderEntitlements } from '@/lib/billing/entitlements';
 import {
   buildRoleSkillTiers,
@@ -42,8 +43,7 @@ export async function persistDiscoveryCandidates(params: {
     matchScore: Math.round(candidate.overallFit * 100),
     matchLabel: candidate.matchLabel,
     status: 'generated',
-    reasoning:
-      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
+    reasoning: resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || []),
     requirementFindings: candidate.explanation.requirementFindings || [],
     evidence: buildMatchEvidenceFromExplanation({
       strongestSignals: candidate.explanation.strongestSignals,
@@ -97,9 +97,7 @@ export async function persistDiscoveryCandidates(params: {
         ? domainSkillsMatched
         : candidate.builder.rolePreference?.slice(0, 4) || [],
       proofSummary: candidate.explanation.strongestSignals[0] || '',
-      whyTheyMatch:
-        candidate.explanation.whyTheyMatch ||
-        candidate.explanation.strongestSignals.join('; '),
+      whyTheyMatch: resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || []),
       requirementFindings: candidate.explanation.requirementFindings || [],
     };
   });

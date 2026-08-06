@@ -121,8 +121,10 @@ Your job is to form a calibrated, evidence-based consensus for each builder, inc
 Return strictly valid JSON: {"judgments":[{builderId,evidenceBasedReasoning:string[],risks:string[],recommendedAction:"intro"|"trial"|"save"|"pass",rerankBoost:number,rerankPenalty:number}]}
 Constraints:
 - Return at most 2 evidenceBasedReasoning items and 1 risk, each under 120 characters.
-- rerankBoost and rerankPenalty are each 0-0.08.
-- Prefer small adjustments. Do not invent employers, schools, projects, social activity, work authorization, or GitHub activity absent from the dossier.
+- rerankBoost and rerankPenalty are each 0-0.25.
+- Boost builders whose experience/project proof matches the role's domain center of gravity (what they will actually build). Penalize stack/ship-only profiles that lack that domain proof.
+- Prefer practiced role evidence (job titles, shipped projects, internships in-domain) over course TA / skill-list mentions.
+- Do not invent employers, schools, projects, social activity, work authorization, or GitHub activity absent from the dossier.
 - Never mark a must-have as met without concrete evidence. Do not override unmet must-haves with boosts.
 - You may make a qualitative inference only when multiple evidence fields support it. State uncertainty in missingInformation instead of treating missing public evidence as a negative fact.
 - Include one judgment object per candidate builderId provided.`;
@@ -136,10 +138,17 @@ Constraints:
       : [];
     const github = builder.integrations?.github?.activitySnapshot;
     const sponsorship = builder.workAuthorization || 'Unknown';
+    const dossierWhy = (candidate as any).evidenceDossier?.whyTheyMatch
+      ? String((candidate as any).evidenceDossier.whyTheyMatch).slice(0, 220)
+      : '';
+    const domainScore =
+      (candidate as any).roleDimensionScore?.hits?.find((hit: any) => hit.id === 'domain_depth')?.score;
     return `${index + 1}. builderId=${candidate.builderId}
 Score: ${(candidate.overallFit * 100).toFixed(0)}/100
 Headline: ${builder.headline || 'None'}
 Skills: ${[...(builder.rolePreference || []), ...(builder.skills || [])].slice(0, 8).join(', ') || 'None'}
+Domain depth: ${typeof domainScore === 'number' ? domainScore.toFixed(2) : 'n/a'}
+Role evidence summary: ${dossierWhy || 'None'}
 Deterministic components: skill=${candidate.components.deterministicSkillFit.toFixed(2)}, proof=${candidate.components.proofStrength.toFixed(2)}, GitHub=${candidate.components.githubActivityFit.toFixed(2)}, sponsorship=${candidate.components.sponsorshipFit.toFixed(2)}
 Work authorization: ${sponsorship}
 GitHub activity: ${github?.source === 'github_api'
@@ -153,10 +162,10 @@ Experience:
 ${formatExperience(builder)}
 Projects:
 ${projects
-  .slice(0, 2)
+  .slice(0, 4)
   .map(
     (project: any, projectIndex: number) =>
-      `${projectIndex + 1}. ${project.projectName || 'Unnamed'}: ${String(project.description || '').slice(0, 90)}. Contribution: ${String(project.builderContribution || '').slice(0, 70)}. Stack: ${(project.techStack || []).slice(0, 5).join(', ')}`
+      `${projectIndex + 1}. ${project.projectName || 'Unnamed'}: ${String(project.description || '').slice(0, 140)}. Contribution: ${String(project.builderContribution || '').slice(0, 90)}. Stack: ${(project.techStack || []).slice(0, 5).join(', ')}`
   )
   .join('\n') || 'None'}`;
   });
@@ -228,8 +237,8 @@ ${candidateBlocks.join('\n\n')}`;
           recommendedAction: (['intro', 'trial', 'save', 'pass'].includes(row.recommendedAction)
             ? row.recommendedAction
             : 'save') as LlmCandidateJudgment['recommendedAction'],
-          rerankBoost: Math.min(0.08, Math.max(0, Number(row.rerankBoost) || 0)),
-          rerankPenalty: Math.min(0.08, Math.max(0, Number(row.rerankPenalty) || 0)),
+          rerankBoost: Math.min(0.25, Math.max(0, Number(row.rerankBoost) || 0)),
+          rerankPenalty: Math.min(0.25, Math.max(0, Number(row.rerankPenalty) || 0)),
         };
       })
       .filter(Boolean) as LlmCandidateJudgment[];
@@ -259,7 +268,7 @@ function formatExperience(builder: any): string {
     .slice(0, 5)
     .map((entry: any, i: number) => {
       const title = [entry.title, entry.company].filter(Boolean).join(' at ') || 'Role';
-      const details = [entry.dateRange, entry.description ? String(entry.description).slice(0, 100) : null]
+      const details = [entry.dateRange, entry.description ? String(entry.description).slice(0, 180) : null]
         .filter(Boolean)
         .join('. ');
       return `${i + 1}. ${title}${details ? ` — ${details}` : ''}`;

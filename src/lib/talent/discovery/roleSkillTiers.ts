@@ -1,4 +1,13 @@
-export type RoleDomain = 'mobile' | 'frontend' | 'backend' | 'fullstack' | 'ai' | 'design' | 'hardware' | 'general';
+export type RoleDomain =
+  | 'mobile'
+  | 'frontend'
+  | 'backend'
+  | 'fullstack'
+  | 'ai'
+  | 'design'
+  | 'hardware'
+  | 'security'
+  | 'general';
 
 export type RoleSkillTiers = {
   domain: RoleDomain;
@@ -22,6 +31,12 @@ const ROLE_DOMAIN_CLUSTERS: Record<Exclude<RoleDomain, 'general'>, string[]> = {
     'circuit', 'pcb', 'fpga', 'asic', 'verilog', 'vhdl', 'microcontroller', 'sensor', 'actuator',
     'arduino', 'raspberry pi', 'solidworks', 'cad', 'rtl',
   ],
+  security: [
+    'cybersecurity', 'infosec', 'ethical hacking', 'penetration testing', 'pentest', 'vulnerability',
+    'appsec', 'application security', 'product security', 'soc', 'siem', 'malware', 'cryptography',
+    'reverse engineering', 'bug bounty', 'ctf', 'owasp', 'threat intelligence', 'incident response',
+    'network security', 'red team', 'blue team',
+  ],
 };
 
 const DOMAIN_CONCEPT_KEYS: Record<RoleDomain, string[]> = {
@@ -32,6 +47,17 @@ const DOMAIN_CONCEPT_KEYS: Record<RoleDomain, string[]> = {
   ai: ['ai', 'ai agent', 'agents', 'llm', 'rag'],
   design: [],
   hardware: ['hardware', 'embedded', 'robotics', 'electronics', 'fpga', 'pcb'],
+  security: [
+    'cybersecurity',
+    'infosec',
+    'ethical hacking',
+    'penetration testing',
+    'soc',
+    'appsec',
+    'product security',
+    'malware',
+    'ctf',
+  ],
   general: [],
 };
 
@@ -73,6 +99,9 @@ export function skillsMatch(builderSkill: string, requiredSkill: string) {
 
 export function detectRoleDomain(roleTitle: string, skills: string[] = []): RoleDomain {
   const lower = `${roleTitle} ${skills.join(' ')}`.toLowerCase();
+  if (/cyber\s*sec|infosec|ethical\s*hack|penetration|pentest|\bsoc\b|app\s*sec|product\s*security|malware|bug\s*bounty|\bctf\b/i.test(lower)) {
+    return 'security';
+  }
   if (/mobile|ios|android|flutter|react native|swift|expo|app developer/i.test(lower)) return 'mobile';
   if (/machine learning|ml engineer|ai engineer|llm|rag\b|openai/i.test(lower)) return 'ai';
   if (/full[\s-]?stack/i.test(lower)) return 'fullstack';
@@ -96,14 +125,14 @@ export function buildRoleSkillTiers(opportunity: {
   const domain = detectRoleDomain(opportunity.roleTitle || opportunity.title || '', original);
   const cluster = domain === 'general' ? [] : ROLE_DOMAIN_CLUSTERS[domain];
   const genericLanguages = new Set(['c', 'c++', 'c#', 'java', 'python', 'javascript', 'typescript', 'go', 'rust']);
-  // For a physical-systems role, C/C++ alone is supporting evidence—not proof
-  // that the builder has hardware or robotics experience.
-  const primarySkills = domain === 'hardware'
+  // For physical-systems / security roles, generic languages are supporting only.
+  const domainPrimaryOnly = domain === 'hardware' || domain === 'security';
+  const primarySkills = domainPrimaryOnly
     ? uniqueSkills([...cluster, ...original.filter((skill) => !genericLanguages.has(skill))])
     : uniqueSkills([...original, ...cluster]);
   const primarySet = new Set(primarySkills);
   const secondarySkills = uniqueSkills([
-    ...(domain === 'hardware' ? original.filter((skill) => genericLanguages.has(skill)) : []),
+    ...(domainPrimaryOnly ? original.filter((skill) => genericLanguages.has(skill)) : []),
     ...shaped.filter((skill) => !primarySet.has(skill)),
     ...niceToHave,
   ]).filter((skill) => !primarySkills.some((primary) => skillsMatch(skill, primary)));

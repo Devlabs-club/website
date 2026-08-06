@@ -91,7 +91,7 @@ export function computeOverallFit(components: CandidateScoreComponents, weights:
     missingEvidencePenalty: weights.missingEvidencePenalty ?? 0,
   };
 
-  const llmAdj = Math.max(-0.08, Math.min(0.08, components.llmRerankAdjustment || 0));
+  const llmAdj = Math.max(-0.25, Math.min(0.25, components.llmRerankAdjustment || 0));
 
   const raw =
     components.deterministicSkillFit * w.deterministicSkillFit +
@@ -460,6 +460,32 @@ export function buildCandidateExplanation(params: {
     bestUseCase: deriveBestUseCase(builder, projects, opportunity),
     recommendedAction,
   };
+}
+
+/**
+ * Single source of truth for the persisted "why hire" narrative.
+ * whyTheyMatch should always be a non-empty string from buildCandidateExplanation,
+ * but if it's ever blank (upstream regression), avoid falling back to a raw
+ * strongestSignals join — that list is threshold-based and collapses to identical
+ * text across builders who cross the same cutoffs on the same role. Anchor the
+ * fallback to something builder-specific instead so it can't repeat verbatim.
+ */
+export function resolveCandidateNarrative(
+  explanation: Pick<CandidateExplanation, 'whyTheyMatch' | 'strongestSignals'>,
+  builder: any,
+  projects: any[]
+): string {
+  const narrative = String(explanation.whyTheyMatch || '').trim();
+  if (narrative) return narrative;
+
+  const project = projects?.find((p: any) => p?.projectName) || projects?.[0];
+  const anchor = project?.projectName
+    ? `Strongest proof: ${project.projectName}.`
+    : builder?.headline
+      ? `${String(builder.headline).slice(0, 80)}.`
+      : '';
+  const signals = (explanation.strongestSignals || []).slice(0, 2).join('; ');
+  return [anchor, signals].filter(Boolean).join(' ') || 'Relevant skills and project proof for this role.';
 }
 
 function deriveBestUseCase(builder: any, projects: any[], opportunity: any): string {

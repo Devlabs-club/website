@@ -188,11 +188,19 @@ export async function retrieveRoleShapedBuilderPool(params: {
   const stackLimit = Math.max(16, Math.round(poolTarget * 0.4));
   const vectorLimit = Math.max(16, Math.round(poolTarget * 0.4));
 
+  // V2 vector channel (main): query is role-shaped from the compiled plan —
+  // primary query plus domain anchors — so semantic retrieval follows the same
+  // center of gravity as the lexical domain channel, not a stack-heavy blob.
+  const vectorQuery = uniqueTrimmed(
+    [channels.strategy.primaryQuery, ...channels.domainTerms.slice(0, 10)],
+    12
+  ).join(' ');
+
   const [domainBuilders, mustBuilders, stackBuilders, vectorBuilders] = await Promise.all([
     searchChannel(channels.domainTerms, domainLimit),
     searchChannel(channels.mustTerms, mustLimit),
     searchChannel(channels.stackTerms, stackLimit),
-    vectorChannel(channels.strategy.primaryQuery, vectorLimit),
+    vectorChannel(vectorQuery, vectorLimit),
   ]);
 
   const merged = mergeChannelBuilders({

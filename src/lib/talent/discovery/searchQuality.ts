@@ -6,27 +6,65 @@ export type SearchQualityReport = {
   strongCandidates: number;
   mediumCandidates: number;
   weakCandidates: number;
-  poolStrength: 'weak' | 'medium' | 'strong';
+  poolStrength: 'weak' | 'medium' | 'strong' | 'none';
   confidence: 'low' | 'medium' | 'high';
   bottlenecks: string[];
   suggestedRelaxations: string[];
   suggestedTightening: string[];
   missingSupplySignals: string[];
   summary: string;
+  /** True when no builders cleared must-haves + relevance — shortlist is intentionally empty. */
+  noRelevantMatches: boolean;
 };
 
 export function buildSearchQualityReport(params: {
   totalScanned: number;
   scored: ScoredCandidate[];
+  scoredBeforeRelevanceFilter?: ScoredCandidate[];
   opportunity: any;
   searchMode: string;
+  noRelevantMatches?: boolean;
 }): SearchQualityReport {
   const { totalScanned, scored, opportunity } = params;
+  const noRelevantMatches = Boolean(params.noRelevantMatches) || scored.length === 0;
+  const preFilter = params.scoredBeforeRelevanceFilter || scored;
 
   const strongCandidates = scored.filter((c) => c.matchLabel === 'Strong Match').length;
   const mediumCandidates = scored.filter((c) => c.matchLabel === 'Good Match').length;
   const weakCandidates = scored.filter((c) => c.matchLabel === 'Possible Match' || c.matchLabel === 'Weak Match').length;
   const totalRetrieved = scored.length;
+
+  if (noRelevantMatches) {
+    const mustFailures = preFilter.filter((c) => !c.mustHaveGate?.passesMustGate).length;
+    const bottlenecks = [
+      'No builders in the current pool match this role’s must-haves and domain evidence',
+      ...(mustFailures > 0
+        ? [`${mustFailures} scanned candidates failed one or more must-have requirements`]
+        : []),
+      ...detectBottlenecks(preFilter.slice(0, 12), opportunity).slice(0, 2),
+    ].slice(0, 4);
+    const suggestedRelaxations = buildRelaxationSuggestions(bottlenecks, opportunity, 'none');
+
+    return {
+      totalCandidatesScanned: totalScanned,
+      totalCandidatesRetrieved: 0,
+      strongCandidates: 0,
+      mediumCandidates: 0,
+      weakCandidates: 0,
+      poolStrength: 'none',
+      confidence: 'low',
+      bottlenecks,
+      suggestedRelaxations,
+      suggestedTightening: [],
+      missingSupplySignals: [
+        'No relevant builders available for this role in the current talent pool',
+        ...detectMissingSupply(preFilter.slice(0, 12), opportunity),
+      ].slice(0, 4),
+      summary:
+        'No matching builders found. We are not showing closest-fit profiles because none cleared the role’s must-haves and relevant evidence bar.',
+      noRelevantMatches: true,
+    };
+  }
 
   const poolStrength: SearchQualityReport['poolStrength'] =
     strongCandidates >= 5 ? 'strong'
@@ -65,6 +103,7 @@ export function buildSearchQualityReport(params: {
     suggestedTightening,
     missingSupplySignals,
     summary,
+    noRelevantMatches: false,
   };
 }
 
@@ -122,6 +161,11 @@ function buildRelaxationSuggestions(bottlenecks: string[], opportunity: any, poo
 
   if (bottlenecks.some((b) => b.includes('availability'))) {
     suggestions.push('Consider internship or part-time candidates if full-time is not critical on day one');
+  }
+
+  if (poolStrength === 'none') {
+    suggestions.push('Broaden or rephrase must-haves if the role can accept adjacent experience');
+    suggestions.push('Confirm the role title and domain skills so retrieval can target the right builders');
   }
 
   return suggestions.slice(0, 3);

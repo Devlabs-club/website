@@ -3,6 +3,7 @@ import MatchRecord from '@/models/talent/MatchRecord';
 import Shortlist from '@/models/talent/Shortlist';
 import { runFounderDiscoveryPipeline } from '@/lib/talent/discovery/index';
 import { buildMatchEvidenceFromExplanation } from '@/lib/talent/matchEvidence';
+import { resolveCandidateNarrative } from '@/lib/talent/discovery/scoring';
 import type { FounderEntitlements } from '@/lib/billing/entitlements';
 import {
   searchableBuilderFilter,
@@ -37,8 +38,7 @@ function shortlistCandidateFromDiscovery(
       ? domainSkillsMatched
       : candidate.builder.rolePreference?.slice(0, 4) || [],
     proofSummary: candidate.explanation.strongestSignals[0] || '',
-    whyTheyMatch:
-      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
+    whyTheyMatch: resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || []),
     requirementFindings: candidate.explanation.requirementFindings || [],
   };
 }
@@ -165,8 +165,7 @@ export async function repairShortlistMissingBuilders(params: {
     matchScore: Math.round(candidate.overallFit * 100),
     matchLabel: candidate.matchLabel,
     status: 'generated',
-    reasoning:
-      candidate.explanation.whyTheyMatch || candidate.explanation.strongestSignals.join('; '),
+    reasoning: resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || []),
     requirementFindings: candidate.explanation.requirementFindings || [],
     evidence: buildMatchEvidenceFromExplanation({
       strongestSignals: candidate.explanation.strongestSignals,

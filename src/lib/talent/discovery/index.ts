@@ -33,6 +33,7 @@ import {
 } from '@/lib/talent/sponsorshipInference';
 import {
   buildRoleEvidenceDossier,
+  expandDomainProofTerms,
   opportunityRequiresInternship,
   type RoleEvidenceDossier,
 } from '@/lib/talent/roleEvidenceDossier';
@@ -142,7 +143,9 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     !providedSemanticScores &&
     isTalentSemanticScoringEnabled() &&
     builders.length > 0 &&
-    builders.length <= 40;
+    // Cost is a fixed vector query, not per-builder, so this ceiling only needs
+    // to stay above the retrieval pool target.
+    builders.length <= 250;
 
   if (shouldRunSemantic) {
     try {
@@ -182,8 +185,24 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     }
 
     const githubActivity = githubByBuilder.get(builderId) || null;
+    const baseDimensions = getPlanEvidenceDimensions(opportunity?.searchPlan);
+    // Keep domain_depth vocabulary in sync with the evidence dossier: expand
+    // from plan anchors via domain packs so prose forms (rover, drone, SOC,
+    // pentest, …) score on the dimension the same way they prove role fit.
+    const roleAnchors = (opportunity?.searchPlan?.roleEvidence?.anchorConcepts || []).map(String);
+    const dimensionsForScoring = baseDimensions.map((dimension) => {
+      if (dimension.id !== 'domain_depth' || !roleAnchors.length) return dimension;
+      const expanded = expandDomainProofTerms(
+        [...roleAnchors, ...(dimension.matchAnyOf || [])],
+        roleAnchors
+      );
+      const merged = Array.from(
+        new Set([...(dimension.matchAnyOf || []), ...expanded].map((t) => String(t || '').trim()).filter(Boolean))
+      ).slice(0, 48);
+      return { ...dimension, matchAnyOf: merged };
+    });
     const roleDimensionScore = scoreRoleDimensions({
-      dimensions: getPlanEvidenceDimensions(opportunity?.searchPlan),
+      dimensions: dimensionsForScoring,
       builder,
       projects,
     });
@@ -235,13 +254,36 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     }
 
     let overallFit = computeOverallFit(components, strategy.weights);
-    // Blend dossier evidence into the ranking score so hardware proof outranks
-    // generic C/C++ web projects even when skill-bag fit looks similar.
+    const roleFamily = String(opportunity?.searchPlan?.roleFamily || '');
+    const domainHit = roleDimensionScore?.hits?.find((hit) => hit.id === 'domain_depth');
+    const domainDepthScore = domainHit?.score ?? 0;
+    const domainIsWinning = Boolean(
+      roleDimensionScore?.winningHits?.some((hit) => hit.id === 'domain_depth') ||
+        (domainHit && domainHit.score >= 0.35 && (domainHit.weight || 0) >= 0.2)
+    );
+    const specialistRole = roleFamily === 'specialist' || domainIsWinning;
+
+    // Soft-cap stack/ship when domain proof is empty on specialist JDs so
+    // generalist shippers cannot outrank empty-domain profiles.
+    if (specialistRole && domainDepthScore < 0.12 && !evidenceDossier?.hasRoleProof) {
+      components = {
+        ...components,
+        deterministicSkillFit: Math.min(components.deterministicSkillFit, 0.28),
+        startupReadiness: Math.min(components.startupReadiness, 0.25),
+        proofStrength: Math.min(components.proofStrength, 0.35),
+      };
+      overallFit = computeOverallFit(components, strategy.weights);
+    }
+
+    // Blend dossier evidence into the ranking score so domain proof outranks
+    // generic stack projects even when skill-bag fit looks similar.
     if (evidenceDossier) {
-      overallFit = Math.min(1, overallFit * 0.35 + evidenceDossier.evidenceFit * 0.65);
+      const dossierWeight = specialistRole ? 0.7 : 0.65;
+      overallFit = Math.min(1, overallFit * (1 - dossierWeight) + evidenceDossier.evidenceFit * dossierWeight);
     } else if (roleDimensionScore) {
-      // Role-plan dimensions steer ranking when no evidence dossier is active.
-      overallFit = Math.min(1, overallFit * 0.55 + roleDimensionScore.overall * 0.45);
+      // Specialist / domain-winning roles lean harder on dimension evidence.
+      const dimWeight = specialistRole ? 0.6 : 0.45;
+      overallFit = Math.min(1, overallFit * (1 - dimWeight) + roleDimensionScore.overall * dimWeight);
     }
     overallFit = capOverallFitForMustGate(overallFit, mustHaveGate);
     const matchLabel = scoreMatchLabel(overallFit);
@@ -318,21 +360,21 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
       limit: 35,
     });
     const rerankedById = new Map(reranked.map((candidate) => [candidate.builderId, candidate]));
-    // Re-cap LLM adjustment and re-apply must-have gate so LLM cannot override unmet musts.
+    // Apply LLM adjustment on top of the already dossier-blended overallFit.
+    // Recomputing from components alone would drop the domain evidence blend.
     finalCandidates = allScored.map((original) => {
       const candidate = (rerankedById.get(original.builderId) as RankedCandidate | undefined) || original;
-      return (() => {
-        const adj = Math.max(-0.08, Math.min(0.08, candidate.components.llmRerankAdjustment || 0));
-        const components = { ...candidate.components, llmRerankAdjustment: adj };
-        let overallFit = computeOverallFit(components, strategy.weights);
-        overallFit = capOverallFitForMustGate(overallFit, candidate.mustHaveGate);
-        return {
-          ...candidate,
-          components,
-          overallFit,
-          matchLabel: scoreMatchLabel(overallFit),
-        };
-      })();
+      const adj = Math.max(-0.25, Math.min(0.25, candidate.components.llmRerankAdjustment || 0));
+      const components = { ...candidate.components, llmRerankAdjustment: adj };
+      let overallFit = Math.max(0, Math.min(1, original.overallFit + adj));
+      overallFit = capOverallFitForMustGate(overallFit, candidate.mustHaveGate);
+      return {
+        ...candidate,
+        components,
+        overallFit,
+        matchLabel: scoreMatchLabel(overallFit),
+        explanation: candidate.explanation || original.explanation,
+      };
     });
   } else {
     finalCandidates = allScored;
@@ -341,6 +383,14 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   finalCandidates.sort((a, b) => {
     if (a.mustHaveGate.passesMustGate !== b.mustHaveGate.passesMustGate) {
       return a.mustHaveGate.passesMustGate ? -1 : 1;
+    }
+    // After LLM rerank, overallFit already includes domain blend + judgment.
+    // Prefer it so qualitative domain wins can reorder the shortlist.
+    if (enableLlmRerank && generateReply) {
+      if (a.overallFit !== b.overallFit) return b.overallFit - a.overallFit;
+      const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
+      const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;
+      return bEvidence - aEvidence;
     }
     const aEvidence = a.evidenceDossier?.evidenceFit ?? a.roleDimensionScore?.overall ?? 0;
     const bEvidence = b.evidenceDossier?.evidenceFit ?? b.roleDimensionScore?.overall ?? 0;
@@ -369,14 +419,21 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     rankedForReturn.some((candidate) => candidate.evidenceDossier)
       ? rankedForReturn
       : diversifyCloseScores(rankedForReturn, limit);
-  const returnedCandidates = diversified.slice(0, limit);
+
+  // Only return builders who actually clear must-haves and show relevant role
+  // evidence. Never pad the shortlist with "closest" weak mismatches.
+  const relevantCandidates = filterRelevantCandidates(diversified);
+  const noRelevantMatches = relevantCandidates.length === 0;
+  const returnedCandidates = noRelevantMatches ? [] : relevantCandidates.slice(0, limit);
 
   // Stage 6: search quality report for the shortlist founders actually see
   const searchQuality = buildSearchQualityReport({
     totalScanned: builders.length,
     scored: returnedCandidates,
+    scoredBeforeRelevanceFilter: diversified,
     opportunity,
     searchMode,
+    noRelevantMatches,
   });
 
   const sponsorshipCoverage = jobDoesNotSponsor
@@ -393,6 +450,7 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
     sponsorshipCoverage,
     githubActivityUsed,
     reasoningCohortCount,
+    noRelevantMatches,
   };
 }
 
@@ -428,6 +486,31 @@ function diversifyCloseScores(candidates: RankedCandidate[], limit: number): Ran
   }
 
   return selected;
+}
+
+/**
+ * Drop must-failures and thin "closest" profiles. A relevant builder must pass
+ * every must-have and show at least one of: role proof, domain depth, solid
+ * skill fit, or Good/Strong label.
+ */
+function filterRelevantCandidates(candidates: RankedCandidate[]): RankedCandidate[] {
+  return candidates.filter((candidate) => {
+    if (!candidate.mustHaveGate.passesMustGate) return false;
+
+    const domainScore =
+      candidate.roleDimensionScore?.hits?.find((hit) => hit.id === 'domain_depth')?.score || 0;
+    const hasDomainProof =
+      Boolean(candidate.evidenceDossier?.hasRoleProof) || domainScore >= 0.15;
+
+    if (candidate.matchLabel === 'Strong Match' || candidate.matchLabel === 'Good Match') {
+      return true;
+    }
+
+    const solidSkills = (candidate.components.deterministicSkillFit || 0) >= 0.45;
+    const solidProof = (candidate.components.proofStrength || 0) >= 0.4;
+
+    return hasDomainProof || solidSkills || solidProof;
+  });
 }
 
 function primaryCompany(builder: any): string | null {

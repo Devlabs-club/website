@@ -38,6 +38,10 @@ import { compileSearchPlan, getPlanRetrievalTerms } from '@/lib/talent/searchPla
 import { retrieveSemanticBuilderCandidates, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
 import {
+  buildRetrievalChannels,
+  mergeChannelBuilders,
+} from '@/lib/talent/roleShapedRetrieval';
+import {
   applyCandidateLimit,
   canCreateRole,
   currentPeriodKey,
@@ -639,8 +643,8 @@ function createJobCompensationMessage(missing: string[]) {
 }
 
 /**
- * Founder-facing message after a search runs. Never grades the results negatively
- * or mentions "no strong matches" — surfaces strength only when it's good news.
+ * Founder-facing message after a search runs.
+ * When the pool has no relevant builders, say that clearly — never invent closest fits.
  */
 function searchResultMessage(search: any, prefix = ''): string {
   if (typeof search?.poolNarrative === 'string' && search.poolNarrative.trim()) {
@@ -648,14 +652,19 @@ function searchResultMessage(search: any, prefix = ''): string {
   }
   const total = Number(search?.totalFound || 0);
   const strong = Number(search?.strongCount || 0);
+  const noRelevant =
+    Boolean(search?.noRelevantMatches) ||
+    Boolean(search?.searchQuality?.noRelevantMatches) ||
+    Boolean(search?.poolSummary?.noRelevantMatches) ||
+    total === 0;
   const head = prefix ? `${prefix} ` : '';
   let base = '';
-  if (strong > 0) {
+  if (noRelevant) {
+    base = `${head}I scanned the talent pool and **did not find any builders who match this role**. I'm not showing closest-fit alternatives — none cleared the must-haves and relevant evidence for this search. If you want, we can relax a must-have or broaden the role description and try again.`;
+  } else if (strong > 0) {
     base = `${head}I found ${strong} strong ${strong === 1 ? 'match' : 'matches'} for this role. They're in the builders pane on the right.`;
-  } else if (total > 0) {
-    base = `${head}I pulled together some builders for this role. Take a look in the pane on the right and tell me what stands out.`;
   } else {
-    base = `${head}I just ran the search. Let's add a bit more detail to sharpen it. Anything specific on experience or background?`;
+    base = `${head}I pulled together some builders for this role. Take a look in the pane on the right and tell me what stands out.`;
   }
 
   const extras: string[] = [];
@@ -674,13 +683,17 @@ async function buildFounderPoolNarrative(summary: PoolSummary): Promise<string> 
   if (!hasOpenRouterConfig()) return fallback;
 
   try {
+    const emptyPoolRule = summary.noRelevantMatches || summary.candidatesReturned === 0
+      ? `The shortlist is EMPTY on purpose. Say clearly that no matching builders were found and that closest-fit / weak alternatives are intentionally not shown. Do not invent or recommend any candidates.`
+      : `Include 3-5 top recommendations as a numbered list with short bullets (never a markdown table).`;
     const narrative = await generateOpenRouterReply({
       model: 'reasoning',
       temperature: 0,
       maxTokens: 1300,
       systemPrompt: `You are writing an honest founder-facing hiring summary.
 Return Markdown only. Use only the JSON facts supplied. Do not invent qualifications, social activity, work authorization, GitHub activity, or counts.
-Include: a short pool overview, 3-5 top recommendations as a numbered list with short bullets (never a markdown table), material trade-offs, and evidence coverage.
+Include: a short pool overview, material trade-offs, and evidence coverage.
+${emptyPoolRule}
 Treat missing evidence as unknown. If a requested preference has no verified matches, say that plainly.`,
       userPrompt: JSON.stringify(summary),
     });
@@ -1207,35 +1220,47 @@ async function runSearchForJob(
   let projectsByBuilder = new Map<string, any[]>();
   let allProjects: any[] = [];
 
-  const indexTerms = [
-    strategy.primaryQuery,
-    ...strategy.expandedQueries,
-    ...openRequirements.map((requirement) => requirement.text),
-    ...getPlanRetrievalTerms(oppPlain.searchPlan),
-    ...extractSearchTerms(oppPlain, strategy),
-  ];
+  const channels = buildRetrievalChannels({ opportunity: oppPlain, founderId: identity.founderId });
+  const channelLimit = searchMode === 'broad' ? 120 : 80;
   logFounderAgent('search_talent:index_retrieval:start', {
     jobId,
-    terms: indexTerms.slice(0, 12),
+    domainTerms: channels.domainTerms.slice(0, 8),
+    mustTerms: channels.mustTerms.slice(0, 8),
+    stackTerms: channels.stackTerms.slice(0, 8),
   });
   try {
-    const indexResult = await searchTalentSearchIndex({
-      terms: indexTerms,
-      limit: searchMode === 'broad' ? 160 : 80,
+    const [domainResult, mustResult, stackResult] = await Promise.all([
+      searchTalentSearchIndex({
+        terms: channels.domainTerms.length ? channels.domainTerms : channels.stackTerms,
+        limit: channelLimit,
+      }),
+      searchTalentSearchIndex({
+        terms: channels.mustTerms.length ? channels.mustTerms : channels.domainTerms,
+        limit: channelLimit,
+      }),
+      searchTalentSearchIndex({
+        terms: channels.stackTerms,
+        limit: channelLimit,
+      }),
+    ]);
+    const mergedBuilders = mergeChannelBuilders({
+      domain: domainResult.builders,
+      must: mustResult.builders,
+      stack: stackResult.builders,
+      poolTarget,
     });
-    if (indexResult.builders.length > 0) {
-      builders = indexResult.builders;
-      projectsByBuilder = indexResult.projectsByBuilder;
-      allProjects = [...projectsByBuilder.values()].flat();
+    if (mergedBuilders.length > 0) {
+      builders = mergedBuilders;
       retrievalMode = 'search_index';
     }
     logFounderAgent('search_talent:index_retrieval:done', {
       jobId,
       retrievalMode,
-      indexed: indexResult.indexed,
-      candidateCount: indexResult.builders.length,
-      projectSnapshotCount: allProjects.length,
-      durationMs: indexResult.durationMs,
+      domainCount: domainResult.builders.length,
+      mustCount: mustResult.builders.length,
+      stackCount: stackResult.builders.length,
+      mergedCount: mergedBuilders.length,
+      durationMs: Math.max(domainResult.durationMs, mustResult.durationMs, stackResult.durationMs),
     });
   } catch (error) {
     logFounderAgentError('search_talent:index_retrieval:error', error, { jobId });
@@ -1485,7 +1510,7 @@ async function runSearchForJob(
             systemPrompt,
             userPrompt,
             temperature: 0,
-            maxTokens: 3200,
+            maxTokens: 4500,
           })
       : undefined,
     semanticScores,
@@ -1586,6 +1611,7 @@ async function runSearchForJob(
     githubActivityUsed: Boolean(result.githubActivityUsed),
     poolSummary,
     poolNarrative,
+    noRelevantMatches: Boolean(result.noRelevantMatches || limitedResult.candidates.length === 0),
   };
 }
 
