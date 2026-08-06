@@ -200,8 +200,28 @@ export default function FounderCandidateDrawer({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-lg glass-panel-strong border-white/10 bg-[#0c0d0f]/95 p-0 overflow-y-auto">
         <SheetHeader className="sticky top-0 z-10 px-6 py-4 border-b border-white/10 bg-[#0c0d0f]/95 text-left">
-          <SheetTitle className="text-xl text-white">{candidate.name}</SheetTitle>
-          <p className="text-sm text-[#fa7d22]">{candidate.headline || candidate.anonymousLabel}</p>
+          <div className="flex items-start gap-3">
+            {candidate.avatarUrl ? (
+              <img
+                src={candidate.avatarUrl}
+                alt=""
+                className="h-12 w-12 shrink-0 rounded-full object-cover border border-white/10"
+              />
+            ) : (
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-sm font-semibold text-white/70">
+                {String(candidate.name || '?')
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((part) => part[0] || '')
+                  .join('')
+                  .toUpperCase()}
+              </div>
+            )}
+            <div className="min-w-0">
+              <SheetTitle className="text-xl text-white">{candidate.name}</SheetTitle>
+              <p className="text-sm text-[#fa7d22]">{candidate.headline || candidate.anonymousLabel}</p>
+            </div>
+          </div>
         </SheetHeader>
 
         <div className="p-6 space-y-8">

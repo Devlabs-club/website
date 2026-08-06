@@ -1769,6 +1769,21 @@ const RecommendationCard: React.FC<{
             <p className="mt-1 text-[11px] text-black/40">
               {[location, currentExperience?.company, rec.availabilityNote].filter(Boolean).join(" · ")}
             </p>
+            {currentExperience?.company ? (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-black/50">
+                {currentExperience.companyLogoUrl ? (
+                  <img
+                    src={currentExperience.companyLogoUrl}
+                    alt=""
+                    className="h-4 w-4 rounded object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+                <span className="line-clamp-1">
+                  {[currentExperience.title, currentExperience.company].filter(Boolean).join(" · ")}
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="shrink-0 text-right">
