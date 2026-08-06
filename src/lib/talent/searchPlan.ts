@@ -3,6 +3,7 @@ import { getSearchRequirements, type SearchRequirement } from '@/lib/talent/sear
 import {
   buildFallbackEvidenceDimensions,
   inferRoleFamily,
+  sanitizeDomainTokens,
   sanitizeEvidenceDimensions,
   type PlannedEvidenceDimension,
   type RoleFamily,
@@ -83,6 +84,7 @@ const ROLE_FAMILIES: RoleFamily[] = [
   'researcher',
   'designer',
   'operator',
+  'specialist',
   'hybrid',
 ];
 
@@ -244,23 +246,50 @@ export function buildFallbackSearchPlan(opportunity: any): SearchPlan {
   const evidenceDimensions = buildFallbackEvidenceDimensions(opportunity, roleFamily);
   const compiled = requirements.map((requirement) => {
     const mode = inferMode(requirement.text);
+    const stop = new Set([
+      'the',
+      'and',
+      'for',
+      'with',
+      'from',
+      'that',
+      'this',
+      'have',
+      'been',
+      'experience',
+      'experiences',
+      'previous',
+      'prior',
+      'years',
+      'year',
+      'completed',
+      'currently',
+      'enrolled',
+      'in',
+      'of',
+      'a',
+      'an',
+    ]);
     const tokens = norm(requirement.text)
       .replace(/[^a-z0-9+#.\s-]/g, ' ')
       .split(/\s+/)
-      .filter(
-        (token) =>
-          token.length >= 3 &&
-          !['the', 'and', 'for', 'with', 'from', 'that', 'this', 'have', 'been'].includes(token)
-      );
+      .filter((token) => token.length >= 3 && !stop.has(token));
+
+    // Prefer the full phrase + distinctive bigrams over weak unigrams
+    // ("selling" alone must not satisfy "experience selling SDKs").
+    const bigrams: string[] = [];
+    for (let i = 0; i < tokens.length - 1; i += 1) {
+      bigrams.push(`${tokens[i]} ${tokens[i + 1]}`);
+    }
 
     return {
       text: requirement.text,
       importance: requirement.importance,
       mode,
-      matchAnyOf: uniqueStrings([requirement.text, ...tokens], 16),
-      matchHints: tokens.slice(0, 6),
+      matchAnyOf: uniqueStrings([requirement.text, ...bigrams, ...tokens.filter((t) => t.length >= 5)], 16),
+      matchHints: uniqueStrings([...bigrams, ...tokens.filter((t) => t.length >= 5)], 8),
       evidenceFields: defaultEvidenceFields(mode),
-      retrievalTerms: uniqueStrings([requirement.text, ...tokens.slice(0, 8)], 12),
+      retrievalTerms: uniqueStrings([requirement.text, ...bigrams, ...tokens.slice(0, 6)], 12),
       rationale: 'Fallback lexical expansion (LLM compile unavailable).',
       predicate: requirementPredicate(requirement.text),
     } satisfies CompiledRequirement;
@@ -299,19 +328,44 @@ function sanitizeCompiledRequirement(
     ? raw.mode
     : inferMode(fallback.text);
 
-  const matchAnyOf = uniqueStrings(
+  const experienceLike =
+    mode === 'category' ||
+    /\b(experience|background|worked|internship|intern)\b/i.test(fallback.text);
+
+  let matchAnyOf = uniqueStrings(
     [...(Array.isArray(raw?.matchAnyOf) ? raw.matchAnyOf : []), fallback.text].map((value) =>
       String(value || '').slice(0, 80)
     ),
-    24
+    28
   );
+
+  // Category/experience musts: strip ship/stack/generic atoms that cause false yes.
+  if (experienceLike && mode !== 'skill') {
+    const cleaned = sanitizeDomainTokens(matchAnyOf);
+    // Always keep the original founder phrase; prefer multi-word expansions.
+    matchAnyOf = uniqueStrings(
+      [fallback.text, ...cleaned.filter((token) => token.includes(' ') || token.length >= 8)],
+      24
+    );
+  }
 
   const matchHints = uniqueStrings(
     (Array.isArray(raw?.matchHints) ? raw.matchHints : []).map((value: unknown) =>
       String(value || '').slice(0, 60)
     ),
     12
-  );
+  ).filter((hint) => {
+    if (!experienceLike || mode === 'skill') return true;
+    const key = hint.toLowerCase().trim();
+    // Single generic commercial/tech atoms are too weak as experience hints.
+    if (
+      !key.includes(' ') &&
+      ['sales', 'sale', 'api', 'sdk', 'sdks', 'gtm', 'marketing', 'selling'].includes(key)
+    ) {
+      return false;
+    }
+    return true;
+  });
 
   const evidenceFields = (Array.isArray(raw?.evidenceFields) ? raw.evidenceFields : [])
     .map((field: unknown) => String(field || ''))
@@ -319,7 +373,7 @@ function sanitizeCompiledRequirement(
       EVIDENCE_FIELDS.includes(field as SearchPlanEvidenceField)
     );
 
-  const retrievalTerms = uniqueStrings(
+  let retrievalTerms = uniqueStrings(
     [
       ...(Array.isArray(raw?.retrievalTerms) ? raw.retrievalTerms : []),
       ...matchAnyOf.slice(0, 12),
@@ -327,6 +381,12 @@ function sanitizeCompiledRequirement(
     ].map((value) => String(value || '').slice(0, 64)),
     16
   );
+  if (experienceLike && mode !== 'skill') {
+    retrievalTerms = uniqueStrings(
+      [fallback.text, ...sanitizeDomainTokens(retrievalTerms)],
+      16
+    );
+  }
 
   return {
     text: fallback.text,
@@ -399,12 +459,15 @@ export async function compileSearchPlan(opportunity: any): Promise<SearchPlan> {
 
   const systemPrompt = `You compile a role-shaped hiring search plan.
 Return ONE JSON object with:
-1) roleFamily: one of builder | teacher_advocate | researcher | designer | operator | hybrid
+1) roleFamily: one of builder | teacher_advocate | researcher | designer | operator | specialist | hybrid
+   Use specialist for cybersecurity, ethical hacking, product/app security, firmware/embedded/hardware, robotics, and other deep domain roles where domain proof outranks generic shipping.
 2) evidenceDimensions: 4-6 items from this FIXED catalog only:
    ship_proof, teaching, community, oss_packages, domain_depth, design_craft, growth_experiments, systems_depth, research_depth, stack_fit
    Each item: {id, label, weight, matchAnyOf[], retrievalTerms[], rationale}
    Weights must be positive and roughly sum to 1.0. Choose dimensions that prove success for THIS role (outcomes), not generic resume keywords.
+   Do NOT put ship_proof/growth tokens inside domain_depth.matchAnyOf. Do NOT put stack languages (Python/Java/JS) inside domain_depth.
    Examples:
+   - Ethical hacker / AppSec / SOC -> specialist; domain_depth, systems_depth, ship_proof, stack_fit
    - DevRel/advocate -> teaching, community, oss_packages, ship_proof, domain_depth
    - Founding/full-stack engineer -> ship_proof, stack_fit, systems_depth, domain_depth
    - ML/RAG engineer -> domain_depth, research_depth, ship_proof, stack_fit
@@ -414,6 +477,7 @@ Return ONE JSON object with:
 4) requirements: expand each founder requirement into match tokens.
 Rules for requirements:
 - matchAnyOf: OR list of concrete tokens/phrases found in profiles. If ANY appears, requirement is met.
+- For experience/category musts (e.g. "previous experience in X"), prefer multi-word domain phrases (penetration testing, SOC analyst). Never expand with generic stack words alone (python, javascript, operating, systems).
 - For categories like "big tech"/"FAANG"/"YC", expand to real company names (15-25). Do not invent companies.
 - For schools, expand to concrete school names.
 - For project evidence, use concrete phrases and related tech tokens.
@@ -440,7 +504,11 @@ Return ONLY valid JSON.`;
       systemPrompt,
       userPrompt,
       temperature: 0,
-      maxTokens: 2200,
+      // Thinking models count reasoning against max_tokens; keep headroom so
+      // richer JDs (longer skill/must lists) still return complete JSON.
+      maxTokens: 12000,
+      // Prefer minimal reasoning so the budget goes to the JSON payload.
+      reasoningEffort: 'minimal',
       responseFormat: 'json_object',
     });
     const json = reply.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();

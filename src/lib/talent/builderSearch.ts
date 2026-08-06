@@ -717,16 +717,23 @@ export function toPublicShortlist(shortlist: any) {
 
 export function buildTalentPreviewUiBlock(shortlist: any, opportunity: OpportunityLike) {
   const pub = toPublicShortlist(shortlist);
+  const total = pub?.totalMatches ?? 0;
+  const strong = pub?.strongMatchCount ?? 0;
+  const body =
+    total === 0
+      ? 'No matching builders found — closest-fit alternatives are not shown'
+      : `${total} potential matches · ${strong} strong matches`;
   return {
     type: 'talent_preview',
     title: `Preview · ${opportunity.roleTitle || 'Role'}`,
-    body: `${pub?.totalMatches ?? 0} potential matches · ${pub?.strongMatchCount ?? 0} strong matches`,
+    body,
     meta: {
       opportunityId: String(opportunity._id || shortlist?.opportunityId),
       locked: !pub?.unlocked,
       totalMatches: pub?.totalMatches,
       strongMatchCount: pub?.strongMatchCount,
       candidates: pub?.candidates || [],
+      noRelevantMatches: total === 0,
     },
   };
 }

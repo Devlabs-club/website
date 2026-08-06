@@ -3,6 +3,8 @@
  * selects and weights per role. One scoring engine; many role plans.
  */
 
+import { expandDomainProofTerms } from '@/lib/talent/roleEvidenceDossier';
+
 export const EVIDENCE_DIMENSION_IDS = [
   'ship_proof',
   'teaching',
@@ -24,6 +26,7 @@ export type RoleFamily =
   | 'researcher'
   | 'designer'
   | 'operator'
+  | 'specialist'
   | 'hybrid';
 
 export type PlannedEvidenceDimension = {
@@ -211,6 +214,14 @@ const FAMILY_PRESETS: Record<RoleFamily, Array<{ id: EvidenceDimensionId; weight
     { id: 'systems_depth', weight: 0.12 },
     { id: 'stack_fit', weight: 0.1 },
   ],
+  specialist: [
+    { id: 'domain_depth', weight: 0.34 },
+    { id: 'systems_depth', weight: 0.16 },
+    { id: 'ship_proof', weight: 0.14 },
+    { id: 'stack_fit', weight: 0.14 },
+    { id: 'research_depth', weight: 0.12 },
+    { id: 'oss_packages', weight: 0.1 },
+  ],
   hybrid: [
     { id: 'ship_proof', weight: 0.22 },
     { id: 'domain_depth', weight: 0.18 },
@@ -221,6 +232,63 @@ const FAMILY_PRESETS: Record<RoleFamily, Array<{ id: EvidenceDimensionId; weight
     { id: 'systems_depth', weight: 0.1 },
   ],
 };
+
+/** Tokens that belong to ship/growth defaults — never score as domain_depth alone. */
+export const CROSS_DIMENSION_NOISE = new Set(
+  [
+    ...DIMENSION_DEFAULTS.ship_proof,
+    ...DIMENSION_DEFAULTS.growth_experiments,
+  ].map((token) => token.toLowerCase())
+);
+
+/** Ultra-generic atoms that cannot qualify domain_depth / category musts alone. */
+export const GENERIC_DOMAIN_ATOMS = new Set([
+  'operating',
+  'systems',
+  'computer',
+  'networks',
+  'network',
+  'python',
+  'java',
+  'javascript',
+  'typescript',
+  'technology',
+  'information',
+  'software',
+  'engineer',
+  'developer',
+  'programming',
+  'code',
+  'coding',
+  'data',
+  'app',
+  'application',
+  'web',
+  'tools',
+  'tool',
+  'skills',
+  'skill',
+  'experience',
+  'previous',
+  'background',
+]);
+
+const STACK_LANGUAGE_TOKENS = new Set([
+  'c',
+  'c++',
+  'c#',
+  'java',
+  'python',
+  'javascript',
+  'typescript',
+  'go',
+  'rust',
+  'ruby',
+  'php',
+  'kotlin',
+  'swift',
+  'scala',
+]);
 
 function norm(value: string): string {
   return value.toLowerCase().trim();
@@ -258,6 +326,16 @@ export function inferRoleFamily(opportunity: any): RoleFamily {
       .join(' ')
   );
 
+  // Domain specialists before builder/operator heuristics — Ethical Hacker must
+  // not fall through to growth-weighted "operator".
+  if (
+    /cyber\s*sec|infosec|information\s*security|ethical\s*hack|penetration\s*test|pen\s*test|pentest|\bsoc\b|app\s*sec|application\s*security|product\s*security|red\s*team|blue\s*team|malware|reverse\s*engineer|vulnerability|bug\s*bounty|\bctf\b|firmware|embedded|robotics|mechatronics|hardware|fpga|asic|avionics|quant(itative)?|computational\s*biology|bioinformatics|cryptograph/.test(
+      blob
+    )
+  ) {
+    return 'specialist';
+  }
+
   // Explicit role-family phrases win over generic "engineer/developer" in the title.
   if (
     /devrel|developer relations|developer advocate|advocate|community engineer|developer experience|\bdx\b|evangelist|campus ambassador|technical writer|docs engineer/.test(
@@ -288,13 +366,63 @@ export function inferRoleFamily(opportunity: any): RoleFamily {
   return 'hybrid';
 }
 
-function domainTokensFromOpportunity(opportunity: any): string[] {
+/** Keep domain_depth / category tokens from absorbing ship, stack, or generic atoms. */
+export function sanitizeDomainTokens(tokens: string[], options?: { allowStackLanguages?: boolean }): string[] {
+  const allowStack = options?.allowStackLanguages === true;
+  const knownShortDomainAtoms = new Set([
+    'soc',
+    'ctf',
+    'siem',
+    'cve',
+    'ids',
+    'ips',
+    'fpga',
+    'asic',
+    'pcb',
+    'rtl',
+    'llm',
+    'rag',
+    'nlp',
+  ]);
   return uniqueStrings(
-    [
-      ...(opportunity?.skillsNeeded || []),
-      opportunity?.roleTitle,
-      opportunity?.industry,
-    ]
+    tokens.filter((token) => {
+      const key = norm(token);
+      if (!key || key.length < 3) return false;
+      if (CROSS_DIMENSION_NOISE.has(key)) return false;
+      if (GENERIC_DOMAIN_ATOMS.has(key)) return false;
+      if (!allowStack && STACK_LANGUAGE_TOKENS.has(key)) return false;
+      // Phrases built only from stack/generic atoms (e.g. "operating systems") are not domain.
+      const parts = key.split(/\s+/).filter(Boolean);
+      if (
+        parts.length >= 2 &&
+        parts.every(
+          (part) =>
+            GENERIC_DOMAIN_ATOMS.has(part) ||
+            (!allowStack && STACK_LANGUAGE_TOKENS.has(part)) ||
+            part.length < 3
+        )
+      ) {
+        return false;
+      }
+      // Prefer phrases; allow known short domain atoms and longer single words.
+      if (!key.includes(' ') && key.length < 5 && !knownShortDomainAtoms.has(key)) return false;
+      return true;
+    }),
+    24
+  );
+}
+
+function domainTokensFromOpportunity(opportunity: any): string[] {
+  // Prefer role title / industry / must text over skillsNeeded stack lists.
+  const mustTexts = [
+    ...(opportunity?.searchRequirements || []),
+    ...(opportunity?.requirements || []),
+  ]
+    .map((entry: any) => (typeof entry === 'string' ? entry : entry?.text))
+    .filter(Boolean);
+
+  return uniqueStrings(
+    [opportunity?.roleTitle, opportunity?.title, opportunity?.industry, ...mustTexts]
       .flatMap((value) =>
         String(value || '')
           .toLowerCase()
@@ -314,10 +442,35 @@ function domainTokensFromOpportunity(opportunity: any): string[] {
             'software',
             'role',
             'intern',
+            'previous',
+            'experience',
+            'completed',
+            'currently',
+            'enrolled',
+            'college',
           ].includes(token)
       ),
     16
   );
+}
+
+function specialistDomainSeeds(opportunity: any): string[] {
+  // Expand domain vocab from title / description / musts — not from stack skills.
+  const mustTexts = [
+    ...(opportunity?.searchRequirements || []),
+    ...(opportunity?.requirements || []),
+  ]
+    .map((entry: any) => (typeof entry === 'string' ? entry : entry?.text))
+    .filter(Boolean);
+
+  const seeds = [
+    opportunity?.roleTitle,
+    opportunity?.title,
+    opportunity?.builderWillDo,
+    opportunity?.industry,
+    ...mustTexts,
+  ];
+  return sanitizeDomainTokens(expandDomainProofTerms(seeds));
 }
 
 /** Build a dimension plan from role family + JD when LLM is unavailable. */
@@ -326,7 +479,10 @@ export function buildFallbackEvidenceDimensions(
   roleFamily?: RoleFamily
 ): PlannedEvidenceDimension[] {
   const family = roleFamily || inferRoleFamily(opportunity);
-  const domainTokens = domainTokensFromOpportunity(opportunity);
+  const domainTokens = sanitizeDomainTokens([
+    ...domainTokensFromOpportunity(opportunity),
+    ...specialistDomainSeeds(opportunity),
+  ]);
   const stackTokens = uniqueStrings(
     (opportunity?.skillsNeeded || []).map((skill: string) => String(skill || '').trim()),
     12
@@ -335,15 +491,24 @@ export function buildFallbackEvidenceDimensions(
   return FAMILY_PRESETS[family].map((preset) => {
     const defaults = DIMENSION_DEFAULTS[preset.id];
     let matchAnyOf = [...defaults];
-    if (preset.id === 'domain_depth' || preset.id === 'stack_fit') {
-      matchAnyOf = uniqueStrings([...matchAnyOf, ...domainTokens, ...stackTokens], 20);
+    if (preset.id === 'domain_depth') {
+      matchAnyOf = uniqueStrings([...matchAnyOf, ...domainTokens], 20);
+    } else if (preset.id === 'stack_fit') {
+      matchAnyOf = uniqueStrings([...matchAnyOf, ...stackTokens], 20);
     }
     return {
       id: preset.id,
       label: DIMENSION_LABELS[preset.id],
       weight: preset.weight,
       matchAnyOf,
-      retrievalTerms: uniqueStrings([...matchAnyOf.slice(0, 10), ...domainTokens.slice(0, 6)], 14),
+      retrievalTerms: uniqueStrings(
+        [
+          ...matchAnyOf.slice(0, 10),
+          ...(preset.id === 'domain_depth' ? domainTokens.slice(0, 6) : []),
+          ...(preset.id === 'stack_fit' ? stackTokens.slice(0, 6) : []),
+        ],
+        14
+      ),
       rationale: `Fallback ${family} preset for ${preset.id}.`,
     };
   });
@@ -357,6 +522,17 @@ export function sanitizeEvidenceDimensions(
   const family = roleFamily || inferRoleFamily(opportunity);
   const fallback = buildFallbackEvidenceDimensions(opportunity, family);
   const rawList = Array.isArray(raw) ? raw : [];
+  const otherDefaultTokens = new Map<EvidenceDimensionId, Set<string>>();
+  for (const id of EVIDENCE_DIMENSION_IDS) {
+    otherDefaultTokens.set(
+      id,
+      new Set(
+        EVIDENCE_DIMENSION_IDS.filter((other) => other !== id)
+          .flatMap((other) => DIMENSION_DEFAULTS[other] || [])
+          .map((token) => token.toLowerCase())
+      )
+    );
+  }
 
   const parsed: PlannedEvidenceDimension[] = [];
   for (const item of rawList) {
@@ -364,14 +540,33 @@ export function sanitizeEvidenceDimensions(
     if (!isEvidenceDimensionId(id)) continue;
     const weight = Number((item as any)?.weight);
     if (!Number.isFinite(weight) || weight <= 0) continue;
-    const matchAnyOf = uniqueStrings(
+
+    const foreignDefaults = otherDefaultTokens.get(id) || new Set();
+    let matchAnyOf = uniqueStrings(
       [
         ...((item as any)?.matchAnyOf || []),
         ...(DIMENSION_DEFAULTS[id] || []),
-        ...(id === 'domain_depth' || id === 'stack_fit' ? domainTokensFromOpportunity(opportunity) : []),
+        ...(id === 'domain_depth'
+          ? [...domainTokensFromOpportunity(opportunity), ...specialistDomainSeeds(opportunity)]
+          : []),
+        ...(id === 'stack_fit' ? (opportunity?.skillsNeeded || []) : []),
       ].map((value) => String(value || '').slice(0, 80)),
-      24
-    );
+      28
+    ).filter((token) => {
+      const key = norm(token);
+      if (!key) return false;
+      // Do not let ship/growth/teaching defaults pollute unrelated dimensions.
+      if (id !== 'ship_proof' && id !== 'growth_experiments' && CROSS_DIMENSION_NOISE.has(key) && id === 'domain_depth') {
+        return false;
+      }
+      if (foreignDefaults.has(key) && id === 'domain_depth') return false;
+      return true;
+    });
+
+    if (id === 'domain_depth') {
+      matchAnyOf = sanitizeDomainTokens(matchAnyOf);
+    }
+
     parsed.push({
       id,
       label: String((item as any)?.label || DIMENSION_LABELS[id]).slice(0, 80),
@@ -381,7 +576,12 @@ export function sanitizeEvidenceDimensions(
         [
           ...((item as any)?.retrievalTerms || []),
           ...matchAnyOf.slice(0, 10),
-        ].map((value) => String(value || '').slice(0, 64)),
+        ]
+          .map((value) => String(value || '').slice(0, 64))
+          .filter((token) => {
+            if (id !== 'domain_depth') return true;
+            return sanitizeDomainTokens([token]).length > 0;
+          }),
         16
       ),
       rationale: String((item as any)?.rationale || '').slice(0, 200) || `Selected for ${family}.`,
@@ -441,7 +641,10 @@ function countTokenHits(blob: string, tokens: string[]): { count: number; eviden
   for (const token of tokens) {
     const needle = norm(token);
     if (needle.length < 2) continue;
-    if (blob.includes(needle)) {
+    const hit = needle.includes(' ')
+      ? blob.includes(needle)
+      : new RegExp(`(^|\\s|[|/,_-])${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|[|/,_-]|$)`).test(blob);
+    if (hit) {
       count += 1;
       if (evidence.length < 3) evidence.push(token);
     }

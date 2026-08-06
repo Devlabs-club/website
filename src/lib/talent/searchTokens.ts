@@ -2,6 +2,7 @@ import {
   evaluateGithubActivityRequirement,
   isGithubActivityRequirement,
 } from '@/lib/talent/githubActivity';
+import { expandDomainProofTerms } from '@/lib/talent/roleEvidenceDossier';
 
 const INDEX_STOP_TERMS = new Set([
   'a',
@@ -386,6 +387,61 @@ function projectEvidence(projects: any[]) {
   }));
 }
 
+function evaluateSchoolEnrollment(
+  requirementText: string,
+  builder: any,
+  matchAnyOf?: string[]
+): { met: 'yes' | 'partial' | 'no'; evidence: string } {
+  const schools = [
+    builder?.universityOrCompany,
+    ...(builder?.education || []).map((entry: any) => entry?.school),
+  ]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+  const blob = normalizeSearchTerm(
+    [builder?.headline, builder?.bio, builder?.currentStatus, ...schools].filter(Boolean).join(' ')
+  );
+  const aliases = requirementAliases(requirementText, matchAnyOf);
+
+  for (const school of schools) {
+    const normalizedSchool = normalizeSearchTerm(school);
+    if (!normalizedSchool) continue;
+    for (const alias of aliases) {
+      if (alias.length >= 4 && (normalizedSchool.includes(alias) || alias.includes(normalizedSchool))) {
+        return { met: 'yes', evidence: school.slice(0, 180) };
+      }
+    }
+    if (/\b(university|college|institute|polytechnic|school)\b/i.test(school)) {
+      return { met: 'yes', evidence: school.slice(0, 180) };
+    }
+  }
+
+  if (
+    (builder?.currentStatus === 'student' || /\bstudent\b/i.test(blob)) &&
+    /\b(university|college|asu|stanford|mit|berkeley|enrolled)\b/i.test(blob)
+  ) {
+    return {
+      met: 'yes',
+      evidence: String(builder?.universityOrCompany || builder?.headline || 'Current student').slice(0, 180),
+    };
+  }
+
+  return { met: 'no', evidence: 'No current US college/university enrollment evidence found.' };
+}
+
+function lineHasDomainProof(line: string, proofTerms: string[]) {
+  const normalized = normalizeSearchTerm(line);
+  if (!normalized || !proofTerms.length) return false;
+  return proofTerms.some((term) => {
+    const needle = normalizeSearchTerm(term);
+    if (!needle) return false;
+    if (needle.length <= 3) {
+      return new RegExp(`\\b${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(normalized);
+    }
+    return normalized.includes(needle);
+  });
+}
+
 function evaluateInternshipExperience(builder: any) {
   const match = experienceEvidence(builder).find((entry: { label: string; text: string }) =>
     /\b(?:intern(?:ship)?|co[-\s]?op|apprentice|fellow)\b/i.test(entry.text)
@@ -466,7 +522,13 @@ export function evaluateFounderRequirement(
   requirementText: string,
   builder: any,
   projects: any[] = [],
-  compiled?: { matchAnyOf?: string[]; matchHints?: string[]; predicate?: string | null; roleEvidence?: any } | null,
+  compiled?: {
+    matchAnyOf?: string[];
+    matchHints?: string[];
+    predicate?: string | null;
+    roleEvidence?: any;
+    mode?: string | null;
+  } | null,
   options?: { githubActivityScore?: number | null }
 ): { met: 'yes' | 'partial' | 'no'; evidence: string } {
   if (isGithubActivityRequirement(requirementText)) {
@@ -485,52 +547,227 @@ export function evaluateFounderRequirement(
     return evaluateRoleRelevance(builder, projects, compiled?.roleEvidence || compiled);
   }
 
-  const aliases = requirementAliases(requirementText, compiled?.matchAnyOf);
-  const evidence = evidenceLines(builder, projects);
-  const tokens = collectBuilderSkillTokens(builder, projects);
-  const profile = collectBuilderSearchProfile(builder, projects);
+  const mode = String(compiled?.mode || '');
+  const schoolLike =
+    mode === 'school' || /\b(school|university|college|enrolled|student at)\b/i.test(requirementText);
+  if (schoolLike) {
+    return evaluateSchoolEnrollment(requirementText, builder, compiled?.matchAnyOf);
+  }
 
-  let bestEvidence = '';
-  let bestScore = 0;
+  const experienceLike =
+    mode === 'category' ||
+    mode === 'project_evidence' ||
+    /\b(experience|background|worked|internship|intern|previous|prior)\b/i.test(requirementText);
+
+  const aliases = requirementAliases(requirementText, compiled?.matchAnyOf).filter((alias) => {
+    if (!alias) return false;
+    // Reject ultra-short / generic atoms that caused false cyber must yes marks.
+    if (alias.length < 4) return false;
+    if (
+      [
+        'operating',
+        'systems',
+        'computer',
+        'networks',
+        'network',
+        'python',
+        'java',
+        'javascript',
+        'typescript',
+        'technology',
+        'information',
+        'software',
+        'engineer',
+        'developer',
+        'programming',
+        'experience',
+        'previous',
+        'background',
+        'security', // alone is too weak; prefer "cybersecurity" / multi-word phrases
+      ].includes(alias)
+    ) {
+      return false;
+    }
+    return true;
+  });
+
+  // Always keep the original requirement text as an alias after filtering.
+  const normalizedRequirement = normalizeSearchTerm(requirementText);
+  if (normalizedRequirement && !aliases.includes(normalizedRequirement)) {
+    aliases.unshift(normalizedRequirement);
+  }
+
+  const experienceLines = experienceEvidence(builder).map((entry) => entry.text);
+  const projectLines = projectEvidence(projects).map((entry) => entry.text);
+  const educationLines = (builder?.education || []).map((entry: any) =>
+    normalizeSearchTerm([entry?.school, entry?.degree, entry?.field].filter(Boolean).join(' '))
+  );
+  const proofLines = experienceLike
+    ? [...experienceLines, ...projectLines]
+    : [...experienceLines, ...projectLines, ...educationLines];
+  const skillLines = [
+    ...(builder?.skills || []).map((skill: string) => normalizeSearchTerm(String(skill))),
+    ...(builder?.rolePreference || []).map((skill: string) => normalizeSearchTerm(String(skill))),
+  ];
+  const softLines = [
+    normalizeSearchTerm(builder?.headline || ''),
+    normalizeSearchTerm(builder?.bio || ''),
+    normalizeSearchTerm(builder?.universityOrCompany || ''),
+    ...educationLines,
+    ...skillLines,
+  ].filter(Boolean);
+
+  // Expand match aliases via domain vocab packs seeded by this requirement's
+  // own plan tokens — not role-level anchors (those belong to role_relevance).
+  const domainProofTerms = expandDomainProofTerms([
+    ...aliases,
+    requirementText,
+    ...(Array.isArray(compiled?.matchAnyOf) ? compiled.matchAnyOf : []),
+  ]);
+  for (const term of domainProofTerms) {
+    if (term && !aliases.includes(term)) aliases.push(term);
+  }
+
+  const REQUIREMENT_STOPWORDS = new Set([
+    'experience',
+    'experiences',
+    'previous',
+    'prior',
+    'background',
+    'years',
+    'year',
+    'completed',
+    'currently',
+    'enrolled',
+    'working',
+    'worked',
+    'using',
+    'with',
+    'from',
+    'that',
+    'this',
+    'have',
+    'been',
+    'selling', // alone; keep in bigrams like "selling sdks"
+    'sales',
+  ]);
+
+  const isMeaningfulAlias = (alias: string) => {
+    if (alias.includes(' ')) return true;
+    if (REQUIREMENT_STOPWORDS.has(alias)) return false;
+    if (alias.length >= 6) return true;
+    return domainProofTerms.includes(alias) && alias.length >= 4;
+  };
+
+  let bestPartial = '';
+  let bestPartialScore = 0;
+
+  // Auto-yes on expanded domain proof only when THIS requirement's text/plan
+  // phrases seed a domain pack (e.g. "cybersecurity" → SOC). Do not use
+  // roleEvidence anchors here — they describe the whole role and would make
+  // every experience must pass on unrelated title skills (e.g. Sales on GTM).
+  const requirementSeededDomain = expandDomainProofTerms([
+    requirementText,
+    ...(Array.isArray(compiled?.matchAnyOf) ? compiled.matchAnyOf : []),
+  ]).filter((term) => term.includes(' ') || (term.length >= 5 && !REQUIREMENT_STOPWORDS.has(term)));
+
+  if (experienceLike && requirementSeededDomain.length > 0) {
+    const domainProof = [...experienceLines, ...projectLines].find((line) =>
+      lineHasDomainProof(line, requirementSeededDomain)
+    );
+    if (domainProof) {
+      // Require that at least one matched term is distinctive (not just "sales").
+      const distinctive = requirementSeededDomain.filter(
+        (term) => term.includes(' ') || term.length >= 8 || !['marketing', 'python', 'java'].includes(term)
+      );
+      if (distinctive.length && lineHasDomainProof(domainProof, distinctive)) {
+        return { met: 'yes', evidence: domainProof.slice(0, 180) };
+      }
+    }
+  }
 
   for (const alias of aliases) {
-    if (!alias) continue;
-    const fullHit = evidence.some((line) => line.includes(alias));
-    if (fullHit) {
-      const line = evidence.find((entry) => entry.includes(alias)) || alias;
-      return { met: 'yes', evidence: line.slice(0, 180) };
+    if (!alias || !isMeaningfulAlias(alias)) continue;
+
+    const proofHit = proofLines.find((line) => line.includes(alias));
+    if (proofHit) {
+      return { met: 'yes', evidence: proofHit.slice(0, 180) };
     }
 
-    const tokenHit = [...tokens].some((token) => skillsMatch(token, alias) || token.includes(alias) || alias.includes(token));
-    if (tokenHit) {
-      const matched =
-        profile.experienceCompanies.find((company) => skillsMatch(company, alias) || company.includes(alias)) ||
-        profile.educationSchools.find((school) => school.includes(alias)) ||
-        profile.skills.find((skill) => skillsMatch(skill, alias)) ||
-        alias;
-      return { met: 'yes', evidence: String(matched).slice(0, 180) };
+    // Multi-token phrase: require most *content* tokens in one proof line.
+    const aliasParts = alias
+      .split(' ')
+      .filter((part) => part.length >= 4 && !REQUIREMENT_STOPWORDS.has(part));
+    if (aliasParts.length >= 2) {
+      const needed = Math.min(aliasParts.length, Math.max(2, Math.ceil(aliasParts.length * 0.7)));
+      const multiHit = proofLines.find(
+        (line) => aliasParts.filter((part) => line.includes(part)).length >= needed
+      );
+      if (multiHit) {
+        return { met: 'yes', evidence: multiHit.slice(0, 180) };
+      }
     }
 
-    const partial = [...tokens].some((token) => {
-      const aliasTokens = alias.split(' ').filter((part) => part.length >= 3);
-      return aliasTokens.some((part) => token.includes(part) || part.includes(token));
-    });
-    if (partial) {
-      bestScore = Math.max(bestScore, 0.6);
-      bestEvidence = alias;
+    const softHit = softLines.find((line) => line.includes(alias));
+    if (softHit) {
+      // Skills / headline alone cannot fully satisfy experience-like musts.
+      if (experienceLike) {
+        bestPartialScore = Math.max(bestPartialScore, 0.7);
+        bestPartial = softHit;
+        continue;
+      }
+      return { met: 'yes', evidence: softHit.slice(0, 180) };
+    }
+
+    if (!experienceLike) {
+      const tokens = collectBuilderSkillTokens(builder, projects);
+      const tokenHit = [...tokens].some((token) => skillsMatch(token, alias) || token.includes(alias) || alias.includes(token));
+      if (tokenHit) {
+        return { met: 'yes', evidence: alias.slice(0, 180) };
+      }
+    } else {
+      const skillOnly = skillLines.some((line) => line.includes(alias) || skillsMatch(line, alias));
+      if (skillOnly) {
+        bestPartialScore = Math.max(bestPartialScore, 0.65);
+        bestPartial = alias;
+      }
     }
   }
 
   if (compiled?.matchHints?.length) {
-    for (const hint of compiled.matchHints) {
-      const needle = normalizeSearchTerm(hint);
-      if (!needle) continue;
-      const line = evidence.find((entry) => entry.includes(needle));
-      if (line) return { met: 'partial', evidence: line.slice(0, 180) };
+    const hints = compiled.matchHints
+      .map((hint) => normalizeSearchTerm(hint))
+      .filter((needle) => needle && needle.length >= 4 && !REQUIREMENT_STOPWORDS.has(needle));
+
+    // For compound experience musts, a single generic hint (e.g. "sales") is not enough —
+    // require two distinct hints to co-occur, or one multi-word hint.
+    const strongHints = hints.filter((hint) => hint.includes(' ') || hint.length >= 6);
+    for (const needle of strongHints) {
+      const line = proofLines.find((entry) => entry.includes(needle));
+      if (line) return { met: experienceLike ? 'partial' : 'yes', evidence: line.slice(0, 180) };
+    }
+
+    if (experienceLike && hints.length >= 2) {
+      const coHit = proofLines.find(
+        (line) => hints.filter((hint) => line.includes(hint)).length >= 2
+      );
+      if (coHit) return { met: 'partial', evidence: coHit.slice(0, 180) };
+    } else if (!experienceLike) {
+      for (const needle of hints) {
+        const line = proofLines.find((entry) => entry.includes(needle));
+        if (line) return { met: 'yes', evidence: line.slice(0, 180) };
+      }
+    }
+
+    for (const needle of strongHints) {
+      if (softLines.some((entry) => entry.includes(needle))) {
+        bestPartialScore = Math.max(bestPartialScore, 0.55);
+        bestPartial = needle;
+      }
     }
   }
 
-  if (bestScore >= 0.5) return { met: 'partial', evidence: bestEvidence.slice(0, 180) };
+  if (bestPartialScore >= 0.5) return { met: 'partial', evidence: bestPartial.slice(0, 180) };
   return { met: 'no', evidence: '' };
 }
 

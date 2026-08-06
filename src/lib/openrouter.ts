@@ -92,6 +92,8 @@ export async function generateOpenRouterReply(params: {
   history?: Array<{ role: string; content: string }>;
   responseFormat?: 'json_object';
   model?: 'chat' | 'reasoning';
+  /** When set, ask the provider to keep reasoning short so structured JSON is not truncated. */
+  reasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high';
 }): Promise<string> {
   const messages = [
     { role: 'system', content: params.systemPrompt },
@@ -106,6 +108,8 @@ export async function generateOpenRouterReply(params: {
   };
   if (params.model === 'reasoning') {
     body.reasoning = { effort: 'medium' };
+  } else if (params.reasoningEffort) {
+    body.reasoning = { effort: params.reasoningEffort };
   }
   if (params.responseFormat === 'json_object') {
     body.response_format = { type: 'json_object' };

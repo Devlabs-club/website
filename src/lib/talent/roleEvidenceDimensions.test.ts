@@ -18,6 +18,15 @@ describe('roleEvidenceDimensions', () => {
     ).toBe('teacher_advocate');
   });
 
+  it('classifies Ethical Hacker as specialist before operator/builder', () => {
+    expect(
+      inferRoleFamily({
+        roleTitle: 'Ethical Hacker',
+        skillsNeeded: ['Python', 'Operating Systems'],
+      })
+    ).toBe('specialist');
+  });
+
   it('builds weighted teaching-heavy dimensions for DevRel fallback', () => {
     const dimensions = buildFallbackEvidenceDimensions({
       roleTitle: 'Developer Relations Engineer',

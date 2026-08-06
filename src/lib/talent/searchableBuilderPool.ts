@@ -64,8 +64,8 @@ export function projectEvidenceSortScore(project: any) {
 }
 
 export function profileLimitPoolTarget(profileLimit: number | null) {
-  if (profileLimit === null) return 80;
-  return Math.max(profileLimit * 4, 40);
+  if (profileLimit === null) return 200;
+  return Math.max(profileLimit * 4, 120);
 }
 
 async function loadTopProjectsPerBuilder(

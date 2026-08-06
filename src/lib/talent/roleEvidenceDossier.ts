@@ -56,36 +56,179 @@ const HARDWARE_ANCHOR_ATOMS = new Set([
   'motors',
   'propulsion',
   'servo',
-  'actuator',
   'actuators',
   'esc',
 ]);
 
+const SECURITY_ANCHOR_ATOMS = new Set([
+  'cybersecurity',
+  'infosec',
+  'information security',
+  'ethical hacking',
+  'ethical hacker',
+  'penetration testing',
+  'penetration test',
+  'pentest',
+  'vulnerability',
+  'vulnerabilities',
+  'appsec',
+  'application security',
+  'product security',
+  'network security',
+  'cloud security',
+  'soc',
+  'siem',
+  'malware',
+  'cryptography',
+  'cryptograph',
+  'reverse engineering',
+  'bug bounty',
+  'ctf',
+  'capture the flag',
+  'owasp',
+  'threat intelligence',
+  'incident response',
+  'red team',
+  'blue team',
+  'exploit',
+  'phishing',
+  'nmap',
+  'wireshark',
+  'metasploit',
+  'kali',
+]);
+
+const AI_ANCHOR_ATOMS = new Set([
+  'machine learning',
+  'deep learning',
+  'llm',
+  'large language model',
+  'rag',
+  'retrieval augmented',
+  'pytorch',
+  'tensorflow',
+  'neural network',
+  'embeddings',
+  'transformers',
+  'nlp',
+  'computer vision',
+]);
+
+/**
+ * "Robotics"/"mechatronics" anchors previously only pulled in physical
+ * hardware-component vocabulary (circuit, pcb, servo, motors...). That misses
+ * robotics roles that are actually software-first — autonomous navigation,
+ * SLAM, motion planning — where a candidate's real proof is expressed in
+ * algorithm/framework terms, not component terms. Robotics/mechatronics
+ * anchors adopt this pack too so both kinds of proof count.
+ */
+const ROBOTICS_SOFTWARE_ANCHOR_ATOMS = new Set([
+  'robotics',
+  'robot',
+  'mechatronics',
+  'ros',
+  'ros2',
+  'robot operating system',
+  'slam',
+  'gazebo',
+  'moveit',
+  'rviz',
+  'nav2',
+  'cartographer',
+  'navigation',
+  'autonomous',
+  'autonomy',
+  'motion planning',
+  'path planning',
+  'trajectory planning',
+  'kinematics',
+  'inverse kinematics',
+  'teleoperation',
+  'localization',
+  'mapping',
+  'pid controller',
+  'pid control',
+  'sensor fusion',
+  // Physical platforms / autonomy payloads — same domain family as ROS/SLAM,
+  // expressed in project prose more often than in skill lists.
+  'rover',
+  'drone',
+  'uav',
+  'quadcopter',
+  'autopilot',
+  'stm32',
+  'imu',
+  'lidar',
+  'actuator',
+  'actuators',
+]);
+
+const DOMAIN_VOCAB_PACKS: Array<{ id: string; atoms: Set<string> }> = [
+  { id: 'security', atoms: SECURITY_ANCHOR_ATOMS },
+  { id: 'hardware', atoms: HARDWARE_ANCHOR_ATOMS },
+  { id: 'ai', atoms: AI_ANCHOR_ATOMS },
+  { id: 'robotics_software', atoms: ROBOTICS_SOFTWARE_ANCHOR_ATOMS },
+];
+
 const GENERIC_LANGUAGE_SUPPORT = new Set(['c', 'c++', 'c#', 'java', 'python', 'javascript', 'typescript', 'go', 'rust']);
 
-function expandAnchors(anchors: string[], supporting: string[]) {
-  const out = new Set(anchors.map(norm).filter(Boolean));
-  let hardwareRole = false;
-  for (const concept of [...anchors, ...supporting]) {
-    const cleaned = norm(concept);
+/** Expand proof/retrieval terms using domain vocab packs when any seed matches a pack. Role-agnostic. */
+export function expandDomainProofTerms(
+  seeds: Array<string | null | undefined>,
+  /**
+   * Seeds allowed to pull in a pack's full vocabulary. Defaults to every seed.
+   * Callers pass the role's anchors here so that a merely supporting skill
+   * (a robotics role listing "computer vision") cannot import an unrelated
+   * domain's terms and hand out role proof nobody earned.
+   */
+  adoptSeeds: Array<string | null | undefined> = seeds
+): string[] {
+  const out = new Set<string>();
+  const named = new Set<string>();
+  const brushed = new Map<string, Set<string>>();
+  const noteBrush = (packId: string, atom: string) => {
+    const hits = brushed.get(packId) || new Set<string>();
+    hits.add(atom);
+    brushed.set(packId, hits);
+  };
+  const adoptable = new Set(
+    adoptSeeds.map((seed) => norm(String(seed || ''))).filter(Boolean)
+  );
+
+  for (const seed of seeds) {
+    const cleaned = norm(String(seed || ''));
     if (!cleaned || GENERIC_LANGUAGE_SUPPORT.has(cleaned)) continue;
-    if (HARDWARE_ANCHOR_ATOMS.has(cleaned)) {
-      hardwareRole = true;
-      out.add(cleaned);
-    }
-    for (const atom of cleaned.split(' ')) {
-      if (HARDWARE_ANCHOR_ATOMS.has(atom)) {
-        hardwareRole = true;
-        out.add(atom);
+    out.add(cleaned);
+    if (!adoptable.has(cleaned)) continue;
+    for (const pack of DOMAIN_VOCAB_PACKS) {
+      // The seed *is* a pack term — the role names this domain outright.
+      if (pack.atoms.has(cleaned)) {
+        named.add(pack.id);
+        continue;
+      }
+      for (const atom of cleaned.split(' ')) {
+        if (pack.atoms.has(atom)) noteBrush(pack.id, atom);
+      }
+      for (const atom of pack.atoms) {
+        if (atom.includes(' ') && cleaned.includes(atom)) noteBrush(pack.id, atom);
       }
     }
   }
-  // Once a role is clearly hardware/robotics, score against the full domain
-  // vocabulary — not only the LLM's title-phrased anchors.
-  if (hardwareRole) {
-    for (const atom of HARDWARE_ANCHOR_ATOMS) out.add(atom);
+
+  // Adopt a pack's full vocabulary when the role names it directly, or brushes
+  // it repeatedly. A single glancing phrase must not: "computer vision for
+  // robotics" once pulled the whole AI vocabulary into a robotics search, which
+  // handed LLM researchers role proof they had not earned.
+  for (const pack of DOMAIN_VOCAB_PACKS) {
+    const adopt = named.has(pack.id) || (brushed.get(pack.id)?.size || 0) >= 2;
+    if (!adopt) continue;
+    for (const atom of pack.atoms) out.add(atom);
   }
   return [...out];
+}
+
+function expandAnchors(anchors: string[], supporting: string[]) {
+  return expandDomainProofTerms([...anchors, ...supporting], anchors);
 }
 
 const SOFTWARE_NOISE = [
@@ -106,9 +249,7 @@ const SOFTWARE_NOISE = [
   'web app',
   'website',
   'bill splitting',
-  'phishing',
   'blockchain',
-  'deep learning',
   'portfolio',
   'roblox',
   'dungeons and dragons',
@@ -124,7 +265,17 @@ const SOFTWARE_NOISE = [
   'help desk',
 ];
 
-const WEAK_SOLO_ANCHORS = new Set(['hardware', 'sensor', 'sensors', 'testing', 'soc']);
+const WEAK_SOLO_ANCHORS = new Set(['hardware', 'sensor', 'sensors', 'testing']);
+
+/** Course TA / grader / instructional roles are not practiced domain proof. */
+const INSTRUCTIONAL_EVIDENCE_RE =
+  /\b(?:teaching assistant|undergraduate teaching|ugta|grader|instructional aide|course assistant|lab assistant|tutor)\b/i;
+const COURSE_CODE_RE = /\b(?:cse|ece|eee|cs|me|mae|bme)\s*-?\s*\d{2,4}\b/i;
+
+function isInstructionalEvidence(label: string, text: string): boolean {
+  if (INSTRUCTIONAL_EVIDENCE_RE.test(label) || INSTRUCTIONAL_EVIDENCE_RE.test(text)) return true;
+  return COURSE_CODE_RE.test(text) && /\b(?:assistant|grader|aide|tutor)\b/i.test(`${label} ${text}`);
+}
 
 function norm(value: string) {
   return String(value || '')
@@ -138,7 +289,13 @@ function hasConcept(text: string, concept: string) {
   const needle = norm(concept);
   if (!needle) return false;
   if (needle.includes(' ')) return text.includes(needle);
-  return new RegExp(`(^|\\s)${needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`).test(text);
+  // Lenient trailing-s match: "robotics" anchor should hit "Robotic Arm" text
+  // and "motors" should hit "Motor mixing" — both differ from the anchor word
+  // by exactly one trailing "s" (plural, or noun/adjective form). Guarded by
+  // length so short acronyms like "ros" don't get stripped down to "ro".
+  const stem = needle.length > 4 && needle.endsWith('s') ? needle.slice(0, -1) : needle;
+  const escaped = stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`(^|\\s)${escaped}s?(?=\\s|$)`).test(text);
 }
 
 function scoreUnit(params: {
@@ -159,17 +316,24 @@ function scoreUnit(params: {
   if (supportingHits.length) score += Math.min(0.2, supportingHits.length * 0.05);
   if (params.isInternship && anchorHits.length) score += 0.18;
   else if (params.isInternship) {
-    // Even without description text, an engineering internship at a hardware-
-    // adjacent org is stronger than a generic software internship.
-    if (/\b(aerospace|avionics|robot|hardware|embedded|defense|semiconductor|electronics|moog|honeywell|spacex|nasa|qualcomm|texas instruments|intel|nvidia)\b/i.test(text)) {
+    // Domain-adjacent internships count even with thin descriptions when
+    // the role plan's expanded anchors appear in the experience text.
+    if (params.anchors.some((anchor) => hasConcept(text, anchor))) {
       score += 0.42;
-      if (!anchorHits.includes('hardware')) anchorHits.push('hardware');
     } else {
       score += 0.06;
     }
   }
   if (params.source === 'experience' && anchorHits.length) score += 0.1;
   if (params.source === 'project' && anchorHits.length) score += 0.08;
+  // Title/label hits are stronger than buried description mentions — a role
+  // titled "Rover Systems Engineer" or project named "Autonomous Car" is the
+  // center of the work, not a passing keyword.
+  const labelText = norm(params.label);
+  const labelAnchorHits = params.anchors.filter((concept) => hasConcept(labelText, concept));
+  if (labelAnchorHits.length && anchorHits.length) {
+    score += Math.min(0.22, 0.1 + labelAnchorHits.length * 0.06);
+  }
   // A lone weak word like "hardware" in IT support is not role proof.
   if (
     anchorHits.length === 1 &&
@@ -184,6 +348,12 @@ function scoreUnit(params: {
   if (!anchorHits.length && noiseHits.length) score = Math.min(score, 0.08);
   if (anchorHits.length && noiseHits.length >= 3 && supportingHits.length === 0) {
     score *= 0.55;
+  }
+  // Teaching a domain course is not the same as practicing the domain. Cap
+  // instructional evidence so course TAs cannot outrank builders with shipped
+  // projects or engineering roles — applies to every role family.
+  if (isInstructionalEvidence(params.label, text)) {
+    score = Math.min(score, 0.28);
   }
 
   return {

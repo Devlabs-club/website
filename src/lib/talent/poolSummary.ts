@@ -1,3 +1,5 @@
+import { resolveCandidateNarrative } from '@/lib/talent/discovery/scoring';
+
 export type PoolSummary = {
   generatedAt: string;
   scannedBuilders: number;
@@ -5,10 +7,11 @@ export type PoolSummary = {
   reasoningCohortCount: number;
   strongCandidates: number;
   goodCandidates: number;
-  poolStrength: 'weak' | 'medium' | 'strong';
+  poolStrength: 'weak' | 'medium' | 'strong' | 'none';
   confidence: 'low' | 'medium' | 'high';
   bottlenecks: string[];
   suggestedRelaxations: string[];
+  noRelevantMatches: boolean;
   requirementCoverage: Array<{
     text: string;
     met: number;
@@ -72,10 +75,13 @@ export function buildPoolSummary(result: any): PoolSummary {
     reasoningCohortCount: Number(result?.reasoningCohortCount || 0),
     strongCandidates: candidates.filter((candidate: any) => candidate.matchLabel === 'Strong Match').length,
     goodCandidates: candidates.filter((candidate: any) => candidate.matchLabel === 'Good Match').length,
-    poolStrength: result?.searchQuality?.poolStrength || 'weak',
+    poolStrength: result?.searchQuality?.poolStrength || (candidates.length ? 'weak' : 'none'),
     confidence: result?.searchQuality?.confidence || 'low',
     bottlenecks: (result?.searchQuality?.bottlenecks || []).slice(0, 3),
     suggestedRelaxations: (result?.searchQuality?.suggestedRelaxations || []).slice(0, 2),
+    noRelevantMatches: Boolean(
+      result?.noRelevantMatches || result?.searchQuality?.noRelevantMatches || candidates.length === 0
+    ),
     requirementCoverage: [...requirementMap.values()].slice(0, 8),
     evidenceCoverage: { githubActivityAvailable, publicPresenceEvidence, sponsorshipKnown },
     candidates: candidates.slice(0, 8).map((candidate: any) => ({
@@ -83,7 +89,9 @@ export function buildPoolSummary(result: any): PoolSummary {
       name: String(candidate.builder?.name || 'Builder'),
       score: Math.round((Number(candidate.overallFit) || 0) * 100),
       label: candidate.matchLabel || 'Possible Match',
-      whyTheyMatch: String(candidate.explanation?.whyTheyMatch || candidate.explanation?.strongestSignals?.join('; ') || ''),
+      whyTheyMatch: candidate.explanation
+        ? resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || [])
+        : '',
       concerns: (candidate.explanation?.concerns || []).slice(0, 2),
       evidence: (candidate.explanation?.strongestSignals || []).slice(0, 3),
     })),
@@ -92,6 +100,25 @@ export function buildPoolSummary(result: any): PoolSummary {
 }
 
 export function renderPoolSummaryMarkdown(summary: PoolSummary): string {
+  if (summary.noRelevantMatches || summary.candidatesReturned === 0) {
+    const lines = [
+      '## No matching builders',
+      '',
+      `I scanned **${summary.scannedBuilders}** builders and **did not find anyone who matches this role**.`,
+      '',
+      'I am **not** showing closest-fit or weak alternatives — none cleared the must-haves and relevant evidence bar for this search.',
+    ];
+    if (summary.bottlenecks.length) {
+      lines.push('', '### Why the pool is empty', '');
+      for (const bottleneck of summary.bottlenecks) lines.push(`- ${bottleneck}`);
+    }
+    if (summary.suggestedRelaxations.length) {
+      lines.push('', '### If you want a broader search', '');
+      for (const suggestion of summary.suggestedRelaxations) lines.push(`- ${suggestion}`);
+    }
+    return lines.join('\n');
+  }
+
   const lines = [
     '## Talent pool overview',
     '',
