@@ -2,16 +2,16 @@ const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 30000);
 
 export function getOpenRouterChatModel() {
-  return process.env.OPENROUTER_MODEL_CHAT || 'google/gemini-2.5-flash';
+  return process.env.OPENROUTER_MODEL_CHAT || 'openai/gpt-5.6-terra';
 }
 
 /**
  * Used for open-ended talent analysis, cohort reranking, and evidence synthesis.
- * `openai/o3` is a reasoning model on OpenRouter; deployments can override it
- * without changing application code.
+ * Terra Pro runs the same GPT-5.6 Terra weights with pro reasoning mode.
+ * Deployments can override without changing application code.
  */
 export function getOpenRouterReasoningModel() {
-  return process.env.OPENROUTER_MODEL_REASONING || 'openai/o3';
+  return process.env.OPENROUTER_MODEL_REASONING || 'openai/gpt-5.6-terra-pro';
 }
 
 export function hasOpenRouterConfig() {
