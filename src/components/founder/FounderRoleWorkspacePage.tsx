@@ -25,6 +25,7 @@ import { AgentTraceTeaserSection, type AgentTraceTeaser } from "@/components/fou
 import { FounderTraceViewer } from "@/components/founder/FounderTraceViewer";
 import type { AgentWrappedReport } from "@/lib/agentWrapped/types";
 import { AgentChatPanel } from "@/components/beautiful-ui/AgentChatPanel";
+import { ThinkingState } from "@/components/beautiful-ui/ThinkingState";
 import { toFounderFacingWhyHire } from "@/lib/talent/founderFacingWhyHire";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -290,29 +291,44 @@ function inferChatThinkingSteps(message: string): string[] {
   if (/\b(search|find|shortlist|match|look for|show me|start the search|yes)\b/.test(text)) {
     return [
       "Reading the role brief…",
-      "Matching builders to must-haves…",
-      "Ranking shipped proof…",
-      "Preparing your shortlist…",
+      "Scanning builder proof-of-work…",
+      "Matching must-have skills…",
+      "Ranking shipped projects…",
+      "Building your shortlist…",
     ];
   }
   if (/\b(remove|exclude|pass on|drop|hide)\b/.test(text)) {
-    return ["Updating the shortlist…", "Re-ranking remaining builders…"];
-  }
-  if (/\b(skill|stack|typescript|react|salary|equity|visa|remote|experience|must-have|requirement)\b/.test(text)) {
     return [
-      "Updating the role…",
-      "Checking what changed…",
+      "Updating the shortlist…",
+      "Removing builders that don't fit…",
+      "Re-ranking remaining matches…",
+    ];
+  }
+  if (/\b(skill|stack|typescript|react|salary|equity|visa|remote|experience|must-have|requirement|senior|scalable|scale)\b/.test(text)) {
+    return [
+      "Understanding your constraints…",
+      "Updating the role requirements…",
+      "Checking what changed in the brief…",
       "Deciding whether to re-search…",
     ];
   }
   if (/\b(invite|intro|outreach|email)\b/.test(text)) {
-    return ["Drafting the intro…", "Checking builder details…"];
+    return [
+      "Pulling builder context…",
+      "Drafting a tailored intro…",
+      "Checking outreach details…",
+    ];
   }
   return [
     "Reading your message…",
-    "Checking role context…",
-    "Deciding next steps…",
+    "Checking the current role context…",
+    "Figuring out the next best move…",
   ];
+}
+
+function appendThinkingStep(prev: string[], step: string) {
+  if (prev.includes(step)) return prev;
+  return [...prev, step];
 }
 
 const RoleWorkspaceShimmer: React.FC = () => (
@@ -566,10 +582,33 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     setMessage("");
     const steps = inferChatThinkingSteps(nextMessage);
     setThinkingSteps(steps);
-    const likelySearch = steps.some((step) => /shortlist|Matching|Ranking shipped/i.test(step));
+    const likelySearch = steps.some((step) => /shortlist|Matching|Ranking shipped|Scanning builder/i.test(step));
     if (likelySearch) setSearching(true);
     setChatSending(true);
     setChat((prev) => [...prev, { role: "founder", content: nextMessage }]);
+
+    const progressTimers = [
+      window.setTimeout(() => {
+        setThinkingSteps((prev) => appendThinkingStep(prev, "Talking to the hiring agent…"));
+      }, 1400),
+      window.setTimeout(() => {
+        setThinkingSteps((prev) =>
+          appendThinkingStep(
+            prev,
+            likelySearch ? "Looking across DevLabs builders…" : "Applying changes to the role…"
+          )
+        );
+      }, 3200),
+      window.setTimeout(() => {
+        setThinkingSteps((prev) =>
+          appendThinkingStep(
+            prev,
+            likelySearch ? "Scoring proof against this role…" : "Preparing a clear reply…"
+          )
+        );
+      }, 5200),
+    ];
+
     try {
       const res = await fetch(`/api/founder/roles/${roleId}/chat`, {
         method: "POST",
@@ -582,6 +621,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         if (data.job) setJob(data.job);
         if (data.session?.id) setSessionId(data.session.id);
         setPendingAgentFollowup("");
+        if (data.searchRan) {
+          setThinkingSteps((prev) => appendThinkingStep(prev, "Refreshing your recommendations…"));
+        }
         appendAssistantMessages(data.message || "Updated.");
         // When the agent searches or mutates the shortlist, refresh the builders
         // pane. Stay on chat if we're already in the conversation view.
@@ -599,6 +641,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       if (likelySearch) setSearching(false);
       setChat((prev) => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
     } finally {
+      for (const timer of progressTimers) window.clearTimeout(timer);
       setChatSending(false);
     }
   };
@@ -606,6 +649,13 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   const runSearch = async () => {
     await saveJob();
     setSearching(true);
+    setThinkingSteps([
+      "Reading the role brief…",
+      "Searching builders with real proof-of-work…",
+      "Matching must-have skills…",
+      "Ranking shipped projects…",
+      "Preparing your shortlist…",
+    ]);
     setError("");
     try {
       const res = await fetch(`/api/founder/roles/${roleId}/search`, {
@@ -1046,7 +1096,14 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 profile={profile}
                 afterLinks={
                   profileRec?.teasers?.agentTrace ? (
-                    <AgentTraceTeaserSection teaser={profileRec.teasers.agentTrace} />
+                    <AgentTraceTeaserSection
+                      teaser={profileRec.teasers.agentTrace}
+                      onExpand={
+                        profileRec
+                          ? () => void handleTraceExpand(profileRec)
+                          : undefined
+                      }
+                    />
                   ) : null
                 }
               />
@@ -1106,7 +1163,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           ) : (
             <>
               <AgentTraceTeaserSection teaser={traceRec.teasers.agentTrace} />
-              <p className="mt-3 text-xs text-black/45">No verified Agent Wrapped upload yet — showing profile-based estimate.</p>
+              <p className="mt-3 text-sm text-black/45">
+                This builder hasn&apos;t uploaded a verified coding trace yet. You&apos;re seeing a preview from their profile.
+              </p>
             </>
           )}
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -1115,7 +1174,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
               <p className="mt-1 text-lg font-semibold text-black">{Math.round(traceRec.matchScore || 0)}%</p>
             </div>
             <div className="border-t border-[#ece7e1] pt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Trace alignment</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-black/35">Role match</p>
               <p className="mt-1 text-lg font-semibold text-black">
                 {traceRec.teasers.agentTrace.roleFitTrace?.alignmentScore ?? "—"}%
               </p>
@@ -1372,7 +1431,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <p className="text-sm font-semibold text-black">{roleLabel} · Role Conversation</p>
+          <p className="text-sm font-semibold text-black">{roleLabel} · Agent Conversation</p>
           <a href="/founder/home" className="text-sm font-semibold text-black/55 hover:text-black">
             Home
           </a>
@@ -1382,8 +1441,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           <div className="grid min-h-0 gap-5 lg:h-[calc(100vh-6rem)] lg:grid-cols-2">
             <AgentChatPanel
               className="min-h-[520px] lg:min-h-0"
-              title="Role Conversation"
-              subtitle="Use natural language to revise this role or manage the pipeline."
+              title="Agent Conversation"
+              subtitle="Revise this role or manage the pipeline in plain language."
               messages={chat}
               loading={chatLoading}
               sending={chatSending}
@@ -1417,6 +1476,24 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 </div>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto p-5">
+                {chatSending || searching ? (
+                  <div className="rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3 py-3">
+                    <ThinkingState
+                      active
+                      steps={
+                        thinkingSteps.length
+                          ? thinkingSteps
+                          : searching
+                            ? [
+                                "Searching builders with real proof-of-work…",
+                                "Matching skills to this role…",
+                                "Ranking projects and experience…",
+                              ]
+                            : ["Working on your request…"]
+                      }
+                    />
+                  </div>
+                ) : null}
                 {searching && buckets.recommended.length > 0 ? (
                   <div className="flex items-center gap-2 rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3 py-2 text-xs text-black/45">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1425,9 +1502,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 ) : null}
                 {recommendationsLoading && buckets.recommended.length === 0 ? (
                   <RecommendationsLoadingList label="Loading recommendations…" />
-                ) : searching && buckets.recommended.length === 0 ? (
+                ) : searching && buckets.recommended.length === 0 && !chatSending ? (
                   <RecommendationsLoadingList label="Searching builders with real proof-of-work…" />
-                ) : buckets.recommended.length === 0 ? (
+                ) : buckets.recommended.length === 0 && !chatSending && !searching ? (
                   <div className="rounded-2xl border border-dashed border-[#e3ddd4] p-8 text-center text-sm text-black/45">
                     No new recommendations right now.
                   </div>
@@ -1494,9 +1571,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 <button
                   type="button"
                   onClick={goToChat}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-[#ece7e1] bg-white px-3 text-xs font-semibold text-black hover:bg-[#fdfaf7]"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#050505] px-3.5 text-xs font-semibold text-white transition hover:bg-black/85"
                 >
-                  <MessageCircle className="h-3.5 w-3.5" /> View Role Conversation
+                  <MessageCircle className="h-3.5 w-3.5" /> Agent Conversation
                 </button>
               </div>
             </div>

@@ -172,7 +172,7 @@ export function ThinkingState({ steps, active = true, className = "" }: Thinking
                         aria-hidden
                       />
                     )}
-                    <span className="min-w-0 truncate text-[12.5px] font-medium text-[var(--bui-ink)]">
+                    <span className="min-w-0 truncate text-[13.5px] font-medium text-[var(--bui-ink)]">
                       {primary}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
+import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 import { profileIdentityBodyClass, profilePaneBodyClass, profilePaneClass, profilePaneHeaderClass, profileSectionLabelClass } from './builderProfileLayout';
 
@@ -20,7 +21,7 @@ const linkLabel = (key: string) => {
 export default function BuilderProfileIdentityPanel({ profile }: { profile: BuilderProfileView }) {
   const skills = [...new Set([...(profile.skills || []), ...(profile.preferredWorkType || [])])].slice(0, 16);
   const displaySkills = skills;
-  const experiences = (profile.experiences || []).slice(0, 6);
+  const experiences = sortExperiencesByRecency(profile.experiences || []).slice(0, 6);
   const education = (profile.education || []).slice(0, 4);
   const linkEntries = Object.entries(profile.links || {}).filter(([, href]) => Boolean(href));
 

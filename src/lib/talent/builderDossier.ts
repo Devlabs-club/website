@@ -1,6 +1,7 @@
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { generateOpenRouterReply } from '@/lib/openrouter';
 import { exaSearch, hasExaConfig } from '@/lib/talent/exaClient';
+import { buildBuilderExaFingerprint } from '@/lib/talent/exaResearchCache';
 import { urlsToMarkdown } from '@/lib/talent/urlToMarkdown';
 import { readEnv, type RuntimeEnv } from '@/lib/workosEnv';
 
@@ -120,13 +121,25 @@ export async function buildBuilderDossier(params: {
   let exaExcerpts = '';
   let pageMarkdown = '';
 
+  const { hash: fingerprintHash } = buildBuilderExaFingerprint(builder || { name, email }, []);
+  const priorHash = (builder as any)?.enrichmentInsights?.exaResearch?.fingerprint || null;
+  const skipExa = Boolean(priorHash && priorHash === fingerprintHash && hasExaConfig(params.runtime));
+
   const [exaResults, ghByEmail] = await Promise.all([
-    hasExaConfig(params.runtime)
-      ? exaSearch(buildSearchQuery(name, email, (builder as any)?.universityOrCompany), { numResults: 6, category: 'people' }, params.runtime)
+    hasExaConfig(params.runtime) && !skipExa
+      ? exaSearch(
+          buildSearchQuery(name, email, (builder as any)?.universityOrCompany),
+          { numResults: 6, category: 'people' },
+          params.runtime
+        )
       : Promise.resolve([]),
     githubUserByEmail(email, params.runtime),
   ]);
 
+  if (skipExa) {
+    sources.push('exa:skipped_fingerprint_match');
+    console.info('[builderDossier] skipped Exa (fingerprint match)', { fingerprintHash });
+  }
   if (ghByEmail && !inferredLinks.github) {
     inferredLinks.github = ghByEmail.url;
     sources.push(`github-email:${ghByEmail.login}`);
@@ -207,6 +220,27 @@ gaps: max 5, ranked by founderImpact (1-10). Ask only what you CANNOT infer.`,
   const mergedLinks = { ...inferredLinks, ...(parsed.inferredLinks || {}) };
   for (const k of Object.keys(mergedLinks) as (keyof typeof mergedLinks)[]) {
     if (!mergedLinks[k]) delete mergedLinks[k];
+  }
+
+  // Persist fingerprint after a real Exa people search so deep research / dossier
+  // don't double-bill for the same identity.
+  if (builder?._id && exaResults.length && !skipExa) {
+    try {
+      await BuilderProfile.findByIdAndUpdate(builder._id, {
+        $set: {
+          'enrichmentInsights.exaResearch': {
+            fingerprint: fingerprintHash,
+            searchedAt: new Date(),
+            citationCount: exaResults.length,
+            providers: ['exa'],
+            skipped: false,
+          },
+          'enrichmentInsights.updatedAt': new Date(),
+        },
+      });
+    } catch (err) {
+      console.warn('[builderDossier] failed to persist exa fingerprint', err);
+    }
   }
 
   return {

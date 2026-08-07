@@ -196,10 +196,10 @@ export function buildRoleFitTrace(params: {
       projects.flatMap((p: any) => (p.techStack || []).map((s: string) => normalizeSkillTerm(s)))
     );
     const { matched, missing } = skillOverlap(required, projectStack);
-    if (matched.length) relevantSignals.push(`Profile projects use ${matched.slice(0, 3).join(', ')}`);
-    if (missing.length) gaps.push(...missing.slice(0, 2).map((s) => `Limited proof for ${s}`));
+    if (matched.length) relevantSignals.push(`Projects use ${matched.slice(0, 3).join(', ')}`);
+    if (missing.length) gaps.push(...missing.slice(0, 2).map((s) => `Less evidence for ${s}`));
     alignmentScore = matched.length && required.length ? Math.round((matched.length / required.length) * 60) : 40;
-    gaps.push('No verified agent trace — estimate from profile only');
+    gaps.push('No verified coding-session trace yet');
   }
 
   const matchScore = match?.matchScore ?? shortlistCandidate?.matchScore;
@@ -216,10 +216,15 @@ export function buildRoleFitTrace(params: {
         ? 'moderate'
         : 'low';
 
+  const cleanSignals = relevantSignals.filter((s) => !s.startsWith('gap:'));
   const roleSummary =
-    relevantSignals.length > 0
-      ? `For ${roleTitle}: ${relevantSignals[0]}${gaps.length ? `, but ${gaps[0].toLowerCase()}` : ''}.`
-      : `For ${roleTitle}: limited trace signal — validate fit in intro.`;
+    cleanSignals.length > 0
+      ? gaps.length
+        ? `${cleanSignals[0]}. Still thin on: ${gaps[0].replace(/^Less evidence for /i, '').replace(/^No verified.*/i, 'verified coding sessions')}.`
+        : cleanSignals[0]
+      : report?.source === 'uploaded_agent_usage'
+        ? `Verified coding trace available for ${roleTitle}.`
+        : `No verified coding trace yet — match is estimated from resume and projects.`;
 
   return {
     alignmentScore,

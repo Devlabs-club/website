@@ -9,7 +9,9 @@ import { processGenericLink } from '@/lib/talent/builderLinkProcessor';
 import { reloadBuilder, getProjects, updateBuilderScores, updateLinks } from '@/lib/agent/builderProfileTools';
 import {
   clearEnrichmentProgress,
+  initialUiStageForSources,
   setEnrichmentProgress,
+  touchEnrichmentProgress,
   uiStageForSource,
   type EnrichmentUiStage,
 } from '@/lib/talent/builderEnrichment/progress';
@@ -33,12 +35,6 @@ export type PublicProfileReadiness = {
 
 const SOURCE_ORDER: EnrichmentSource[] = ['linkedin', 'github', 'devpost', 'portfolio', 'twitter', 'resume'];
 
-function initialUiStage(sources: EnrichmentSource[]): EnrichmentUiStage {
-  if (sources.includes('linkedin')) return 'linkedin';
-  if (sources.includes('github')) return 'github';
-  return 'research';
-}
-
 async function reportSourceProgress(builderId: string, source: EnrichmentSource, sources: EnrichmentSource[]) {
   const stage = uiStageForSource(source);
   if (stage) {
@@ -53,7 +49,9 @@ async function reportSourceProgress(builderId: string, source: EnrichmentSource,
   }
   if (sources.includes('linkedin') && sourceIndex > sources.indexOf('linkedin')) {
     await setEnrichmentProgress(builderId, 'linkedin');
+    return;
   }
+  await touchEnrichmentProgress(builderId);
 }
 
 function getCompletedSources(builder: any): EnrichmentSource[] {
@@ -215,7 +213,7 @@ export async function runEnrichmentPipeline(params: {
 
   try {
     if (sources.length) {
-      await setEnrichmentProgress(params.builderId, initialUiStage(sources));
+      await setEnrichmentProgress(params.builderId, initialUiStageForSources(sources));
       const res = await enrichBuilderProfile({
         builderId: params.builderId,
         sources,

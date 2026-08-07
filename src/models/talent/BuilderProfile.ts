@@ -155,6 +155,14 @@ const BuilderProfileSchema = new mongoose.Schema(
         additionalProjectCount: { type: Number, default: 0 },
         reposScanned: { type: Number, default: 0 },
       },
+      /** Once-per-fingerprint Exa people search — skip Exa when hash matches. */
+      exaResearch: {
+        fingerprint: { type: String, default: null },
+        searchedAt: { type: Date, default: null },
+        citationCount: { type: Number, default: 0 },
+        providers: [{ type: String }],
+        skipped: { type: Boolean, default: false },
+      },
       updatedAt: { type: Date, default: null },
     },
     verificationStatus: {

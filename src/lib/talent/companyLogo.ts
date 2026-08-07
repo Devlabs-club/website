@@ -1,5 +1,6 @@
 const DOMAIN_OVERRIDES: Record<string, string> = {
   google: 'google.com',
+  alphabet: 'abc.xyz',
   dropbox: 'dropbox.com',
   cloudflare: 'cloudflare.com',
   meta: 'meta.com',
@@ -16,6 +17,9 @@ const DOMAIN_OVERRIDES: Record<string, string> = {
   arizonastateuniversity: 'asu.edu',
   asu: 'asu.edu',
   fultonschoolsofengineeringtutoringcentersasu: 'asu.edu',
+  // LinkedIn vanity slugs that are not the public website domain.
+  devlabs: 'devlabs.club',
+  devlabsclub: 'devlabs.club',
 };
 
 /** Strip legal suffixes so "Dropbox, Inc." → "dropbox", not "dropboxinc". */
@@ -43,6 +47,31 @@ function domainFromLinkedInUrl(companyLinkedInUrl?: string | null) {
   }
 }
 
+/**
+ * LinkedIn company slugs sometimes fuzzy-match the wrong org
+ * ("Google" → /company/googleventures). Prefer the display company name when
+ * we know its domain; only use the LinkedIn slug as a last resort.
+ */
+function domainForCompany(company: string, companyLinkedInUrl?: string | null) {
+  const key = compactCompanyKey(company);
+  if (key && DOMAIN_OVERRIDES[key]) return DOMAIN_OVERRIDES[key];
+
+  const linkedInDomain = domainFromLinkedInUrl(companyLinkedInUrl);
+  if (linkedInDomain) {
+    // If the LinkedIn slug looks like a different company (google vs googleventures),
+    // ignore it when the company name is only a prefix/suffix of the slug.
+    const slugKey = linkedInDomain
+      .replace(/\.(com|co|io|ai|club|org|net|edu)$/i, '')
+      .replace(/[^a-z0-9]/g, '');
+    if (key && slugKey && slugKey !== key && (slugKey.startsWith(key) || key.startsWith(slugKey))) {
+      return `${key}.com`;
+    }
+    return linkedInDomain;
+  }
+
+  return key ? `${key}.com` : null;
+}
+
 /** Best-effort logo for display when enrichment did not persist a company image URL. */
 export function isUnreliableCompanyLogoUrl(url?: string | null) {
   const value = String(url || '').trim();
@@ -60,9 +89,7 @@ export function resolveCompanyLogoUrl(
     return storedLogoUrl.trim();
   }
 
-  const linkedInDomain = domainFromLinkedInUrl(companyLinkedInUrl);
-  const key = compactCompanyKey(company);
-  const domain = linkedInDomain || (key ? DOMAIN_OVERRIDES[key] || `${key}.com` : null);
+  const domain = domainForCompany(company, companyLinkedInUrl);
   if (!domain) return null;
 
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`;

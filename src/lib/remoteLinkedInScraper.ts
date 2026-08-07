@@ -20,6 +20,110 @@ export type QueuedLinkedInEnrichment = {
   remote: true;
 };
 
+const TERMINAL_ITEM_STATUSES = new Set(['succeeded', 'failed', 'blocked']);
+
+function isDirectScrapingDisabledError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || '');
+  return /direct_scraping_disabled|Submit a job to POST \/batches/i.test(message);
+}
+
+/**
+ * Prefer instant POST /run. If the scraper build still disables /run (410),
+ * fall back to a single-item batch and wait until the artifact is ready so the
+ * website request never returns before LinkedIn data can be applied.
+ */
+export async function runInstantRemoteLinkedInBuilderEnrichment(
+  builder: { id: string; name: string; linkedInUrl: string },
+  runtime?: RuntimeEnv,
+  timeoutMs = 150_000
+): Promise<RemoteLinkedInScraperResult | null> {
+  const config = getRemoteLinkedInScraperConfig(runtime);
+  if (!config) return null;
+
+  try {
+    return await runRemoteLinkedInScraperScript(
+      'enrich-builder-linkedin-cdp.mjs',
+      [
+        '--linkedin-url',
+        builder.linkedInUrl,
+        '--name',
+        builder.name,
+        '--output-key',
+        builder.id,
+        '--wait-ms',
+        '12000',
+      ],
+      runtime,
+      timeoutMs
+    );
+  } catch (error) {
+    if (!isDirectScrapingDisabledError(error)) throw error;
+    console.warn(
+      '[linkedin-scraper] /run disabled on Railway; waiting on single-item batch instead'
+    );
+  }
+
+  const queued = await queueRemoteLinkedInBuilderEnrichment(builder, runtime);
+  if (!queued) return null;
+  return waitForQueuedLinkedInArtifact(queued.batchId, builder.id, runtime, timeoutMs);
+}
+
+async function waitForQueuedLinkedInArtifact(
+  batchId: string,
+  builderId: string,
+  runtime?: RuntimeEnv,
+  timeoutMs = 150_000
+): Promise<RemoteLinkedInScraperResult> {
+  const config = requireRemoteLinkedInScraperConfig(runtime);
+  const started = Date.now();
+  let lastStatus = 'queued';
+
+  while (Date.now() - started < timeoutMs) {
+    const statusRes = await fetch(`${config.url}/batches/${batchId}`, {
+      headers: { Authorization: `Bearer ${config.secret}` },
+    });
+    const statusPayload = await statusRes.json().catch(() => null);
+    if (!statusRes.ok) {
+      throw new Error(
+        typeof statusPayload?.message === 'string'
+          ? statusPayload.message
+          : `LinkedIn batch status failed with HTTP ${statusRes.status}`
+      );
+    }
+
+    const item = Array.isArray(statusPayload?.items)
+      ? statusPayload.items.find((candidate: any) => String(candidate?.builderId) === builderId)
+      : null;
+    lastStatus = String(item?.status || statusPayload?.status || lastStatus);
+
+    if (item && TERMINAL_ITEM_STATUSES.has(String(item.status))) {
+      if (item.status !== 'succeeded') {
+        throw new Error(
+          typeof item.error === 'string' && item.error
+            ? item.error
+            : `LinkedIn enrichment ${item.status}`
+        );
+      }
+      const artifactRes = await fetch(`${config.url}/batches/${batchId}/artifacts/${builderId}`, {
+        headers: { Authorization: `Bearer ${config.secret}` },
+      });
+      const artifact = await artifactRes.json().catch(() => null);
+      if (!artifactRes.ok || !artifact) {
+        throw new Error(
+          typeof artifact?.message === 'string'
+            ? artifact.message
+            : `LinkedIn artifact fetch failed with HTTP ${artifactRes.status}`
+        );
+      }
+      return { summary: item.summary || null, artifact, remote: true };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  throw new Error(`LinkedIn enrichment timed out after ${timeoutMs}ms (last status: ${lastStatus})`);
+}
+
 let warnedRichScraperTypo = false;
 
 function normalizeBaseUrl(value: string) {

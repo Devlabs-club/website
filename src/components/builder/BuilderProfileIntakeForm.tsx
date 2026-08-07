@@ -14,11 +14,57 @@ function profileValue(profile: BuilderProfileView | null, key: string) {
   return profile?.links?.[key] || '';
 }
 
+function RequiredYesNo({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean | null;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="border border-black/10 bg-[#fffcfa] px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-extrabold text-[#050505]">{label}</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#bf4f08]">Required</p>
+        </div>
+        <div className="flex gap-2">
+          {[
+            { label: 'Yes', next: true },
+            { label: 'No', next: false },
+          ].map((option) => {
+            const selected = value === option.next;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => onChange(option.next)}
+                className={`inline-flex h-10 min-w-[4.5rem] items-center justify-center px-4 text-sm font-semibold transition-colors ${
+                  selected
+                    ? 'bg-[#ff7417] text-white'
+                    : 'border border-black/12 bg-white text-black/55 hover:border-[#ff7417]/45 hover:text-black'
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmentStateChange }: Props) {
   const [linkedin, setLinkedin] = useState(profileValue(profile, 'linkedin'));
   const [github, setGithub] = useState(profileValue(profile, 'github'));
   const [devpost, setDevpost] = useState(profileValue(profile, 'devpost'));
   const [portfolio, setPortfolio] = useState(profileValue(profile, 'portfolio') || profileValue(profile, 'personalWebsite'));
+  const [openToWork, setOpenToWork] = useState<boolean | null>(null);
+  const [isUsCitizen, setIsUsCitizen] = useState<boolean | null>(null);
   const [resume, setResume] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -26,8 +72,11 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasRequiredFields = useMemo(
-    () => [linkedin, portfolio, resume?.name].every((value) => String(value || '').trim()),
-    [linkedin, portfolio, resume]
+    () =>
+      [linkedin, resume?.name].every((value) => String(value || '').trim()) &&
+      openToWork !== null &&
+      isUsCitizen !== null,
+    [linkedin, resume, openToWork, isUsCitizen]
   );
 
   const acceptResume = (file: File | null | undefined) => {
@@ -50,6 +99,10 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
   };
 
   const submit = async () => {
+    if (openToWork === null || isUsCitizen === null) {
+      setError('Please answer Open to work and US citizen.');
+      return;
+    }
     setSaving(true);
     onEnrichmentStateChange?.(true);
     setError('');
@@ -59,6 +112,8 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
       form.set('github', github);
       form.set('devpost', devpost);
       form.set('portfolio', portfolio);
+      form.set('openToWork', String(openToWork));
+      form.set('isUsCitizen', String(isUsCitizen));
       if (resume) form.set('resume', resume);
 
       const res = await fetch('/api/builder/profile', {
@@ -69,11 +124,15 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'Could not save profile.');
       await onSaved();
+      // Enrichment continues in the background — keep the overlay until progress polling clears it.
+      if (!data.enrichment?.started) {
+        onEnrichmentStateChange?.(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save profile.');
+      onEnrichmentStateChange?.(false);
     } finally {
       setSaving(false);
-      onEnrichmentStateChange?.(false);
     }
   };
 
@@ -83,7 +142,7 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
           <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">01 · Builder profile</p>
           <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.03em] text-[#050505]">Add your proof links</h2>
           <p className="mt-2 text-sm leading-6 text-black/55">
-            LinkedIn, portfolio, and resume are required. GitHub and Devpost are optional — add them if you have them.
+            LinkedIn, resume, and the two status questions are required. GitHub, Devpost, and portfolio are optional.
             Experience, projects, and profile copy are generated after enrichment and stay editable in Profile.
           </p>
 
@@ -105,9 +164,15 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
               <input value={devpost} onChange={(event) => setDevpost(event.target.value)} placeholder="https://devpost.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
             <label className="block">
-              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">Portfolio website</span>
-              <input required value={portfolio} onChange={(event) => setPortfolio(event.target.value)} placeholder="https://your-site.com" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
+                Portfolio website{' '}
+                <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
+              </span>
+              <input value={portfolio} onChange={(event) => setPortfolio(event.target.value)} placeholder="https://your-site.com" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
+
+            <RequiredYesNo label="Open to work" value={openToWork} onChange={setOpenToWork} />
+            <RequiredYesNo label="US citizen" value={isUsCitizen} onChange={setIsUsCitizen} />
 
             <div
               role="button"

@@ -1,3 +1,5 @@
+import { experienceIsCurrent, sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
+
 function plain<T = any>(value: T): T {
   return value && typeof (value as any).toObject === 'function' ? (value as any).toObject() : ({ ...(value as any) } as T);
 }
@@ -182,11 +184,12 @@ export function mergeExperiences(existing: any[] = [], incoming: any[] = [], fal
   for (const raw of [...existing, ...incoming]) {
     if (!raw || (!raw.title && !raw.company)) continue;
     const next = normalizedExperience(raw, fallbackSource);
+    next.isCurrent = experienceIsCurrent(next);
     const index = merged.findIndex((entry) => sameExperience(entry, next));
     if (index >= 0) merged[index] = mergeExperience(merged[index], next);
     else merged.push(next);
   }
-  return merged.slice(0, 12);
+  return sortExperiencesByRecency(merged).slice(0, 12);
 }
 
 export function dedupeBuilderProfileCollections(builder: any) {

@@ -436,10 +436,45 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === 'POST' && url.pathname === '/run') {
-      return send(res, 410, {
-        error: 'direct_scraping_disabled',
-        message: 'Direct scraping bypasses the global safety queue. Submit a job to POST /batches instead.',
-      });
+      // Instant path for website builder/founder enrichment. Shares the single
+      // Chrome worker lock with the FIFO queue (bulk jobs still use /batches).
+      if (globalWorkerRunning) {
+        return send(res, 409, {
+          error: 'busy',
+          message: 'LinkedIn scraper is busy with another job. Retry in a few seconds.',
+        });
+      }
+      const payload = await readJson(req);
+      const script = String(payload?.script || '').trim();
+      const args = Array.isArray(payload?.args) ? payload.args.map(String) : [];
+      if (!/^[a-zA-Z0-9._-]+\.mjs$/.test(script)) {
+        return send(res, 400, { error: 'invalid_script', message: 'script must be a *.mjs filename.' });
+      }
+      globalWorkerRunning = true;
+      try {
+        const { summary, artifact } = await runCdpScript(script, args);
+        if (artifact && isLinkedInBlockedArtifact(artifact)) {
+          const queue = await loadGlobalQueue();
+          queue.paused = true;
+          queue.pauseReason =
+            'LinkedIn returned an authwall or account restriction. Global queue paused to protect the shared session.';
+          queue.pausedAt = new Date().toISOString();
+          await saveGlobalQueue(queue);
+          return send(res, 423, {
+            error: 'linkedin_blocked',
+            message: queue.pauseReason,
+            summary,
+            artifact,
+          });
+        }
+        const queue = await loadGlobalQueue();
+        queue.lastCompletedAt = new Date().toISOString();
+        await saveGlobalQueue(queue);
+        return send(res, 200, { summary, artifact });
+      } finally {
+        globalWorkerRunning = false;
+        void processGlobalQueue();
+      }
     }
 
     if (req.method !== 'POST') {

@@ -23,6 +23,12 @@ http {
     location = /health {
       proxy_pass http://127.0.0.1:6090;
     }
+    location = /queue {
+      proxy_pass http://127.0.0.1:6090;
+    }
+    location = /queue/resume {
+      proxy_pass http://127.0.0.1:6090;
+    }
     # Persistent batch submission, status, and artifact download API.
     location ^~ /batches {
       proxy_pass http://127.0.0.1:6090;

@@ -10,6 +10,13 @@ import {
   queueRemoteLinkedInFounderEnrichment,
   requireRemoteLinkedInScraperConfig,
 } from '@/lib/remoteLinkedInScraper';
+import {
+  enrichLinkedInProfileViaApify,
+  hasApifyConfig,
+} from '@/lib/talent/builderEnrichment/apifyLinkedInProfile';
+import { applyLinkedInDraftToFounder } from '@/lib/talent/builderEnrichment/applyFounderLinkedInDraft';
+import { applyProfileDraft, refreshBuilderScores } from '@/lib/talent/builderEnrichment/apply';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
 
@@ -63,7 +70,71 @@ async function resolveUser(request: Request, locals: App.Locals) {
   return { user: await findUserById(decoded.userId, runtime), runtime };
 }
 
+async function enrichBuilderViaApify(user: any, linkedInUrl: string, runtime?: Record<string, string | undefined>) {
+  let builder = await BuilderProfile.findOne({
+    $or: [{ userId: user._id }, { email: user.email }],
+  });
+
+  if (!builder) {
+    builder = await BuilderProfile.create({
+      userId: user._id,
+      name: user.name || user.email.split('@')[0],
+      email: user.email,
+      links: { linkedin: linkedInUrl },
+      verificationStatus: 'imported_unverified',
+      visibilityStatus: 'matched_only',
+    });
+  } else {
+    builder.userId = user._id;
+    builder.email = builder.email || user.email;
+    builder.name = builder.name || user.name || user.email.split('@')[0];
+    builder.links = { ...(builder.links || {}), linkedin: linkedInUrl };
+    await builder.save();
+  }
+
+  const scraped = await enrichLinkedInProfileViaApify(linkedInUrl, runtime);
+  const updated = await applyProfileDraft(builder, scraped.profile, {
+    overwriteBasics: true,
+    writeBasics: true,
+  });
+  await builder.save();
+  await refreshBuilderScores(builder._id);
+  try {
+    await upsertTalentSearchIndexForBuilder(String(builder._id));
+  } catch (err) {
+    console.warn('[linkedin-onboarding] search index refresh failed', err);
+  }
+
+  await updateUserAccount(
+    String(user._id),
+    {
+      role: 'builder',
+      accountType: 'builder',
+      onboardingStatus: 'imessage_claim',
+      ...(scraped.profile.avatarUrl ? { avatarUrl: scraped.profile.avatarUrl } : {}),
+    },
+    runtime
+  );
+
+  return {
+    next: '/builder/home',
+    profileId: String(builder._id),
+    queued: false,
+    provider: 'apify',
+    profileFieldsUpdated: updated,
+    runId: scraped.runId,
+  };
+}
+
 async function enrichBuilder(user: any, linkedInUrl: string, runtime?: Record<string, string | undefined>) {
+  if (hasApifyConfig(runtime)) {
+    try {
+      return await enrichBuilderViaApify(user, linkedInUrl, runtime);
+    } catch (err) {
+      console.warn('[linkedin-onboarding] Apify builder enrich failed, falling back to Railway', err);
+    }
+  }
+
   let builder = await BuilderProfile.findOne({
     $or: [{ userId: user._id }, { email: user.email }],
   });
@@ -93,18 +164,23 @@ async function enrichBuilder(user: any, linkedInUrl: string, runtime?: Record<st
     },
     runtime
   );
-  if (!queued) throw new Error('Railway LinkedIn scraper is not configured.');
+  if (!queued) throw new Error('LinkedIn enrichment is not configured (APIFY_API_TOKEN or Railway scraper).');
 
-  await updateUserAccount(String(user._id), {
-    role: 'builder',
-    accountType: 'builder',
-    onboardingStatus: 'imessage_claim',
-  }, runtime);
+  await updateUserAccount(
+    String(user._id),
+    {
+      role: 'builder',
+      accountType: 'builder',
+      onboardingStatus: 'imessage_claim',
+    },
+    runtime
+  );
 
   return {
     next: '/builder/home',
     profileId: String(builder._id),
     queued: true,
+    provider: 'railway',
     batchId: queued.batchId,
     statusUrl: queued.statusUrl,
   };
@@ -119,6 +195,68 @@ function founderLooksScraped(profile: any): boolean {
   return hasCompany && (Boolean(title) || Boolean(bio) || experiences.length > 0 || Boolean(profile?.logoUrl));
 }
 
+async function enrichFounderViaApify(
+  user: any,
+  linkedInUrl: string,
+  runtime?: Record<string, string | undefined>
+) {
+  const userId = String(user._id);
+  const existing = await FounderProfile.findOne({ userId }).lean();
+  const prevEpoch =
+    typeof existing?.metadata?.enrichmentEpoch === 'number' ? existing.metadata.enrichmentEpoch : 0;
+  const batchId = `apify_${Date.now().toString(36)}`;
+
+  await FounderProfile.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        userId,
+        founderEmail: user.email,
+        founderName: user.name || user.email.split('@')[0],
+        linkedin: linkedInUrl,
+        company: 'My company',
+        founderBio: null,
+        logoUrl: null,
+        enrichmentStatus: 'pending',
+        enrichmentSources: ['linkedin'],
+        enrichedAt: null,
+        metadata: {
+          onboardingDraft: true,
+          enrichmentEpoch: prevEpoch + 1,
+          enrichmentBatchId: batchId,
+          enrichmentLinkedInUrl: linkedInUrl,
+          enrichmentLinkedInKey: normalizeLinkedInProfileKey(linkedInUrl),
+          enrichmentQueuedAt: new Date().toISOString(),
+          enrichmentProvider: 'apify',
+          title: null,
+          experiences: [],
+        },
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  const scraped = await enrichLinkedInProfileViaApify(linkedInUrl, runtime);
+  const applied = await applyLinkedInDraftToFounder({
+    userId,
+    email: user.email,
+    name: user.name || user.email.split('@')[0],
+    linkedInUrl,
+    profile: scraped.profile,
+    batchId,
+    runtime,
+  });
+
+  return {
+    next: '/founder/onboarding/profile?step=profile',
+    queued: false,
+    provider: 'apify',
+    batchId,
+    runId: scraped.runId,
+    enrichmentStatus: applied.enrichmentStatus,
+  };
+}
+
 async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, runtime?: Record<string, string | undefined>) {
   const userId = String(user._id);
   const existing = await FounderProfile.findOne({ userId }).lean();
@@ -126,19 +264,21 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
   const status = existing?.enrichmentStatus || null;
 
   // Same URL already scraped — do not re-queue or flip status back to pending.
-  // That was the stuck-loading bug when founders went back and re-submitted.
-  // Discarded drafts use enrichmentStatus=failed and must re-scrape.
   if (
     sameUrl &&
     (status === 'complete' || status === 'partial') &&
     founderLooksScraped(existing) &&
     !(existing as any)?.metadata?.enrichmentDiscardedAt
   ) {
-    await updateUserAccount(userId, {
-      role: 'founder',
-      accountType: 'founder',
-      onboardingStatus: 'profile',
-    }, runtime);
+    await updateUserAccount(
+      userId,
+      {
+        role: 'founder',
+        accountType: 'founder',
+        onboardingStatus: 'profile',
+      },
+      runtime
+    );
     return {
       next: '/founder/onboarding/profile?step=profile',
       queued: false,
@@ -147,14 +287,22 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
     };
   }
 
-  // Same URL already in-flight — reuse the pending job instead of stacking queue
-  // items and wiping fields mid-scrape.
-  if (sameUrl && status === 'pending' && existing?.metadata?.enrichmentBatchId) {
-    await updateUserAccount(userId, {
-      role: 'founder',
-      accountType: 'founder',
-      onboardingStatus: 'profile',
-    }, runtime);
+  // Same URL already in-flight on Railway — reuse pending job.
+  if (
+    sameUrl &&
+    status === 'pending' &&
+    existing?.metadata?.enrichmentBatchId &&
+    existing?.metadata?.enrichmentProvider !== 'apify'
+  ) {
+    await updateUserAccount(
+      userId,
+      {
+        role: 'founder',
+        accountType: 'founder',
+        onboardingStatus: 'profile',
+      },
+      runtime
+    );
     return {
       next: '/founder/onboarding/profile?step=profile',
       queued: true,
@@ -162,6 +310,14 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
       batchId: existing.metadata.enrichmentBatchId,
       statusUrl: `/batches/${existing.metadata.enrichmentBatchId}`,
     };
+  }
+
+  if (hasApifyConfig(runtime)) {
+    try {
+      return await enrichFounderViaApify(user, linkedInUrl, runtime);
+    } catch (err) {
+      console.warn('[linkedin-onboarding] Apify founder enrich failed, falling back to Railway', err);
+    }
   }
 
   const queued = await queueRemoteLinkedInFounderEnrichment(
@@ -173,12 +329,11 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
     },
     runtime
   );
-  if (!queued) throw new Error('Railway LinkedIn scraper is not configured.');
+  if (!queued) throw new Error('LinkedIn enrichment is not configured (APIFY_API_TOKEN or Railway scraper).');
 
   const prevEpoch =
     typeof existing?.metadata?.enrichmentEpoch === 'number' ? existing.metadata.enrichmentEpoch : 0;
 
-  // Draft only until the founder finishes steps 1–2. Hitting Back discards this.
   await FounderProfile.findOneAndUpdate(
     { userId },
     {
@@ -200,6 +355,7 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
           enrichmentLinkedInUrl: linkedInUrl,
           enrichmentLinkedInKey: normalizeLinkedInProfileKey(linkedInUrl),
           enrichmentQueuedAt: new Date().toISOString(),
+          enrichmentProvider: 'railway',
           title: null,
           experiences: [],
         },
@@ -208,15 +364,20 @@ async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, ru
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  await updateUserAccount(userId, {
-    role: 'founder',
-    accountType: 'founder',
-    onboardingStatus: 'profile',
-  }, runtime);
+  await updateUserAccount(
+    userId,
+    {
+      role: 'founder',
+      accountType: 'founder',
+      onboardingStatus: 'profile',
+    },
+    runtime
+  );
 
   return {
     next: '/founder/onboarding/profile?step=profile',
     queued: true,
+    provider: 'railway',
     batchId: queued.batchId,
     statusUrl: queued.statusUrl,
   };
@@ -247,12 +408,21 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   try {
     await connectAdminDB();
-    const cdpUrl = 'http://127.0.0.1:9222';
-    const remoteScraper = requireRemoteLinkedInScraperConfig(runtime);
-    const cdp = { started: false, remote: true, url: remoteScraper.url };
+    const usingApify = hasApifyConfig(runtime);
+    // Railway config only required when Apify is unavailable.
+    let remoteScraper: { url: string } | null = null;
+    if (!usingApify) {
+      remoteScraper = requireRemoteLinkedInScraperConfig(runtime);
+    }
+    const cdp = {
+      started: false,
+      remote: Boolean(remoteScraper),
+      url: remoteScraper?.url || null,
+      provider: usingApify ? 'apify' : 'railway',
+    };
     const result =
       accountType === 'founder'
-        ? await enrichFounder(user, linkedInUrl, cdpUrl, runtime)
+        ? await enrichFounder(user, linkedInUrl, 'http://127.0.0.1:9222', runtime)
         : await enrichBuilder(user, linkedInUrl, runtime);
 
     return json({
@@ -266,11 +436,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.error('[linkedin-onboarding] enrichment failed', error);
     const message = error instanceof Error ? error.message : 'LinkedIn enrichment failed.';
     const timedOut = /aborted|timed out|timeout/i.test(message);
-    return json({
-      success: false,
-      error: timedOut
-        ? 'LinkedIn enrichment took too long. Please try again in a moment.'
-        : message,
-    }, timedOut ? 504 : 500);
+    return json(
+      {
+        success: false,
+        error: timedOut
+          ? 'LinkedIn enrichment took too long. Please try again in a moment.'
+          : message,
+      },
+      timedOut ? 504 : 500
+    );
   }
 };

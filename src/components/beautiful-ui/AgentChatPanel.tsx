@@ -34,14 +34,18 @@ type AgentChatPanelProps = {
 function AssistantReply({ content }: { content: string }) {
   return (
     <div
-      className="flex w-full flex-col gap-1.5"
+      className="flex w-full gap-2.5"
       style={{ animation: "bui-fade-up 400ms cubic-bezier(0.23,1,0.32,1) both" }}
     >
-      <div className="flex items-center gap-1 text-[12px] leading-[1.3]">
-        <span className="font-medium text-[var(--bui-ink)]">Hiring agent</span>
-        <span className="text-[var(--bui-ink-2)]">Role match</span>
-      </div>
-      <div className="prose prose-sm prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 max-w-none text-[13px] leading-normal text-[var(--bui-ink)] prose-headings:my-2 prose-headings:text-[var(--bui-ink)] prose-strong:text-[var(--bui-ink)] prose-a:text-[#b55f1b]">
+      <span
+        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#050505] text-white"
+        aria-hidden
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+        </svg>
+      </span>
+      <div className="min-w-0 flex-1 prose prose-sm prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 max-w-none text-[15px] leading-[1.5] text-[var(--bui-ink)] prose-headings:my-2 prose-headings:text-[15px] prose-headings:text-[var(--bui-ink)] prose-strong:text-[var(--bui-ink)] prose-a:text-[#b55f1b]">
         <ChatMarkdown text={content} />
       </div>
     </div>
@@ -49,7 +53,7 @@ function AssistantReply({ content }: { content: string }) {
 }
 
 export function AgentChatPanel({
-  title = "Role Conversation",
+  title = "Agent Conversation",
   subtitle,
   messages,
   loading = false,
@@ -97,9 +101,9 @@ export function AgentChatPanel({
     >
       <div className="flex shrink-0 items-center justify-between border-b border-[var(--bui-line)] p-1.5 pl-2.5">
         <div className="min-w-0 px-1.5 py-1.5">
-          <p className="truncate text-[13px] font-semibold text-[var(--bui-ink)]">{title}</p>
+          <p className="truncate text-[15px] font-semibold text-[var(--bui-ink)]">{title}</p>
           {subtitle ? (
-            <p className="mt-0.5 truncate text-[11.5px] text-[var(--bui-ink-3)]">{subtitle}</p>
+            <p className="mt-0.5 truncate text-[13px] text-[var(--bui-ink-3)]">{subtitle}</p>
           ) : null}
         </div>
       </div>
@@ -121,7 +125,7 @@ export function AgentChatPanel({
             {messages.map((item, index) =>
               item.role === "founder" ? (
                 <div key={index} className="flex justify-end pl-14">
-                  <div className="rounded-xl bg-[var(--bui-field)] px-3 py-1.5 text-[13px] leading-[1.4] text-[var(--bui-ink)]">
+                  <div className="rounded-xl bg-[var(--bui-field)] px-3 py-2 text-[15px] leading-[1.45] text-[var(--bui-ink)]">
                     {item.content}
                   </div>
                 </div>
@@ -154,7 +158,7 @@ export function AgentChatPanel({
             disabled={sending || loading}
             placeholder={placeholder}
             aria-label="Chat prompt"
-            className="min-h-[18px] w-full appearance-none border-0 bg-transparent text-[13px] leading-[1.4] text-[var(--bui-ink)] shadow-none outline-none ring-0 placeholder:text-[var(--bui-ink-3)] focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:opacity-60"
+            className="min-h-[20px] w-full appearance-none border-0 bg-transparent text-[15px] leading-[1.45] text-[var(--bui-ink)] shadow-none outline-none ring-0 placeholder:text-[var(--bui-ink-3)] focus:border-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:opacity-60"
             style={{ border: "none", outline: "none", boxShadow: "none" }}
           />
           <div className="flex items-center justify-end">

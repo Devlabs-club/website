@@ -45,24 +45,57 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
   navGroups,
   contentOverlay,
 }) => {
+  const topbarName = builderName.trim().split(/\s+/)[0] || builderName;
+
   return (
     <div className="builder-dashboard font-manrope min-h-screen text-[#050505]">
-      <header className="builder-topbar sticky top-0 z-30 border-b border-black/10 bg-[#fbf6f3]/92 backdrop-blur-xl">
-        <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-5">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-            <a href="/builder/home" className="inline-flex shrink-0 items-center gap-2">
-              <img src="/logo.png" alt="DevLabs" className="h-7 w-7 object-contain" />
-              <span className="hidden text-sm font-extrabold tracking-tight sm:inline">Devlabs</span>
+      {/* Opaque z-50 chrome so enrichment backdrop never shows through the topbar seam */}
+      <header className="builder-topbar sticky top-0 z-50 border-b border-black/10 bg-[#fbf6f3]">
+        <div className="flex h-14 items-center">
+          {/* Match sidebar width — brand only, never straddles the column border */}
+          <div className="flex h-full w-full items-center px-4 sm:px-5 lg:w-[15.5rem] lg:shrink-0 lg:border-r lg:border-black/10 lg:px-3">
+            <a href="/builder/home" className="inline-flex min-w-0 items-center gap-2">
+              <img src="/logo.png" alt="DevLabs" className="h-7 w-7 shrink-0 object-contain" />
+              <span className="truncate text-sm font-extrabold tracking-tight">Devlabs</span>
             </a>
-            <div className="hidden min-w-0 items-center gap-2 border border-black/10 bg-white/80 px-3 py-1.5 md:flex">
-              <span className="truncate text-xs font-bold uppercase tracking-[0.08em]">{builderName}</span>
+          </div>
+
+          <div className="hidden min-w-0 flex-1 items-center justify-between gap-3 px-4 sm:px-5 lg:flex">
+            <div
+              className="inline-flex max-w-[18rem] min-w-0 items-center gap-2 border border-black/10 bg-white px-3 py-1.5"
+              title={builderName}
+            >
+              <span className="truncate text-xs font-bold uppercase tracking-[0.08em]">{topbarName}</span>
               <span className="shrink-0 border border-[#ff7417]/40 bg-[#fff5ef] px-1.5 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-[0.14em] text-[#bf4f08]">
                 Builder
               </span>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden border border-black/10 bg-white text-xs font-extrabold text-[#ff7417] transition-colors hover:border-[#ff7417]/40 hover:bg-[#fff5ef]"
+                aria-label="Log out"
+                title="Log out"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={builderName} className="h-full w-full object-cover" />
+                ) : (
+                  avatarInitial
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="inline-flex h-8 items-center border border-black/10 bg-white px-3 text-xs font-bold text-black/55 transition-colors hover:border-[#ff7417]/40 hover:bg-[#fff5ef] hover:text-[#14110f]"
+              >
+                Log out
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile / tablet actions (no sidebar column) */}
+          <div className="flex flex-1 items-center justify-end gap-2 px-4 sm:px-5 lg:hidden">
             <button
               type="button"
               onClick={onLogout}
@@ -96,7 +129,7 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
       </header>
 
       <div className="flex min-h-[calc(100vh-3.5rem)]">
-        <aside className="builder-sidebar hidden w-[15.5rem] shrink-0 flex-col border-r border-black/10 lg:flex">
+        <aside className="builder-sidebar relative z-50 hidden w-[15.5rem] shrink-0 flex-col border-r border-black/10 lg:flex">
           <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-4 pt-4">
             {navGroups.map((group) => (
               <div key={group.title}>
@@ -155,13 +188,13 @@ export const BuilderShell: React.FC<BuilderShellProps> = ({
           </div>
         </aside>
 
-        <main className={cn('relative min-w-0 flex-1', contentOverlay && 'overflow-hidden')}>
+        <main className={cn('relative z-0 min-w-0 flex-1', contentOverlay && 'overflow-hidden')}>
           {children}
           {contentOverlay}
         </main>
       </div>
 
-      <nav className="builder-mobile-nav fixed bottom-0 left-0 right-0 z-30 flex border-t border-black/10 bg-[#fbf6f3]/96 backdrop-blur-xl lg:hidden">
+      <nav className="builder-mobile-nav fixed bottom-0 left-0 right-0 z-50 flex border-t border-black/10 bg-[#fbf6f3]/96 backdrop-blur-xl lg:hidden">
         {navGroups.flatMap((g) => g.items).map((item) => {
           const active = activeSection === item.key;
           return (

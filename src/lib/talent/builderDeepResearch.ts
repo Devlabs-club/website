@@ -1,9 +1,11 @@
 import { generateOpenRouterReply } from '@/lib/openrouter';
 import { braveDiscoverBuilderUrls, hasBraveSearchConfig } from '@/lib/talent/braveSearchClient';
 import { exaSearch, hasExaConfig, type ExaResult } from '@/lib/talent/exaClient';
+import { buildBuilderExaFingerprint } from '@/lib/talent/exaResearchCache';
 import { crawlMarkdownFromUrl } from '@/lib/talent/builderEnrichment/crawlMarkdown';
 import { fetchTopTwitterPosts, hasTwitterApiConfig, parseTwitterHandle } from '@/lib/talent/twitterApiClient';
 import { rememberBuilderFact, type MemoryRef } from '@/lib/talent/builderAgentMemory';
+import BuilderProfile from '@/models/talent/BuilderProfile';
 import type { RuntimeEnv } from '@/lib/workosEnv';
 
 export type DeepResearchResult = {
@@ -20,6 +22,9 @@ export type DeepResearchResult = {
   citations: string[];
   searchProviders?: Array<'brave' | 'exa'>;
   twitterPosts?: Array<{ url: string; text: string; likes: number }>;
+  /** True when Exa was skipped because the builder identity fingerprint matched a prior run. */
+  exaSkipped?: boolean;
+  exaFingerprint?: string | null;
 };
 
 const EMPTY: DeepResearchResult = {
@@ -32,20 +37,7 @@ const EMPTY: DeepResearchResult = {
 };
 
 function buildIdentityFingerprint(builder: any, projects: any[]) {
-  const lines: string[] = [];
-  if (builder.name) lines.push(`Name: ${builder.name}`);
-  if (builder.location) lines.push(`Location: ${builder.location}`);
-  if (builder.universityOrCompany) lines.push(`School/Company: ${builder.universityOrCompany}`);
-  if (builder.headline) lines.push(`Headline: ${builder.headline}`);
-  if (builder.links?.github) lines.push(`GitHub: ${builder.links.github}`);
-  if (builder.links?.linkedin) lines.push(`LinkedIn: ${builder.links.linkedin}`);
-  if (builder.links?.portfolio) lines.push(`Portfolio: ${builder.links.portfolio}`);
-  if (builder.links?.devpost) lines.push(`Devpost: ${builder.links.devpost}`);
-  if (builder.links?.twitter) lines.push(`Twitter: ${builder.links.twitter}`);
-  const exps = (builder.experiences || []).slice(0, 4).map((e: any) => `${e.title} @ ${e.company}`);
-  if (exps.length) lines.push(`Experience: ${exps.join('; ')}`);
-  const projs = projects.slice(0, 5).map((p: any) => p.projectName).filter(Boolean);
-  if (projs.length) lines.push(`Projects: ${projs.join('; ')}`);
+  const { text } = buildBuilderExaFingerprint(builder, projects);
   const skills = Array.from(
     new Set(
       [
@@ -54,8 +46,9 @@ function buildIdentityFingerprint(builder: any, projects: any[]) {
       ].filter(Boolean)
     )
   ).slice(0, 15);
-  if (skills.length) lines.push(`Skills: ${skills.join(', ')}`);
-  return lines.join('\n');
+  // Skills stay in the LLM context fingerprint but are intentionally excluded from
+  // the Exa skip-hash so minor skill merges don't re-bill Exa.
+  return skills.length ? `${text}\nSkills: ${skills.join(', ')}` : text;
 }
 
 function buildSearchQuery(builder: any) {
@@ -95,23 +88,29 @@ function guessPersonalSite(url: string, builder: any): string | null {
   return null;
 }
 
-async function gatherSearchResults(builder: any, runtime?: RuntimeEnv): Promise<{
+async function gatherSearchResults(
+  builder: any,
+  runtime?: RuntimeEnv,
+  options?: { skipExa?: boolean; fingerprintHash?: string | null }
+): Promise<{
   results: Array<{ title: string | null; url: string; highlights: string[]; provider?: 'brave' | 'exa' }>;
   via: 'brave' | 'exa' | 'both' | 'none';
   searchProviders: Array<'brave' | 'exa'>;
+  exaSkipped: boolean;
 }> {
   const braveEnabled = hasBraveSearchConfig(runtime);
-  const exaEnabled = hasExaConfig(runtime);
+  const exaConfigured = hasExaConfig(runtime);
+  const skipExa = Boolean(options?.skipExa) || !exaConfigured;
   const searchProviders: Array<'brave' | 'exa'> = [];
   if (braveEnabled) searchProviders.push('brave');
-  if (exaEnabled) searchProviders.push('exa');
+  if (exaConfigured && !skipExa) searchProviders.push('exa');
 
   const [braveBundle, exaResults] = await Promise.all([
     braveEnabled
       ? braveDiscoverBuilderUrls(builder, { count: 8, runtime })
       : Promise.resolve({ results: [], urls: [] }),
-    exaEnabled
-      ? exaSearch(buildSearchQuery(builder), { numResults: 5 }, runtime).catch((err) => {
+    !skipExa
+      ? exaSearch(buildSearchQuery(builder), { numResults: 5, category: 'people' }, runtime).catch((err) => {
           console.warn('[deepResearch] exa search failed', err);
           return [] as ExaResult[];
         })
@@ -146,11 +145,18 @@ async function gatherSearchResults(builder: any, runtime?: RuntimeEnv): Promise<
     providers: searchProviders,
     braveResults: braveBundle.results.length,
     exaResults: exaResults.length,
+    exaSkipped: skipExa && exaConfigured,
+    fingerprint: options?.fingerprintHash || null,
     merged: mapped.length,
     via,
   });
 
-  return { results: mapped.slice(0, 12), via, searchProviders };
+  return {
+    results: mapped.slice(0, 12),
+    via,
+    searchProviders,
+    exaSkipped: Boolean(skipExa && exaConfigured),
+  };
 }
 
 /**
@@ -163,16 +169,25 @@ export async function deepResearchBuilder(params: {
   memRef?: MemoryRef;
   numResults?: number;
   runtime?: RuntimeEnv;
+  /** Force a fresh Exa people search even if fingerprint matches. */
+  forceExa?: boolean;
 }): Promise<DeepResearchResult> {
   const { builder, projects, runtime } = params;
   if (!builder?.name) return EMPTY;
   if (!hasBraveSearchConfig(runtime) && !hasExaConfig(runtime)) return EMPTY;
 
   const fingerprint = buildIdentityFingerprint(builder, projects);
-  const { results, via, searchProviders } = await gatherSearchResults(builder, runtime);
+  const { hash: fingerprintHash } = buildBuilderExaFingerprint(builder, projects);
+  const priorHash = builder?.enrichmentInsights?.exaResearch?.fingerprint || null;
+  const skipExa = !params.forceExa && Boolean(priorHash && priorHash === fingerprintHash);
+
+  const { results, via, searchProviders, exaSkipped } = await gatherSearchResults(builder, runtime, {
+    skipExa,
+    fingerprintHash,
+  });
   if (!results.length) {
-    console.warn('[deepResearch] no web search results', { searchProviders });
-    return { ...EMPTY, searchProviders };
+    console.warn('[deepResearch] no web search results', { searchProviders, exaSkipped });
+    return { ...EMPTY, searchProviders, exaSkipped, exaFingerprint: fingerprintHash };
   }
 
   const citations = results.map((r) => r.url).filter(Boolean).slice(0, 8);
@@ -288,6 +303,8 @@ Return STRICT JSON:
     citations,
     searchProviders,
     twitterPosts,
+    exaSkipped,
+    exaFingerprint: fingerprintHash,
   };
 
   if (params.memRef) {
@@ -300,6 +317,39 @@ Return STRICT JSON:
         kind: 'context',
         field: 'proof',
       });
+    }
+  }
+
+  // Persist Exa fingerprint so the next enrich with unchanged identity skips Exa billing.
+  const builderId = builder?._id || builder?.id;
+  if (builderId && (!exaSkipped || !priorHash)) {
+    try {
+      await BuilderProfile.findByIdAndUpdate(builderId, {
+        $set: {
+          'enrichmentInsights.exaResearch': {
+            fingerprint: fingerprintHash,
+            searchedAt: new Date(),
+            citationCount: citations.length,
+            providers: searchProviders,
+            skipped: exaSkipped,
+          },
+          'enrichmentInsights.updatedAt': new Date(),
+        },
+      });
+    } catch (err) {
+      console.warn('[deepResearch] failed to persist exa fingerprint', err);
+    }
+  } else if (builderId && exaSkipped) {
+    try {
+      await BuilderProfile.findByIdAndUpdate(builderId, {
+        $set: {
+          'enrichmentInsights.exaResearch.skipped': true,
+          'enrichmentInsights.exaResearch.providers': searchProviders,
+          'enrichmentInsights.updatedAt': new Date(),
+        },
+      });
+    } catch {
+      // non-fatal
     }
   }
 

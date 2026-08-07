@@ -681,19 +681,20 @@ function fallbackTeasers(
   );
   const profileTrace: AgentTraceTeaserPayload = {
     locked: traceLocked,
-    label: wrappedTrace ? 'Profile evidence' : traceLocked ? 'Unlock full trace' : 'Profile trace',
+    label: wrappedTrace ? 'Verified coding trace' : 'How they ship',
     sourceBadges: [
       ...(builder.links?.github ? ['GitHub'] : []),
       ...(builder.links?.linkedin ? ['LinkedIn'] : []),
       ...(builder.links?.portfolio || builder.links?.personalWebsite ? ['Portfolio'] : []),
-      ...(projects.some((p) => p.links?.github) ? ['Repo evidence'] : []),
+      ...(builder.links?.resume ? ['Resume'] : []),
+      ...(projects.some((p) => p.links?.github) ? ['Repos'] : []),
     ].slice(0, 5),
     visibleInsight: insight,
     quantifiedSignals: [
       `${Math.round(base.matchScore || 0)}% match`,
       `${projects.length} project${projects.length === 1 ? '' : 's'} reviewed`,
-      `${verifiedCount} verified signal${verifiedCount === 1 ? '' : 's'}`,
-    ],
+      verifiedCount > 0 ? `${verifiedCount} verified` : null,
+    ].filter(Boolean) as string[],
     redacted: traceLocked
       ? buildLockedTraceDetails({ report: agentWrapped?.report, projects, base, builder, match, shortlistCandidate })
       : [],

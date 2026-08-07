@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Camera, Loader2, Plus, Trash2, Upload } from 'lucide-react';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
+import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 import BuilderProfileProofPanel from './BuilderProfileProofPanel';
 import { BuilderProfileWorkspace } from './BuilderProfileWorkspace';
@@ -28,15 +29,17 @@ type ExperienceDraft = {
 };
 
 function mapExperiencesFromProfile(experiences: BuilderProfileView['experiences'] = []) {
-  return experiences.slice(0, 8).map((experience: any, index) => ({
-    title: experience.title || '',
-    company: experience.company || '',
-    companyLogoUrl: experience.companyLogoUrl || null,
-    companyLinkedInUrl: experience.companyLinkedInUrl || null,
-    dateRange: experience.dateRange || '',
-    description: experience.description || '',
-    sourceId: experience.sourceId || `profile-editor:${index}`,
-  }));
+  return sortExperiencesByRecency(experiences || [])
+    .slice(0, 8)
+    .map((experience: any, index) => ({
+      title: experience.title || '',
+      company: experience.company || '',
+      companyLogoUrl: experience.companyLogoUrl || null,
+      companyLinkedInUrl: experience.companyLinkedInUrl || null,
+      dateRange: experience.dateRange || '',
+      description: experience.description || '',
+      sourceId: experience.sourceId || `profile-editor:${index}`,
+    }));
 }
 
 function link(profile: BuilderProfileView, key: string) {

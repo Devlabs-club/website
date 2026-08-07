@@ -1,11 +1,14 @@
 /**
- * Reset a builder to "new user" state by email.
+ * Reset a user to "new user" state by email (builder + founder talent data,
+ * and User.accountType / role / onboardingStatus so they hit select-role again).
  * Usage: bun run scripts/reset-builder-by-email.ts dhanush.kalaiselvan@gmail.com
  */
 import mongoose from 'mongoose';
 import { connectAdminDB } from '../src/lib/mongodb';
+import User from '../src/models/user';
 import BuilderProfile from '../src/models/talent/BuilderProfile';
 import BuilderProfileClaim from '../src/models/talent/BuilderProfileClaim';
+import FounderProfile from '../src/models/talent/FounderProfile';
 import ImessageConversation from '../src/models/talent/ImessageConversation';
 import BuilderAgentMemory from '../src/models/talent/BuilderAgentMemory';
 import PhoneVerification from '../src/models/talent/PhoneVerification';
@@ -22,7 +25,17 @@ if (!email) {
 async function run() {
   await connectAdminDB();
 
-  const builder = (await BuilderProfile.findOne({ email }).lean()) as { _id?: unknown; phone?: string | null } | null;
+  const user = (await User.findOne({ email }).lean()) as {
+    _id?: unknown;
+    role?: string;
+    accountType?: string | null;
+    onboardingStatus?: string | null;
+  } | null;
+  const userId = user?._id ? String(user._id) : null;
+
+  const builder = (await BuilderProfile.findOne({
+    $or: [{ email }, ...(userId ? [{ userId }] : [])],
+  }).lean()) as { _id?: unknown; phone?: string | null; userId?: string } | null;
   const builderId = builder?._id ? String(builder._id) : null;
   const phone = builder?.phone || null;
 
@@ -49,6 +62,18 @@ async function run() {
     results.builderProfiles = 0;
   }
 
+  // Also clear any orphan builder rows keyed only by userId/email
+  if (userId) {
+    results.builderProfilesByUserId =
+      (await BuilderProfile.deleteMany({ userId })).deletedCount || 0;
+  }
+  results.builderProfilesByEmail = (await BuilderProfile.deleteMany({ email })).deletedCount || 0;
+
+  results.founderProfiles =
+    (await FounderProfile.deleteMany({
+      $or: [{ founderEmail: email }, ...(userId ? [{ userId }] : [])],
+    })).deletedCount || 0;
+
   results.builderProfileClaims = (await BuilderProfileClaim.deleteMany(claimFilter)).deletedCount || 0;
   results.phoneVerifications = (await PhoneVerification.deleteMany({ email })).deletedCount || 0;
 
@@ -63,8 +88,25 @@ async function run() {
       ((await PhoneVerification.deleteMany({ phone: p })).deletedCount || 0);
   }
 
-  console.log(`Reset builder data for ${email}:`);
+  if (userId) {
+    const updated = await User.updateOne(
+      { _id: userId },
+      {
+        $set: {
+          role: 'user',
+          accountType: null,
+          onboardingStatus: null,
+        },
+      }
+    );
+    results.userReset = updated.modifiedCount || 0;
+  } else {
+    results.userReset = 0;
+  }
+
+  console.log(`Reset to new-user state for ${email}:`);
   console.log(JSON.stringify(results, null, 2));
+  console.log(`User id: ${userId || '(none)'} (was role=${user?.role || 'n/a'} accountType=${user?.accountType ?? 'n/a'})`);
   console.log(`Builder id: ${builderId || '(none)'}`);
   console.log(`Handles cleared: ${[...handles].join(', ')}`);
 

@@ -1188,11 +1188,23 @@ function resolveCompanyLink(company, companyLinkedInUrl, companyLinks) {
   let slug = slugFromCompanyUrl(companyLinkedInUrl);
   let url = companyLinkedInUrl || null;
   let logoSrc = null;
+  const target = company ? compactKey(company) : '';
+
+  // Drop mismatched slugs like company="Google" + /company/googleventures
+  // (happens when LinkedIn attaches a related-org chip to the experience card).
+  if (slug && target) {
+    const slugKey = compactKey(slug);
+    if (slugKey && slugKey !== target && (slugKey.startsWith(target) || target.startsWith(slugKey)) && Math.abs(slugKey.length - target.length) > 2) {
+      slug = null;
+      url = null;
+    }
+  }
 
   if (!slug && Array.isArray(companyLinks) && company) {
-    const target = compactKey(company);
-    const match = companyLinks.find((link) => link.name && compactKey(link.name) === target) ||
-      companyLinks.find((link) => link.name && (compactKey(link.name).includes(target) || target.includes(compactKey(link.name))));
+    // Exact name/slug only. Fuzzy includes() maps "Google" → "Google Ventures".
+    const match =
+      companyLinks.find((link) => link.name && compactKey(link.name) === target) ||
+      companyLinks.find((link) => compactKey(String(link.slug || '')) === target);
     if (match) {
       slug = match.slug;
       url = match.url;

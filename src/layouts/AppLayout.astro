@@ -56,17 +56,24 @@ const metaOgImageAlt = ogImageAlt ?? title;
       rel="stylesheet"
     />
 
-    <!-- Apply persisted theme before paint to avoid flash. Defaults to light. -->
+    <!-- Apply persisted theme before paint to avoid flash. Defaults to light.
+         Auth select-role always forces light to match the login/signup funnel. -->
     <script is:inline>
       (function () {
         try {
-          var theme = localStorage.getItem("devlabs-theme");
-          if (theme === "dark") {
-            document.documentElement.classList.add("dark");
-            document.documentElement.style.colorScheme = "dark";
+          var path = window.location.pathname || '';
+          if (path.indexOf('/auth/select-role') === 0) {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+            return;
+          }
+          var theme = localStorage.getItem('devlabs-theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
           } else {
-            document.documentElement.classList.remove("dark");
-            document.documentElement.style.colorScheme = "light";
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
           }
         } catch (e) {}
       })();

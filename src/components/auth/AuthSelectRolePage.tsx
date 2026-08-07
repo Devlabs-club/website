@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
-import { ThemeToggle } from "@/components/app/ThemeToggle";
 import { resolvePostAuthDestination } from "@/lib/authDestination";
 import { Briefcase, Hammer, Loader2 } from "lucide-react";
 
@@ -9,6 +8,21 @@ type Choice = "founder" | "builder";
 function redirectParam(): string | null {
   if (typeof window === "undefined") return null;
   return new URLSearchParams(window.location.search).get("redirect");
+}
+
+/** Auth funnel stays light — match login/signup, ignore stored dark preference. */
+function useForceLightTheme() {
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    const prevScheme = root.style.colorScheme;
+    root.classList.remove("dark");
+    root.style.colorScheme = "light";
+    return () => {
+      if (hadDark) root.classList.add("dark");
+      root.style.colorScheme = prevScheme || "";
+    };
+  }, []);
 }
 
 const RoleCard: React.FC<{
@@ -23,21 +37,24 @@ const RoleCard: React.FC<{
     type="button"
     onClick={onClick}
     disabled={busy}
-    className={`group flex w-full flex-col items-start gap-4 rounded-2xl border p-6 text-left transition-all hover:border-foreground/40 hover:shadow-sm disabled:opacity-60 ${
-      selected ? "border-foreground/60 ring-1 ring-foreground/20" : "border-border"
+    className={`group flex w-full flex-col items-start gap-4 rounded-2xl border bg-white p-6 text-left transition-all hover:border-[#ff7417]/50 hover:bg-[#fffaf7] disabled:opacity-60 ${
+      selected
+        ? "border-[#ff7417] ring-1 ring-[#ff7417]/30 shadow-[0_12px_28px_rgba(255,116,23,0.12)]"
+        : "border-black/10 shadow-[0_8px_20px_rgba(5,5,5,0.04)]"
     }`}
   >
-    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-foreground">
+    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-black/8 bg-[#fff5ef] text-[#bf4f08]">
       {busy && selected ? <Loader2 className="h-5 w-5 animate-spin" /> : icon}
     </span>
     <span>
-      <span className="block text-lg font-semibold text-foreground">{title}</span>
-      <span className="mt-1 block text-sm text-muted-foreground">{description}</span>
+      <span className="block text-lg font-semibold text-[#050505]">{title}</span>
+      <span className="mt-1 block text-sm text-black/50">{description}</span>
     </span>
   </button>
 );
 
 const SelectRoleInner: React.FC = () => {
+  useForceLightTheme();
   const { user, loading } = useAuth();
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Choice | null>(null);
@@ -87,22 +104,21 @@ const SelectRoleInner: React.FC = () => {
   // Avoid flashing the chooser while we redirect assigned users / claim links.
   if (loading || (user && !resolvePostAuthDestination(user, redirectParam()).startsWith("/auth/select-role"))) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+      <div className="flex min-h-screen items-center justify-center bg-[#fbf6f3] text-black/40">
         <Loader2 className="h-5 w-5 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-6 py-16 text-foreground">
-      <div className="absolute right-5 top-5">
-        <ThemeToggle />
-      </div>
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#fbf6f3] px-6 py-16 text-[#050505]">
       <div className="w-full max-w-2xl">
         <div className="mb-10 text-center">
           <img src="/logo.png" alt="DevLabs" className="mx-auto mb-6 h-11 w-11 rounded-xl object-contain" />
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">How do you want to use DevLabs?</h1>
-          <p className="mt-3 text-sm text-muted-foreground">Pick the option that fits you. You can&apos;t change this later without contacting us.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#050505]">How do you want to use DevLabs?</h1>
+          <p className="mt-3 text-sm text-black/45">
+            Pick the option that fits you. You can&apos;t change this later without contacting us.
+          </p>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -124,7 +140,7 @@ const SelectRoleInner: React.FC = () => {
           />
         </div>
 
-        {error && <p className="mt-6 text-center text-sm text-destructive">{error}</p>}
+        {error ? <p className="mt-6 text-center text-sm text-red-600">{error}</p> : null}
       </div>
     </div>
   );

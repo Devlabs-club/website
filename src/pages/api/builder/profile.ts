@@ -99,21 +99,33 @@ async function bestEffortEnrichment(
 ) {
   const uniqueSources = [...new Set(sources)];
   if (!uniqueSources.length) return null;
-  try {
-    await import('@/lib/workerPolyfills');
-    const { runEnrichmentPipeline } = await import('@/lib/talent/builderEnrichment/orchestrator');
-    return await runEnrichmentPipeline({
-      builderId,
-      memRef: { builderId, builderEmail },
-      sources: uniqueSources,
-      research: options?.research ?? false,
-      runtime,
-      deferExperiences: false,
-    });
-  } catch (error) {
-    console.error('[builder/profile] enrichment failed', { builderId, error });
-    return { error: error instanceof Error ? error.message : 'enrichment_failed' };
-  }
+
+  // Mark progress before returning so the UI can poll while work continues in-process.
+  const { initialUiStageForSources, setEnrichmentProgress } = await import(
+    '@/lib/talent/builderEnrichment/progress'
+  );
+  await setEnrichmentProgress(builderId, initialUiStageForSources(uniqueSources));
+
+  void (async () => {
+    try {
+      await import('@/lib/workerPolyfills');
+      const { runEnrichmentPipeline } = await import('@/lib/talent/builderEnrichment/orchestrator');
+      await runEnrichmentPipeline({
+        builderId,
+        memRef: { builderId, builderEmail },
+        sources: uniqueSources,
+        research: options?.research ?? false,
+        runtime,
+        deferExperiences: false,
+      });
+    } catch (error) {
+      console.error('[builder/profile] enrichment failed', { builderId, error });
+      const { clearEnrichmentProgress } = await import('@/lib/talent/builderEnrichment/progress');
+      await clearEnrichmentProgress(builderId).catch(() => {});
+    }
+  })();
+
+  return { started: true, sources: uniqueSources };
 }
 
 type ProfileEnrichmentSource = 'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio';
@@ -265,8 +277,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!existingProfile) {
     const missing: string[] = [];
     if (!normalizeUrl(body.linkedin ?? body.linkedIn)) missing.push('LinkedIn');
-    if (!normalizeUrl(body.portfolio ?? body.personalWebsite)) missing.push('portfolio website');
     if (!resumeFile) missing.push('resume PDF');
+    const openToWorkAnswered =
+      body.openToWork === true ||
+      body.openToWork === false ||
+      body.openToWork === 'true' ||
+      body.openToWork === 'false';
+    const usCitizenAnswered =
+      body.isUsCitizen === true ||
+      body.isUsCitizen === false ||
+      body.isUsCitizen === 'true' ||
+      body.isUsCitizen === 'false';
+    if (!openToWorkAnswered) missing.push('Open to work');
+    if (!usCitizenAnswered) missing.push('US citizen');
     if (missing.length) {
       return json({ success: false, error: `Required fields missing: ${missing.join(', ')}.` }, 400);
     }
@@ -322,7 +345,22 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const visaStatus = cleanString(body.visaStatus ?? body.workAuthorization, 500);
-  if (visaStatus) profile.workAuthorization = visaStatus;
+  const isUsCitizen =
+    body.isUsCitizen === true || body.isUsCitizen === 'true'
+      ? true
+      : body.isUsCitizen === false || body.isUsCitizen === 'false'
+        ? false
+        : null;
+  if (isUsCitizen === true) profile.workAuthorization = 'US citizen';
+  else if (isUsCitizen === false) profile.workAuthorization = 'Not a US citizen';
+  else if (visaStatus) profile.workAuthorization = visaStatus;
+
+  const openToWork =
+    body.openToWork === true || body.openToWork === 'true'
+      ? true
+      : body.openToWork === false || body.openToWork === 'false'
+        ? false
+        : null;
 
   const active =
     typeof body.active === 'boolean'
@@ -333,7 +371,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   profile.visibilityStatus = active ? 'public' : 'hidden';
   profile.availability = {
     ...(profile.availability || {}),
-    availableNow: active,
+    availableNow: openToWork !== null ? openToWork : active,
     refreshedAt: new Date(),
   };
   profile.hiringIntent = {
@@ -362,7 +400,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let enrichmentSources = enrichmentSourcesForSave({
     previousLinks: previousProofLinks,
     nextLinks: nextProofLinks,
-    resumeUploaded: false,
+    resumeUploaded: Boolean(resumeFile),
     isInitialProfile: !existingProfile,
   });
 
@@ -379,10 +417,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
       profile.links.resume = resumeUrl;
       if (!enrichmentSources.includes('resume')) enrichmentSources.push('resume');
       await profile.save();
-      await parseAndExtractResume(buffer, String(profile._id));
     } catch (error) {
       console.error('[builder/profile] resume upload failed', error);
-      return json({ success: false, error: 'Could not upload or parse resume.' }, 500);
+      return json({ success: false, error: 'Could not upload resume.' }, 500);
+    }
+
+    // Parsing is best-effort. A corrupt/exported PDF must not fail profile creation.
+    try {
+      await parseAndExtractResume(buffer, String(profile._id));
+    } catch (error) {
+      console.warn(
+        '[builder/profile] resume parse skipped',
+        error instanceof Error ? error.message : error
+      );
     }
   }
 

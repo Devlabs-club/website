@@ -4,7 +4,11 @@ import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/
 import { findUserById } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import BuilderProfile from '@/models/talent/BuilderProfile';
-import { readEnrichmentProgress } from '@/lib/talent/builderEnrichment/progress';
+import {
+  clearEnrichmentProgress,
+  isEnrichmentProgressStale,
+  readEnrichmentProgress,
+} from '@/lib/talent/builderEnrichment/progress';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -22,10 +26,10 @@ export const GET: APIRoute = async ({ request, locals }) => {
     extractTokenFromCookies(request.headers.get('Cookie') || '');
   if (!token) return json({ success: false, active: false, error: 'unauthorized' }, 401);
 
-  const payload = await verifyToken(token, runtime);
-  if (!payload?.sub) return json({ success: false, active: false, error: 'unauthorized' }, 401);
+  const payload = verifyToken(token, runtime);
+  if (!payload?.userId) return json({ success: false, active: false, error: 'unauthorized' }, 401);
 
-  const user = await findUserById(payload.sub, runtime);
+  const user = await findUserById(payload.userId, runtime);
   if (!user?.email) return json({ success: false, active: false, error: 'unauthorized' }, 401);
 
   const userEmail = String(user.email).toLowerCase().trim();
@@ -40,6 +44,11 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const progress = readEnrichmentProgress(profile);
   if (!progress || progress.stage === 'done') {
     return json({ success: true, active: false, stage: null, label: null, detail: null });
+  }
+
+  if (isEnrichmentProgressStale(progress)) {
+    await clearEnrichmentProgress(String(profile._id)).catch(() => {});
+    return json({ success: true, active: false, stage: null, label: null, detail: null, stale: true });
   }
 
   return json({

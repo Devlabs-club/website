@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
+import { sortExperiencesByRecency } from "@/lib/talent/experienceNormalize";
 
 export type BuilderProfile = {
   id: string;
@@ -196,7 +197,7 @@ export const BuilderProfileView: React.FC<{
 
       <Section title="Experience" founder={founder}>
         <div className="space-y-3">
-          {(profile.experiences || []).map((exp, index) => (
+          {sortExperiencesByRecency(profile.experiences || []).map((exp, index) => (
             <div
               key={`${exp.company}-${index}`}
               className={`rounded-2xl p-4 ${founder ? "border border-[#ece7e1] bg-[#fffcfa]" : "border border-border"}`}

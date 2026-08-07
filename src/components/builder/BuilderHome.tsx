@@ -52,7 +52,8 @@ async function logout() {
 }
 
 function defaultSection(verified: boolean, traceUploaded: boolean, hasProfile: boolean, imessageEnabled: boolean): BuilderSection {
-  if (!imessageEnabled && !hasProfile) return 'overview';
+  // Form-based builders: overview (setup CTA) or home once a profile exists.
+  if (!imessageEnabled) return 'overview';
   if (!verified) return 'messages';
   if (!traceUploaded) return 'wrapped';
   if (hasProfile) return 'overview';
@@ -104,12 +105,13 @@ function getNextAction(
       section: 'messages',
       stepLabel: 'Step 1 of 3',
       title: 'Complete your builder profile',
-      description: 'Add LinkedIn, portfolio, and resume to continue. GitHub and Devpost are optional.',
+      description: 'Add LinkedIn, resume, plus Open to work and US citizen. GitHub, Devpost, and portfolio are optional.',
       cta: 'Add required fields',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
-  if (!traceUploaded) {
+  // Agent Wrapped requires phone verify today — only gate iMessage builders on it.
+  if (imessageEnabled && !traceUploaded) {
     return {
       section: 'wrapped',
       stepLabel: 'Step 2 of 3',
@@ -205,10 +207,15 @@ function BuilderOverview({
   const completedCount = steps.filter((s) => s.done).length;
   const requiredFields = [
     'LinkedIn profile',
-    'Portfolio website',
     'Resume PDF',
+    'Open to work',
+    'US citizen',
   ];
-  const optionalFields = ['GitHub profile (optional)', 'Devpost profile (optional)'];
+  const optionalFields = [
+    'GitHub profile (optional)',
+    'Devpost profile (optional)',
+    'Portfolio website (optional)',
+  ];
 
   return (
     <>
@@ -363,38 +370,6 @@ export const BuilderHome: React.FC = () => {
   const sectionInitializedRef = useRef(false);
   const inviteLinkAttemptedRef = useRef(false);
 
-  useEffect(() => {
-    if (!profileEnriching) {
-      setEnrichmentStage('linkedin');
-      setEnrichmentLabel(null);
-      setEnrichmentDetail(null);
-      return;
-    }
-
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const res = await fetch('/api/builder/profile/enrichment-progress', { credentials: 'include' });
-        if (!res.ok || cancelled) return;
-        const json = await res.json();
-        if (json.stage && ['linkedin', 'github', 'research'].includes(json.stage)) {
-          setEnrichmentStage(json.stage as EnrichmentVisualStage);
-          setEnrichmentLabel(typeof json.label === 'string' ? json.label : null);
-          setEnrichmentDetail(typeof json.detail === 'string' ? json.detail : null);
-        }
-      } catch {
-        // Keep showing the last known stage while enrichment runs.
-      }
-    };
-
-    poll();
-    const intervalId = window.setInterval(poll, 500);
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [profileEnriching]);
-
   const loadProfile = useCallback(async () => {
     try {
       const res = await fetch('/api/builder/profile', { credentials: 'include' });
@@ -438,6 +413,77 @@ export const BuilderHome: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!profileEnriching) {
+      setEnrichmentStage('linkedin');
+      setEnrichmentLabel(null);
+      setEnrichmentDetail(null);
+      return;
+    }
+
+    let cancelled = false;
+    let gotServerStage = false;
+    let sawActive = false;
+    const startedAt = Date.now();
+
+    const finish = async () => {
+      if (cancelled) return;
+      setProfileEnriching(false);
+      await loadProfile().catch(() => {});
+    };
+
+    const poll = async () => {
+      try {
+        const res = await fetch('/api/builder/profile/enrichment-progress', { credentials: 'include' });
+        if (cancelled) return;
+        if (!res.ok) return;
+        const json = await res.json();
+        if (json.active && json.stage && ['linkedin', 'github', 'research'].includes(json.stage)) {
+          sawActive = true;
+          gotServerStage = true;
+          setEnrichmentStage(json.stage as EnrichmentVisualStage);
+          setEnrichmentLabel(typeof json.label === 'string' ? json.label : null);
+          setEnrichmentDetail(typeof json.detail === 'string' ? json.detail : null);
+          return;
+        }
+        // Background job finished (or never started / went stale).
+        if (sawActive || Date.now() - startedAt > 4_000) {
+          await finish();
+        }
+      } catch {
+        // Keep showing the last known stage while enrichment runs.
+      }
+    };
+
+    // Soft fallback progression if progress API is slow/unavailable.
+    const softAdvance = () => {
+      if (cancelled || gotServerStage) return;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed > 180_000) {
+        void finish();
+        return;
+      }
+      if (elapsed > 45_000) {
+        setEnrichmentStage('research');
+        setEnrichmentLabel('Deep research');
+        setEnrichmentDetail('Connecting resume, web presence, and founder-facing highlights.');
+      } else if (elapsed > 18_000) {
+        setEnrichmentStage('github');
+        setEnrichmentLabel('Scanning GitHub');
+        setEnrichmentDetail('Repos, languages, and projects that show how you ship.');
+      }
+    };
+
+    poll();
+    const intervalId = window.setInterval(poll, 800);
+    const softId = window.setInterval(softAdvance, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.clearInterval(softId);
+    };
+  }, [profileEnriching, loadProfile]);
 
   useEffect(() => {
     void loadProfile();
@@ -504,8 +550,9 @@ export const BuilderHome: React.FC = () => {
   const builderName = profile?.name || data?.basics?.name || 'Your profile';
   const avatarInitial = (builderName || 'B').slice(0, 1).toUpperCase();
   const hasProfile = Boolean(profile);
-  const profileVisible = hasProfile && verified;
   const imessageEnabled = data?.imessageEnabled !== false;
+  // Form-based builders don't need phone verify for a "live" profile.
+  const profileVisible = hasProfile && (imessageEnabled ? verified : true);
 
   const navGroups = useMemo(
     () => [
@@ -524,13 +571,13 @@ export const BuilderHome: React.FC = () => {
             key: 'wrapped' as const,
             label: 'Agent Wrapped',
             icon: builderNavIcons.wrapped,
-            disabled: !verified || !hasProfile,
-            badge: traceUploaded ? 'Done' : verified ? 'Setup' : undefined,
+            disabled: imessageEnabled ? !verified || !hasProfile : !hasProfile,
+            badge: traceUploaded ? 'Done' : verified || !imessageEnabled ? (hasProfile ? 'Setup' : undefined) : undefined,
           },
         ],
       },
     ],
-    [hasProfile, profileVisible, traceUploaded, verified],
+    [hasProfile, imessageEnabled, profileVisible, traceUploaded, verified],
   );
 
   const renderContent = () => {
@@ -569,11 +616,31 @@ export const BuilderHome: React.FC = () => {
 
       case 'messages':
         if (!imessageEnabled) {
+          if (hasProfile) {
+            return (
+              <div className="font-manrope mx-auto max-w-3xl px-5 py-10 sm:px-7">
+                <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">Profile ready</p>
+                <h2 className="mt-3 text-lg font-extrabold tracking-[-0.02em] text-[#050505]">
+                  Your builder profile is already set up
+                </h2>
+                <p className="mt-2 max-w-lg text-sm leading-6 text-black/50">
+                  Review the enriched fields on your profile, or edit anything that needs cleanup.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('profile')}
+                  className="builder-primary-button mt-6 inline-flex h-9 items-center px-4 text-xs font-extrabold tracking-[0.08em]"
+                >
+                  Open profile
+                </button>
+              </div>
+            );
+          }
           return (
             <>
               <PageHeader
                 title="Builder profile setup"
-                subtitle="Add your profile links and upload a resume. DevLabs will auto-fill the profile from those sources."
+                subtitle="Add LinkedIn, resume, and answer Open to work + US citizen. GitHub, Devpost, and portfolio are optional."
               />
               <BuilderProfileIntakeForm
                 profile={profile}
@@ -673,7 +740,7 @@ export const BuilderHome: React.FC = () => {
                 ) : null
               }
             />
-            <div className="px-4 py-6 sm:px-6 sm:py-8 lg:overflow-hidden lg:px-8 lg:py-6">
+            <div className="px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-28 lg:overflow-hidden lg:px-8 lg:py-6 lg:pb-10">
               {!hasProfile ? (
                 <div className="font-manrope mx-auto max-w-3xl">
                   <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">Not live yet</p>

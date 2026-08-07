@@ -124,12 +124,25 @@ function normalizeAlternateResumeSchema(raw: Record<string, unknown>): Record<st
 
 export async function extractResumeData(buffer: Buffer, options?: { localPdfPath?: string }) {
   await import('@/lib/workerPolyfills');
-  const pdfParse = (await import('pdf-parse')).default;
   const pdfBuffer = options?.localPdfPath
     ? (await import('fs')).readFileSync(options.localPdfPath)
     : buffer;
-  const pdfData = await pdfParse(pdfBuffer);
-  const text = pdfData.text?.trim();
+
+  let text = '';
+  try {
+    const pdfParse = (await import('pdf-parse')).default;
+    const pdfData = await pdfParse(pdfBuffer);
+    text = String(pdfData.text || '').trim();
+  } catch (error) {
+    // Common with exported/scanned PDFs: "bad XRef entry" from the bundled pdf.js.
+    // Never fail the builder intake on resume parse — LinkedIn/GitHub enrichment still runs.
+    console.warn(
+      '[resumeEnricher] pdf-parse failed; continuing without resume text',
+      error instanceof Error ? error.message : error
+    );
+    return { text: '', extracted: null, reason: 'pdf_parse_failed' as const };
+  }
+
   if (!text) return { text: '', extracted: null, reason: 'scanned_pdf_no_text' as const };
   if (text.length < 200) {
     return { text, extracted: null, reason: 'resume_insufficient_text' as const };

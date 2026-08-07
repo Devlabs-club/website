@@ -1,9 +1,11 @@
 import { generateOpenRouterReply, hasOpenRouterConfig } from '@/lib/openrouter';
-import {
-  queueRemoteLinkedInBuilderEnrichment,
-  runRemoteLinkedInScraperScript,
-} from '@/lib/remoteLinkedInScraper';
+import { runInstantRemoteLinkedInBuilderEnrichment, runRemoteLinkedInScraperScript } from '@/lib/remoteLinkedInScraper';
 import type { RuntimeEnv } from '@/lib/workosEnv';
+import { applyLinkedInCdpToBuilder, applyProfileDraft, refreshBuilderScores } from './apply';
+import {
+  enrichLinkedInProfileViaApify,
+  hasApifyConfig,
+} from './apifyLinkedInProfile';
 import { fetchUrlMarkdown, normalizeUrl } from './urlToMarkdown';
 import { urlForMarkdownFetch } from './urlForMarkdown';
 import {
@@ -12,6 +14,7 @@ import {
   parseLinkedInVanityName,
 } from './linkedinVoyager';
 import type { EnrichedProfileDraft, SourceEnrichmentResult } from './types';
+import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 
 function parseJsonResponse(raw: string): Record<string, unknown> | null {
   try {
@@ -238,26 +241,111 @@ async function enrichFromRemoteCdp(
   builder: any,
   normalizedUrl: string,
   runtime?: RuntimeEnv,
-  _deferExperiences?: boolean
+  deferExperiences?: boolean
 ): Promise<SourceEnrichmentResult | null> {
   const builderId = String(builder?._id || builder?.id || '').trim();
   if (!builderId) return null;
-  const queued = await queueRemoteLinkedInBuilderEnrichment(
+
+  // Website builder enrichment must finish with LinkedIn applied in-request.
+  // Prefer instant /run; if Railway still has /run disabled, wait on the
+  // single-item batch and apply the artifact before returning.
+  const remote = await runInstantRemoteLinkedInBuilderEnrichment(
     {
       id: builderId,
       name: String(builder?.name || builder?.email || 'Builder'),
       linkedInUrl: normalizedUrl,
     },
-    runtime
+    runtime,
+    150_000
   );
-  if (!queued) return null;
+  if (!remote?.artifact) return null;
+
+  const warningText = [
+    ...(remote.artifact?.warnings || []),
+    ...(remote.artifact?.extracted?.warnings || []),
+    remote.artifact?.extracted?.cdpExtraction?.warning,
+  ]
+    .filter(Boolean)
+    .join('\n');
+  if (/\bauthwall\b|sign up \| linkedin|checkpoint|temporarily restricted|suspicious activity|unusual activity|account restricted/i.test(warningText)) {
+    return {
+      source: 'linkedin',
+      errors: ['linkedin_authwall', warningText.slice(0, 280)],
+      meta: { mode: 'remote_chrome_cdp', blocked: true },
+    };
+  }
+
+  const writeResult = await applyLinkedInCdpToBuilder(builder, remote.artifact, normalizedUrl, {
+    deferExperiences,
+  });
+  const profile = profileDraftFromCdpArtifact(remote.artifact, normalizedUrl);
+  const extracted = remote.artifact?.extracted || {};
+
   return {
     source: 'linkedin',
+    profile,
     meta: {
-      mode: 'remote_chrome_cdp_queue',
-      queued: true,
-      batchId: queued.batchId,
-      statusUrl: queued.statusUrl,
+      mode: 'remote_chrome_cdp',
+      appliedInEnricher: true,
+      writeResult: {
+        profileFieldsUpdated: writeResult.profileFieldsUpdated,
+        projectsCreated: 0,
+        projectsUpdated: 0,
+      },
+      summary: remote.summary,
+      profilePhotoUrl: extracted?.cdpExtraction?.photo?.imageUrl || null,
+      extractedExperienceCount: Array.isArray(extracted.experiences) ? extracted.experiences.length : 0,
+      extractedEducationCount: Array.isArray(extracted.educationEntries)
+        ? extracted.educationEntries.length
+        : Array.isArray(extracted.education)
+          ? extracted.education.length
+          : 0,
+    },
+  };
+}
+
+async function enrichFromApify(
+  builder: any,
+  normalizedUrl: string,
+  runtime?: RuntimeEnv,
+  deferExperiences?: boolean
+): Promise<SourceEnrichmentResult | null> {
+  if (!hasApifyConfig(runtime)) return null;
+
+  const scraped = await enrichLinkedInProfileViaApify(normalizedUrl, runtime);
+  const profile = scraped.profile;
+  const updated = await applyProfileDraft(builder, profile, {
+    overwriteBasics: true,
+    deferExperiences,
+    writeBasics: true,
+  });
+  await builder.save();
+  await refreshBuilderScores(builder._id);
+  try {
+    await upsertTalentSearchIndexForBuilder(String(builder._id));
+  } catch (err) {
+    console.warn('[linkedin] search index refresh failed after Apify enrich', err);
+  }
+
+  return {
+    source: 'linkedin',
+    profile,
+    meta: {
+      mode: 'apify_harvestapi',
+      appliedInEnricher: true,
+      writeResult: {
+        profileFieldsUpdated: updated,
+        projectsCreated: 0,
+        projectsUpdated: 0,
+      },
+      runId: scraped.runId,
+      datasetId: scraped.datasetId,
+      vanityName: scraped.vanityName,
+      skillCount: profile.skills?.length || 0,
+      positionCount: profile.experiences?.length || 0,
+      profilePhotoUrl: profile.avatarUrl || null,
+      extractedExperienceCount: profile.experiences?.length || 0,
+      extractedEducationCount: profile.education?.length || 0,
     },
   };
 }
@@ -274,6 +362,13 @@ export async function enrichFromLinkedIn(
   const normalizedUrl = normalizeLinkedInUrl(linkedinUrl);
   if (!normalizedUrl) {
     return { source: 'linkedin', errors: ['invalid_linkedin_url'] };
+  }
+
+  try {
+    const apify = await enrichFromApify(builder, normalizedUrl, options?.runtime, options?.deferExperiences);
+    if (apify) return apify;
+  } catch (err) {
+    console.warn('[linkedin] Apify enrichment failed, falling back', err);
   }
 
   try {
@@ -334,7 +429,7 @@ export async function enrichFromLinkedIn(
   }
 }
 
-/** Dry-run LinkedIn enrichment — Railway CDP first, then Voyager + markdown fallback (no DB writes). */
+/** Dry-run LinkedIn enrichment — Apify first, then Railway CDP / Voyager (no DB writes). */
 export async function probeLinkedInProfile(
   linkedinUrl: string,
   runtime?: RuntimeEnv
@@ -342,6 +437,30 @@ export async function probeLinkedInProfile(
   const normalizedUrl = normalizeLinkedInUrl(linkedinUrl);
   if (!normalizedUrl) {
     return { source: 'linkedin', errors: ['invalid_linkedin_url'] };
+  }
+
+  try {
+    if (hasApifyConfig(runtime)) {
+      const scraped = await enrichLinkedInProfileViaApify(normalizedUrl, runtime);
+      return {
+        source: 'linkedin',
+        profile: scraped.profile,
+        meta: {
+          mode: 'apify_harvestapi',
+          dryRun: true,
+          runId: scraped.runId,
+          datasetId: scraped.datasetId,
+          vanityName: scraped.vanityName,
+          skillCount: scraped.profile.skills?.length || 0,
+          positionCount: scraped.profile.experiences?.length || 0,
+          profilePhotoUrl: scraped.profile.avatarUrl || null,
+          extractedExperienceCount: scraped.profile.experiences?.length || 0,
+          extractedEducationCount: scraped.profile.education?.length || 0,
+        },
+      };
+    }
+  } catch (err) {
+    console.warn('[linkedin] probe Apify failed, falling back', err);
   }
 
   try {
@@ -420,7 +539,7 @@ export async function probeLinkedInProfile(
       source: 'linkedin',
       errors: [
         err instanceof Error ? err.message : 'linkedin_probe_failed',
-        'Railway CDP and Voyager both failed — check LINKEDIN_SCRAPER_URL/SECRET and LinkedIn session cookies.',
+        'Apify, Railway CDP, and Voyager all failed — check APIFY_API_TOKEN / LINKEDIN_SCRAPER_URL and LinkedIn session cookies.',
       ],
       meta: { dryRun: true },
     };

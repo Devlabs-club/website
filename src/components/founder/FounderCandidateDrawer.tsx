@@ -11,6 +11,7 @@ import {
 } from '@/lib/talent/founderIntroUi';
 import { pipelineNeedsCallClockTick } from '@/lib/talent/callTiming';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
+import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
 
 const REJECTION_REASONS = [
   { id: 'wrong_skills', label: 'Wrong skill set' },
@@ -261,7 +262,7 @@ export default function FounderCandidateDrawer({
             <section>
               <h3 className="text-xs uppercase tracking-wider text-white/45 mb-3">Experience</h3>
               <div className="space-y-3">
-                {candidate.experiences.slice(0, 3).map((experience) => (
+                {sortExperiencesByRecency(candidate.experiences || []).slice(0, 3).map((experience) => (
                   <div key={experience.sourceId || `${experience.company}-${experience.title}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-start gap-3">
                       {(() => {
