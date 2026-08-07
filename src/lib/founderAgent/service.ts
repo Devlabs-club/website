@@ -57,6 +57,7 @@ import {
   getFounderUsage,
   recordUsageEvent,
 } from '@/lib/billing/entitlements';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 import {
   BUILDER_SEARCH_SELECT,
   hydrateSearchableBuilderPool,
@@ -1973,11 +1974,16 @@ async function runSearchForJob(
   });
 
   const publicShortlist = toPublicShortlist(shortlistDoc);
+  const durationMs = Date.now() - startedAt;
   logFounderAgent('search_talent:done', {
     jobId,
     totalFound: limitedResult.candidates.length,
     strongCount: limitedResult.searchQuality.strongCandidates,
-    durationMs: Date.now() - startedAt,
+    durationMs,
+  });
+  notifyOps({
+    event: 'search_run',
+    title: `New Role Search ${opsPersonFrom(identity.founderName, identity.email)}`,
   });
   return {
     skipped: false,
@@ -2162,6 +2168,11 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
     opportunityId: String(job._id),
     planAtEvent: entitlements.plan,
     metadata: { source: 'founder_agent_chat' },
+  });
+
+  notifyOps({
+    event: 'role_created',
+    title: `New Role Search ${opsPersonFrom(identity.founderName, identity.email)}`,
   });
 
   session.jobId = job._id;

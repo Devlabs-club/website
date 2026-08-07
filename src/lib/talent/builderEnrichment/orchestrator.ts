@@ -16,6 +16,7 @@ import {
   type EnrichmentUiStage,
 } from '@/lib/talent/builderEnrichment/progress';
 import type { SourceEnrichmentResult } from './types';
+import { notifyOps, opsPersonFrom, watchOpsDuration } from '@/lib/opsTelegram';
 
 export type EnrichmentPlan = {
   sources: EnrichmentSource[];
@@ -210,6 +211,12 @@ export async function runEnrichmentPipeline(params: {
   const plan = planEnrichment(builder);
   const sources = params.sources?.length ? params.sources : plan.sources;
   const results: SourceEnrichmentResult[] = [];
+  const builderLabel = opsPersonFrom(builder.name, builder.email);
+  const slowWatch = watchOpsDuration({
+    event: 'enrichment_slow',
+    title: `Builder Enrichment still running for ${builderLabel}`,
+    afterMs: 120_000,
+  });
 
   try {
     if (sources.length) {
@@ -339,12 +346,42 @@ export async function runEnrichmentPipeline(params: {
     );
   }
 
+  const failedSources = results.filter(
+    (r) => r.errors?.length && !r.profile && !r.projects?.length
+  );
+  if (failedSources.length) {
+    notifyOps({
+      event: 'enrichment_failed',
+      title: `Builder Enrichment failed for ${builderLabel}`,
+      severity: 'error',
+      body: failedSources.map((r) => `${r.source}: ${(r.errors || []).join(', ')}`).join('\n'),
+    });
+  } else {
+    notifyOps({
+      event: 'enrichment_run',
+      title: `New Builder Enrichment ${builderLabel}`,
+    });
+  }
+
   return {
     note: formatEnrichmentNote(results, researchSummary, genericNotes),
     results,
     readiness,
   };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'enrichment_failed';
+    const isTimeout = /timed?\s*out/i.test(message);
+    notifyOps({
+      event: isTimeout ? 'enrichment_timeout' : 'enrichment_failed',
+      title: isTimeout
+        ? `Builder Enrichment timed out for ${builderLabel}`
+        : `Builder Enrichment failed for ${builderLabel}`,
+      severity: 'error',
+      body: message.slice(0, 500),
+    });
+    throw err;
   } finally {
+    slowWatch.cancel();
     await clearEnrichmentProgress(params.builderId);
   }
 }

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { proxyToNodeBackend, shouldUseApiProxy } from '@/lib/apiProxy';
+import { notifyOps } from '@/lib/opsTelegram';
 
 export const prerender = false;
 
@@ -65,10 +66,17 @@ export const POST: APIRoute = async (context) => {
     });
   } catch (err) {
     console.error('[internal/enrich-builder] failed', builderId, err);
+    const message = err instanceof Error ? err.message : 'enrichment_failed';
+    notifyOps({
+      event: /timed?\s*out/i.test(message) ? 'enrichment_timeout' : 'enrichment_failed',
+      title: `Builder Enrichment failed for ${builderId}`,
+      severity: 'error',
+      body: message.slice(0, 500),
+    });
     return new Response(
       JSON.stringify({
         success: false,
-        message: err instanceof Error ? err.message : 'enrichment_failed',
+        message,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

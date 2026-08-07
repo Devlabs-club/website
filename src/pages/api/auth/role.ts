@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { updateUserAccount } from '../../../lib/adminMongo';
 import { generateToken, verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
 import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
+import { notifyOps, opsPersonFrom } from '../../../lib/opsTelegram';
 import { runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
 function json(body: unknown, status = 200, headers?: HeadersInit) {
@@ -40,6 +41,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     );
 
     if (!updated) return json({ success: false, message: 'User not found' }, 404);
+
+    notifyOps({
+      event: 'role_selected',
+      title: `New ${accountType} signed up ${opsPersonFrom(updated.name, updated.email)}`,
+    });
 
     // Re-issue the session cookie so middleware role checks see founder/builder immediately.
     const freshToken = generateToken(updated, runtime);

@@ -6,6 +6,7 @@ import AgentWrappedReportModel from '@/models/talent/AgentWrappedReport';
 import { validateSafeAgentWrappedReport } from '@/lib/agentWrapped/privacy';
 import { verifyAgentWrappedUploadToken } from '@/lib/agentWrapped/uploadToken';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import type { UploadAgentWrappedReportRequest } from '@/lib/agentWrapped/types';
 
@@ -61,7 +62,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
   }
 
   await connectAdminDB();
-  const builder = await BuilderProfile.findById(body.builderId).select('_id email').lean() as any;
+  const builder = await BuilderProfile.findById(body.builderId).select('_id email name').lean() as any;
   if (!builder) return json({ ok: false, error: 'builder_not_found' }, 404);
   if (String(builder.email || '').toLowerCase() !== tokenPayload.email.toLowerCase()) {
     return json({ ok: false, error: 'builder_mismatch' }, 403);
@@ -97,6 +98,12 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 
   void upsertTalentSearchIndexForBuilder(body.builderId).catch((error) => {
     console.warn('[agent-wrapped-upload] search index refresh failed', error instanceof Error ? error.message : error);
+  });
+
+  const email = String(builder.email || tokenPayload.email || '');
+  notifyOps({
+    event: 'agent_trace_uploaded',
+    title: `New Agent Trace ${opsPersonFrom(builder.name, email)}`,
   });
 
   return json({

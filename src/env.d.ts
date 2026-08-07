@@ -34,6 +34,9 @@ declare namespace NodeJS {
     WORKOS_COOKIE_PASSWORD?: string;
     WORKOS_REDIRECT_URI?: string;
     WEBSITE_ROOT?: string;
+    /** Ops alerts → Telegram (OpenClaw-readable) */
+    TELEGRAM_BOT_TOKEN?: string;
+    TELEGRAM_CHAT_ID?: string;
   }
 }
 

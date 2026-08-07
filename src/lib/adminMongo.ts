@@ -134,7 +134,7 @@ export async function upsertUserFromOAuth(
     avatarUrl?: string | null;
   },
   runtime?: RuntimeEnv
-): Promise<AuthUser> {
+): Promise<AuthUser & { isNew?: boolean }> {
   const users = await usersCollection(runtime);
   const email = input.email.toLowerCase();
   const provider = input.provider ?? 'google';
@@ -156,7 +156,7 @@ export async function upsertUserFromOAuth(
     const updated = await users.findOne({ _id: existing._id });
     const user = toAuthUser(updated);
     if (!user) throw new Error('Failed to load user after update');
-    return user;
+    return { ...user, isNew: false };
   }
 
   const randomPassword = crypto.randomUUID();
@@ -178,7 +178,7 @@ export async function upsertUserFromOAuth(
   const result = await users.insertOne(insert);
   const user = toAuthUser({ _id: result.insertedId, ...insert });
   if (!user) throw new Error('Failed to load user after insert');
-  return user;
+  return { ...user, isNew: true };
 }
 
 /**

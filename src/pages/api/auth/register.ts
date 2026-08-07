@@ -3,6 +3,7 @@ import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
 import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
 import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
+import { notifyOps, opsPersonFrom } from '../../../lib/opsTelegram';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -79,6 +80,12 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     await newUser.save();
+
+    const roleLabel = newUser.role === 'founder' ? 'founder' : 'builder';
+    notifyOps({
+      event: 'account_created',
+      title: `New ${roleLabel} signed up ${opsPersonFrom(newUser.name, newUser.email)}`,
+    });
 
     // Generate token
     const token = generateToken(newUser);

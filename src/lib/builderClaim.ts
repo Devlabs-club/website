@@ -287,6 +287,7 @@ function buildAgentHistory(claim: any): Array<{ role: 'user' | 'assistant'; cont
 }
 
 async function finalizeClaimAccount(claim: any, runtime?: RuntimeEnv) {
+  const wasCompleted = claim.status === 'completed';
   claim.status = 'completed';
   claim.completedAt = new Date();
   if (claim.builderId) {
@@ -309,6 +310,13 @@ async function finalizeClaimAccount(claim: any, runtime?: RuntimeEnv) {
         onboardingStatus: 'complete',
       }, runtime);
     }
+  }
+  if (!wasCompleted) {
+    const { notifyOps, opsPersonFrom } = await import('@/lib/opsTelegram');
+    notifyOps({
+      event: 'link_claimed',
+      title: `New builder signed up ${opsPersonFrom(claim.metadata?.builderName, claim.builderEmail)}`,
+    });
   }
 }
 

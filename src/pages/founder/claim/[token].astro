@@ -3,7 +3,8 @@ import crypto from 'node:crypto';
 import { connectAdminDB } from '@/lib/mongodb';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import { extractTokenFromCookies, verifyToken, generateToken } from '@/lib/auth';
-import { updateUserAccount } from '@/lib/adminMongo';
+import { updateUserAccount, findUserById } from '@/lib/adminMongo';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 import FounderRoleClaim from '@/models/talent/FounderRoleClaim';
 import JobPosting from '@/models/founder/JobPosting';
 import Shortlist from '@/models/talent/Shortlist';
@@ -43,6 +44,11 @@ try {
       await claim.save();
     }
     errorMessage = 'This claim link has expired. Reach out to DevLabs for a fresh one.';
+  } else if (claim.status === 'consumed') {
+    // Already claimed — send them to the role without re-firing ops alerts.
+    const oppIds = (claim.opportunityIds || []).map((id: any) => id);
+    const destination = oppIds.length === 1 ? `/founder/roles/${oppIds[0]}` : '/founder/home';
+    return Astro.redirect(destination);
   } else {
     const email = String(payload.email || '').toLowerCase().trim();
     const userId = String(payload.userId);
@@ -115,6 +121,12 @@ try {
     claim.consumedByEmail = email;
     claim.consumedAt = new Date();
     await claim.save();
+
+    const claimant = await findUserById(userId, runtime);
+    notifyOps({
+      event: 'link_claimed',
+      title: `New founder signed up ${opsPersonFrom(claimant?.name, email)}`,
+    });
 
     const destination = oppIds.length === 1 ? `/founder/roles/${oppIds[0]}` : '/founder/home';
     return Astro.redirect(destination);

@@ -5,6 +5,7 @@ import { findUserById, updateUserAccount } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import { verifyClaimToken } from '@/lib/messaging/claimToken';
 import { normalizeClaimEmail } from '@/lib/builderClaim';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import BuilderProfileClaim from '@/models/talent/BuilderProfileClaim';
 
@@ -89,7 +90,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     status: { $nin: ['expired'] },
   }).sort({ updatedAt: -1 });
 
+  let firstClaim = false;
   if (claim) {
+    firstClaim = !claim.metadata?.opsClaimNotifiedAt;
     if (claim.status === 'email_sent' || claim.status === 'phone_pending') {
       claim.status = 'conversation_started';
     }
@@ -100,6 +103,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       webOnboarding: true,
       webOnboardingStartedAt: new Date().toISOString(),
       tokenMatched: matched,
+      ...(firstClaim ? { opsClaimNotifiedAt: new Date().toISOString() } : {}),
     };
     await claim.save();
   }
@@ -111,6 +115,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     { accountType: 'builder', onboardingStatus: nextOnboarding },
     runtime
   ).catch((error) => console.error('[builder/claim/link] user update failed', error));
+
+  if (firstClaim || (!claim && matched)) {
+    notifyOps({
+      event: 'link_claimed',
+      title: `New builder signed up ${opsPersonFrom(user.name || profile?.name, userEmail)}`,
+    });
+  }
 
   return json({
     success: true,

@@ -3,6 +3,7 @@ import { generateToken } from '../../../../lib/auth.ts';
 import { upsertUserFromOAuth } from '../../../../lib/adminMongo';
 import { sanitizePostAuthRedirect } from '../../../../lib/oauthRedirect';
 import { resolvePostAuthDestination } from '../../../../lib/authDestination';
+import { notifyOps, opsPersonFrom } from '../../../../lib/opsTelegram';
 import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../../lib/workosEnv';
 
 function nameFromWorkOSUser(workosUser: {
@@ -107,6 +108,13 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
       },
       runtime
     );
+
+    if (user.isNew) {
+      notifyOps({
+        event: 'account_created',
+        title: `New builder signed up ${opsPersonFrom(user.name, user.email)}`,
+      });
+    }
 
     const token = generateToken(user, runtime);
     // Assigned founders/builders skip role selection. Claim links go straight through.

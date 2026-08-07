@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { findUserById, updateUserAccount } from '@/lib/adminMongo';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
 import FounderProfile from '@/models/talent/FounderProfile';
 import CompanyProfile from '@/models/founder/CompanyProfile';
@@ -194,6 +195,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       await updateUserAccount(String(user._id), { onboardingStatus: 'company' }, runtime);
     }
 
+    notifyOps({
+      event: 'enrichment_run',
+      title: `New Founder Enrichment ${opsPersonFrom(user.name, user.email)}`,
+    });
+
     return json({
       success: true,
       draft: !persist,
@@ -215,6 +221,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     console.error('[founder-company-enrichment] failed', error);
     const message = error instanceof Error ? error.message : 'Company enrichment failed.';
     const timedOut = /aborted|timed out|timeout/i.test(message);
+    notifyOps({
+      event: timedOut ? 'enrichment_timeout' : 'enrichment_failed',
+      title: timedOut
+        ? `Founder Enrichment timed out for ${opsPersonFrom(user.name, user.email)}`
+        : `Founder Enrichment failed for ${opsPersonFrom(user.name, user.email)}`,
+      severity: 'error',
+      body: message.slice(0, 500),
+    });
     return json(
       {
         success: false,

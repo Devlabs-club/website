@@ -10,6 +10,7 @@ import {
   entitlementSnapshot,
   recordUsageEvent,
 } from '@/lib/billing/entitlements';
+import { notifyOps, opsPersonFrom } from '@/lib/opsTelegram';
 
 function str(v: unknown): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -84,6 +85,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     opportunityId: String(job._id),
     planAtEvent: roleAccess.entitlements.plan,
     metadata: { source: 'quick_role_intake' },
+  });
+
+  notifyOps({
+    event: 'role_created',
+    title: `New Role Search ${opsPersonFrom(identity.founderName, identity.email)}`,
   });
 
   return okJson({ jobId: String(job._id), next: `/founder/roles/${String(job._id)}?pane=chat` });
