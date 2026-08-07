@@ -20,6 +20,7 @@ import {
   type SponsorshipInference,
 } from '@/lib/talent/sponsorshipInference';
 import { buildConversationAwareWhyTheyMatch } from '@/lib/talent/whyTheyMatch';
+import { toFounderFacingWhyHire } from '@/lib/talent/founderFacingWhyHire';
 import {
   buildReasonToHireFromDimensions,
   scoreRoleDimensions,
@@ -475,7 +476,7 @@ export function resolveCandidateNarrative(
   builder: any,
   projects: any[]
 ): string {
-  const narrative = String(explanation.whyTheyMatch || '').trim();
+  const narrative = toFounderFacingWhyHire(String(explanation.whyTheyMatch || '').trim(), builder?.name);
   if (narrative) return narrative;
 
   const project = projects?.find((p: any) => p?.projectName) || projects?.[0];

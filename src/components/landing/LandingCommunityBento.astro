@@ -1,0 +1,644 @@
+---
+import LandingSectionChrome from "./LandingSectionChrome.astro";
+
+const stories = {
+  pretorin: {
+    href: "https://www.linkedin.com/posts/bhoomi-sahajsinghani_the-devlabs-effect-story-1-meet-isaac-activity-7483243984920928256-83S5",
+    label: "Hiring story",
+    title: "How Pretorin hired their founding engineer through DevLabs",
+    cta: "Read story",
+  },
+  supermemory: {
+    href: "https://www.linkedin.com/posts/dhanush-vardhan-30bb881b0_the-devlabs-effect-story-3-meet-dhravya-activity-7485776790267809792-jhoo",
+    label: "Hiring story",
+    title: "How Supermemory hired their AI researcher from DevHouse SF",
+    cta: "Read story",
+  },
+};
+
+const eventStats = [
+  { value: "170+", detail: "hackers at DevHacks" },
+  { value: "100", detail: "builders at DevHouse SF" },
+  { value: "500+", detail: "applications for one house" },
+  { value: "$150k", detail: "offer from the room" },
+];
+---
+
+<section
+  class="community-bento-section metrics-section ruler-section ruler-section--no-top landing-band-cream relative isolate px-6 pb-16 pt-24 text-black sm:px-8 lg:px-10"
+  aria-label="Builder community"
+>
+  <LandingSectionChrome mid={false} />
+  <div class="community-bento-section__grid" aria-hidden="true"></div>
+
+  <div class="relative z-10 mx-auto w-full max-w-7xl">
+    <header class="mb-10 flex flex-col gap-3 border-b border-black/10 pb-6 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-black/42">05 / Network</p>
+        <h2 class="mt-3 max-w-3xl text-[clamp(2.2rem,5vw,3.8rem)] font-black leading-[0.95] tracking-[-0.04em] text-black">
+          Built from a real <span class="text-[#ff7417]">builder community</span>
+        </h2>
+      </div>
+      <p class="max-w-md text-sm font-medium leading-relaxed text-black/55 sm:text-base">
+        DevLabs sees builders before a resume does — who shows up, what they ship, and who founders trust when the deadline is real.
+      </p>
+    </header>
+
+    <div class="community-bento" data-community-bento>
+      <!-- Tall left: events feature -->
+      <a href="/events" class="bento-tile bento-tile--events group">
+        <div class="bento-tile__media">
+          <img
+            src="/landing/community/devhouse-circle.png"
+            alt="Builders gathered in a circle at a DevHouse session"
+            class="bento-tile__img"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div class="bento-tile__body">
+          <p class="bento-tile__label bento-tile__label--accent">Events</p>
+          <h3 class="bento-tile__title">
+            DevHacks, DevHouse, DevSpace — rooms where builders prove they can ship
+          </h3>
+          <span class="bento-tile__cta">See events →</span>
+        </div>
+      </a>
+
+      <!-- Wide intro / network proof -->
+      <div class="bento-tile bento-tile--network">
+        <div class="bento-tile__body bento-tile__body--split">
+          <div>
+            <p class="bento-tile__label">Network</p>
+            <h3 class="bento-tile__title bento-tile__title--lg">
+              2,000+ builders. 25+ events. Proof before the resume.
+            </h3>
+            <p class="bento-tile__copy">
+              We run the rooms founders hire from — hackathons, residencies, and live demos where shipping is the only signal that counts.
+            </p>
+            <a href="/about" class="bento-tile__cta">Our story →</a>
+          </div>
+          <div class="bento-tile__stat-stack" aria-hidden="true">
+            <div class="bento-mini-stat">
+              <span data-count="2000" data-count-suffix="+">2,000+</span>
+              <em>builders</em>
+            </div>
+            <div class="bento-mini-stat">
+              <span data-count="50" data-count-suffix="+">50+</span>
+              <em>projects shipped</em>
+            </div>
+            <div class="bento-mini-stat">
+              <span data-count="25" data-count-suffix="+">25+</span>
+              <em>events hosted</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tall right: Supermemory story -->
+      <a
+        href={stories.supermemory.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="bento-tile bento-tile--story-tall group"
+      >
+        <div class="bento-tile__media bento-tile__media--tall">
+          <img
+            src="/landing/community/devspace-talk.png"
+            alt="Speaker addressing builders at a DevLabs event"
+            class="bento-tile__img"
+            loading="lazy"
+            decoding="async"
+          />
+          <div class="bento-tile__media-badge">
+            <img src="/sponsors/supermemory.png" alt="" class="h-5 w-auto object-contain brightness-0 invert" />
+          </div>
+        </div>
+        <div class="bento-tile__body">
+          <p class="bento-tile__label bento-tile__label--accent">{stories.supermemory.label}</p>
+          <h3 class="bento-tile__title">{stories.supermemory.title}</h3>
+          <span class="bento-tile__cta">{stories.supermemory.cta} →</span>
+        </div>
+      </a>
+
+      <!-- Event stats media overlay -->
+      <div class="bento-tile bento-tile--stats group">
+        <img
+          src="/landing/community/devhacks-crowd.png"
+          alt="Crowd of builders at DevHacks Strategy"
+          class="bento-tile__img bento-tile__img--cover"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="bento-tile__veil" aria-hidden="true"></div>
+        <div class="bento-tile__overlay">
+          <p class="bento-tile__label bento-tile__label--light">Event stats</p>
+          <h3 class="bento-tile__title bento-tile__title--light">
+            The rooms that turned into hires
+          </h3>
+          <dl class="bento-stat-grid">
+            {
+              eventStats.map((stat) => (
+                <div>
+                  <dt>{stat.value}</dt>
+                  <dd>{stat.detail}</dd>
+                </div>
+              ))
+            }
+          </dl>
+          <a href="/events" class="bento-tile__cta bento-tile__cta--light">Explore events →</a>
+        </div>
+      </div>
+
+      <!-- Mini story: Pretorin -->
+      <a
+        href={stories.pretorin.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="bento-tile bento-tile--story-mini group"
+      >
+        <div class="bento-tile__thumb">
+          <img
+            src="/landing/community/devhacks-build.png"
+            alt="Builders collaborating on a laptop at DevHacks"
+            class="bento-tile__img"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div class="bento-tile__body">
+          <p class="bento-tile__label">{stories.pretorin.label}</p>
+          <h3 class="bento-tile__title">{stories.pretorin.title}</h3>
+          <span class="bento-tile__cta">{stories.pretorin.cta} →</span>
+        </div>
+      </a>
+
+      <!-- Join / come build -->
+      <a href="/events" class="bento-tile bento-tile--join group">
+        <img
+          src="/landing/community/devhouse-circle.png"
+          alt="Builders gathered at a DevLabs community event"
+          class="bento-tile__img bento-tile__img--cover"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="bento-tile__veil bento-tile__veil--soft" aria-hidden="true"></div>
+        <div class="bento-tile__join-copy">
+          <p class="bento-tile__join-kicker">Come and join us</p>
+          <span class="bento-tile__cta bento-tile__cta--light">See upcoming events →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .community-bento-section {
+    --cut: 1rem;
+    z-index: 3;
+    background-color: #fbf6f3;
+    background-image: none;
+  }
+
+  /* Rails / crosses / grid stay behind copy + tiles */
+  .community-bento-section > :global(.ruler-rails),
+  .community-bento-section > :global(.ruler-crosses),
+  .community-bento-section__grid {
+    z-index: 0 !important;
+  }
+
+  .community-bento-section__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(5 5 5 / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(5 5 5 / 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .community-bento-section > .relative {
+    position: relative;
+    z-index: 10;
+  }
+
+  .community-bento-section header {
+    position: relative;
+    z-index: 1;
+    background: #fbf6f3;
+  }
+
+  .community-bento {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .community-bento {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-flow: dense;
+    }
+
+    .bento-tile--events,
+    .bento-tile--story-tall {
+      grid-row: auto;
+      min-height: 24rem;
+    }
+
+    .bento-tile--network,
+    .bento-tile--stats {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .community-bento {
+      grid-template-columns: 1.05fr 1.15fr 1.15fr 1.05fr;
+      grid-template-rows: minmax(15rem, auto) minmax(16rem, auto) minmax(11rem, auto);
+      gap: 0.75rem;
+    }
+
+    .bento-tile--events {
+      grid-column: 1;
+      grid-row: 1 / 3;
+    }
+
+    .bento-tile--network {
+      grid-column: 2 / 4;
+      grid-row: 1;
+    }
+
+    .bento-tile--story-tall {
+      grid-column: 4;
+      grid-row: 1 / 3;
+    }
+
+    .bento-tile--stats {
+      grid-column: 2 / 4;
+      grid-row: 2;
+    }
+
+    .bento-tile--story-mini {
+      grid-column: 1 / 3;
+      grid-row: 3;
+    }
+
+    .bento-tile--join {
+      grid-column: 3 / 5;
+      grid-row: 3;
+    }
+  }
+
+  .bento-tile {
+    --cut: 1rem;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgb(5 5 5 / 0.16);
+    border-radius: 0;
+    background: #fffaf7;
+    color: inherit;
+    text-decoration: none;
+    min-height: 14rem;
+    box-shadow: none;
+    filter: none;
+    /* Same single clipped bottom-right corner language as .nav-cut-button */
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
+  }
+
+  a.bento-tile:hover {
+    border-color: #bf4f08;
+  }
+
+  a.bento-tile:hover .bento-tile__cta {
+    color: #bf4f08;
+  }
+
+  .bento-tile--network {
+    background: #fffaf7;
+    border-color: rgb(5 5 5 / 0.14);
+    min-height: 15rem;
+  }
+
+  .bento-tile--events,
+  .bento-tile--story-tall {
+    min-height: 28rem;
+    border-color: rgb(5 5 5 / 0.14);
+  }
+
+  .bento-tile--stats,
+  .bento-tile--join {
+    min-height: 16rem;
+    color: #fff;
+    border-color: rgb(5 5 5 / 0.35);
+    background: #181411;
+  }
+
+  .bento-tile--story-mini {
+    border-color: rgb(5 5 5 / 0.14);
+  }
+
+  .bento-tile__media {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 11rem;
+    overflow: hidden;
+    background: #1a1410;
+    border-bottom: 1px solid rgb(5 5 5 / 0.1);
+  }
+
+  .bento-tile__media--tall {
+    min-height: 14rem;
+  }
+
+  .bento-tile__thumb {
+    width: 7.5rem;
+    min-width: 7.5rem;
+    align-self: stretch;
+    overflow: hidden;
+    background: #1a1410;
+    border-right: 1px solid rgb(5 5 5 / 0.1);
+  }
+
+  .bento-tile__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .bento-tile--events .bento-tile__img {
+    object-position: center 28%;
+  }
+
+  .bento-tile--story-tall .bento-tile__img {
+    object-position: center 35%;
+  }
+
+  .bento-tile--stats .bento-tile__img--cover {
+    object-position: center 40%;
+  }
+
+  .bento-tile--join .bento-tile__img--cover {
+    object-position: center 30%;
+  }
+
+  .bento-tile__img--cover {
+    position: absolute;
+    inset: 0;
+  }
+
+  .bento-tile__media-badge {
+    position: absolute;
+    left: 0.85rem;
+    top: 0.85rem;
+    display: grid;
+    place-items: center;
+    height: 2rem;
+    padding: 0 0.65rem;
+    border: 1px solid rgb(255 255 255 / 0.28);
+    background: rgb(5 5 5 / 0.72);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.35rem),
+      calc(100% - 0.35rem) 100%,
+      0 100%
+    );
+  }
+
+  .bento-tile__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1.15rem 1.2rem 1.3rem;
+    background: #fffaf7;
+  }
+
+  .bento-tile--network .bento-tile__body {
+    flex: 1;
+    background: transparent;
+    padding: 1.35rem 1.4rem 1.45rem;
+  }
+
+  .bento-tile__body--split {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 900px) {
+    .bento-tile__body--split {
+      grid-template-columns: 1.35fr 0.9fr;
+      align-items: end;
+    }
+  }
+
+  .bento-tile--story-mini {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 11rem;
+  }
+
+  .bento-tile--story-mini .bento-tile__body {
+    flex: 1;
+    justify-content: center;
+    background: #fffaf7;
+  }
+
+  .bento-tile__label {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(5, 5, 5, 0.42);
+  }
+
+  .bento-tile__label--accent {
+    color: #bf4f08;
+  }
+
+  .bento-tile__label--light {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .bento-tile__title {
+    margin: 0;
+    max-width: 22rem;
+    font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+    font-weight: 800;
+    line-height: 1.18;
+    letter-spacing: -0.03em;
+    color: #050505;
+  }
+
+  .bento-tile__title--lg {
+    max-width: 28rem;
+    font-size: clamp(1.35rem, 2.2vw, 2rem);
+  }
+
+  .bento-tile__title--light {
+    max-width: 20rem;
+    color: #fff;
+  }
+
+  .bento-tile__copy {
+    margin: 0;
+    max-width: 28rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.45;
+    color: rgba(5, 5, 5, 0.55);
+  }
+
+  .bento-tile__cta {
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: rgba(5, 5, 5, 0.72);
+    transition: color 160ms ease;
+  }
+
+  .bento-tile__cta--light {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  a.bento-tile:hover .bento-tile__cta--light {
+    color: #fff;
+  }
+
+  .bento-tile__stat-stack {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .bento-mini-stat {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid rgb(5 5 5 / 0.14);
+    border-radius: 0;
+    background: #f3ebe4;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - 0.35rem),
+      calc(100% - 0.35rem) 100%,
+      0 100%
+    );
+  }
+
+  .bento-mini-stat span {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: #bf4f08;
+  }
+
+  .bento-mini-stat em {
+    font-style: normal;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(5, 5, 5, 0.45);
+    text-align: right;
+  }
+
+  .bento-tile__veil {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(5, 5, 5, 0.12) 0%,
+      rgba(5, 5, 5, 0.52) 55%,
+      rgba(5, 5, 5, 0.88) 100%
+    );
+  }
+
+  .bento-tile__veil--soft {
+    background: linear-gradient(
+      180deg,
+      rgba(5, 5, 5, 0.05) 0%,
+      rgba(5, 5, 5, 0.42) 58%,
+      rgba(5, 5, 5, 0.82) 100%
+    );
+  }
+
+  .bento-tile__overlay {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    height: 100%;
+    padding: 1.35rem 1.4rem 1.45rem;
+  }
+
+  .bento-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem 1rem;
+    margin: 0.25rem 0 0.15rem;
+  }
+
+  .bento-stat-grid dt {
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .bento-stat-grid dd {
+    margin: 0.25rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .bento-tile__join-copy {
+    position: relative;
+    z-index: 1;
+    margin-top: auto;
+    padding: 1.35rem 1.4rem;
+    text-align: center;
+  }
+
+  .bento-tile__join-kicker {
+    margin: 0 0 0.45rem;
+    font-size: clamp(1.35rem, 2.4vw, 1.85rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 767px) {
+    .bento-tile--events,
+    .bento-tile--story-tall {
+      min-height: 22rem;
+    }
+
+    .bento-tile--story-mini {
+      flex-direction: column;
+    }
+
+    .bento-tile__thumb {
+      width: 100%;
+      min-height: 10rem;
+      border-right: 0;
+      border-bottom: 1px solid rgb(5 5 5 / 0.1);
+    }
+  }
+</style>

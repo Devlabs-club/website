@@ -50,14 +50,17 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
   return okJson({
     profile: {
-      name: identity.founderName,
+      name: (founderProfile as any)?.founderName || identity.founderName,
       email: identity.email,
       avatarUrl: (user as any)?.avatarUrl ?? (founderProfile as any)?.logoUrl ?? null,
       title: (founderProfile as any)?.metadata?.title ?? null,
       company: (founderProfile as any)?.company ?? (company as any)?.name ?? null,
       bio: (founderProfile as any)?.founderBio ?? null,
       schedulingLink: (founderProfile as any)?.schedulingLink ?? null,
+      linkedin: (founderProfile as any)?.linkedin ?? null,
     },
+    enrichmentStatus: (founderProfile as any)?.enrichmentStatus ?? null,
+    enrichmentBatchId: (founderProfile as any)?.metadata?.enrichmentBatchId ?? null,
     company: company
       ? {
           name: (company as any).name,
@@ -107,6 +110,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         // list (and other signals) saved during LinkedIn enrichment.
         'metadata.title': str(body.title),
         'metadata.workEmail': str(body.workEmail),
+        'metadata.onboardingDraft': false,
+        enrichmentStatus: 'complete',
+      },
+      $unset: {
+        'metadata.enrichmentDiscardedAt': 1,
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }

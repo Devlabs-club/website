@@ -49,7 +49,9 @@ export const POST: APIRoute = async ({ request, locals, params }) => {
       job: result.job,
       history: result.history,
       searchRan: result.searchRan,
+      shortlistChanged: result.shortlistChanged,
       searchNeedsFollowup: result.searchNeedsFollowup,
+      meta: result.meta,
     });
   } catch (error) {
     console.error('[founder/roles/chat] failed', error);

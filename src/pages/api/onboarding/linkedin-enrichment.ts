@@ -4,12 +4,11 @@ import { connectAdminDB } from '@/lib/mongodb';
 import { extractTokenFromCookies, extractTokenFromHeader, verifyToken } from '@/lib/auth';
 import { findUserById, updateUserAccount } from '@/lib/adminMongo';
 import { runtimeEnvFromLocals } from '@/lib/workosEnv';
+import { linkedInProfilesMatch, normalizeLinkedInProfileKey } from '@/lib/linkedinUrl';
 import {
-  FOUNDER_PROFILE_SCRAPER_TIMEOUT_MS,
   queueRemoteLinkedInBuilderEnrichment,
   queueRemoteLinkedInFounderEnrichment,
   requireRemoteLinkedInScraperConfig,
-  runRequiredRemoteLinkedInScraperScript,
 } from '@/lib/remoteLinkedInScraper';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import FounderProfile from '@/models/talent/FounderProfile';
@@ -25,15 +24,6 @@ function json(body: unknown, status = 200) {
 
 function cleanString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function compactKey(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/https?:\/\/(www\.)?/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 120);
 }
 
 function normalizeLinkedInInput(input: unknown): string | null {
@@ -71,15 +61,6 @@ async function resolveUser(request: Request, locals: App.Locals) {
   const decoded = verifyToken(token, runtime);
   if (!decoded) return { user: null, runtime };
   return { user: await findUserById(decoded.userId, runtime), runtime };
-}
-
-async function runCdpScript(
-  scriptName: string,
-  args: string[],
-  runtime?: Record<string, string | undefined>,
-  timeoutMs = FOUNDER_PROFILE_SCRAPER_TIMEOUT_MS
-) {
-  return runRequiredRemoteLinkedInScraperScript(scriptName, args, runtime, timeoutMs);
 }
 
 async function enrichBuilder(user: any, linkedInUrl: string, runtime?: Record<string, string | undefined>) {
@@ -129,10 +110,63 @@ async function enrichBuilder(user: any, linkedInUrl: string, runtime?: Record<st
   };
 }
 
-async function enrichFounder(user: any, linkedInUrl: string, cdpUrl: string, runtime?: Record<string, string | undefined>) {
+function founderLooksScraped(profile: any): boolean {
+  const company = typeof profile?.company === 'string' ? profile.company.trim() : '';
+  const hasCompany = Boolean(company) && company !== 'My company';
+  const title = profile?.metadata?.title;
+  const bio = profile?.founderBio;
+  const experiences = Array.isArray(profile?.metadata?.experiences) ? profile.metadata.experiences : [];
+  return hasCompany && (Boolean(title) || Boolean(bio) || experiences.length > 0 || Boolean(profile?.logoUrl));
+}
+
+async function enrichFounder(user: any, linkedInUrl: string, _cdpUrl: string, runtime?: Record<string, string | undefined>) {
+  const userId = String(user._id);
+  const existing = await FounderProfile.findOne({ userId }).lean();
+  const sameUrl = linkedInProfilesMatch(existing?.linkedin, linkedInUrl);
+  const status = existing?.enrichmentStatus || null;
+
+  // Same URL already scraped — do not re-queue or flip status back to pending.
+  // That was the stuck-loading bug when founders went back and re-submitted.
+  // Discarded drafts use enrichmentStatus=failed and must re-scrape.
+  if (
+    sameUrl &&
+    (status === 'complete' || status === 'partial') &&
+    founderLooksScraped(existing) &&
+    !(existing as any)?.metadata?.enrichmentDiscardedAt
+  ) {
+    await updateUserAccount(userId, {
+      role: 'founder',
+      accountType: 'founder',
+      onboardingStatus: 'profile',
+    }, runtime);
+    return {
+      next: '/founder/onboarding/profile?step=profile',
+      queued: false,
+      alreadyEnriched: true,
+      batchId: existing?.metadata?.enrichmentBatchId || null,
+    };
+  }
+
+  // Same URL already in-flight — reuse the pending job instead of stacking queue
+  // items and wiping fields mid-scrape.
+  if (sameUrl && status === 'pending' && existing?.metadata?.enrichmentBatchId) {
+    await updateUserAccount(userId, {
+      role: 'founder',
+      accountType: 'founder',
+      onboardingStatus: 'profile',
+    }, runtime);
+    return {
+      next: '/founder/onboarding/profile?step=profile',
+      queued: true,
+      alreadyQueued: true,
+      batchId: existing.metadata.enrichmentBatchId,
+      statusUrl: `/batches/${existing.metadata.enrichmentBatchId}`,
+    };
+  }
+
   const queued = await queueRemoteLinkedInFounderEnrichment(
     {
-      id: String(user._id),
+      id: userId,
       name: String(user.name || user.email.split('@')[0]),
       email: String(user.email),
       linkedInUrl,
@@ -140,97 +174,51 @@ async function enrichFounder(user: any, linkedInUrl: string, cdpUrl: string, run
     runtime
   );
   if (!queued) throw new Error('Railway LinkedIn scraper is not configured.');
-  await updateUserAccount(String(user._id), {
-    role: 'founder',
-    accountType: 'founder',
-    onboardingStatus: 'profile',
-  }, runtime);
-  return {
-    next: '/founder/onboarding/profile',
-    queued: true,
-    batchId: queued.batchId,
-    statusUrl: queued.statusUrl,
-  };
 
-  const outputKey = `founder-${String(user._id)}-${compactKey(linkedInUrl)}`;
-  const { summary, artifact } = await runCdpScript('enrich-builder-linkedin-cdp.mjs', [
-    '--linkedin-url',
-    linkedInUrl,
-    '--name',
-    user.name || user.email.split('@')[0],
-    '--email',
-    user.email,
-    '--output-key',
-    outputKey,
-    '--cdp-url',
-    cdpUrl,
-    '--wait-ms',
-    '12000',
-  ], runtime);
+  const prevEpoch =
+    typeof existing?.metadata?.enrichmentEpoch === 'number' ? existing.metadata.enrichmentEpoch : 0;
 
-  const extracted = artifact?.extracted || {};
-  const allExperiences = Array.isArray(extracted.experiences) ? extracted.experiences : [];
-  // Persist a trimmed list of experiences so the company step can let the founder
-  // pick which one to enrich. Current roles first.
-  const experiences = allExperiences
-    .map((experience: any) => ({
-      title: cleanString(experience?.title),
-      company: cleanString(experience?.company),
-      companyUsername: cleanString(experience?.companyUsername),
-      companyLinkedInUrl: cleanString(experience?.companyLinkedInUrl),
-      companyLogoUrl: cleanString(experience?.companyLogoUrl),
-      employmentType: cleanString(experience?.employmentType),
-      location: cleanString(experience?.location),
-      dateRange: cleanString(experience?.dateRange),
-      isCurrent: Boolean(experience?.isCurrent),
-    }))
-    .filter((experience: any) => experience.company)
-    .sort((a: any, b: any) => Number(b.isCurrent) - Number(a.isCurrent))
-    .slice(0, 12);
-  const currentExperience =
-    allExperiences.find((experience: any) => experience?.isCurrent) || allExperiences[0] || null;
-  const companyName = cleanString(currentExperience?.company) || 'My company';
-  const title = cleanString(currentExperience?.title) || cleanString(extracted.headline);
-  const photoUrl = cleanString(extracted.cdpExtraction?.photo?.imageUrl);
-
+  // Draft only until the founder finishes steps 1–2. Hitting Back discards this.
   await FounderProfile.findOneAndUpdate(
-    { userId: String(user._id) },
+    { userId },
     {
       $set: {
-        userId: String(user._id),
+        userId,
         founderEmail: user.email,
         founderName: user.name || user.email.split('@')[0],
-        company: companyName,
         linkedin: linkedInUrl,
-        founderBio: cleanString(extracted.about) || cleanString(extracted.headline),
-        logoUrl: photoUrl,
-        enrichmentStatus: artifact?.extracted?.warnings?.length ? 'partial' : 'complete',
+        company: 'My company',
+        founderBio: null,
+        logoUrl: null,
+        enrichmentStatus: 'pending',
         enrichmentSources: ['linkedin'],
-        enrichedAt: new Date(),
+        enrichedAt: null,
         metadata: {
-          title,
-          currentCompanyName: companyName,
-          currentCompanyLinkedInUrl: cleanString(currentExperience?.companyLinkedInUrl),
-          currentCompanyLogoUrl: cleanString(currentExperience?.companyLogoUrl),
-          experiences,
-          linkedInArtifactPath: summary.outputPath,
+          onboardingDraft: true,
+          enrichmentEpoch: prevEpoch + 1,
+          enrichmentBatchId: queued.batchId,
+          enrichmentLinkedInUrl: linkedInUrl,
+          enrichmentLinkedInKey: normalizeLinkedInProfileKey(linkedInUrl),
+          enrichmentQueuedAt: new Date().toISOString(),
+          title: null,
+          experiences: [],
         },
       },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 
-  await updateUserAccount(String(user._id), {
+  await updateUserAccount(userId, {
     role: 'founder',
     accountType: 'founder',
     onboardingStatus: 'profile',
-    ...(photoUrl ? { avatarUrl: photoUrl } : {}),
   }, runtime);
 
   return {
-    next: '/founder/onboarding/profile',
-    summary,
-    artifact,
+    next: '/founder/onboarding/profile?step=profile',
+    queued: true,
+    batchId: queued.batchId,
+    statusUrl: queued.statusUrl,
   };
 }
 

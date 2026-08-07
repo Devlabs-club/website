@@ -50,9 +50,19 @@ try {
     // 1. Promote to founder if they signed in as a fresh/unscoped account, and
     //    refresh the session cookie so the redirect to /founder/* isn't bounced by
     //    the role gate (the JWT is stateless — a DB update alone won't update it).
+    //    Claim links already know this person is a founder — never send them through
+    //    /auth/select-role, and mark onboarding complete so they land on the role.
     const role = String(payload.role || '');
     if (role !== 'founder' && role !== 'admin') {
-      const updated = await updateUserAccount(userId, { role: 'founder', accountType: 'founder' }, runtime);
+      const updated = await updateUserAccount(
+        userId,
+        {
+          role: 'founder',
+          accountType: 'founder',
+          onboardingStatus: 'complete',
+        },
+        runtime
+      );
       if (updated) {
         const fresh = generateToken({ _id: userId, email, role: 'founder' } as any, runtime);
         Astro.cookies.set('auth-token', fresh, {
@@ -63,6 +73,9 @@ try {
           secure: import.meta.env.PROD,
         });
       }
+    } else {
+      // Existing founder claiming a managed role — ensure onboarding isn't blocking.
+      await updateUserAccount(userId, { accountType: 'founder', onboardingStatus: 'complete' }, runtime);
     }
 
     const oppIds = (claim.opportunityIds || []).map((id: any) => id);

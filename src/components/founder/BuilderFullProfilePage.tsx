@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { AppTopBar } from "@/components/app/AppTopBar";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
+import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 
 export type BuilderProfile = {
   id: string;
@@ -201,21 +202,31 @@ export const BuilderProfileView: React.FC<{
               className={`rounded-2xl p-4 ${founder ? "border border-[#ece7e1] bg-[#fffcfa]" : "border border-border"}`}
             >
               <div className="flex items-start gap-3">
-                {exp.companyLogoUrl ? (
-                  <img
-                    src={exp.companyLogoUrl}
-                    alt={`${exp.company || "Company"} logo`}
-                    className={`h-10 w-10 shrink-0 rounded-xl object-cover ${founder ? "border border-[#ece7e1] bg-white" : "border border-border bg-muted"}`}
-                  />
-                ) : (
-                  <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${
-                      founder ? "border border-[#ece7e1] bg-white text-black/35" : "border border-border bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {(exp.company || "?").slice(0, 1).toUpperCase()}
-                  </div>
-                )}
+                {(() => {
+                  const logoUrl = resolveCompanyLogoUrl(
+                    exp.company || "",
+                    exp.companyLogoUrl,
+                    exp.companyLinkedInUrl
+                  );
+                  return logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={`${exp.company || "Company"} logo`}
+                      className={`h-10 w-10 shrink-0 rounded-xl object-cover ${founder ? "border border-[#ece7e1] bg-white" : "border border-border bg-muted"}`}
+                      onError={(event) => {
+                        (event.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-semibold ${
+                        founder ? "border border-[#ece7e1] bg-white text-black/35" : "border border-border bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {(exp.company || "?").slice(0, 1).toUpperCase()}
+                    </div>
+                  );
+                })()}
                 <div className="min-w-0">
                   <p className={`font-semibold ${founder ? "text-black" : "font-medium"}`}>
                     {exp.title} · {exp.company}

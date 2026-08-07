@@ -1,17 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "@/components/auth_manager";
 import { ThemeToggle } from "@/components/app/ThemeToggle";
+import { resolvePostAuthDestination } from "@/lib/authDestination";
 import { Briefcase, Hammer, Loader2 } from "lucide-react";
 
 type Choice = "founder" | "builder";
 
-function postRoleRedirect(accountType: Choice): string | null {
+function redirectParam(): string | null {
   if (typeof window === "undefined") return null;
-  const redirect = new URLSearchParams(window.location.search).get("redirect");
-  if (!redirect || !redirect.startsWith("/")) return null;
-  if (accountType === "founder" && redirect.startsWith("/founder/")) return redirect;
-  if (accountType === "builder" && redirect.startsWith("/builder/")) return redirect;
-  return null;
+  return new URLSearchParams(window.location.search).get("redirect");
 }
 
 const RoleCard: React.FC<{
@@ -46,10 +43,13 @@ const SelectRoleInner: React.FC = () => {
   const [selected, setSelected] = useState<Choice | null>(null);
   const [error, setError] = useState("");
 
-  // Returning users who already chose a role skip this screen.
+  // Returning users who already chose a role skip this screen entirely.
+  // Claim links (/founder/claim/...) also bypass — destination helper routes them through.
   useEffect(() => {
-    if (!loading && user?.accountType === "founder") window.location.href = postRoleRedirect("founder") || "/founder/home";
-    else if (!loading && user?.accountType === "builder") window.location.href = postRoleRedirect("builder") || "/builder/home";
+    if (loading || !user) return;
+    const next = resolvePostAuthDestination(user, redirectParam());
+    if (next.startsWith("/auth/select-role")) return;
+    window.location.replace(next);
   }, [loading, user]);
 
   const choose = async (accountType: Choice) => {
@@ -65,7 +65,15 @@ const SelectRoleInner: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        window.location.href = postRoleRedirect(accountType) || data.next;
+        const redirect = redirectParam();
+        // Claim / deep links win; otherwise honor server onboarding destination.
+        if (redirect?.startsWith("/founder/claim/")) {
+          window.location.href = redirect;
+        } else if (redirect?.startsWith("/founder/") || redirect?.startsWith("/builder/")) {
+          window.location.href = resolvePostAuthDestination({ accountType, role: accountType }, redirect);
+        } else {
+          window.location.href = data.next || resolvePostAuthDestination({ accountType, role: accountType }, null);
+        }
       } else {
         setError(data.message || "Something went wrong.");
         setBusy(false);
@@ -76,8 +84,17 @@ const SelectRoleInner: React.FC = () => {
     }
   };
 
+  // Avoid flashing the chooser while we redirect assigned users / claim links.
+  if (loading || (user && !resolvePostAuthDestination(user, redirectParam()).startsWith("/auth/select-role"))) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-muted-foreground">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 py-16">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-6 py-16 text-foreground">
       <div className="absolute right-5 top-5">
         <ThemeToggle />
       </div>

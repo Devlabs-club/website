@@ -43,9 +43,33 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     // Re-issue the session cookie so middleware role checks see founder/builder immediately.
     const freshToken = generateToken(updated, runtime);
-    const next = accountType === 'founder' ? '/founder/onboarding/linkedin' : '/builder/home';
+
+    // Honor deep-link redirects (e.g. claim URLs / founder paths) after role is set.
+    const requestUrl = new URL(request.url);
+    const referer = request.headers.get('referer') || '';
+    let redirectHint: string | null = requestUrl.searchParams.get('redirect');
+    if (!redirectHint && referer) {
+      try {
+        const refUrl = new URL(referer);
+        redirectHint = refUrl.searchParams.get('redirect');
+      } catch {
+        redirectHint = null;
+      }
+    }
+    const { resolvePostAuthDestination } = await import('../../../lib/authDestination');
+    const next = resolvePostAuthDestination(
+      { accountType, role: accountType },
+      redirectHint
+    ) || (accountType === 'founder' ? '/founder/onboarding/linkedin' : '/builder/home');
+
+    // Fresh founders with no deep link still start onboarding.
+    const destination =
+      accountType === 'founder' && next === '/founder/home' && !redirectHint
+        ? '/founder/onboarding/linkedin'
+        : next;
+
     return json(
-      { success: true, accountType, next },
+      { success: true, accountType, next: destination },
       200,
       { 'Set-Cookie': buildAuthTokenCookie(freshToken) }
     );

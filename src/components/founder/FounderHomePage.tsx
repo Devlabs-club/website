@@ -73,11 +73,11 @@ const questions: Question[] = [
   {
     key: "compensation",
     title: "Compensation (In-hand)",
-    options: ["$10k - $20k P.a.", "$20k - $50k P.a.", "$50k - $100k P.a."],
-    placeholder: "e.g. $40k - $60k P.a.",
+    options: ["$70k - $100k P.a.", "$100k - $130k P.a.", "$130k - $180k+ P.a."],
+    placeholder: "e.g. $90k - $120k P.a.",
     validate: (value) => {
-      if (!/\d/.test(value)) return "Include an amount, e.g. $40k - $60k P.a.";
-      if (value.trim().length > 40) return "Keep the compensation short, e.g. $40k - $60k P.a.";
+      if (!/\d/.test(value)) return "Include an amount, e.g. $90k - $120k P.a.";
+      if (value.trim().length > 40) return "Keep the compensation short, e.g. $90k - $120k P.a.";
       return null;
     },
     format: (value) => formatCompensation(value),

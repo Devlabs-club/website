@@ -1,17 +1,31 @@
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 30000);
+/** Agent tool loops (search + shortlist CRUD) need headroom beyond a single reply. */
+const OPENROUTER_TIMEOUT_MS = Number(process.env.OPENROUTER_TIMEOUT_MS || 120000);
 
+/**
+ * Founder chat + agent turns. Luna is the cost/latency tier — never Sol.
+ * Deployments can override via OPENROUTER_MODEL_CHAT.
+ */
 export function getOpenRouterChatModel() {
-  return process.env.OPENROUTER_MODEL_CHAT || 'openai/gpt-5.6-terra';
+  const configured = process.env.OPENROUTER_MODEL_CHAT || 'openai/gpt-5.6-luna';
+  if (/sol/i.test(configured)) {
+    console.warn('[openrouter] refusing Sol model for chat; falling back to gpt-5.6-luna');
+    return 'openai/gpt-5.6-luna';
+  }
+  return configured;
 }
 
 /**
  * Used for open-ended talent analysis, cohort reranking, and evidence synthesis.
- * Terra Pro runs the same GPT-5.6 Terra weights with pro reasoning mode.
- * Deployments can override without changing application code.
+ * Luna Pro = same Luna weights with pro reasoning. Never Sol.
  */
 export function getOpenRouterReasoningModel() {
-  return process.env.OPENROUTER_MODEL_REASONING || 'openai/gpt-5.6-terra-pro';
+  const configured = process.env.OPENROUTER_MODEL_REASONING || 'openai/gpt-5.6-luna-pro';
+  if (/sol/i.test(configured)) {
+    console.warn('[openrouter] refusing Sol model for reasoning; falling back to gpt-5.6-luna-pro');
+    return 'openai/gpt-5.6-luna-pro';
+  }
+  return configured;
 }
 
 export function hasOpenRouterConfig() {
@@ -138,7 +152,7 @@ export async function generateOpenRouterAgentTurn(params: {
     model: params.model === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
     messages: params.messages,
     temperature: params.temperature ?? 0.3,
-    max_tokens: params.maxTokens ?? 600,
+    max_tokens: params.maxTokens ?? 1200,
   };
   if (params.model === 'reasoning') {
     body.reasoning = { effort: 'medium' };

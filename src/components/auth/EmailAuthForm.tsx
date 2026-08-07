@@ -1,19 +1,19 @@
 import React, { useState } from "react";
 import { useAuth } from "@/components/auth_manager";
+import { resolvePostAuthDestination } from "@/lib/authDestination";
 import { Loader2 } from "lucide-react";
 
 interface Props {
   mode: "signup" | "login";
 }
 
-function postAuthDestination(): string {
-  if (typeof window === "undefined") return "/auth/select-role";
-  const redirect = new URLSearchParams(window.location.search).get("redirect");
-  return redirect || "/auth/select-role";
+function redirectParam(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("redirect");
 }
 
 const authInputClassName =
-  "h-[3.35rem] w-full rounded-none border border-black bg-white px-4 text-[#050505] shadow-[0_14px_24px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-black/35 focus:border-[#ff7417] focus:shadow-[0_14px_24px_rgba(255,116,23,0.12)]";
+  "h-[3.35rem] w-full rounded-none border border-border bg-card px-4 text-foreground shadow-[0_14px_24px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_14px_24px_rgba(255,116,23,0.12)]";
 
 /**
  * Minimal email-first auth (matches the wireframe): enter email -> Continue
@@ -56,7 +56,10 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
     setLoading(false);
 
     if (result.success) {
-      window.location.href = postAuthDestination();
+      window.location.href = resolvePostAuthDestination(
+        result.user || { accountType: null, role: "user" },
+        redirectParam()
+      );
     } else {
       setError(result.message);
     }

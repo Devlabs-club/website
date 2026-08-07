@@ -10,6 +10,7 @@ import {
   getScheduleMeetButtonState,
 } from '@/lib/talent/founderIntroUi';
 import { pipelineNeedsCallClockTick } from '@/lib/talent/callTiming';
+import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
 
 const REJECTION_REASONS = [
   { id: 'wrong_skills', label: 'Wrong skill set' },
@@ -263,17 +264,27 @@ export default function FounderCandidateDrawer({
                 {candidate.experiences.slice(0, 3).map((experience) => (
                   <div key={experience.sourceId || `${experience.company}-${experience.title}`} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex items-start gap-3">
-                      {experience.companyLogoUrl ? (
-                        <img
-                          src={experience.companyLogoUrl}
-                          alt={`${experience.company || 'Company'} logo`}
-                          className="h-9 w-9 rounded-md object-cover bg-white/5 border border-white/10"
-                        />
-                      ) : (
-                        <div className="h-9 w-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/40">
-                          {(experience.company || '?').slice(0, 1).toUpperCase()}
-                        </div>
-                      )}
+                      {(() => {
+                        const logoUrl = resolveCompanyLogoUrl(
+                          experience.company || '',
+                          experience.companyLogoUrl,
+                          experience.companyLinkedInUrl
+                        );
+                        return logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={`${experience.company || 'Company'} logo`}
+                            className="h-9 w-9 rounded-md object-cover bg-white/5 border border-white/10"
+                            onError={(event) => {
+                              (event.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <div className="h-9 w-9 rounded-md bg-white/5 border border-white/10 flex items-center justify-center text-xs text-white/40">
+                            {(experience.company || '?').slice(0, 1).toUpperCase()}
+                          </div>
+                        );
+                      })()}
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-white truncate">{experience.title}</p>
                         <p className="text-xs text-white/55 truncate">

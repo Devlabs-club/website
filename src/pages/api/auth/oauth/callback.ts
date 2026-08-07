@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { generateToken } from '../../../../lib/auth.ts';
 import { upsertUserFromOAuth } from '../../../../lib/adminMongo';
 import { sanitizePostAuthRedirect } from '../../../../lib/oauthRedirect';
+import { resolvePostAuthDestination } from '../../../../lib/authDestination';
 import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../../lib/workosEnv';
 
 function nameFromWorkOSUser(workosUser: {
@@ -24,13 +25,11 @@ function authCookieFlags(): string {
   return `HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${secure}`;
 }
 
-function destinationForRole(accountType: string | undefined, redirectUrl: string) {
-  // /auth/select-role safely re-routes based on the user's role and preserves any
-  // nested redirect (e.g. the pricing checkout target), so always honor it.
-  if (redirectUrl.startsWith('/auth/select-role')) return redirectUrl;
-  if (accountType === 'founder') return redirectUrl.startsWith('/founder/') ? redirectUrl : '/founder/home';
-  if (accountType === 'builder') return redirectUrl.startsWith('/builder/') ? redirectUrl : '/builder/home';
-  return redirectUrl;
+function destinationForRole(
+  user: { accountType?: string | null; role?: string | null },
+  redirectUrl: string
+) {
+  return resolvePostAuthDestination(user, redirectUrl);
 }
 
 export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
@@ -110,10 +109,9 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
     );
 
     const token = generateToken(user, runtime);
-    // Founders/builders go straight to their home; users who haven't picked a role yet
-    // honor the post-auth redirect (e.g. the onboarding "connect LinkedIn" next step),
-    // falling back to role selection.
-    const destination = destinationForRole(user.accountType, redirectUrl);
+    // Assigned founders/builders skip role selection. Claim links go straight through.
+    // Only unscoped accounts land on /auth/select-role.
+    const destination = destinationForRole(user, redirectUrl);
 
     const headers = new Headers();
     headers.set('Location', destination);

@@ -93,9 +93,111 @@ describe('roleEvidenceDimensions', () => {
     expect(advocate?.overall || 0).toBeGreaterThan(generic?.overall || 0);
     const reason = buildReasonToHireFromDimensions({
       dimensionScore: advocate,
+      builder: {
+        name: 'Ada',
+        headline: 'Developer advocate and mentor',
+        experiences: [
+          {
+            title: 'Mentor',
+            company: 'SoDA',
+            description: 'Mentored builders and organized hackathons',
+          },
+        ],
+      },
+      projects: [
+        {
+          projectName: 'sdk-docs',
+          description: 'Open source SDK with documentation and demo',
+          links: { github: 'https://github.com/ada/sdk', demo: 'https://demo.example.com' },
+          techStack: ['React', 'TypeScript'],
+        },
+      ],
       roleTitle: 'Developer Relations Engineer',
     });
-    expect(reason).toMatch(/stands out|Teaching|Community|Open-source|Shipped/i);
+    expect(reason).toBeTruthy();
+    expect(reason).toMatch(/sdk-docs|SoDA|Mentor|React|TypeScript|Developer Relations/i);
+    expect(reason).not.toMatch(/stands out \(|plus .+ fit \(/i);
+  });
+
+  it('writes different why-hire lines for two full-stack builders on the same role', () => {
+    const dimensions = buildFallbackEvidenceDimensions({
+      roleTitle: 'Founding Engineer',
+      builderWillDo: 'Ship product end to end in TypeScript',
+      skillsNeeded: ['TypeScript', 'React', 'Node'],
+    });
+    const pranav = scoreRoleDimensions({
+      dimensions,
+      builder: {
+        _id: 'builder-pranav',
+        name: 'T Pranav',
+        skills: ['TypeScript', 'React', 'Node.js'],
+        experiences: [{ title: 'Product Engineering Intern', company: 'Pretorin', isCurrent: true }],
+      },
+      projects: [
+        {
+          projectName: 'MemoryBench',
+          techStack: ['TypeScript', 'React'],
+          links: { github: 'https://github.com/x/memorybench' },
+        },
+      ],
+    });
+    const jayesh = scoreRoleDimensions({
+      dimensions,
+      builder: {
+        _id: 'builder-jayesh',
+        name: 'Jayesh Devre',
+        skills: ['TypeScript', 'React', 'AWS'],
+        experiences: [
+          { title: 'SDE Intern', company: 'Amazon' },
+          { title: 'Data Engineer', company: 'Tesla', isCurrent: true },
+        ],
+      },
+      projects: [
+        {
+          projectName: 'End-to-End CI/CD Pipeline Implementation',
+          techStack: ['AWS', 'TypeScript'],
+          links: { github: 'https://github.com/x/cicd' },
+        },
+      ],
+    });
+
+    const whyPranav = buildReasonToHireFromDimensions({
+      dimensionScore: pranav,
+      builder: {
+        _id: 'builder-pranav',
+        name: 'T Pranav',
+        skills: ['TypeScript', 'React', 'Node.js'],
+        experiences: [{ title: 'Product Engineering Intern', company: 'Pretorin', isCurrent: true }],
+      },
+      projects: [{ projectName: 'MemoryBench', techStack: ['TypeScript', 'React'], links: { github: 'https://x' } }],
+      roleTitle: 'Founding Engineer',
+    });
+    const whyJayesh = buildReasonToHireFromDimensions({
+      dimensionScore: jayesh,
+      builder: {
+        _id: 'builder-jayesh',
+        name: 'Jayesh Devre',
+        skills: ['TypeScript', 'React', 'AWS'],
+        experiences: [
+          { title: 'SDE Intern', company: 'Amazon' },
+          { title: 'Data Engineer', company: 'Tesla', isCurrent: true },
+        ],
+      },
+      projects: [
+        {
+          projectName: 'End-to-End CI/CD Pipeline Implementation',
+          techStack: ['AWS', 'TypeScript'],
+          links: { github: 'https://x' },
+        },
+      ],
+      roleTitle: 'Founding Engineer',
+    });
+
+    expect(whyPranav).toBeTruthy();
+    expect(whyJayesh).toBeTruthy();
+    expect(whyPranav).not.toEqual(whyJayesh);
+    expect(whyPranav).toMatch(/Pretorin|MemoryBench/i);
+    expect(whyJayesh).toMatch(/Tesla|Amazon|CI\/CD|AWS/i);
   });
 
   it('sanitizes invalid LLM dimensions back to a valid plan', () => {

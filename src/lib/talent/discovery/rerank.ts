@@ -1,9 +1,11 @@
 import { scoreMatchLabel, type ScoredCandidate } from './scoring';
 import { normalizeRequirements } from '@/lib/talent/searchTokens';
 import type { SearchPlan } from '@/lib/talent/searchPlan';
+import { toFounderFacingWhyHire } from '@/lib/talent/founderFacingWhyHire';
 
 export type LlmCandidateJudgment = {
   builderId: string;
+  whyHire: string;
   fitSummary: string;
   requirementFindings: Array<{
     text: string;
@@ -59,6 +61,12 @@ export async function rerankTopCandidates(params: {
       const judgment = judgedMap.get(candidate.builderId);
       if (!judgment) return candidate;
 
+      const builderName = builderMap.get(candidate.builderId)?.builder?.name || null;
+      const whyHire = toFounderFacingWhyHire(
+        judgment.whyHire || judgment.fitSummary || candidate.explanation.whyTheyMatch,
+        builderName
+      );
+
       const adjustedFit = computeFitWithAdjustment({
         ...candidate,
         components: {
@@ -77,6 +85,7 @@ export async function rerankTopCandidates(params: {
         },
         explanation: {
           ...candidate.explanation,
+          whyTheyMatch: whyHire || candidate.explanation.whyTheyMatch,
           strongestSignals: judgment.evidenceBasedReasoning.length
             ? judgment.evidenceBasedReasoning
             : candidate.explanation.strongestSignals,
@@ -118,8 +127,13 @@ async function judgeCandidatesBatch(params: {
   const systemPrompt = `You are a hiring intelligence system reviewing a qualified candidate cohort.
 A SearchPlan already expanded founder requirements into concrete match tokens. Deterministic scoring already applied must/nice gates.
 Your job is to form a calibrated, evidence-based consensus for each builder, including edge cases token matching may miss.
-Return strictly valid JSON: {"judgments":[{builderId,evidenceBasedReasoning:string[],risks:string[],recommendedAction:"intro"|"trial"|"save"|"pass",rerankBoost:number,rerankPenalty:number}]}
+Return strictly valid JSON: {"judgments":[{builderId,whyHire:string,evidenceBasedReasoning:string[],risks:string[],recommendedAction:"intro"|"trial"|"save"|"pass",rerankBoost:number,rerankPenalty:number}]}
 Constraints:
+- whyHire: one direct third-person sentence (max 180 chars) telling the founder why THIS builder is the hire for THIS role. Talk about the builder only — use they/their or the builder's first name. Never use you/your (that makes it sound like the founder's resume).
+- whyHire MUST cite a real company, project, title, or stack from that builder's dossier. Never invent proof.
+- whyHire must be unique per builder. Do not reuse the same template ("stands out", "plus full-stack web implementation fit") across candidates.
+- Good: "At Wipro they shipped 60+ Azure microservices; their React/Flask project proves end-to-end delivery."
+- Bad: "At Wipro, you launched and operated 60+ Azure containerized microservices…"
 - Return at most 2 evidenceBasedReasoning items and 1 risk, each under 120 characters.
 - rerankBoost and rerankPenalty are each 0-0.25.
 - Boost builders whose experience/project proof matches the role's domain center of gravity (what they will actually build). Penalize stack/ship-only profiles that lack that domain proof.
@@ -213,7 +227,8 @@ ${candidateBlocks.join('\n\n')}`;
         if (!builderId || !allowedIds.has(builderId)) return null;
         return {
           builderId,
-          fitSummary: String(row.fitSummary || '').slice(0, 240),
+          whyHire: String(row.whyHire || row.fitSummary || '').slice(0, 180),
+          fitSummary: String(row.fitSummary || row.whyHire || '').slice(0, 240),
           requirementFindings: Array.isArray(row.requirementFindings)
             ? row.requirementFindings
                 .map((finding: any) => ({

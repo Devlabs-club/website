@@ -13,7 +13,6 @@ import {
   Linkedin,
   Loader2,
   MessageCircle,
-  Send,
   Sparkles,
   UserPlus,
   X,
@@ -25,7 +24,10 @@ import type { PlanId } from "@/components/founder/FounderBillingCard";
 import { AgentTraceTeaserSection, type AgentTraceTeaser } from "@/components/founder/AgentTraceTeaserSection";
 import { FounderTraceViewer } from "@/components/founder/FounderTraceViewer";
 import type { AgentWrappedReport } from "@/lib/agentWrapped/types";
-import ChatMarkdown from "@/components/ChatMarkdown";
+import { AgentChatPanel } from "@/components/beautiful-ui/AgentChatPanel";
+import { toFounderFacingWhyHire } from "@/lib/talent/founderFacingWhyHire";
+import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Job = {
   id: string;
@@ -228,19 +230,141 @@ const TRIAL_STATUS_LABELS: Record<string, string> = {
   rejected: "Rejected",
 };
 
-const INTRO_MESSAGES: Array<{ role: "founder" | "assistant"; content: string }> = [
-  { role: "assistant", content: "Hey! Let's get this role tight so I can find you the right builder." },
-  { role: "assistant", content: "First up, what will they actually build? The product, the feature, the thing they'll own." },
-];
+const ChatBubbleShimmer: React.FC<{ align?: "start" | "end" }> = ({ align = "start" }) => (
+  <div className={`flex ${align === "end" ? "justify-end" : "justify-start"}`}>
+    <div
+      className={`space-y-2 ${align === "end" ? "max-w-[70%]" : "max-w-[82%]"} rounded-[22px] border border-[#ece7e1] bg-[#f5f1ec] px-4 py-3`}
+    >
+      <Skeleton className="h-3 w-48 bg-[#e8e0d6]" />
+      <Skeleton className="h-3 w-36 bg-[#e8e0d6]" />
+      {align === "start" && <Skeleton className="h-3 w-28 bg-[#e8e0d6]" />}
+    </div>
+  </div>
+);
+
+const RecommendationCardShimmer: React.FC = () => (
+  <div className="rounded-2xl border border-[#ece7e1] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
+        <Skeleton className="h-11 w-11 shrink-0 rounded-full bg-[#ece7e1]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <Skeleton className="h-4 w-40 bg-[#ece7e1]" />
+          <Skeleton className="h-3 w-56 bg-[#e8e0d6]" />
+          <Skeleton className="h-3 w-32 bg-[#e8e0d6]" />
+        </div>
+      </div>
+      <div className="space-y-1 text-right">
+        <Skeleton className="ml-auto h-3 w-8 bg-[#e8e0d6]" />
+        <Skeleton className="ml-auto h-7 w-12 bg-[#ece7e1]" />
+      </div>
+    </div>
+    <div className="mt-4 space-y-2 rounded-xl border border-[#f0ebe4] bg-[#fff7ef]/60 px-4 py-3.5">
+      <Skeleton className="h-3 w-16 bg-[#f0d9c0]" />
+      <Skeleton className="h-4 w-full bg-[#ece7e1]" />
+      <Skeleton className="h-4 w-5/6 bg-[#e8e0d6]" />
+    </div>
+    <div className="mt-3 flex gap-2">
+      <Skeleton className="h-9 flex-1 rounded-lg bg-[#ece7e1]" />
+      <Skeleton className="h-9 w-24 rounded-lg bg-[#ece7e1]" />
+    </div>
+  </div>
+);
+
+const RecommendationsLoadingList: React.FC<{ count?: number; label?: string }> = ({
+  count = 3,
+  label = "Loading recommendations…",
+}) => (
+  <div className="space-y-3" aria-busy="true" aria-live="polite">
+    <div className="flex items-center gap-2 px-0.5 text-xs text-black/45">
+      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      {label}
+    </div>
+    {Array.from({ length: count }, (_, index) => (
+      <RecommendationCardShimmer key={index} />
+    ))}
+  </div>
+);
+
+function inferChatThinkingSteps(message: string): string[] {
+  const text = message.toLowerCase();
+  if (/\b(search|find|shortlist|match|look for|show me|start the search|yes)\b/.test(text)) {
+    return [
+      "Reading the role brief…",
+      "Matching builders to must-haves…",
+      "Ranking shipped proof…",
+      "Preparing your shortlist…",
+    ];
+  }
+  if (/\b(remove|exclude|pass on|drop|hide)\b/.test(text)) {
+    return ["Updating the shortlist…", "Re-ranking remaining builders…"];
+  }
+  if (/\b(skill|stack|typescript|react|salary|equity|visa|remote|experience|must-have|requirement)\b/.test(text)) {
+    return [
+      "Updating the role…",
+      "Checking what changed…",
+      "Deciding whether to re-search…",
+    ];
+  }
+  if (/\b(invite|intro|outreach|email)\b/.test(text)) {
+    return ["Drafting the intro…", "Checking builder details…"];
+  }
+  return [
+    "Reading your message…",
+    "Checking role context…",
+    "Deciding next steps…",
+  ];
+}
+
+const RoleWorkspaceShimmer: React.FC = () => (
+  <div className="mx-auto w-full max-w-[1220px] px-6 py-6 sm:px-8">
+    <Skeleton className="mb-4 h-8 w-8 rounded-lg bg-[#ece7e1]" />
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-64 bg-[#ece7e1]" />
+        <Skeleton className="h-4 w-40 bg-[#ece7e1]" />
+      </div>
+      <Skeleton className="h-9 w-44 rounded-xl bg-[#ece7e1]" />
+    </div>
+    <div className="grid gap-5 lg:grid-cols-2">
+      <div className="space-y-4 rounded-[28px] border border-[#ece7e1] bg-white p-5">
+        <Skeleton className="h-4 w-40 bg-[#ece7e1]" />
+        <ChatBubbleShimmer />
+        <ChatBubbleShimmer align="end" />
+        <ChatBubbleShimmer />
+      </div>
+      <div className="space-y-4 rounded-[28px] border border-[#ece7e1] bg-white p-5">
+        <Skeleton className="h-4 w-36 bg-[#ece7e1]" />
+        <Skeleton className="h-28 w-full rounded-2xl bg-[#f3ede4]" />
+        <Skeleton className="h-28 w-full rounded-2xl bg-[#f3ede4]" />
+        <Skeleton className="h-28 w-full rounded-2xl bg-[#f3ede4]" />
+      </div>
+    </div>
+  </div>
+);
+
+const FullPageWorkspaceShimmer: React.FC = () => (
+  <div className="flex min-h-screen bg-white">
+    <div className="hidden w-[72px] shrink-0 border-r border-[#ece7e1] bg-[#fffcfa] sm:block" />
+    <main className="relative min-w-0 flex-1 overflow-hidden">
+      <header className="flex h-16 items-center border-b border-[#ece7e1] px-6 sm:px-8">
+        <Skeleton className="h-5 w-28 bg-[#ece7e1]" />
+      </header>
+      <RoleWorkspaceShimmer />
+    </main>
+  </div>
+);
 
 const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => {
   const { user, logout } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [chat, setChat] = useState<Array<{ role: "founder" | "assistant"; content: string }>>(INTRO_MESSAGES);
+  const [chat, setChat] = useState<Array<{ role: "founder" | "assistant"; content: string }>>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [chatLoading, setChatLoading] = useState(true);
+  const [chatSending, setChatSending] = useState(false);
+  const [thinkingSteps, setThinkingSteps] = useState<string[]>(["Reading your message…"]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -278,7 +402,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   };
 
   const revealRecommendations = () => {
-    setRightPane("recommended");
+    // Stay on the conversation screen when search finishes mid-chat — results
+    // already render in the right pane there.
+    setRightPane((current) => (current === "chat" ? current : "recommended"));
   };
 
   const openChatWithDraft = (draft: string) => {
@@ -300,11 +426,13 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         } else {
           setError(liteData?.error || "Could not load role.");
           setLoading(false);
+          setChatLoading(false);
           return;
         }
 
         // Phase 2: recommendations + chat history in parallel (non-blocking for first paint).
         setRecommendationsLoading(true);
+        setChatLoading(true);
         const [roleRes, chatRes] = await Promise.all([
           fetch(`/api/founder/roles/${roleId}`, { credentials: "include" }),
           fetch(`/api/founder/roles/${roleId}/chat`, { credentials: "include" }),
@@ -331,14 +459,16 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           const history = (Array.isArray(chatData.history) ? chatData.history : [])
             .filter((m: any) => (m.role === "founder" || m.role === "assistant") && m.content)
             .map((m: any) => ({ role: m.role as "founder" | "assistant", content: String(m.content) }));
-          if (history.length) setChat(history);
+          setChat(history);
         }
+        if (!cancelled) setChatLoading(false);
       } catch {
         if (!cancelled) setError("Network error. Please try again.");
       } finally {
         if (!cancelled) {
           setLoading(false);
           setRecommendationsLoading(false);
+          setChatLoading(false);
         }
       }
     })();
@@ -369,10 +499,6 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   useEffect(() => {
     if (form) setDraft(form);
   }, [form]);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [chat, rightPane]);
 
   const buckets = useMemo(() => {
     const groups: Record<Bucket, Recommendation[]> = { recommended: [], outreach: [], trial: [], hired: [] };
@@ -432,12 +558,17 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   };
 
   const sendChat = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || chatSending) return;
     const nextMessage = message.trim();
     const outboundMessage = pendingAgentFollowup
       ? `The assistant just asked: "${pendingAgentFollowup}" The founder replied: "${nextMessage}"`
       : nextMessage;
     setMessage("");
+    const steps = inferChatThinkingSteps(nextMessage);
+    setThinkingSteps(steps);
+    const likelySearch = steps.some((step) => /shortlist|Matching|Ranking shipped/i.test(step));
+    if (likelySearch) setSearching(true);
+    setChatSending(true);
     setChat((prev) => [...prev, { role: "founder", content: nextMessage }]);
     try {
       const res = await fetch(`/api/founder/roles/${roleId}/chat`, {
@@ -452,16 +583,23 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         if (data.session?.id) setSessionId(data.session.id);
         setPendingAgentFollowup("");
         appendAssistantMessages(data.message || "Updated.");
-        // When the agent actually runs the search, jump to the builders tab and load results.
-        if (data.searchRan) {
-          revealRecommendations();
+        // When the agent searches or mutates the shortlist, refresh the builders
+        // pane. Stay on chat if we're already in the conversation view.
+        if (data.searchRan || data.shortlistChanged) {
+          if (data.searchRan) revealRecommendations();
           void loadRecommendations();
+        } else if (likelySearch) {
+          setSearching(false);
         }
       } else {
+        if (likelySearch) setSearching(false);
         setChat((prev) => [...prev, { role: "assistant", content: data.error || "I could not update that." }]);
       }
     } catch {
+      if (likelySearch) setSearching(false);
       setChat((prev) => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
+    } finally {
+      setChatSending(false);
     }
   };
 
@@ -1242,62 +1380,53 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
 
         <main className="relative z-10 mx-auto w-full max-w-[1500px] px-4 py-4 sm:px-6 lg:px-8">
           <div className="grid min-h-0 gap-5 lg:h-[calc(100vh-6rem)] lg:grid-cols-2">
-            <div className="flex min-h-[520px] flex-col rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)] lg:min-h-0">
-              <div className="border-b border-[#ece7e1] p-5">
-                <p className="text-sm font-semibold text-black">Role Conversation</p>
-                <p className="mt-1 text-xs text-black/45">Use natural language to revise this role or manage the pipeline.</p>
-              </div>
-              <div className="flex-1 space-y-4 overflow-y-auto p-5">
-                {chat.map((item, index) =>
-                  item.role === "founder" ? (
-                    <div key={index} className="flex justify-end">
-                      <div className="max-w-[82%] rounded-[22px] rounded-br-md bg-[#ec9149] px-4 py-2.5 text-sm font-medium leading-relaxed text-white shadow-[0_8px_22px_rgba(236,145,73,0.18)]">
-                        {item.content}
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={index} className="flex justify-start">
-                      <div className="prose prose-sm prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 max-w-[82%] rounded-[22px] rounded-bl-md border border-[#ece7e1] bg-[#f5f1ec] px-4 py-2.5 leading-relaxed text-black/75 prose-headings:my-2 prose-headings:text-black prose-strong:text-black prose-a:text-[#b55f1b]">
-                        <ChatMarkdown text={item.content} />
-                      </div>
-                    </div>
-                  )
-                )}
-                <div ref={chatEndRef} />
-              </div>
-              <div className="p-4">
-                <div className="flex gap-2 rounded-2xl border border-[#ece7e1] bg-[#fffcfa] p-1.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-                  <input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void sendChat();
-                    }}
-                    placeholder="Suggest changes..."
-                    className="h-10 w-full rounded-xl border-none bg-transparent px-3 text-sm text-black outline-none placeholder:text-black/40"
-                  />
-                  <button
-                    type="button"
-                    onClick={sendChat}
-                    className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-[#ec9149] px-4 text-sm font-medium text-white transition-colors hover:bg-[#dd7f36]"
-                  >
-                    Send <Send className="h-3.5 w-3.5" />
-                  </button>
+            <AgentChatPanel
+              className="min-h-[520px] lg:min-h-0"
+              title="Role Conversation"
+              subtitle="Use natural language to revise this role or manage the pipeline."
+              messages={chat}
+              loading={chatLoading}
+              sending={chatSending}
+              thinkingSteps={thinkingSteps}
+              value={message}
+              onChange={setMessage}
+              onSend={() => void sendChat()}
+              placeholder="Suggest changes…"
+              endRef={chatEndRef}
+              loadingFallback={
+                <div className="space-y-4">
+                  <ChatBubbleShimmer />
+                  <ChatBubbleShimmer align="end" />
+                  <ChatBubbleShimmer />
                 </div>
-              </div>
-            </div>
+              }
+            />
 
             <div className="flex min-h-[520px] flex-col rounded-[28px] border border-[#ece7e1] bg-white shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)] lg:min-h-0">
               <div className="border-b border-[#ece7e1] p-5">
-                <p className="text-sm font-semibold text-black">Recommendations</p>
-                <p className="mt-1 text-xs text-black/45">Builders matched to this role while you chat.</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-black">Recommendations</p>
+                    <p className="mt-1 text-xs text-black/45">Builders matched to this role while you chat.</p>
+                  </div>
+                  {buckets.recommended.length > 0 ? (
+                    <span className="rounded-full bg-[#f3ede4] px-2 py-0.5 text-[11px] font-semibold text-black/55">
+                      {buckets.recommended.length}
+                    </span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto p-5">
-                {searching && buckets.recommended.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#e3ddd4] p-10 text-center text-sm text-black/45">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Searching builders with real proof-of-work for this role…
+                {searching && buckets.recommended.length > 0 ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3 py-2 text-xs text-black/45">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Updating matches…
                   </div>
+                ) : null}
+                {recommendationsLoading && buckets.recommended.length === 0 ? (
+                  <RecommendationsLoadingList label="Loading recommendations…" />
+                ) : searching && buckets.recommended.length === 0 ? (
+                  <RecommendationsLoadingList label="Searching builders with real proof-of-work…" />
                 ) : buckets.recommended.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#e3ddd4] p-8 text-center text-sm text-black/45">
                     No new recommendations right now.
@@ -1338,9 +1467,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         </header>
 
         {loading ? (
-          <div className="flex h-[calc(100vh-4rem)] items-center justify-center text-black/45">
-            <Loader2 className="h-5 w-5 animate-spin" />
-          </div>
+          <RoleWorkspaceShimmer />
         ) : !job ? (
           <div className="mx-auto max-w-3xl px-6 py-10 sm:px-8">
             <p className="rounded-2xl border border-[#ece7e1] bg-white p-6 text-sm text-destructive">{error || "Role not found."}</p>
@@ -1482,15 +1609,9 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 className="mx-auto max-w-4xl space-y-3"
               >
                 {searching && buckets.recommended.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#e3ddd4] p-10 text-center text-sm text-black/45">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Searching builders with real proof-of-work for this role…
-                  </div>
+                  <RecommendationsLoadingList label="Searching builders with real proof-of-work…" count={4} />
                 ) : recommendationsLoading && buckets.recommended.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#e3ddd4] p-10 text-center text-sm text-black/45">
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Loading saved recommendations…
-                  </div>
+                  <RecommendationsLoadingList label="Loading recommendations…" count={4} />
                 ) : buckets.recommended.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#e3ddd4] p-8 text-center text-sm text-black/45">
                     No new recommendations right now.
@@ -1737,7 +1858,8 @@ const RecommendationCard: React.FC<{
     String(rec.whyTheyMatch || "").trim() ||
       String(rec.teasers?.agentTrace?.roleFitTrace?.roleSummary || "").trim() ||
       String(rec.teasers?.agentTrace?.visibleInsight || "").trim() ||
-      null
+      null,
+    rec.name
   );
   const proofBullets = pickProofBullets(rec, reasonToHire).slice(0, 2);
   const primaryProject = strongestProject(rec);
@@ -1771,14 +1893,24 @@ const RecommendationCard: React.FC<{
             </p>
             {currentExperience?.company ? (
               <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-black/50">
-                {currentExperience.companyLogoUrl ? (
-                  <img
-                    src={currentExperience.companyLogoUrl}
-                    alt=""
-                    className="h-4 w-4 rounded object-cover"
-                    loading="lazy"
-                  />
-                ) : null}
+                {(() => {
+                  const logoUrl = resolveCompanyLogoUrl(
+                    currentExperience.company,
+                    currentExperience.companyLogoUrl,
+                    currentExperience.companyLinkedInUrl
+                  );
+                  return logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt=""
+                      className="h-4 w-4 rounded object-cover"
+                      loading="lazy"
+                      onError={(event) => {
+                        (event.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : null;
+                })()}
                 <span className="line-clamp-1">
                   {[currentExperience.title, currentExperience.company].filter(Boolean).join(" · ")}
                 </span>
@@ -1892,13 +2024,17 @@ function cleanLocation(value?: string | null): string | null {
   return text;
 }
 
-function cleanHireReason(value: string | null): string | null {
+function cleanHireReason(value: string | null, builderName?: string | null): string | null {
   if (!value) return null;
-  return value
-    .replace(/\s*[·•|]\s*/g, ". ")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\.\s*\./g, ".")
-    .trim();
+  const cleaned = toFounderFacingWhyHire(
+    value
+      .replace(/\s*[·•|]\s*/g, ". ")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\.\s*\./g, ".")
+      .trim(),
+    builderName
+  );
+  return cleaned || null;
 }
 
 function pickProofBullets(rec: Recommendation, reasonToHire: string | null): string[] {
@@ -1995,11 +2131,7 @@ const FounderRoleAuthGate: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loading, user]);
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-white text-black/45">
-        <Loader2 className="h-5 w-5 animate-spin" />
-      </div>
-    );
+    return <FullPageWorkspaceShimmer />;
   }
   if (!user) return null;
   return <>{children}</>;

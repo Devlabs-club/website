@@ -60,15 +60,20 @@ const metaOgImageAlt = ogImageAlt ?? title;
     <script is:inline>
       (function () {
         try {
-          if (localStorage.getItem("devlabs-theme") === "dark") {
+          var theme = localStorage.getItem("devlabs-theme");
+          if (theme === "dark") {
             document.documentElement.classList.add("dark");
+            document.documentElement.style.colorScheme = "dark";
+          } else {
+            document.documentElement.classList.remove("dark");
+            document.documentElement.style.colorScheme = "light";
           }
         } catch (e) {}
       })();
     </script>
     <slot name="head" />
   </head>
-  <body class="min-h-screen bg-paper font-manrope text-ink antialiased">
+  <body class="min-h-screen bg-background font-manrope text-foreground antialiased">
     <slot />
   </body>
 </html>

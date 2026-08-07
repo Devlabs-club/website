@@ -18,8 +18,8 @@ interface AuthContextType {
   loading: boolean;
   authError: string | null;
   refreshAuth: () => Promise<void>;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data.success) {
         setUser(data.user);
         writeCachedAuthUser(data.user);
-        return { success: true, message: 'Login successful' };
+        return { success: true, message: 'Login successful', user: data.user };
       } else {
         return { success: false, message: data.message || 'Login failed' };
       }
@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (data.success) {
         setUser(data.user);
         writeCachedAuthUser(data.user);
-        return { success: true, message: 'Registration successful' };
+        return { success: true, message: 'Registration successful', user: data.user };
       } else {
         return { success: false, message: data.message || 'Registration failed' };
       }

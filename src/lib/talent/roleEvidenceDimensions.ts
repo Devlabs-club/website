@@ -749,7 +749,7 @@ export function scoreRoleDimensions(params: {
   };
 }
 
-/** Founder-facing hire reason from winning role dimensions. */
+/** Founder-facing hire reason from winning role dimensions + builder-specific proof. */
 export function buildReasonToHireFromDimensions(params: {
   dimensionScore: RoleDimensionScore | null | undefined;
   builder?: any;
@@ -761,24 +761,108 @@ export function buildReasonToHireFromDimensions(params: {
 
   const top = dimensionScore.winningHits[0];
   const second = dimensionScore.winningHits[1];
-  const projectName = (projects || []).find((project: any) => project?.projectName)?.projectName;
+  const role = String(roleTitle || 'this role').trim() || 'this role';
 
-  const leadProof = top.evidence[0] || top.label.toLowerCase();
-  let sentence = `${capitalize(top.label)} stands out (${leadProof})`;
-  if (second) {
-    const secondProof = second.evidence[0] || second.label.toLowerCase();
-    sentence += `, plus ${second.label.toLowerCase()} (${secondProof})`;
+  const experiences = Array.isArray(builder?.experiences) ? builder.experiences : [];
+  const experience =
+    experiences.find((item: any) => item?.isCurrent && item?.company) ||
+    experiences.find(
+      (item: any) =>
+        item?.company &&
+        !/^(full|part)[-\s]?time$/i.test(String(item.company)) &&
+        String(item.company).trim().length > 1
+    ) ||
+    null;
+  const experienceBit = experience
+    ? [experience.title, experience.company].filter(Boolean).join(' at ').slice(0, 72)
+    : null;
+
+  const rankedProjects = [...(projects || [])]
+    .filter((project: any) => project?.projectName)
+    .sort((a: any, b: any) => {
+      const score = (project: any) =>
+        (project?.links?.demo ? 3 : 0) +
+        (project?.links?.github ? 2 : 0) +
+        (project?.builderContribution ? 1 : 0) +
+        (Array.isArray(project?.techStack) ? Math.min(2, project.techStack.length / 3) : 0);
+      return score(b) - score(a);
+    });
+  const project = rankedProjects[0] || null;
+  const projectBit = project?.projectName ? String(project.projectName).slice(0, 48) : null;
+  const stackBit = Array.isArray(project?.techStack)
+    ? project.techStack
+        .map(String)
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('/')
+    : null;
+
+  const skillPool = [
+    ...(Array.isArray(builder?.skills) ? builder.skills : []),
+    ...(Array.isArray(builder?.rolePreference) ? builder.rolePreference : []),
+    ...(Array.isArray(project?.techStack) ? project.techStack : []),
+  ]
+    .map((skill: any) => String(skill || '').trim())
+    .filter(Boolean);
+  const uniqueSkills = [...new Set(skillPool.map((skill) => skill.toLowerCase()))]
+    .slice(0, 3)
+    .map((skill) => skillPool.find((item) => item.toLowerCase() === skill) || skill);
+
+  const dimLabel = top.label.toLowerCase();
+  const secondLabel = second?.label?.toLowerCase() || null;
+  const concreteProof =
+    projectBit ||
+    experienceBit ||
+    top.evidence.find((item) => !/^(typescript|react|node\.?js|frontend|backend|full-?stack)$/i.test(item)) ||
+    top.evidence[0] ||
+    uniqueSkills[0] ||
+    null;
+
+  // Prefer concrete builder anchors over shared dimension labels so two full-stack
+  // matches don't collapse to the same "plus full-stack web implementation fit" line.
+  const variants: string[] = [];
+  if (experienceBit && projectBit) {
+    variants.push(
+      `${experienceBit} — shipped ${projectBit}${stackBit ? ` (${stackBit})` : ''}. Direct ${dimLabel} proof for ${role}.`
+    );
   }
-  if (projectName) {
-    sentence += `. Strongest proof: ${String(projectName).slice(0, 48)}`;
+  if (projectBit && uniqueSkills.length) {
+    variants.push(
+      `Shipped ${projectBit} with ${uniqueSkills.slice(0, 2).join(' + ')}. That's the ${dimLabel} bar this ${role} needs.`
+    );
   }
-  if (roleTitle) {
-    sentence += `. Best fit for ${roleTitle}`;
-  } else {
-    sentence += '. Best fit for this role';
+  if (experienceBit) {
+    variants.push(
+      `${experienceBit} brings real ${dimLabel}${secondLabel ? ` and ${secondLabel}` : ''}. Hire them to own that for ${role}.`
+    );
+  }
+  if (concreteProof && !experienceBit) {
+    variants.push(
+      `${capitalize(String(concreteProof))} is the clearest ${dimLabel} signal here — strong hire for ${role}.`
+    );
+  }
+  if (uniqueSkills.length >= 2) {
+    variants.push(
+      `${uniqueSkills.slice(0, 2).join(' + ')} already in production for them${projectBit ? ` via ${projectBit}` : ''}. Fits ${role} immediately.`
+    );
   }
 
-  return sentence.replace(/\s+/g, ' ').trim().slice(0, 220);
+  // Stable per-builder pick so the same builder stays consistent, while different
+  // builders with the same dimension hits still get different sentences.
+  const seed = `${builder?._id || builder?.email || builder?.name || ''}|${projectBit || ''}|${experienceBit || ''}|${top.id}`;
+  const pick = variants.length ? variants[hashString(seed) % variants.length] : null;
+  if (!pick) {
+    return `${capitalize(top.label)} proof${concreteProof ? ` via ${concreteProof}` : ''} for ${role}.`.slice(0, 220);
+  }
+  return pick.replace(/\s+/g, ' ').trim().slice(0, 220);
+}
+
+function hashString(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
 }
 
 function capitalize(value: string): string {

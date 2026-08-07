@@ -10,7 +10,52 @@ import {
 } from "@/components/founder/founderOnboardingStyles";
 import { fetchEnrichmentJson } from "@/lib/enrichmentFetch";
 import { AnimatePresence, motion } from "framer-motion";
-import { Building2, Globe, Linkedin, Loader2, MapPin, Plus } from "lucide-react";
+import { Building2, Globe, Linkedin, Loader2, MapPin, Plus, Sparkles } from "lucide-react";
+
+const SCRAPE_MESSAGES = [
+  "Connecting to LinkedIn…",
+  "Reading your profile…",
+  "Collecting work experience…",
+  "Pulling company details…",
+  "Almost there…",
+];
+
+const ENRICHMENT_POLL_MS = 2_000;
+const ENRICHMENT_TIMEOUT_MS = 90_000;
+
+function sleep(ms: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const timer = setTimeout(() => resolve(), ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function enrichmentFinished(status: string | null | undefined): boolean {
+  return status === "complete" || status === "partial" || status === "failed";
+}
+
+function profileLooksEnriched(data: any): boolean {
+  // While a scrape is in flight, never treat leftover/previous fields as done.
+  // Re-queue clears them; this guard covers any race before the clear lands.
+  if (data?.enrichmentStatus === "pending") return false;
+  const profile = data?.profile;
+  if (!profile) return false;
+  const company = typeof profile.company === "string" ? profile.company.trim() : "";
+  const hasCompany = Boolean(company) && company !== "My company";
+  const hasTitle = Boolean(profile.title);
+  const hasBio = Boolean(profile.bio);
+  const hasAvatar = Boolean(profile.avatarUrl);
+  const experienceCount = Array.isArray(data?.experiences) ? data.experiences.length : 0;
+  return hasCompany && (hasTitle || hasBio || hasAvatar || experienceCount > 0);
+}
 
 type FlowStep = "linkedin" | "profile" | "experiences";
 type ExperiencePhase = "select" | "confirm";
@@ -45,6 +90,16 @@ interface CompanyState {
   logoUrl: string | null;
 }
 
+const EMPTY_PROFILE: ProfileState = {
+  name: "",
+  company: "",
+  title: "",
+  workEmail: "",
+  bio: "",
+  schedulingLink: "",
+  avatarUrl: null,
+};
+
 const EMPTY_COMPANY: CompanyState = {
   name: "",
   website: "",
@@ -52,6 +107,44 @@ const EMPTY_COMPANY: CompanyState = {
   description: "",
   logoUrl: null,
 };
+
+const DRAFT_CACHE_KEY = "founderOnboardingDraft.v1";
+
+function readDraftCache(): {
+  profile?: ProfileState;
+  experiences?: Experience[];
+  company?: CompanyState;
+  linkedin?: string;
+} | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraftCache(patch: {
+  profile?: ProfileState;
+  experiences?: Experience[];
+  company?: CompanyState;
+  linkedin?: string;
+}) {
+  try {
+    const prev = readDraftCache() || {};
+    sessionStorage.setItem(DRAFT_CACHE_KEY, JSON.stringify({ ...prev, ...patch }));
+  } catch {
+    /* ignore quota */
+  }
+}
+
+function clearDraftCache() {
+  try {
+    sessionStorage.removeItem(DRAFT_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 
 function isValidSchedulingLink(value: string): boolean {
@@ -68,6 +161,18 @@ function isValidSchedulingLink(value: string): boolean {
     );
   } catch {
     return false;
+  }
+}
+
+function normalizeCompanyWebsite(value: string): string | null {
+  const raw = value.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+    if (!url.hostname.includes(".")) return null;
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -95,20 +200,15 @@ export const FounderOnboardingFlow: React.FC = () => {
   const [linkedin, setLinkedin] = useState("");
   const [linkedinBusy, setLinkedinBusy] = useState(false);
 
-  const [profile, setProfile] = useState<ProfileState>({
-    name: "",
-    company: "",
-    title: "",
-    workEmail: "",
-    bio: "",
-    schedulingLink: "",
-    avatarUrl: null,
-  });
+  const [profile, setProfile] = useState<ProfileState>(EMPTY_PROFILE);
   const [profileLoading, setProfileLoading] = useState(stepFromLocation() !== "linkedin");
+  const [profileEnriching, setProfileEnriching] = useState(false);
+  const [scrapeMessageIndex, setScrapeMessageIndex] = useState(0);
   const [profileSaving, setProfileSaving] = useState(false);
 
   const [experiencePhase, setExperiencePhase] = useState<ExperiencePhase>("select");
   const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [selectedExperienceIndex, setSelectedExperienceIndex] = useState<number | null>(null);
   const [company, setCompany] = useState<CompanyState>(EMPTY_COMPANY);
   const [experiencesLoading, setExperiencesLoading] = useState(false);
   const [enrichingIndex, setEnrichingIndex] = useState<number | null>(null);
@@ -126,28 +226,89 @@ export const FounderOnboardingFlow: React.FC = () => {
     window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   }, []);
 
-  const loadProfile = useCallback(async () => {
-    setProfileLoading(true);
+  const applyProfilePayload = useCallback((data: any) => {
+    if (!data?.profile) return;
+    const company = data.profile.company || "";
+    const nextProfile: ProfileState = {
+      name: data.profile.name || "",
+      company: company === "My company" && data.enrichmentStatus === "pending" ? "" : company,
+      title: data.profile.title || "",
+      workEmail: data.profile.email || "",
+      bio: data.profile.bio || "",
+      schedulingLink: data.profile.schedulingLink || "",
+      avatarUrl: data.profile.avatarUrl || null,
+    };
+    setProfile((s) => ({
+      ...s,
+      ...nextProfile,
+      // Keep scheduling link the founder already typed in this session.
+      schedulingLink: s.schedulingLink || nextProfile.schedulingLink,
+    }));
+    if (Array.isArray(data.experiences)) {
+      const exps = data.experiences.filter((e: Experience) => e?.company);
+      setExperiences(exps);
+      const currentIdx = exps.findIndex((e: Experience) => e.isCurrent);
+      setSelectedExperienceIndex(currentIdx >= 0 ? currentIdx : exps.length ? 0 : null);
+      writeDraftCache({
+        profile: { ...nextProfile, schedulingLink: nextProfile.schedulingLink },
+        experiences: exps,
+        linkedin: data.profile.linkedin || undefined,
+      });
+    }
+  }, []);
+
+  const loadProfile = useCallback(async (opts?: { keepLoading?: boolean }) => {
+    if (!opts?.keepLoading) setProfileLoading(true);
     try {
       const res = await fetch("/api/founder/profile", { credentials: "include" });
       const data = await res.json();
-      if (data.success && data.profile) {
-        setProfile((s) => ({
-          ...s,
-          name: data.profile.name || "",
-          company: data.profile.company || "",
-          title: data.profile.title || "",
-          workEmail: data.profile.email || "",
-          bio: data.profile.bio || "",
-          schedulingLink: data.profile.schedulingLink || "",
-          avatarUrl: data.profile.avatarUrl || null,
-        }));
+      if (data.success !== false) {
+        applyProfilePayload(data);
+        return data as { enrichmentStatus?: string | null; profile?: ProfileState; experiences?: Experience[] };
       }
     } catch {
       /* start blank */
     } finally {
+      if (!opts?.keepLoading) setProfileLoading(false);
+    }
+    return null;
+  }, [applyProfilePayload]);
+
+  const waitForLinkedInEnrichment = useCallback(async (signal?: AbortSignal) => {
+    setProfileEnriching(true);
+    setProfileLoading(false);
+    setScrapeMessageIndex(0);
+    const deadline = Date.now() + ENRICHMENT_TIMEOUT_MS;
+    try {
+      while (Date.now() < deadline) {
+        if (signal?.aborted) return;
+        const res = await fetch("/api/founder/profile", { credentials: "include", signal });
+        const data = await res.json().catch(() => null);
+        if (data && data.success !== false) {
+          applyProfilePayload(data);
+          if (enrichmentFinished(data.enrichmentStatus) || profileLooksEnriched(data)) {
+            if (data.enrichmentStatus === "failed") {
+              setError("We couldn’t finish reading LinkedIn. You can fill in your details manually.");
+            }
+            return;
+          }
+        }
+        await sleep(ENRICHMENT_POLL_MS, signal);
+      }
+      setError("LinkedIn is taking longer than usual — you can keep editing while we finish in the background.");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError("Could not refresh scraped details. You can fill them in manually.");
+    } finally {
+      if (!signal?.aborted) setProfileEnriching(false);
       setProfileLoading(false);
     }
+  }, [applyProfilePayload]);
+
+  const skipEnrichmentWait = useCallback(() => {
+    setProfileEnriching(false);
+    setProfileLoading(false);
+    setError("You can fill these in manually — we’ll keep trying LinkedIn in the background.");
   }, []);
 
   const loadExperiences = useCallback(async () => {
@@ -157,7 +318,18 @@ export const FounderOnboardingFlow: React.FC = () => {
       const data = await res.json();
       if (data.success !== false) {
         const exps: Experience[] = Array.isArray(data?.experiences) ? data.experiences : [];
-        setExperiences(exps.filter((e) => e?.company));
+        const filtered = exps.filter((e) => e?.company);
+        setExperiences(filtered);
+        const currentIdx = filtered.findIndex((e) => e.isCurrent);
+        setSelectedExperienceIndex((prev) =>
+          prev !== null && prev < filtered.length
+            ? prev
+            : currentIdx >= 0
+              ? currentIdx
+              : filtered.length
+                ? 0
+                : null
+        );
         const c = data?.company;
         if (c?.name) {
           setCompany({
@@ -177,23 +349,99 @@ export const FounderOnboardingFlow: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (step === "profile") void loadProfile();
-    if (step === "experiences") void loadExperiences();
-  }, [step, loadProfile, loadExperiences]);
+    if (step !== "profile") return;
+    const controller = new AbortController();
+    (async () => {
+      // Prefer session draft after a Back→Continue cycle so we never flash wiped DB.
+      const cached = readDraftCache();
+      if (cached?.profile && (cached.profile.company || cached.profile.title || cached.profile.bio)) {
+        setProfile((s) => ({ ...s, ...cached.profile }));
+        if (cached.experiences) {
+          const exps = cached.experiences.filter((e) => e?.company);
+          setExperiences(exps);
+          const currentIdx = exps.findIndex((e) => e.isCurrent);
+          setSelectedExperienceIndex(currentIdx >= 0 ? currentIdx : exps.length ? 0 : null);
+        }
+        setProfileLoading(false);
+        setProfileEnriching(false);
+        return;
+      }
+
+      setProfileLoading(true);
+      try {
+        const data = await loadProfile({ keepLoading: true });
+        if (controller.signal.aborted) return;
+        if (data?.enrichmentStatus === "pending") {
+          await waitForLinkedInEnrichment(controller.signal);
+        } else if (data?.enrichmentStatus === "failed") {
+          setProfile((s) => ({
+            ...EMPTY_PROFILE,
+            workEmail: s.workEmail || data?.profile?.email || "",
+            name: s.name || data?.profile?.name || "",
+          }));
+          setExperiences([]);
+          setProfileLoading(false);
+          setProfileEnriching(false);
+        } else {
+          setProfileLoading(false);
+          setProfileEnriching(false);
+        }
+      } catch {
+        if (!controller.signal.aborted) {
+          setProfileLoading(false);
+          setProfileEnriching(false);
+        }
+      }
+    })();
+    return () => {
+      controller.abort();
+    };
+  }, [step, loadProfile, waitForLinkedInEnrichment]);
+
+  useEffect(() => {
+    if (step !== "experiences") return;
+    const cached = readDraftCache();
+    if (cached?.experiences?.length && experiences.length === 0) {
+      const exps = cached.experiences.filter((e) => e?.company);
+      setExperiences(exps);
+      const currentIdx = exps.findIndex((e) => e.isCurrent);
+      setSelectedExperienceIndex(currentIdx >= 0 ? currentIdx : exps.length ? 0 : null);
+    }
+    if (cached?.company?.name) setCompany(cached.company);
+    if (experiences.length === 0) void loadExperiences();
+  }, [step, loadExperiences, experiences.length]);
+
+  useEffect(() => {
+    if (!profileEnriching) return;
+    const id = window.setInterval(() => {
+      setScrapeMessageIndex((i) => (i + 1) % SCRAPE_MESSAGES.length);
+    }, 2_400);
+    return () => window.clearInterval(id);
+  }, [profileEnriching]);
 
   const submitLinkedIn = async (event: React.FormEvent) => {
     event.preventDefault();
     setLinkedinBusy(true);
     setError("");
+    // New scrape — drop any previous draft so Back→retry cannot resurrect it.
+    clearDraftCache();
+    setProfile(EMPTY_PROFILE);
+    setExperiences([]);
+    setSelectedExperienceIndex(null);
+    setCompany(EMPTY_COMPANY);
+    setExperiencePhase("select");
     try {
-      const { data } = await fetchEnrichmentJson<{ success?: boolean; error?: string }>("/api/onboarding/linkedin-enrichment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountType: "founder", linkedin }),
-        timeoutMs: 180_000,
-      });
+      const { data } = await fetchEnrichmentJson<{ success?: boolean; error?: string; queued?: boolean }>(
+        "/api/onboarding/linkedin-enrichment",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountType: "founder", linkedin }),
+          timeoutMs: 45_000,
+        }
+      );
       if (data.success) {
-        await loadProfile();
+        writeDraftCache({ linkedin });
         goTo("profile");
       } else {
         setError(data.error || "Could not load your LinkedIn profile.");
@@ -206,12 +454,35 @@ export const FounderOnboardingFlow: React.FC = () => {
   };
 
   const skipLinkedIn = () => {
-    void loadProfile();
+    clearDraftCache();
+    setProfile(EMPTY_PROFILE);
+    setExperiences([]);
     goTo("profile");
   };
 
+  const goBackToLinkedIn = () => {
+    setProfileEnriching(false);
+    setProfileLoading(false);
+    setError("");
+    setProfile(EMPTY_PROFILE);
+    setExperiences([]);
+    setSelectedExperienceIndex(null);
+    setCompany(EMPTY_COMPANY);
+    setExperiencePhase("select");
+    clearDraftCache();
+    void fetch("/api/onboarding/discard-linkedin-draft", {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => null);
+    goTo("linkedin", -1);
+  };
+
   const updateProfile = (k: keyof ProfileState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setProfile((s) => ({ ...s, [k]: e.target.value }));
+    setProfile((s) => {
+      const next = { ...s, [k]: e.target.value };
+      writeDraftCache({ profile: next });
+      return next;
+    });
 
   const submitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,28 +493,20 @@ export const FounderOnboardingFlow: React.FC = () => {
     setProfileSaving(true);
     setError("");
     try {
-      const res = await fetch("/api/founder/profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(profile),
-      });
-      const data = await res.json();
-      if (!data.success) {
-        setError(data.error || "Could not save your details.");
-        return;
-      }
-      await loadExperiences();
+      // Step 1 stays client/cache-only. Persist only when step 2 is confirmed.
+      writeDraftCache({ profile, experiences, linkedin });
       goTo("experiences");
-    } catch {
-      setError("Network error. Please try again.");
     } finally {
       setProfileSaving(false);
     }
   };
 
   const updateCompany = (k: keyof CompanyState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setCompany((s) => ({ ...s, [k]: e.target.value }));
+    setCompany((s) => {
+      const next = { ...s, [k]: e.target.value };
+      writeDraftCache({ company: next });
+      return next;
+    });
 
   const loadCompanyFromExperience = async (experience: Experience, index: number) => {
     setEnrichingIndex(index);
@@ -257,6 +520,7 @@ export const FounderOnboardingFlow: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          draft: true,
           experienceIndex: index,
           company: experience.company,
           companyUsername: experience.companyUsername,
@@ -268,19 +532,42 @@ export const FounderOnboardingFlow: React.FC = () => {
       });
       if (data.success) {
         const c = data.company || {};
-        setCompany({
+        const nextCompany = {
           name: c.name || experience.company || "",
           website: c.website || "",
           location: c.location || experience.location || "",
           description: c.description || "",
           logoUrl: c.logoUrl || experience.companyLogoUrl || null,
-        });
+        };
+        setCompany(nextCompany);
+        writeDraftCache({ company: nextCompany });
         setExperiencePhase("confirm");
       } else {
-        setError(data.error || "Could not load that company.");
+        // If enrichment fails, still let them continue with what we know from LinkedIn.
+        const nextCompany = {
+          name: experience.company || "",
+          website: "",
+          location: experience.location || "",
+          description: "",
+          logoUrl: experience.companyLogoUrl || null,
+        };
+        setCompany(nextCompany);
+        writeDraftCache({ company: nextCompany });
+        setExperiencePhase("confirm");
+        setError(data.error || "Couldn’t auto-load company details — fill them in below.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network error. Please try again.");
+      const nextCompany = {
+        name: experience.company || "",
+        website: "",
+        location: experience.location || "",
+        description: "",
+        logoUrl: experience.companyLogoUrl || null,
+      };
+      setCompany(nextCompany);
+      writeDraftCache({ company: nextCompany });
+      setExperiencePhase("confirm");
+      setError(err instanceof Error ? err.message : "Network error — fill company details manually.");
     } finally {
       setEnrichingIndex(null);
     }
@@ -288,18 +575,73 @@ export const FounderOnboardingFlow: React.FC = () => {
 
   const submitCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCompanySaving(true);
     setError("");
+
+    // Validate this step's fields first — don't surface step-1 Cal errors here.
+    if (!company.name.trim()) {
+      setError("Enter your company name to continue.");
+      return;
+    }
+    const website = normalizeCompanyWebsite(company.website);
+    if (!website) {
+      setError("Enter your company website (e.g. www.yourcompany.com).");
+      return;
+    }
+    if (!company.location.trim()) {
+      setError("Enter your company location to continue.");
+      return;
+    }
+    if (!company.description.trim()) {
+      setError("Add a short about section for your company.");
+      return;
+    }
+
+    const cached = readDraftCache();
+    const profileToSave: ProfileState = {
+      ...profile,
+      ...(cached?.profile || {}),
+      // Prefer live form state over cache for fields the founder may have edited.
+      name: profile.name || cached?.profile?.name || "",
+      company: profile.company || cached?.profile?.company || company.name,
+      title: profile.title || cached?.profile?.title || "",
+      workEmail: profile.workEmail || cached?.profile?.workEmail || "",
+      bio: profile.bio || cached?.profile?.bio || "",
+      schedulingLink: profile.schedulingLink || cached?.profile?.schedulingLink || "",
+      avatarUrl: profile.avatarUrl || cached?.profile?.avatarUrl || null,
+    };
+
+    if (!isValidSchedulingLink(profileToSave.schedulingLink)) {
+      setError("Your scheduling link from step 1 is missing. Go back to your profile and add a Cal.com or Calendly link.");
+      return;
+    }
+
+    setCompanySaving(true);
     try {
+      const profileRes = await fetch("/api/founder/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(profileToSave),
+      });
+      const profileData = await profileRes.json();
+      if (!profileData.success) {
+        setError(profileData.error || "Could not save your profile details.");
+        return;
+      }
+
       const res = await fetch("/api/founder/company", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(company),
+        body: JSON.stringify({ ...company, website }),
       });
       const data = await res.json();
-      if (data.success) window.location.href = data.next || "/founder/onboarding/context";
-      else setError(data.error || "Could not save company details.");
+      if (data.success) {
+        clearDraftCache();
+        window.location.href = data.next || "/founder/onboarding/context";
+      } else {
+        setError(data.error || "Could not save company details.");
+      }
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -308,10 +650,10 @@ export const FounderOnboardingFlow: React.FC = () => {
   };
 
   const stepLabel = useMemo(() => {
-    if (step === "linkedin") return null;
+    if (step === "linkedin" || profileEnriching) return null;
     if (step === "profile") return "Step 1 of 2";
     return "Step 2 of 2";
-  }, [step]);
+  }, [step, profileEnriching]);
 
   return (
     <AuthShell>
@@ -356,7 +698,7 @@ export const FounderOnboardingFlow: React.FC = () => {
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0A66C2] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {linkedinBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Linkedin className="h-5 w-5" />}
-                  {linkedinBusy ? "Loading profile..." : "Continue"}
+                  {linkedinBusy ? "Starting LinkedIn scrape…" : "Continue"}
                 </button>
 
                 <button
@@ -380,6 +722,49 @@ export const FounderOnboardingFlow: React.FC = () => {
               exit="exit"
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             >
+              {profileEnriching ? (
+                <div className="mt-2 flex min-h-[22rem] flex-col items-center justify-center px-2 text-center">
+                  <div className="relative mb-6 flex h-16 w-16 items-center justify-center">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[#0A66C2]/15" />
+                    <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-[#0A66C2]/25 bg-[#0A66C2]/10">
+                      <Sparkles className="h-7 w-7 text-[#0A66C2]" />
+                    </span>
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#050505]">Collecting your LinkedIn info</h1>
+                  <p className="mt-3 max-w-sm text-sm leading-relaxed text-black/55">
+                    We’re scraping your profile so we can pre-fill the next step. The LinkedIn queue sometimes takes a few minutes.
+                  </p>
+                  <div className="mt-8 flex items-center gap-2 text-sm font-medium text-[#0A66C2]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={scrapeMessageIndex}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25 }}
+                      >
+                        {SCRAPE_MESSAGES[scrapeMessageIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={skipEnrichmentWait}
+                    className="mt-8 text-sm text-black/45 underline-offset-4 hover:text-[#050505] hover:underline"
+                  >
+                    Continue without waiting
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goBackToLinkedIn}
+                    className="mt-3 text-sm text-black/45 underline-offset-4 hover:text-[#050505] hover:underline"
+                  >
+                    Back to LinkedIn URL
+                  </button>
+                </div>
+              ) : (
+                <>
               <h1 className="text-2xl font-bold tracking-tight text-[#050505]">Review your details</h1>
               <p className="mt-2 text-sm text-black/55">Confirm what we loaded from LinkedIn — you can edit anything.</p>
 
@@ -446,7 +831,7 @@ export const FounderOnboardingFlow: React.FC = () => {
                   <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => goTo("linkedin", -1)}
+                      onClick={goBackToLinkedIn}
                       className="h-12 rounded-xl border border-black/10 px-5 text-sm font-semibold text-black/55 transition-colors hover:text-[#050505]"
                     >
                       Back
@@ -461,6 +846,8 @@ export const FounderOnboardingFlow: React.FC = () => {
                     </button>
                   </div>
                 </form>
+              )}
+                </>
               )}
             </motion.div>
           )}
@@ -483,8 +870,8 @@ export const FounderOnboardingFlow: React.FC = () => {
                 <>
                   <h1 className="text-2xl font-bold tracking-tight text-[#050505]">Choose your company</h1>
                   <p className="mt-2 text-sm text-black/55">
-                    Pick the company you want to represent. We&apos;ll load details from LinkedIn and the web — or add
-                    one yourself.
+                    Select the company you want to represent, then continue. We&apos;ll load details from LinkedIn and
+                    the web — or add one yourself.
                   </p>
 
                   {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
@@ -498,12 +885,23 @@ export const FounderOnboardingFlow: React.FC = () => {
 
                   <div className="mt-6 space-y-3">
                     {experiences.map((experience, index) => {
+                      const selected = selectedExperienceIndex === index;
                       const busy = enrichingIndex === index;
                       const disabled = enrichingIndex !== null;
                       return (
-                        <div
+                        <button
                           key={`${experience.company}-${index}`}
-                          className="flex items-center gap-4 rounded-xl border border-black/10 bg-white p-4 shadow-sm"
+                          type="button"
+                          onClick={() => {
+                            setSelectedExperienceIndex(index);
+                            setError("");
+                          }}
+                          disabled={disabled}
+                          className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left shadow-sm transition-colors disabled:opacity-60 ${
+                            selected
+                              ? "border-[#ec9149] bg-[#fff7f0] ring-1 ring-[#ec9149]/40"
+                              : "border-black/10 bg-white hover:border-black/20"
+                          }`}
                         >
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-black/10 bg-[#fdfaf7]">
                             {experience.companyLogoUrl ? (
@@ -518,16 +916,19 @@ export const FounderOnboardingFlow: React.FC = () => {
                               {[experience.title, experience.dateRange].filter(Boolean).join(" · ")}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => void loadCompanyFromExperience(experience, index)}
-                            disabled={disabled}
-                            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-[#ec9149] px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                          <span
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                              selected ? "border-[#ec9149] bg-[#ec9149] text-white" : "border-black/20 bg-white"
+                            }`}
+                            aria-hidden
                           >
-                            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                            {busy ? "Loading..." : "Add"}
-                          </button>
-                        </div>
+                            {busy ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : selected ? (
+                              <span className="block h-2 w-2 rounded-full bg-white" />
+                            ) : null}
+                          </span>
+                        </button>
                       );
                     })}
                   </div>
@@ -535,6 +936,7 @@ export const FounderOnboardingFlow: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
+                      setSelectedExperienceIndex(null);
                       setCompany(EMPTY_COMPANY);
                       setError("");
                       setExperiencePhase("confirm");
@@ -546,13 +948,37 @@ export const FounderOnboardingFlow: React.FC = () => {
                     Add company manually
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => goTo("profile", -1)}
-                    className="mt-4 text-sm text-black/45 underline-offset-4 hover:text-[#050505] hover:underline"
-                  >
-                    Back to profile
-                  </button>
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => goTo("profile", -1)}
+                      disabled={enrichingIndex !== null}
+                      className="h-12 rounded-xl border border-black/10 px-5 text-sm font-semibold text-black/55 transition-colors hover:text-[#050505] disabled:opacity-60"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        enrichingIndex !== null ||
+                        (experiences.length > 0 && selectedExperienceIndex === null)
+                      }
+                      onClick={() => {
+                        if (selectedExperienceIndex === null) {
+                          setSelectedExperienceIndex(null);
+                          setCompany(EMPTY_COMPANY);
+                          setExperiencePhase("confirm");
+                          return;
+                        }
+                        const experience = experiences[selectedExperienceIndex];
+                        if (experience) void loadCompanyFromExperience(experience, selectedExperienceIndex);
+                      }}
+                      className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-[#ec9149] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                    >
+                      {enrichingIndex !== null && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {enrichingIndex !== null ? "Loading company…" : "Next"}
+                    </button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -572,13 +998,13 @@ export const FounderOnboardingFlow: React.FC = () => {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <label className={founderLabelClass}>Company name</label>
-                        <input className={founderFieldClass} value={company.name} onChange={updateCompany("name")} placeholder="Company name" required />
+                        <input className={founderFieldClass} value={company.name} onChange={updateCompany("name")} placeholder="Company name" />
                       </div>
                       <div className="space-y-2">
                         <label className={founderLabelClass}>Website</label>
                         <div className="relative">
                           <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
-                          <input className={`${founderFieldClass} pl-9`} value={company.website} onChange={updateCompany("website")} placeholder="www.example.com" required />
+                          <input className={`${founderFieldClass} pl-9`} value={company.website} onChange={updateCompany("website")} placeholder="www.example.com" />
                         </div>
                       </div>
                     </div>
@@ -587,13 +1013,13 @@ export const FounderOnboardingFlow: React.FC = () => {
                       <label className={founderLabelClass}>Location</label>
                       <div className="relative">
                         <MapPin className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/35" />
-                        <input className={`${founderFieldClass} pr-9`} value={company.location} onChange={updateCompany("location")} placeholder="City, Country" required />
+                        <input className={`${founderFieldClass} pr-9`} value={company.location} onChange={updateCompany("location")} placeholder="City, Country" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <label className={founderLabelClass}>About</label>
-                      <textarea className={`${founderTextareaClass} h-28`} value={company.description} onChange={updateCompany("description")} placeholder="What does your company do?" required />
+                      <textarea className={`${founderTextareaClass} h-28`} value={company.description} onChange={updateCompany("description")} placeholder="What does your company do?" />
                     </div>
 
                     {error && <p className="text-sm text-red-600">{error}</p>}

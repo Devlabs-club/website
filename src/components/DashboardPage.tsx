@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from './auth_manager';
 import { AmbientBackground } from './ui/AmbientBackground';
+import { resolvePostAuthDestination } from '@/lib/authDestination';
 
 function clearStaticLoader() {
   document.getElementById('dashboard-static-loader')?.remove();
@@ -23,12 +24,15 @@ function WorkspaceLoader({ text }: { text: string }) {
   );
 }
 
-function RoleRedirect({ role, accountType }: { role: string; accountType?: 'founder' | 'builder' | null }) {
+function RoleRedirect({
+  role,
+  accountType,
+}: {
+  role: string;
+  accountType?: 'founder' | 'builder' | null;
+}) {
   useEffect(() => {
-    if (role === 'admin') window.location.href = '/admin';
-    else if (accountType === 'founder' || role === 'founder') window.location.href = '/founder/home';
-    else if (accountType === 'builder' || role === 'builder') window.location.href = '/builder/home';
-    else window.location.href = '/auth/select-role';
+    window.location.replace(resolvePostAuthDestination({ role, accountType }, null));
   }, [role, accountType]);
 
   return <WorkspaceLoader text="Opening workspace" />;

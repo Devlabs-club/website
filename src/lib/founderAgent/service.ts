@@ -34,6 +34,12 @@ import { buildFullCandidatesForShortlist } from '@/lib/talent/founderCandidate';
 import { buildFounderPipeline } from '@/lib/talent/founderPipeline';
 import { countUnreadForFounder, getNotificationsForFounder } from '@/lib/talent/notifications';
 import { shapeJobForTalentPool } from '@/lib/founderAgent/jobShaping';
+import {
+  buildConversationAgenda,
+  buildFallbackOpener,
+  compactFounderContext,
+  looksLikeSkillDump,
+} from '@/lib/founderAgent/conversationEngine';
 import { compileSearchPlan, getPlanRetrievalTerms } from '@/lib/talent/searchPlan';
 import { retrieveSemanticBuilderCandidates, type SemanticScoreMap } from '@/lib/talent/embeddings/searchTalentEmbeddings';
 import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
@@ -71,6 +77,7 @@ import {
 } from '@/lib/talent/githubActivity';
 import { evaluateMustHaveGate } from '@/lib/talent/discovery/mustHaveGate';
 import { buildPoolSummary, renderPoolSummaryMarkdown, type PoolSummary } from '@/lib/talent/poolSummary';
+import FounderProfile from '@/models/talent/FounderProfile';
 
 const User: any = mongoose.models.User;
 
@@ -113,56 +120,42 @@ Style:
 - Never use markdown tables (| col | col |). Always use numbered lists and short bullets instead. Chat is too narrow for tables.
 - Do not split a structured Markdown response into artificial separate messages.
 - Say things like "Cool, got it" only when it actually adds something.
-- Ask one focused follow-up when a required detail is missing. Do not create the job in the same turn as that follow-up.
+- Ask ONE focused follow-up when a required detail is missing. Never stack multiple questions in one message.
+
+Personalization (critical):
+- Context JSON includes conversationAgenda, founderProfile, and company enrichment. Follow agenda.nextQuestionHint and agenda.doNotAsk.
+- Lead with the company/product by name when you know it. Never ask generic questions that ignore enrichment.
+- If agenda.doNotAsk includes what_will_they_build, do NOT ask what they will build. Use product context and move to the next gap.
+- If the founder pastes a long skills dump (or skillsAreBloated), distill to 3–6 must-have technologies and put the rest in niceToHaveSkills via edit_job. Confirm that split. Never store 15+ skills as must-haves.
 
 Rules:
 - You have two jobs: conversation and tool use.
 - Use chat history and company/job context before asking.
 - One chat session maps to one role/job. Do not mix role context across sessions.
-- Be proactive: keep the founder moving toward a finished role brief and a builder search. Encourage them to complete the remaining fields, then say something like "let's find you the perfect builder."
-- Use create_job only when you have enough detail for: role/title, what the builder will do, required skills/stack, company, salary/compensation, visa sponsorship confirmation, equity confirmation, and the founder's proof/preferences.
-- Treat founder phrases like "I want to build a chat interface", "build the dashboard", or "work on the AI agent" as the builderWillDo/description. Do not ask "what will they do" again when the feature/product has already been named.
-- If scope is genuinely unclear, ask: "Is this builder focused on a specific feature, or the broader product?" If they say broader product/product in general, use the saved company context to write the job description.
-- Before create_job, ask for missing skills/stack, salary/compensation, default visa sponsorship confirmation, default equity confirmation, and proof/preferences like experience level, internships, schools, project evidence, or "no preferences".
-- Default compensation policy: visa sponsorship is "Yes" and equity is "No". Confirm both with the founder in chat before creating the job or searching.
-- Use create_job and edit_job tool arguments as the structured JSON contract. Do not rely on hidden assumptions for salary, visa, equity, or responsibilities.
-- Auto-fill responsibilities from the company context, job description, and role title when the founder does not provide responsibilities. Do not ask for responsibilities just to create a job.
-- Keep preferences like "interned at big tech", "went to Stanford or Yale", "built a chat feature", or "strong design sense" as natural-language requirements/searchRequirements. Do not translate them into rigid fields or company lists.
-- Use searchRequirements with importance "must" for hard filters and "nice" for preferences. requirements can still be plain text when that is easier.
-- If create_job says needsFollowup, ask that follow-up and wait for the founder's answer. Never infer missing required fields just because a follow-up was already asked.
-- Use fetch_jobs when the founder asks what jobs/roles exist.
-- Use fetch_job when the founder asks about one specific job.
-- Use search_talent when the founder asks to find/search/match candidates for the current job.
-- Use edit_job when they want to change a job. It reruns search only when the brief is already solid; on a thin/pre-created role it just saves the change so you can keep gathering. After editing a thin role (e.g. a title change), do NOT claim you pulled builders. Ask the next gathering question instead.
-- When currentJob exists and the founder answers salary, visa sponsorship, or equity confirmation, use edit_job to persist those fields before calling search_talent.
-- Use update_company_info when they change company name, mission, product, website, industry, funding, or location.
-- Do not mention tools unless the action matters to the founder.
+- Be proactive: finish a strong brief, then search. Stop over-asking once the brief is solid.
+- Treat founder phrases like "build a chat interface" or "the product in general" as description. If they say broader product, write description from company enrichment.
+- Default policy before confirmation: visa sponsorship Yes, equity No. Confirm BOTH once. Parse multi-intent replies in one turn (e.g. "yes I'll pay 120k", "no visa", "yes equity").
+- Once visaConfirmed or equityConfirmed is true in context, NEVER re-ask that topic.
+- Use create_job / edit_job as the structured contract. Auto-fill responsibilities from company + role when missing.
+- Keep preferences as searchRequirements with importance "must" or "nice".
+- Use edit_job to persist answers before the next question. On thin roles, edit does not mean you searched — do not claim you pulled builders.
+- When announcing a search, you MUST call search_talent in the same turn.
 
-Your capabilities (know these so you ask the right questions):
-- edit_job lets you set: title, description, required skills/stack (skillsNeeded), nice-to-have skills, responsibilities, salary, equity, visa, job type, work mode, location.
-- searchRequirements capture founder preferences with importance "must" (hard filter) or "nice" (preference). Specific, concrete requirements directly change who the search surfaces.
-- search_talent runs the builder search. It ranks builders by real proof-of-work — their projects, verified skills, and GitHub/demo evidence — against this role's description, skills, and requirements.
-- fetch_jobs / fetch_job read roles; update_company_info edits the company profile.
-- The search is only as good as the brief. A thin brief returns weak matches. Gather strong, specific signal before you search.
+Shortlist control (you have full CRUD):
+- list_shortlist: see who is in the pool with sponsorship signals.
+- remove_builders: remove someone from this role's recommendations by name or id.
+- exclude_builders: permanently exclude them from future searches for this role.
+- refresh_shortlist: re-apply visa/must-have/exclusion filters to the current pool (use after visa=No or removals).
+- search_talent: full re-run under current constraints.
+- inspect_talent_pool: evidence for comparisons.
 
-Roles pre-created from quick intake:
-- Some roles are created from a fast 3-question intake (role title, stack, compensation) BEFORE this chat opens. They start thin: short or empty description, only a couple of skills, no preferences. Check roleReadiness in the context.
-- When the role is thin, do NOT jump straight to search just because compensation is set. First proactively gather, one focused question per turn, persisting each answer with edit_job:
-  1. A real job description — what will the builder actually build and own? The product, feature, or problem.
-  2. Required experience/seniority and any must-have qualifications.
-  3. Preferences that sharpen the search: domain experience, internships/companies, schools, specific project evidence, or an explicit "no preferences". Save these as searchRequirements.
-  4. Any nice-to-have skills beyond the core stack.
-- Be proactive and thorough on behalf of the founder: ask as many high-signal questions as are genuinely useful to find the best builder, but stop once the brief is solid — don't over-ask.
+Sponsorship / pool complaints:
+- If the founder says a named builder needs sponsorship AND they do not want to sponsor, that is NOT a request to flip visa to Yes. Set/confirm visa=No, remove_builders or exclude_builders for that person, then refresh_shortlist or search_talent. Tell them who was removed.
+- When visa is No, builders who need sponsorship must leave the pool. If anyone remains who needs sponsorship, remove them immediately.
 
-Starting the search:
-- When you tell the founder you'll find/search for a builder (e.g. "let's find you the perfect builder"), you MUST call search_talent in that same turn. Never announce a search without actually running it.
-- Only announce and run the search once the brief is solid (real description + skills + at least one round of preferences) and the founder is ready.
-- When the founder confirms the visa/equity defaults (e.g. "yes"), persist it with edit_job or just call search_talent. Do not ask the same visa/equity confirmation again once they've answered it.
-
-Talking about search results:
-- Be direct and evidence-grounded. State when no verified candidates meet a preference, and distinguish unavailable evidence from evidence that a builder does not have that quality.
-- After a search or rerank, explain the pool in Markdown: overview, top recommendations as a numbered list (not a table), meaningful trade-offs, and material unknowns. Use only facts returned by tools.
-- For a nuanced talent-pool question, use inspect_talent_pool before answering. It is a read-only, role-scoped evidence tool.`;
+After search:
+- Mention the Recommended tab once. Do not repeat "look at the pane on the right" on every edit or follow-up.
+- Be evidence-grounded. Missing evidence is unknown, not a negative.`;
 
 const TOOLS: ToolDefinition[] = [
   {
@@ -286,6 +279,65 @@ const TOOLS: ToolDefinition[] = [
               enum: ['profile', 'projects', 'experience', 'github_activity', 'sponsorship', 'public_presence', 'ranking_evidence'],
             },
           },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_shortlist',
+      description: 'List builders currently recommended for this role, including sponsorship inference. Use before remove/exclude decisions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string', description: 'Job ID. Omit to use the active role session job.' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'remove_builders',
+      description: 'Remove one or more builders from this role shortlist by builder id or name. Does not permanently ban them unless you also call exclude_builders.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string' },
+          builderIds: { type: 'array', items: { type: 'string' } },
+          builderNames: { type: 'array', items: { type: 'string' }, description: 'Match shortlisted builders by first/full name.' },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'exclude_builders',
+      description: 'Permanently exclude builders from this role shortlist AND future searches (stored on the job). Use when the founder rejects someone or they violate hard constraints like sponsorship.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string' },
+          builderIds: { type: 'array', items: { type: 'string' } },
+          builderNames: { type: 'array', items: { type: 'string' } },
+          reason: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'refresh_shortlist',
+      description: 'Re-apply hard filters (visa sponsorship, exclusions, must-haves) to the current shortlist without a full discovery run when possible. Call after visa=No or removals. Falls back to search_talent if the pool is empty.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string' },
+          rerunSearchIfEmpty: { type: 'boolean', description: 'Default true. If filtering empties the pool, run a fresh search.' },
         },
       },
     },
@@ -574,6 +626,9 @@ function resolveEquity(args: Record<string, unknown>, userText: string, metadata
   if (explicit) return { equity: explicit, confirmed: true };
 
   const normalized = userText.toLowerCase();
+  if (/\b(yes equity|equity yes|with equity|offer equity|equity is yes)\b/.test(normalized)) {
+    return { equity: 'Yes', confirmed: true };
+  }
   if (/\b(no equity|without equity|equity is no|equity no|no stock|no options)\b/.test(normalized)) {
     return { equity: DEFAULT_EQUITY, confirmed: true };
   }
@@ -603,7 +658,21 @@ function resolveVisa(args: Record<string, unknown>, userText: string, metadata: 
   if (explicit) return { visa: explicit, confirmed: true };
 
   const normalized = userText.toLowerCase();
-  if (/\b(no visa|no sponsorship|without sponsorship|do not sponsor|don't sponsor)\b/.test(normalized)) {
+  if (
+    /\b(no visa|no sponsorship|without sponsorship|do not sponsor|don't sponsor|dont sponsor|i don'?t want to sponsor|will not sponsor|won'?t sponsor)\b/.test(
+      normalized
+    )
+  ) {
+    return { visa: 'No', confirmed: true };
+  }
+  if (/\b(yes visa|visa yes|will sponsor|ok to sponsor|can sponsor)\b/.test(normalized)) {
+    return { visa: DEFAULT_VISA_SPONSORSHIP, confirmed: true };
+  }
+  // Bare "no" while a visa confirmation was pending.
+  if (
+    (metadata.defaultVisaConfirmationAsked || metadata.defaultCompensationConfirmationAsked) &&
+    /^(no|nope|nah)\b/i.test(normalized.trim())
+  ) {
     return { visa: 'No', confirmed: true };
   }
   if ((metadata.defaultVisaConfirmationAsked || metadata.defaultCompensationConfirmationAsked) && isAffirmative(userText)) {
@@ -931,6 +1000,310 @@ function serializeMessage(message: any) {
     content: raw.content,
     toolName: raw.toolName || null,
     createdAt: raw.createdAt,
+  };
+}
+
+async function getFounderProfileDoc(identity: FounderIdentity) {
+  return FounderProfile.findOne({
+    $or: [{ userId: identity.founderId }, { founderEmail: identity.email }],
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+}
+
+function jobExcludedBuilderIds(job: any): string[] {
+  const raw = job?.excludedBuilderIds;
+  if (!Array.isArray(raw)) return [];
+  return raw.map(String).filter(Boolean);
+}
+
+async function resolveJobForSession(
+  identity: FounderIdentity,
+  args: Record<string, unknown>,
+  session: any
+) {
+  const jobId = cleanString(args.jobId) || cleanString(args.opportunityId) || (session?.jobId ? String(session.jobId) : null);
+  if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) return { error: 'jobId is required.' as const };
+  const job = await JobPosting.findOne({ _id: jobId, founderEmail: identity.email });
+  if (!job) return { error: 'Job not found.' as const };
+  return { job, jobId };
+}
+
+function nameMatchesBuilder(builder: any, query: string) {
+  const q = query.toLowerCase().trim();
+  if (!q) return false;
+  const name = String(builder?.name || '').toLowerCase();
+  const first = name.split(/\s+/)[0] || '';
+  return name === q || first === q || name.includes(q);
+}
+
+async function resolveBuildersOnShortlist(params: {
+  shortlist: any;
+  builderIds?: string[];
+  builderNames?: string[];
+}) {
+  const candidates = Array.isArray(params.shortlist?.candidates) ? params.shortlist.candidates : [];
+  const ids = new Set((params.builderIds || []).map(String).filter(Boolean));
+  const names = (params.builderNames || []).map((n) => String(n || '').trim()).filter(Boolean);
+  const candidateIds = candidates.map((c: any) => String(c.builderId)).filter(Boolean);
+  const builders = candidateIds.length
+    ? await BuilderProfile.find({ _id: { $in: candidateIds } }).select('_id name workAuthorization education location universityOrCompany').lean()
+    : [];
+  const byId = new Map(builders.map((b: any) => [String(b._id), b]));
+
+  for (const name of names) {
+    for (const builder of builders) {
+      if (nameMatchesBuilder(builder, name)) ids.add(String(builder._id));
+    }
+  }
+
+  const matched = [...ids]
+    .filter((id) => candidateIds.includes(id))
+    .map((id) => {
+      const builder = byId.get(id);
+      const inference = builder ? inferSponsorshipNeed(builder) : null;
+      return {
+        builderId: id,
+        name: builder?.name || null,
+        sponsorship: inference
+          ? { need: inference.need, confidence: inference.confidence, evidence: inference.evidence }
+          : null,
+      };
+    });
+
+  return { matched, builders, byId };
+}
+
+async function persistJobExclusions(job: any, builderIds: string[]) {
+  const existing = jobExcludedBuilderIds(job);
+  const merged = Array.from(new Set([...existing, ...builderIds]));
+  job.excludedBuilderIds = merged;
+  await job.save();
+  return merged;
+}
+
+async function toolListShortlist(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+  const resolved = await resolveJobForSession(identity, args, session);
+  if ('error' in resolved) return resolved;
+  const { job, jobId } = resolved;
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email });
+  if (!shortlist || !Array.isArray(shortlist.candidates) || !shortlist.candidates.length) {
+    return {
+      jobId,
+      builders: [],
+      total: 0,
+      excludedBuilderIds: jobExcludedBuilderIds(job),
+      message: 'No shortlist yet. Run search_talent first.',
+    };
+  }
+
+  const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+  const visible = shortlist.candidates.filter((c: any) => !hidden.has(String(c.builderId)));
+  const builderIds = visible.map((c: any) => String(c.builderId));
+  const builders = await BuilderProfile.find({ _id: { $in: builderIds } })
+    .select('_id name workAuthorization education location universityOrCompany')
+    .lean();
+  const byId = new Map(builders.map((b: any) => [String(b._id), b]));
+
+  const rows = visible.map((c: any) => {
+    const id = String(c.builderId);
+    const builder = byId.get(id);
+    const inference = builder ? inferSponsorshipNeed(builder) : null;
+    return {
+      builderId: id,
+      name: builder?.name || c.anonymousLabel || null,
+      matchScore: c.matchScore ?? null,
+      matchLabel: c.matchLabel ?? null,
+      sponsorship: inference
+        ? { need: inference.need, confidence: inference.confidence, evidence: inference.evidence }
+        : { need: 'unknown', confidence: 'low', evidence: 'Builder profile missing' },
+    };
+  });
+
+  return {
+    jobId,
+    total: rows.length,
+    builders: rows,
+    excludedBuilderIds: jobExcludedBuilderIds(job),
+    visa: job.visa || null,
+    visaConfirmed: job.visaConfirmed === true,
+    shortlistChanged: false,
+  };
+}
+
+async function toolRemoveBuilders(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+  const resolved = await resolveJobForSession(identity, args, session);
+  if ('error' in resolved) return resolved;
+  const { job, jobId } = resolved;
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email });
+  if (!shortlist) return { error: 'No shortlist exists. Run search_talent first.' };
+
+  const { matched } = await resolveBuildersOnShortlist({
+    shortlist,
+    builderIds: cleanList(args.builderIds),
+    builderNames: cleanList(args.builderNames),
+  });
+  if (!matched.length) {
+    return { error: 'Could not match any shortlisted builders to remove. Use list_shortlist first.', shortlistChanged: false };
+  }
+
+  const removeIds = new Set(matched.map((m) => m.builderId));
+  shortlist.candidates = (shortlist.candidates || []).filter((c: any) => !removeIds.has(String(c.builderId)));
+  const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+  for (const id of removeIds) hidden.add(id);
+  shortlist.hiddenBuilderIds = Array.from(hidden);
+  shortlist.totalMatches = shortlist.candidates.length;
+  shortlist.strongMatchCount = shortlist.candidates.filter((c: any) => c.matchLabel === 'Strong Match').length;
+  await shortlist.save();
+
+  const reason = cleanString(args.reason);
+  return {
+    removed: matched,
+    remaining: shortlist.candidates.length,
+    reason: reason || null,
+    shortlistChanged: true,
+    message: `Removed ${matched.map((m) => m.name || m.builderId).join(', ')} from the recommendations.`,
+  };
+}
+
+async function toolExcludeBuilders(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+  const resolved = await resolveJobForSession(identity, args, session);
+  if ('error' in resolved) return resolved;
+  const { job, jobId } = resolved;
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email });
+  if (!shortlist) return { error: 'No shortlist exists. Run search_talent first.' };
+
+  const { matched } = await resolveBuildersOnShortlist({
+    shortlist,
+    builderIds: cleanList(args.builderIds),
+    builderNames: cleanList(args.builderNames),
+  });
+
+  // Also allow excluding by id even if already removed from candidates.
+  const extraIds = cleanList(args.builderIds).filter((id) => mongoose.Types.ObjectId.isValid(id));
+  const allIds = Array.from(new Set([...matched.map((m) => m.builderId), ...extraIds]));
+  if (!allIds.length) {
+    return { error: 'Could not match any builders to exclude.', shortlistChanged: false };
+  }
+
+  const removeIds = new Set(allIds);
+  shortlist.candidates = (shortlist.candidates || []).filter((c: any) => !removeIds.has(String(c.builderId)));
+  const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+  for (const id of removeIds) hidden.add(id);
+  shortlist.hiddenBuilderIds = Array.from(hidden);
+  shortlist.totalMatches = shortlist.candidates.length;
+  shortlist.strongMatchCount = shortlist.candidates.filter((c: any) => c.matchLabel === 'Strong Match').length;
+  await shortlist.save();
+
+  const excluded = await persistJobExclusions(job, allIds);
+  const reason = cleanString(args.reason);
+  return {
+    excluded: matched.length
+      ? matched
+      : allIds.map((id) => ({ builderId: id, name: null, sponsorship: null })),
+    excludedBuilderIds: excluded,
+    remaining: shortlist.candidates.length,
+    reason: reason || null,
+    shortlistChanged: true,
+    message: `Excluded ${allIds.length} builder(s) from this role and future searches.`,
+  };
+}
+
+/**
+ * Re-apply visa + exclusion hard filters to the current shortlist (Diya-class fix).
+ */
+async function toolRefreshShortlist(
+  identity: FounderIdentity,
+  args: Record<string, unknown>,
+  session: any,
+  userText = ''
+) {
+  const resolved = await resolveJobForSession(identity, args, session);
+  if ('error' in resolved) return resolved;
+  const { job, jobId } = resolved;
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email });
+  if (!shortlist || !Array.isArray(shortlist.candidates) || !shortlist.candidates.length) {
+    const rerun = args.rerunSearchIfEmpty !== false;
+    if (rerun && !isJobBriefThin(job)) {
+      const search = await runSearchForJob(identity, job, 'balanced', { force: true });
+      return {
+        refreshed: true,
+        reranSearch: true,
+        shortlistChanged: true,
+        search,
+        message: searchResultMessage(search, 'Refreshed the pool with a new search.'),
+      };
+    }
+    return { error: 'No shortlist to refresh. Run search_talent first.', shortlistChanged: false };
+  }
+
+  const candidateIds = shortlist.candidates.map((c: any) => String(c.builderId)).filter(Boolean);
+  const builders = await BuilderProfile.find({ _id: { $in: candidateIds } })
+    .select(BUILDER_SEARCH_SELECT)
+    .lean();
+  const byId = new Map(builders.map((b: any) => [String(b._id), b]));
+  const jobDoesNotSponsor = opportunityDoesNotSponsor(job);
+  const excluded = new Set(jobExcludedBuilderIds(job));
+  const removed: Array<{ builderId: string; name: string | null; reason: string }> = [];
+
+  const kept = shortlist.candidates.filter((c: any) => {
+    const id = String(c.builderId);
+    if (excluded.has(id)) {
+      removed.push({ builderId: id, name: byId.get(id)?.name || null, reason: 'excluded_by_founder' });
+      return false;
+    }
+    const builder = byId.get(id);
+    if (!builder) return true;
+    const inference = inferSponsorshipNeed(builder);
+    if (shouldHardExcludeForSponsorship(inference, jobDoesNotSponsor)) {
+      removed.push({
+        builderId: id,
+        name: builder.name || null,
+        reason: `needs_sponsorship (${inference.confidence}): ${inference.evidence}`,
+      });
+      excluded.add(id);
+      return false;
+    }
+    return true;
+  });
+
+  if (removed.length) {
+    shortlist.candidates = kept;
+    const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+    for (const row of removed) hidden.add(row.builderId);
+    shortlist.hiddenBuilderIds = Array.from(hidden);
+    shortlist.totalMatches = kept.length;
+    shortlist.strongMatchCount = kept.filter((c: any) => c.matchLabel === 'Strong Match').length;
+    await shortlist.save();
+    await persistJobExclusions(job, removed.map((r) => r.builderId));
+  }
+
+  if (!kept.length && args.rerunSearchIfEmpty !== false && !isJobBriefThin(job)) {
+    const search = await runSearchForJob(identity, job, 'balanced', { force: true });
+    return {
+      refreshed: true,
+      removed,
+      reranSearch: true,
+      shortlistChanged: true,
+      search,
+      message: searchResultMessage(
+        search,
+        removed.length
+          ? `Removed ${removed.map((r) => r.name || r.builderId).join(', ')} for sponsorship/exclusions and ran a fresh search.`
+          : 'Pool was empty after filters; ran a fresh search.'
+      ),
+    };
+  }
+
+  return {
+    refreshed: true,
+    removed,
+    remaining: kept.length,
+    visa: job.visa,
+    shortlistChanged: removed.length > 0,
+    message: removed.length
+      ? `Filtered the pool. Removed ${removed.map((r) => r.name || r.builderId).join(', ')}.`
+      : 'Pool already matched the current constraints.',
   };
 }
 
@@ -1516,7 +1889,14 @@ async function runSearchForJob(
     semanticScores,
     skipSemanticScoring: retrievalMode === 'search_index' || Boolean(semanticScores.size),
     limit: candidateResultLimit,
-    excludeBuilderIds: await collectFailingPriorBuilderIds(jobId, oppPlain),
+    excludeBuilderIds: await (async () => {
+      const prior = await collectFailingPriorBuilderIds(jobId, oppPlain);
+      const hiddenDoc = (await Shortlist.findOne({ opportunityId: jobId }).select('hiddenBuilderIds').lean()) as {
+        hiddenBuilderIds?: unknown[];
+      } | null;
+      const hidden = Array.isArray(hiddenDoc?.hiddenBuilderIds) ? hiddenDoc!.hiddenBuilderIds.map(String) : [];
+      return Array.from(new Set([...prior, ...jobExcludedBuilderIds(oppPlain), ...hidden]));
+    })(),
     persistGithubActivity: async (builderId, snapshot) => {
       await BuilderProfile.updateOne(
         { _id: builderId },
@@ -1611,7 +1991,7 @@ async function runSearchForJob(
     githubActivityUsed: Boolean(result.githubActivityUsed),
     poolSummary,
     poolNarrative,
-    noRelevantMatches: Boolean(result.noRelevantMatches || limitedResult.candidates.length === 0),
+    noRelevantMatches: Boolean((result as any).noRelevantMatches || limitedResult.candidates.length === 0),
   };
 }
 
@@ -1971,6 +2351,26 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   // role (e.g. the founder just changed the title), persist the edit but keep gathering
   // detail instead of dumping match results before we've asked the real questions.
   if (isJobBriefThin(job)) {
+    // Still refilter an existing shortlist when visa flips to No (Diya-class bug).
+    if (fields.visa === 'No' || (fields.visaConfirmed && opportunityDoesNotSponsor(job))) {
+      const refresh = (await toolRefreshShortlist(
+        identity,
+        { jobId: String(job._id), rerunSearchIfEmpty: false },
+        session,
+        userText
+      )) as Record<string, any>;
+      return {
+        job: serializeJob(job),
+        updatedFields: Object.keys(fields),
+        search: { skipped: true, reason: 'Role brief is still thin; gather more detail before searching.' },
+        searchSkippedThin: true,
+        shortlistChanged: Boolean(refresh.shortlistChanged),
+        refresh,
+        message: refresh.shortlistChanged
+          ? `${refresh.message || 'Filtered the pool.'} Keep gathering the brief before a full search.`
+          : 'Updated the role. Keep gathering the brief (description, then experience and preferences) before searching.',
+      };
+    }
     return {
       job: serializeJob(job),
       updatedFields: Object.keys(fields),
@@ -1980,11 +2380,40 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
     };
   }
 
+  // Visa flipped to No: hard-refilter the pool before/alongside search so sponsorship
+  // mismatches never linger in the Recommended pane.
+  if (fields.visa === 'No' || (fields.visaConfirmed && opportunityDoesNotSponsor(job))) {
+    const refresh = (await toolRefreshShortlist(
+      identity,
+      { jobId: String(job._id), rerunSearchIfEmpty: false },
+      session,
+      userText
+    )) as Record<string, any>;
+    const search = await runSearchForJob(identity, job, 'balanced', { force: true });
+    const removed = Array.isArray(refresh.removed) ? refresh.removed : [];
+    return {
+      job: serializeJob(job),
+      updatedFields: Object.keys(fields),
+      search,
+      refresh,
+      shortlistChanged: true,
+      message: search.skipped
+        ? 'Updated the job. Search needs a bit more detail before I rerun it.'
+        : searchResultMessage(
+            search,
+            removed.length
+              ? `Updated the role, removed ${removed.map((r: any) => r.name || r.builderId).join(', ')} who need sponsorship, and refreshed builders.`
+              : 'Got it, updated the role and refreshed builders.'
+          ),
+    };
+  }
+
   const search = await runSearchForJob(identity, job, 'balanced', { force: true });
   return {
     job: serializeJob(job),
     updatedFields: Object.keys(fields),
     search,
+    shortlistChanged: !search.skipped,
     message: search.skipped
       ? 'Updated the job. Search needs a bit more detail before I rerun it.'
       : searchResultMessage(search, 'Got it, updated the role.'),
@@ -2269,6 +2698,18 @@ async function runTool(name: string, identity: FounderIdentity, session: any, ar
       case 'inspect_talent_pool':
         result = await toolInspectTalentPool(identity, args, session);
         break;
+      case 'list_shortlist':
+        result = await toolListShortlist(identity, args, session);
+        break;
+      case 'remove_builders':
+        result = await toolRemoveBuilders(identity, args, session);
+        break;
+      case 'exclude_builders':
+        result = await toolExcludeBuilders(identity, args, session);
+        break;
+      case 'refresh_shortlist':
+        result = await toolRefreshShortlist(identity, args, session, userText);
+        break;
       case 'update_company_info':
         result = await toolUpdateCompany(identity, args);
         break;
@@ -2316,6 +2757,7 @@ export async function runFounderAgentChat(params: {
     jobId: params.jobId || null,
   });
   const company = await getCompany(params.identity);
+  const founderProfile = await getFounderProfileDoc(params.identity);
   const currentJob = session.jobId
     ? await JobPosting.findOne({ _id: session.jobId, founderEmail: params.identity.email })
     : null;
@@ -2334,13 +2776,28 @@ export async function runFounderAgentChat(params: {
     .lean();
 
   const inferredBuilderWillDo = inferBuilderWillDoFromMessages(historyDocs, company);
+  const existingShortlist = session.jobId
+    ? await Shortlist.findOne({ opportunityId: session.jobId }).select('totalMatches candidates').lean()
+    : null;
+  const hasSearchResults = Boolean(
+    existingShortlist &&
+      ((existingShortlist as any).totalMatches > 0 ||
+        (Array.isArray((existingShortlist as any).candidates) && (existingShortlist as any).candidates.length > 0))
+  );
+  const conversationAgenda = buildConversationAgenda({
+    founderProfile,
+    company,
+    job: currentJob,
+    historyLength: historyDocs.filter((m: any) => m.role === 'founder' || m.role === 'assistant').length,
+    hasSearchResults,
+  });
   const roleReadiness = currentJob
     ? (() => {
         const description = String(currentJob.description || currentJob.builderWillDo || '').trim();
         const skills = Array.isArray(currentJob.skillsNeeded) ? currentJob.skillsNeeded : [];
         const niceToHaves = Array.isArray(currentJob.niceToHaveSkills) ? currentJob.niceToHaveSkills : [];
         const preferences = Array.isArray(currentJob.searchRequirements) ? currentJob.searchRequirements : [];
-        const hasDescription = description.length > 40;
+        const hasDescription = description.length > 40 || Boolean(conversationAgenda.productSnippet);
         const hasPreferences = preferences.length > 0;
         const isThin = isJobBriefThin(currentJob);
         return {
@@ -2348,24 +2805,33 @@ export async function runFounderAgentChat(params: {
           hasPreferences,
           hasNiceToHaves: niceToHaves.length > 0,
           skillCount: skills.length,
+          skillsBloated: skills.length > 12,
           isThin,
           guidance: isThin
-            ? 'This role is still thin (likely pre-created from quick intake). Before searching, gather a real description, required experience/qualifications, and preferences (save as searchRequirements). Persist each answer with edit_job.'
+            ? 'This role is still thin (likely pre-created from quick intake). Follow conversationAgenda.nextQuestionHint. Persist each answer with edit_job.'
             : 'This role has a solid brief. Once the founder is ready, run search_talent.',
         };
       })()
     : null;
+  const enriched = compactFounderContext(founderProfile, company);
   const context = {
-    founder: { id: params.identity.founderId, name: params.identity.founderName, email: params.identity.email },
-    company: serializeCompany(company),
+    founder: {
+      id: params.identity.founderId,
+      name: params.identity.founderName,
+      email: params.identity.email,
+      ...(enriched.founder || {}),
+    },
+    company: enriched.company,
     currentJob: serializeJob(currentJob),
     roleReadiness,
+    conversationAgenda,
+    skillDumpDetected: looksLikeSkillDump(params.message),
     session: serializeSession(session),
     conversationSignals: {
       builderWillDo: inferredBuilderWillDo,
       guidance: inferredBuilderWillDo
         ? 'The founder has already described what the builder should work on. Reuse this instead of asking what they will do.'
-        : 'If scope is unclear, ask whether the builder is focused on a specific feature or the broader product.',
+        : conversationAgenda.nextQuestionHint,
     },
   };
 
@@ -2382,11 +2848,12 @@ export async function runFounderAgentChat(params: {
     messages,
     tools: TOOLS,
     temperature: 0.25,
-    maxTokens: modelRoute === 'reasoning' ? 1500 : 500,
+    maxTokens: modelRoute === 'reasoning' ? 1600 : 1200,
     model: modelRoute,
   });
   logFounderAgent('chat:model_response', {
     sessionId: String(session._id),
+    model: modelRoute === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
     toolCalls: (agentResponse.tool_calls || []).map((tool) => tool.function.name),
     hasContent: Boolean(agentResponse.content),
   });
@@ -2431,7 +2898,7 @@ export async function runFounderAgentChat(params: {
         messages,
         tools: TOOLS,
         temperature: 0.25,
-        maxTokens: modelRoute === 'reasoning' ? 1500 : 500,
+        maxTokens: modelRoute === 'reasoning' ? 1600 : 1200,
         model: modelRoute,
       });
       logFounderAgent('chat:model_response_after_tool', {
@@ -2458,10 +2925,16 @@ export async function runFounderAgentChat(params: {
   const poolNarrative = toolCalls
     .map((tool) => (tool.result as any)?.search?.poolNarrative || (tool.result as any)?.search?.poolNarrative)
     .find((value) => typeof value === 'string' && value.trim());
+  const toolMessage = toolCalls
+    .map((tool) => (tool.result as any)?.message)
+    .filter((value) => typeof value === 'string' && value.trim())
+    .at(-1);
   const finalMessage =
+    (typeof agentResponse.content === 'string' && agentResponse.content.trim()
+      ? agentResponse.content.trim()
+      : null) ||
     poolNarrative ||
-    agentResponse.content ||
-    toolCalls.at(-1)?.result?.message ||
+    toolMessage ||
     'Cool, I updated that.';
 
   await appendMessage({
@@ -2474,7 +2947,7 @@ export async function runFounderAgentChat(params: {
 
   const [freshSession, freshCompany, freshJob, freshMessages] = await Promise.all([
     FounderChatSession.findById(session._id).lean(),
-    getCompany(params.identity).then((doc) => doc?.toObject ? doc.toObject() : doc),
+    getCompany(params.identity).then((doc) => (doc?.toObject ? doc.toObject() : doc)),
     session.jobId ? JobPosting.findById(session.jobId).lean() : Promise.resolve(null),
     FounderChatMessage.find({ sessionId: session._id, role: { $in: ['founder', 'assistant'] } })
       .sort({ createdAt: 1 })
@@ -2489,9 +2962,15 @@ export async function runFounderAgentChat(params: {
     if (!result || result.error || result.needsFollowup) return false;
     return Boolean(result.search) && result.search.skipped !== true;
   });
-  const searchNeedsFollowup = toolCalls.some(
-    (tool) => (tool.result as any)?.needsFollowup
-  );
+  const shortlistChanged = toolCalls.some((tool) => {
+    const result = tool.result as any;
+    if (!result || result.error) return false;
+    return (
+      result.shortlistChanged === true ||
+      ['remove_builders', 'exclude_builders', 'refresh_shortlist', 'search_talent'].includes(tool.name)
+    );
+  });
+  const searchNeedsFollowup = toolCalls.some((tool) => (tool.result as any)?.needsFollowup);
 
   const response = {
     message: String(finalMessage),
@@ -2501,6 +2980,7 @@ export async function runFounderAgentChat(params: {
     history: freshMessages.map(serializeMessage),
     toolCalls,
     searchRan,
+    shortlistChanged: shortlistChanged || searchRan,
     searchNeedsFollowup,
     meta: {
       model: modelRoute === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),
@@ -2511,9 +2991,80 @@ export async function runFounderAgentChat(params: {
     sessionId: response.session?.id || String(session._id),
     jobId: response.job?.id || null,
     toolCalls: toolCalls.map((tool) => tool.name),
+    model: response.meta.model,
     durationMs: Date.now() - chatStartedAt,
   });
   return response;
+}
+
+export async function ensureChatBootstrap(identity: FounderIdentity, session: any, job: any, company: any) {
+  const existing = await FounderChatMessage.find({
+    sessionId: session._id,
+    role: { $in: ['founder', 'assistant'] },
+  })
+    .limit(1)
+    .lean();
+  if (existing.length) {
+    return { bootstrapped: false as const };
+  }
+
+  // Idempotency: mark before generating so concurrent GETs don't double-write.
+  if (session.metadata?.bootstrappedAt) {
+    return { bootstrapped: false as const };
+  }
+
+  const founderProfile = await getFounderProfileDoc(identity);
+  const agenda = buildConversationAgenda({
+    founderProfile,
+    company,
+    job,
+    historyLength: 0,
+    hasSearchResults: false,
+  });
+
+  let opener = buildFallbackOpener(agenda);
+  if (hasOpenRouterConfig()) {
+    try {
+      opener = await generateOpenRouterReply({
+        model: 'chat',
+        temperature: 0.4,
+        maxTokens: 180,
+        systemPrompt: `You open the DevLabs founder hiring chat. Write ONE short texting-style opener (2-3 sentences max).
+Reference the company/product by name when known. Ask only the single next best question from nextQuestionHint.
+Never use em-dashes. Never sound like an AI assistant. Do not mention tools or the Recommended pane.
+If doNotAsk includes what_will_they_build, do not ask what they will build.`,
+        userPrompt: JSON.stringify({
+          founderName: identity.founderName,
+          agenda,
+          company: compactFounderContext(founderProfile, company).company,
+          role: job ? { title: job.title || job.roleTitle, skills: job.skillsNeeded, salary: job.salary } : null,
+        }),
+      });
+    } catch (error) {
+      logFounderAgentError('bootstrap:opener_failed', error, { sessionId: String(session._id) });
+      opener = buildFallbackOpener(agenda);
+    }
+  }
+
+  await appendMessage({
+    identity,
+    session,
+    role: 'assistant',
+    content: opener.trim(),
+    jobId: job?._id || session.jobId || null,
+  });
+  session.metadata = {
+    ...(session.metadata || {}),
+    bootstrappedAt: new Date().toISOString(),
+    bootstrapAgenda: {
+      phase: agenda.phase,
+      gaps: agenda.gaps,
+      nextQuestionHint: agenda.nextQuestionHint,
+    },
+  };
+  await session.save();
+  logFounderAgent('bootstrap:done', { sessionId: String(session._id), gaps: agenda.gaps });
+  return { bootstrapped: true as const, opener, agenda };
 }
 
 export async function getFounderAgentChatState(identity: FounderIdentity, params: { sessionId?: string | null; jobId?: string | null }) {
@@ -2521,16 +3072,22 @@ export async function getFounderAgentChatState(identity: FounderIdentity, params
   const session = params.sessionId || params.jobId
     ? await getOrCreateSession(identity, params)
     : null;
+  const [company, job] = await Promise.all([
+    getCompany(identity),
+    session?.jobId ? JobPosting.findById(session.jobId).lean() : Promise.resolve(null),
+  ]);
+
+  if (session && job) {
+    await ensureChatBootstrap(identity, session, job, company);
+  }
+
   const messages = session
     ? await FounderChatMessage.find({ sessionId: session._id, role: { $in: ['founder', 'assistant'] } })
         .sort({ createdAt: 1 })
         .limit(80)
         .lean()
     : [];
-  const [company, job] = await Promise.all([
-    getCompany(identity),
-    session?.jobId ? JobPosting.findById(session.jobId).lean() : Promise.resolve(null),
-  ]);
+
   return {
     session: serializeSession(session),
     company: serializeCompany(company),

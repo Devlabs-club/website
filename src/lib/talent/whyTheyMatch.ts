@@ -13,6 +13,7 @@ import {
   type RoleDimensionScore,
 } from '@/lib/talent/roleEvidenceDimensions';
 import { getPlanEvidenceDimensions } from '@/lib/talent/searchPlan';
+export { toFounderFacingWhyHire } from '@/lib/talent/founderFacingWhyHire';
 
 /**
  * Conversation/JD-aware one-liner for recommendation cards.

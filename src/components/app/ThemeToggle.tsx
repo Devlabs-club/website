@@ -8,22 +8,26 @@ function applyTheme(theme: "light" | "dark") {
   const root = document.documentElement;
   if (theme === "dark") root.classList.add("dark");
   else root.classList.remove("dark");
+  // Keep native form controls / scrollbars in sync on supporting browsers.
+  root.style.colorScheme = theme;
 }
 
 /**
- * Light/dark theme switcher. Defaults to light (Linear/Notion direction) and
- * persists the user's choice. The inline script in AppLayout applies the stored
- * theme before paint to avoid a flash; this component keeps it in sync.
+ * Light/dark theme switcher. Defaults to light and persists the user's choice.
+ * The inline script in AppLayout applies the stored theme before paint.
  */
 export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const stored = (typeof window !== "undefined" &&
-      (localStorage.getItem(STORAGE_KEY) as "light" | "dark" | null)) || null;
+    const stored =
+      (typeof window !== "undefined" && (localStorage.getItem(STORAGE_KEY) as "light" | "dark" | null)) ||
+      null;
     const initial = stored === "dark" ? "dark" : "light";
     setTheme(initial);
     applyTheme(initial);
+    setReady(true);
   }, []);
 
   const toggle = () => {
@@ -44,7 +48,8 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className }) => 
       aria-label="Toggle theme"
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       className={cn(
-        "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#1a140f]/10 bg-white text-[#403832]/70 shadow-[0_8px_20px_rgba(33,24,16,0.06)] transition-colors hover:bg-[#fff7ef] hover:text-[#14110f]",
+        "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+        !ready && "opacity-0",
         className
       )}
     >

@@ -1,0 +1,59 @@
+/* Scoped tokens adapted from https://beautiful-ui-five.vercel.app/ for DevLabs paper UI */
+.bui-agent {
+  --bui-ink: #111111;
+  --bui-ink-2: #6b6560;
+  --bui-ink-3: #9a928a;
+  --bui-surface: #ffffff;
+  --bui-field: #f5f1ec;
+  --bui-line: #ece7e1;
+  --bui-line-strong: #ddd6cd;
+  --bui-hover: #faf6f1;
+  --bui-hover-2: #f3ede4;
+  --bui-brand: #ec9149;
+  --bui-brand-ink: #ffffff;
+  color: var(--bui-ink);
+}
+
+.bui-agent input,
+.bui-agent textarea {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+@keyframes bui-shimmer-text {
+  0% {
+    background-position: 150% center;
+  }
+  100% {
+    background-position: -50% center;
+  }
+}
+
+@keyframes bui-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bui-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes bui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
