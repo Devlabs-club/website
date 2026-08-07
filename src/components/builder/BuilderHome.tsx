@@ -104,7 +104,7 @@ function getNextAction(
       section: 'messages',
       stepLabel: 'Step 1 of 3',
       title: 'Complete your builder profile',
-      description: 'Add LinkedIn, GitHub, Devpost, portfolio, and resume before the rest of the dashboard unlocks.',
+      description: 'Add LinkedIn, portfolio, and resume to continue. GitHub and Devpost are optional.',
       cta: 'Add required fields',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
@@ -205,11 +205,10 @@ function BuilderOverview({
   const completedCount = steps.filter((s) => s.done).length;
   const requiredFields = [
     'LinkedIn profile',
-    'GitHub profile',
-    'Devpost profile',
     'Portfolio website',
     'Resume PDF',
   ];
+  const optionalFields = ['GitHub profile (optional)', 'Devpost profile (optional)'];
 
   return (
     <>
@@ -264,6 +263,15 @@ function BuilderOverview({
                 {requiredFields.map((field) => (
                   <div key={field} className="flex items-center gap-2 border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/60">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fff5ef] text-[0.62rem] font-extrabold text-[#bf4f08]">!</span>
+                    {field}
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.14em] text-black/35">Optional</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {optionalFields.map((field) => (
+                  <div key={field} className="flex items-center gap-2 border border-black/8 bg-white/70 px-3 py-2 text-sm font-medium text-black/45">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-[0.62rem] font-extrabold text-black/30">+</span>
                     {field}
                   </div>
                 ))}

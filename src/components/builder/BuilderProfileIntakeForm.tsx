@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Upload, WandSparkles } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { FileText, Upload, WandSparkles } from 'lucide-react';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 
 type Props = {
@@ -7,6 +7,8 @@ type Props = {
   onSaved: () => Promise<void> | void;
   onEnrichmentStateChange?: (enriching: boolean) => void;
 };
+
+const MAX_RESUME_BYTES = 10 * 1024 * 1024;
 
 function profileValue(profile: BuilderProfileView | null, key: string) {
   return profile?.links?.[key] || '';
@@ -18,13 +20,34 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
   const [devpost, setDevpost] = useState(profileValue(profile, 'devpost'));
   const [portfolio, setPortfolio] = useState(profileValue(profile, 'portfolio') || profileValue(profile, 'personalWebsite'));
   const [resume, setResume] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasRequiredFields = useMemo(
-    () => [linkedin, github, devpost, portfolio, resume?.name].every((value) => String(value || '').trim()),
-    [devpost, github, linkedin, portfolio, resume]
+    () => [linkedin, portfolio, resume?.name].every((value) => String(value || '').trim()),
+    [linkedin, portfolio, resume]
   );
+
+  const acceptResume = (file: File | null | undefined) => {
+    if (!file) {
+      setResume(null);
+      return;
+    }
+    const isPdf =
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isPdf) {
+      setError('Resume must be a PDF.');
+      return;
+    }
+    if (file.size > MAX_RESUME_BYTES) {
+      setError('Resume must be 10MB or smaller.');
+      return;
+    }
+    setError('');
+    setResume(file);
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -60,7 +83,8 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
           <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">01 · Builder profile</p>
           <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.03em] text-[#050505]">Add your proof links</h2>
           <p className="mt-2 text-sm leading-6 text-black/55">
-            These links and your resume are the only setup inputs. Experience, projects, and profile copy are generated after enrichment and stay editable in Profile.
+            LinkedIn, portfolio, and resume are required. GitHub and Devpost are optional — add them if you have them.
+            Experience, projects, and profile copy are generated after enrichment and stay editable in Profile.
           </p>
 
           <div className="mt-6 space-y-4">
@@ -69,24 +93,79 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
               <input required value={linkedin} onChange={(event) => setLinkedin(event.target.value)} placeholder="https://linkedin.com/in/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
             <label className="block">
-              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">GitHub</span>
-              <input required value={github} onChange={(event) => setGithub(event.target.value)} placeholder="https://github.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
+                GitHub <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
+              </span>
+              <input value={github} onChange={(event) => setGithub(event.target.value)} placeholder="https://github.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
             <label className="block">
-              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">Devpost</span>
-              <input required value={devpost} onChange={(event) => setDevpost(event.target.value)} placeholder="https://devpost.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
+                Devpost <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
+              </span>
+              <input value={devpost} onChange={(event) => setDevpost(event.target.value)} placeholder="https://devpost.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
             <label className="block">
               <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">Portfolio website</span>
               <input required value={portfolio} onChange={(event) => setPortfolio(event.target.value)} placeholder="https://your-site.com" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
             </label>
 
-            <label className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-black/18 bg-[#fffcfa] px-4 py-5 text-center">
-              <Upload className="h-5 w-5 text-[#ff7417]" />
-              <span className="mt-2 text-sm font-extrabold text-[#050505]">{resume ? resume.name : 'Upload resume PDF'}</span>
-              <span className="mt-1 text-xs text-black/40">Required, used for auto-fill</span>
-              <input type="file" accept="application/pdf" className="hidden" onChange={(event) => setResume(event.target.files?.[0] || null)} />
-            </label>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDragActive(false);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setDragActive(false);
+                const file = event.dataTransfer.files?.[0] || null;
+                acceptResume(file);
+              }}
+              className={`flex cursor-pointer flex-col items-center justify-center border border-dashed px-4 py-6 text-center transition-colors ${
+                dragActive
+                  ? 'border-[#ff7417] bg-[#fff5ef]'
+                  : 'border-black/18 bg-[#fffcfa] hover:border-[#ff7417]/50'
+              }`}
+            >
+              {resume ? (
+                <FileText className="h-5 w-5 text-[#ff7417]" />
+              ) : (
+                <Upload className="h-5 w-5 text-[#ff7417]" />
+              )}
+              <span className="mt-2 text-sm font-extrabold text-[#050505]">
+                {resume ? resume.name : dragActive ? 'Drop resume PDF here' : 'Drag & drop resume PDF'}
+              </span>
+              <span className="mt-1 text-xs text-black/40">
+                {resume ? 'Click or drop to replace · Required for auto-fill' : 'or click to browse · Required, used for auto-fill'}
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="hidden"
+                onChange={(event) => acceptResume(event.target.files?.[0] || null)}
+              />
+            </div>
           </div>
 
           {error ? <p className="mt-4 text-sm font-semibold text-red-600">{error}</p> : null}

@@ -265,8 +265,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!existingProfile) {
     const missing: string[] = [];
     if (!normalizeUrl(body.linkedin ?? body.linkedIn)) missing.push('LinkedIn');
-    if (!normalizeUrl(body.github)) missing.push('GitHub');
-    if (!normalizeUrl(body.devpost)) missing.push('Devpost');
     if (!normalizeUrl(body.portfolio ?? body.personalWebsite)) missing.push('portfolio website');
     if (!resumeFile) missing.push('resume PDF');
     if (missing.length) {
