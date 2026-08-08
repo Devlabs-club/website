@@ -3,6 +3,7 @@ import EventRecord from '@/models/talent/EventRecord';
 import MomentumUpdate from '@/models/talent/MomentumUpdate';
 import BuilderProfile from '@/models/talent/BuilderProfile';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
+import { upsertBuilderEmbeddingV2 } from '@/lib/talent/embeddings/upsertTalentEmbeddingV2';
 import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
@@ -264,7 +265,11 @@ export async function addExperience(
   }
   await builder.save();
   await updateBuilderScores(builder);
-  void upsertBuilderEmbedding({ builderId: String(builder._id), builder, projects: await getProjects(builder._id) });
+  const projects = await getProjects(builder._id);
+  void upsertBuilderEmbedding({ builderId: String(builder._id), builder, projects });
+  void upsertBuilderEmbeddingV2({ builderId: String(builder._id), builder, projects }).catch((err) =>
+    console.warn('[builderProfileTools] v2 embed failed', err instanceof Error ? err.message : err)
+  );
   scheduleTalentStatsRefresh();
   return { experienceCount: builder.experiences.length, added: entry.title + ' @ ' + entry.company };
 }
@@ -464,7 +469,11 @@ export async function applyBuilderDataPatch(
   const fresh = await BuilderProfile.findById(builderId);
   if (fresh) {
     await updateBuilderScores(fresh);
-    void upsertBuilderEmbedding({ builderId, builder: fresh, projects: await getProjects(builderId) });
+    const projects = await getProjects(builderId);
+    void upsertBuilderEmbedding({ builderId, builder: fresh, projects });
+    void upsertBuilderEmbeddingV2({ builderId, builder: fresh, projects }).catch((err) =>
+      console.warn('[builderProfileTools] v2 embed failed', err instanceof Error ? err.message : err)
+    );
     scheduleTalentStatsRefresh();
   }
 
