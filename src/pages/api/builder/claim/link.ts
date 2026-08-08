@@ -119,7 +119,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (firstClaim || (!claim && matched)) {
     notifyOps({
       event: 'link_claimed',
-      title: `New builder signed up ${opsPersonFrom(user.name || profile?.name, userEmail)}`,
+      title: `Builder claimed profile ${opsPersonFrom(user.name || profile?.name, userEmail)}`,
     });
   }
 

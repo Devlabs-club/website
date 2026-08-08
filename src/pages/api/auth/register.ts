@@ -81,10 +81,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     await newUser.save();
 
-    const roleLabel = newUser.role === 'founder' ? 'founder' : 'builder';
+    // Role is often still unset here ("user"); the real "signed up as builder/founder"
+    // alert fires from /api/auth/role after they pick an account type.
     notifyOps({
       event: 'account_created',
-      title: `New ${roleLabel} signed up ${opsPersonFrom(newUser.name, newUser.email)}`,
+      title: `New account created ${opsPersonFrom(newUser.name, newUser.email)}${
+        newUser.role === 'founder' ? ' (founder)' : ''
+      }`,
     });
 
     // Generate token

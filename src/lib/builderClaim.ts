@@ -315,7 +315,7 @@ async function finalizeClaimAccount(claim: any, runtime?: RuntimeEnv) {
     const { notifyOps, opsPersonFrom } = await import('@/lib/opsTelegram');
     notifyOps({
       event: 'link_claimed',
-      title: `New builder signed up ${opsPersonFrom(claim.metadata?.builderName, claim.builderEmail)}`,
+      title: `Builder claimed profile ${opsPersonFrom(claim.metadata?.builderName, claim.builderEmail)}`,
     });
   }
 }

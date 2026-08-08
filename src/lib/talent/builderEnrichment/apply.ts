@@ -4,6 +4,7 @@ import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
+import { upsertBuilderEmbeddingV2 } from '@/lib/talent/embeddings/upsertTalentEmbeddingV2';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import {
@@ -587,6 +588,18 @@ export async function refreshBuilderScores(
       builder: builder.toObject ? builder.toObject() : builder,
       projects,
     });
+    try {
+      await upsertBuilderEmbeddingV2({
+        builderId: String(builder._id),
+        builder: builder.toObject ? builder.toObject() : builder,
+        projects,
+      });
+    } catch (err) {
+      console.warn(
+        '[builderEnrichment] v2 embedding upsert failed',
+        err instanceof Error ? err.message : err
+      );
+    }
   }
 
   await upsertTalentSearchIndexForBuilder(builder._id);

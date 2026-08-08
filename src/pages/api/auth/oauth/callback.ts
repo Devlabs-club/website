@@ -112,7 +112,7 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
     if (user.isNew) {
       notifyOps({
         event: 'account_created',
-        title: `New builder signed up ${opsPersonFrom(user.name, user.email)}`,
+        title: `New account created ${opsPersonFrom(user.name, user.email)}`,
       });
     }
 
