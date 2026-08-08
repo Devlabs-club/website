@@ -103,6 +103,30 @@ async function callOpenRouter(body: Record<string, unknown>): Promise<Record<str
 
 // ── Simple reply (no tools) ──────────────────────────────────────────────────
 
+export type OpenRouterFileAttachment = {
+  filename: string;
+  data: Buffer;
+  mimeType?: string;
+};
+
+type OpenRouterUserContentPart =
+  | { type: 'text'; text: string }
+  | {
+      type: 'file';
+      file: { filename: string; file_data: string };
+    };
+
+function toOpenRouterFilePart(file: OpenRouterFileAttachment): OpenRouterUserContentPart {
+  const mime = file.mimeType || 'application/pdf';
+  return {
+    type: 'file',
+    file: {
+      filename: file.filename,
+      file_data: `data:${mime};base64,${file.data.toString('base64')}`,
+    },
+  };
+}
+
 export async function generateOpenRouterReply(params: {
   systemPrompt: string;
   userPrompt: string;
@@ -113,11 +137,21 @@ export async function generateOpenRouterReply(params: {
   model?: 'chat' | 'reasoning';
   /** When set, ask the provider to keep reasoning short so structured JSON is not truncated. */
   reasoningEffort?: 'none' | 'minimal' | 'low' | 'medium' | 'high';
+  /**
+   * Optional binary attachments (e.g. PDF). Used when text extractors fail on
+   * design-tool / Figma exports that still have readable content for multimodal models.
+   */
+  files?: OpenRouterFileAttachment[];
 }): Promise<string> {
+  const userContent: string | OpenRouterUserContentPart[] =
+    params.files && params.files.length > 0
+      ? [...params.files.map(toOpenRouterFilePart), { type: 'text', text: params.userPrompt }]
+      : params.userPrompt;
+
   const messages = [
     { role: 'system', content: params.systemPrompt },
     ...(params.history || []),
-    { role: 'user', content: params.userPrompt },
+    { role: 'user', content: userContent },
   ];
   const body: Record<string, unknown> = {
     model: params.model === 'reasoning' ? getOpenRouterReasoningModel() : getOpenRouterChatModel(),

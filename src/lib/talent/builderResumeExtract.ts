@@ -229,11 +229,43 @@ export async function resumeBytesToText(
 
   if (isPdf) {
     await import('@/lib/workerPolyfills');
-    const pdf = (await import('pdf-parse')).default;
-    const data = await pdf(buffer);
-    const text = String(data.text || '').trim();
-    if (!text) throw new Error('Could not read text from that PDF — try a text-based resume PDF.');
-    return text;
+    let text = '';
+    try {
+      const pdf = (await import('pdf-parse')).default;
+      const data = await pdf(buffer);
+      text = String(data.text || '').trim();
+    } catch (err) {
+      console.warn(
+        '[builder-resume] pdf-parse failed; trying multimodal PDF text extract',
+        err instanceof Error ? err.message : err
+      );
+    }
+
+    if (text.length >= 120) return text;
+
+    // Figma / design-tool PDFs often look like "scanned" to pdf-parse but are readable via vision.
+    const { generateOpenRouterReply, hasOpenRouterConfig } = await import('@/lib/openrouter');
+    if (!hasOpenRouterConfig()) {
+      throw new Error('Could not read text from that PDF — try a text-based resume PDF.');
+    }
+    if (buffer.length > 8 * 1024 * 1024) {
+      throw new Error('Resume PDF is too large to parse. Try a smaller file.');
+    }
+
+    const visionText = await generateOpenRouterReply({
+      systemPrompt:
+        'Extract all readable text from this resume PDF. Return plain text only — no markdown fences.',
+      userPrompt:
+        'Read the resume visually if needed (design-tool exports may lack a text layer) and return the full text content.',
+      files: [{ filename: name.endsWith('.pdf') ? name : 'resume.pdf', data: buffer, mimeType: 'application/pdf' }],
+      temperature: 0,
+      maxTokens: 4000,
+    });
+    const cleaned = visionText.replace(/\s+/g, ' ').trim();
+    if (cleaned.length < 120) {
+      throw new Error('Could not read text from that PDF — try a text-based resume PDF.');
+    }
+    return cleaned;
   }
 
   if (type.startsWith('text/') || name.endsWith('.txt') || name.endsWith('.md')) {

@@ -122,6 +122,29 @@ function normalizeAlternateResumeSchema(raw: Record<string, unknown>): Record<st
   };
 }
 
+/** Max PDF bytes we'll send to OpenRouter as a file (base64 expands ~4/3). */
+const MAX_VISION_PDF_BYTES = 8 * 1024 * 1024;
+const MIN_RESUME_TEXT_CHARS = 200;
+
+async function extractResumeViaOpenRouterPdf(pdfBuffer: Buffer) {
+  const responseText = await generateOpenRouterReply({
+    systemPrompt: RESUME_EXTRACT_PROMPT,
+    userPrompt:
+      'This is a resume PDF. Design-tool exports (e.g. Figma) often have no selectable text layer — read the visual content and return the structured JSON schema from the system prompt. Strict JSON only.',
+    files: [
+      {
+        filename: 'resume.pdf',
+        data: pdfBuffer,
+        mimeType: 'application/pdf',
+      },
+    ],
+    temperature: 0.1,
+    maxTokens: 8192,
+    responseFormat: 'json_object',
+  });
+  return normalizeAlternateResumeSchema(parseJsonFromLlmResponse(responseText));
+}
+
 export async function extractResumeData(buffer: Buffer, options?: { localPdfPath?: string }) {
   await import('@/lib/workerPolyfills');
   const pdfBuffer = options?.localPdfPath
@@ -129,45 +152,92 @@ export async function extractResumeData(buffer: Buffer, options?: { localPdfPath
     : buffer;
 
   let text = '';
+  let pdfParseFailed = false;
   try {
     const pdfParse = (await import('pdf-parse')).default;
     const pdfData = await pdfParse(pdfBuffer);
     text = String(pdfData.text || '').trim();
   } catch (error) {
     // Common with exported/scanned PDFs: "bad XRef entry" from the bundled pdf.js.
-    // Never fail the builder intake on resume parse — LinkedIn/GitHub enrichment still runs.
+    // Fall through to multimodal PDF parse when OpenRouter is available.
+    pdfParseFailed = true;
     console.warn(
-      '[resumeEnricher] pdf-parse failed; continuing without resume text',
+      '[resumeEnricher] pdf-parse failed; will try multimodal PDF fallback',
       error instanceof Error ? error.message : error
     );
-    return { text: '', extracted: null, reason: 'pdf_parse_failed' as const };
   }
 
-  if (!text) return { text: '', extracted: null, reason: 'scanned_pdf_no_text' as const };
-  if (text.length < 200) {
-    return { text, extracted: null, reason: 'resume_insufficient_text' as const };
+  const needsVisionFallback = pdfParseFailed || !text || text.length < MIN_RESUME_TEXT_CHARS;
+
+  if (!needsVisionFallback) {
+    if (!hasOpenRouterConfig()) {
+      return { text, extracted: null, reason: 'openrouter_not_configured' as const };
+    }
+
+    try {
+      const responseText = await generateOpenRouterReply({
+        systemPrompt: RESUME_EXTRACT_PROMPT,
+        userPrompt: `Resume Text:\n\n${text.substring(0, 12000)}`,
+        temperature: 0.1,
+        maxTokens: 8192,
+        responseFormat: 'json_object',
+      });
+
+      const parsed = normalizeAlternateResumeSchema(parseJsonFromLlmResponse(responseText));
+      return { text, extracted: parsed, reason: null };
+    } catch (error) {
+      return {
+        text,
+        extracted: null,
+        reason: error instanceof Error ? error.message : 'resume_llm_failed',
+      };
+    }
   }
 
+  // Figma / design-tool PDFs often have real glyphs that pdf-parse cannot extract.
+  // Send the PDF bytes to OpenRouter for multimodal extraction instead of labeling as scanned.
   if (!hasOpenRouterConfig()) {
-    return { text, extracted: null, reason: 'openrouter_not_configured' as const };
-  }
-
-  try {
-    const responseText = await generateOpenRouterReply({
-      systemPrompt: RESUME_EXTRACT_PROMPT,
-      userPrompt: `Resume Text:\n\n${text.substring(0, 12000)}`,
-      temperature: 0.1,
-      maxTokens: 8192,
-      responseFormat: 'json_object',
-    });
-
-    const parsed = normalizeAlternateResumeSchema(parseJsonFromLlmResponse(responseText));
-    return { text, extracted: parsed, reason: null };
-  } catch (error) {
     return {
       text,
       extracted: null,
-      reason: error instanceof Error ? error.message : 'resume_llm_failed',
+      reason: pdfParseFailed
+        ? ('pdf_parse_failed' as const)
+        : text
+          ? ('resume_insufficient_text' as const)
+          : ('scanned_pdf_no_text' as const),
+    };
+  }
+
+  if (pdfBuffer.length > MAX_VISION_PDF_BYTES) {
+    return {
+      text,
+      extracted: null,
+      reason: 'resume_pdf_too_large_for_vision' as const,
+    };
+  }
+
+  try {
+    console.info('[resumeEnricher] using multimodal PDF fallback', {
+      bytes: pdfBuffer.length,
+      textLength: text.length,
+      pdfParseFailed,
+    });
+    const parsed = await extractResumeViaOpenRouterPdf(pdfBuffer);
+    return {
+      text: text || '[extracted_via_multimodal_pdf]',
+      extracted: parsed,
+      reason: null,
+      extractionMode: 'multimodal_pdf' as const,
+    };
+  } catch (error) {
+    console.warn(
+      '[resumeEnricher] multimodal PDF fallback failed',
+      error instanceof Error ? error.message : error
+    );
+    return {
+      text,
+      extracted: null,
+      reason: error instanceof Error ? error.message : 'resume_vision_failed',
     };
   }
 }
@@ -263,6 +333,10 @@ export async function enrichFromResume(
         };
       }
 
+      if (parsed.extractionMode === 'multimodal_pdf') {
+        await ctx?.onProgress?.('Resume had no extractable text layer — parsed via vision');
+      }
+
       const { profile, projects } = mapResumeExtractionToDraft(parsed.extracted);
       const extracted = recordToExtractedResume(parsed.extracted as Record<string, unknown>);
       const writeResult = await applyResumeToBuilder(builder, extracted);
@@ -274,6 +348,7 @@ export async function enrichFromResume(
           resumeUrl,
           fetchUrl: downloaded.fetchUrl,
           localPdfPath: downloaded.localPdfPath,
+          extractionMode: parsed.extractionMode ?? 'pdf_text',
           // Legacy fields for callers that read profile/projects without cross-check apply
           profileDraft: profile,
           projectDrafts: projects,
