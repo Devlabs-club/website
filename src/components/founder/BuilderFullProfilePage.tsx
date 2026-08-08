@@ -3,6 +3,7 @@ import { AppTopBar } from "@/components/app/AppTopBar";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 import { sortExperiencesByRecency } from "@/lib/talent/experienceNormalize";
+import { hrefForBuilderLink } from "@/lib/talent/resumeViewUrl";
 
 export type BuilderProfile = {
   id: string;
@@ -93,7 +94,7 @@ export const BuilderProfileView: React.FC<{
             href ? (
               <a
                 key={label}
-                href={href}
+                href={hrefForBuilderLink({ key: label, href, builderId: profile.id })}
                 target="_blank"
                 rel="noreferrer"
                 className={

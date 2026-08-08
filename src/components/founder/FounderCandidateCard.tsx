@@ -1,6 +1,7 @@
 import React from 'react';
 import type { FullCandidate } from './founderTypes';
 import { getIntroButtonLabel } from '@/lib/talent/founderIntroUi';
+import { builderResumeViewHref } from '@/lib/talent/resumeViewUrl';
 
 function verificationTone(label: string) {
   if (label === 'DevLabs Verified') return 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10';
@@ -144,7 +145,12 @@ export default function FounderCandidateCard({
           </a>
         ) : null}
         {candidate.links.resume ? (
-          <a href={candidate.links.resume} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
+          <a
+            href={builderResumeViewHref(candidate.builderId) || candidate.links.resume}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#fa7d22] hover:underline"
+          >
             Resume
           </a>
         ) : null}

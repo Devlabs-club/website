@@ -2,6 +2,7 @@ import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
 import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
+import { hrefForBuilderLink } from '@/lib/talent/resumeViewUrl';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 import { profileIdentityBodyClass, profilePaneBodyClass, profilePaneClass, profilePaneHeaderClass, profileSectionLabelClass } from './builderProfileLayout';
 
@@ -65,7 +66,7 @@ export default function BuilderProfileIdentityPanel({ profile }: { profile: Buil
               {linkEntries.map(([key, href]) => (
                 <a
                   key={key}
-                  href={href!}
+                  href={hrefForBuilderLink({ key, href: href!, builderId: profile.id })}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 transition hover:border-[#ff7417]/40 hover:bg-[#fff5ef]"

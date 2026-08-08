@@ -8,6 +8,7 @@ import {
   adminSecondaryButtonClass,
   adminSubPanelClass,
 } from './adminUi';
+import { builderResumeViewHref } from '@/lib/talent/resumeViewUrl';
 
 function AdminPdfEmbed({ url }: { url: string }) {
   const [failed, setFailed] = useState(false);
@@ -38,9 +39,12 @@ function AdminPdfEmbed({ url }: { url: string }) {
 
 export default function AdminResumeViewer({
   resumeUrl,
+  builderId,
   title = 'Resume',
 }: {
   resumeUrl?: string | null;
+  /** When set, open/preview via inline PDF proxy instead of Cloudinary attachment download. */
+  builderId?: string | null;
   title?: string;
 }) {
   if (!resumeUrl?.trim()) {
@@ -55,6 +59,8 @@ export default function AdminResumeViewer({
     );
   }
 
+  const viewUrl = builderResumeViewHref(builderId) || resumeUrl;
+
   return (
     <div className={`${adminPanelClass} p-5 space-y-4`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -63,7 +69,7 @@ export default function AdminResumeViewer({
           <p className={adminLabelClass}>{title}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className={adminSecondaryButtonClass()}>
+          <a href={viewUrl} target="_blank" rel="noopener noreferrer" className={adminSecondaryButtonClass()}>
             <ExternalLink className="w-4 h-4" />
             Open
           </a>
@@ -73,7 +79,7 @@ export default function AdminResumeViewer({
           </a>
         </div>
       </div>
-      <AdminPdfEmbed url={resumeUrl} />
+      <AdminPdfEmbed url={viewUrl} />
     </div>
   );
 }
