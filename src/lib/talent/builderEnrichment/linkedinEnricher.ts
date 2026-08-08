@@ -352,7 +352,11 @@ async function enrichFromApify(
 
 export async function enrichFromLinkedIn(
   builder: any,
-  options?: { runtime?: RuntimeEnv; deferExperiences?: boolean }
+  options?: {
+    runtime?: RuntimeEnv;
+    deferExperiences?: boolean;
+    onProgress?: (brief: string) => void | Promise<void>;
+  }
 ): Promise<SourceEnrichmentResult> {
   const linkedinUrl = builder?.links?.linkedin;
   if (!linkedinUrl) {
@@ -365,6 +369,7 @@ export async function enrichFromLinkedIn(
   }
 
   try {
+    await options?.onProgress?.(`Fetching LinkedIn via Apify: ${normalizedUrl}`);
     const apify = await enrichFromApify(builder, normalizedUrl, options?.runtime, options?.deferExperiences);
     if (apify) return apify;
   } catch (err) {
@@ -372,6 +377,7 @@ export async function enrichFromLinkedIn(
   }
 
   try {
+    await options?.onProgress?.(`Fetching LinkedIn via scraper: ${normalizedUrl}`);
     const remote = await enrichFromRemoteCdp(builder, normalizedUrl, options?.runtime, options?.deferExperiences);
     if (remote) return remote;
   } catch (err) {

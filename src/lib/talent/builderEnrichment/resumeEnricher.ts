@@ -230,17 +230,22 @@ export function mapResumeExtractionToDraft(extracted: Record<string, unknown>): 
   return { profile, projects };
 }
 
-export async function enrichFromResume(builder: any): Promise<SourceEnrichmentResult> {
+export async function enrichFromResume(
+  builder: any,
+  ctx?: { onProgress?: (brief: string) => void | Promise<void> }
+): Promise<SourceEnrichmentResult> {
   const resumeUrl = builder?.links?.resume;
   if (!resumeUrl) {
     return { source: 'resume', errors: ['no_resume_url'] };
   }
 
   try {
+    await ctx?.onProgress?.(`Downloading resume ${resumeUrl}`);
     const downloaded = await downloadResumeAsPdf(resumeUrl, {
       signal: AbortSignal.timeout(30000),
     });
     try {
+      await ctx?.onProgress?.('Parsing resume PDF for roles and projects');
       const parsed = await extractResumeData(downloaded.buffer, {
         localPdfPath: downloaded.localPdfPath,
       });

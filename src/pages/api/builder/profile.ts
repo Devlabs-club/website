@@ -95,37 +95,32 @@ async function bestEffortEnrichment(
   builderEmail: string,
   sources: Array<'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio'>,
   runtime?: ReturnType<typeof runtimeEnvFromLocals>,
-  options?: { research?: boolean }
+  options?: { research?: boolean; origin?: string | null }
 ) {
   const uniqueSources = [...new Set(sources)];
   if (!uniqueSources.length) return null;
 
-  // Mark progress before returning so the UI can poll while work continues in-process.
+  // Mark progress before returning so the UI can poll while work continues.
   const { initialUiStageForSources, setEnrichmentProgress } = await import(
     '@/lib/talent/builderEnrichment/progress'
   );
-  await setEnrichmentProgress(builderId, initialUiStageForSources(uniqueSources));
+  const startStage = initialUiStageForSources(uniqueSources);
+  await setEnrichmentProgress(builderId, startStage, {
+    resetLog: true,
+    brief: `Starting enrichment · ${uniqueSources.join(' → ')}`,
+  });
 
-  void (async () => {
-    try {
-      await import('@/lib/workerPolyfills');
-      const { runEnrichmentPipeline } = await import('@/lib/talent/builderEnrichment/orchestrator');
-      await runEnrichmentPipeline({
-        builderId,
-        memRef: { builderId, builderEmail },
-        sources: uniqueSources,
-        research: options?.research ?? false,
-        runtime,
-        deferExperiences: false,
-      });
-    } catch (error) {
-      console.error('[builder/profile] enrichment failed', { builderId, error });
-      const { clearEnrichmentProgress } = await import('@/lib/talent/builderEnrichment/progress');
-      await clearEnrichmentProgress(builderId).catch(() => {});
-    }
-  })();
+  const { scheduleBuilderEnrichment } = await import('@/lib/talent/scheduleBuilderEnrichment');
+  const scheduled = scheduleBuilderEnrichment({
+    builderId,
+    builderEmail,
+    sources: uniqueSources,
+    research: options?.research ?? false,
+    runtime,
+    origin: options?.origin,
+  });
 
-  return { started: true, sources: uniqueSources };
+  return { started: true, sources: uniqueSources, mode: scheduled.mode };
 }
 
 type ProfileEnrichmentSource = 'resume' | 'github' | 'devpost' | 'linkedin' | 'portfolio';
@@ -460,7 +455,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
         userEmail,
         enrichmentSources,
         runtimeEnvFromLocals(locals),
-        { research: !existingProfile }
+        {
+          research: !existingProfile,
+          origin: new URL(request.url).origin,
+        }
       )
     : null;
   await refreshBuilderScores(profile._id, { skipEmbeddings: true }).catch((error) =>

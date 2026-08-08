@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { proxyToNodeBackend, shouldUseApiProxy } from '@/lib/apiProxy';
 import { notifyOps } from '@/lib/opsTelegram';
+import type { EnrichmentSource } from '@/lib/talent/builderEnrichment/types';
 
 export const prerender = false;
 
@@ -11,16 +12,49 @@ function unauthorized() {
   });
 }
 
-async function runEnrichment(builderId: string) {
+const ALLOWED_SOURCES: EnrichmentSource[] = [
+  'resume',
+  'github',
+  'devpost',
+  'linkedin',
+  'portfolio',
+  'twitter',
+];
+
+function parseSources(raw: unknown): EnrichmentSource[] {
+  if (!Array.isArray(raw)) return ['linkedin', 'github', 'portfolio', 'resume'];
+  const sources = raw
+    .map(String)
+    .filter((s): s is EnrichmentSource => ALLOWED_SOURCES.includes(s as EnrichmentSource));
+  return sources.length ? [...new Set(sources)] : ['linkedin', 'github', 'portfolio', 'resume'];
+}
+
+async function runEnrichment(params: {
+  builderId: string;
+  builderEmail?: string;
+  sources: EnrichmentSource[];
+  research: boolean;
+}) {
   await import('@/lib/workerPolyfills');
   const { connectDB } = await import('@/lib/mongodb');
-  const { enrichBuilderProfile } = await import('@/lib/talent/builderEnrichment');
+  const { runEnrichmentPipeline } = await import('@/lib/talent/builderEnrichment/orchestrator');
+  const BuilderProfile = (await import('@/models/talent/BuilderProfile')).default;
   await connectDB();
-  return enrichBuilderProfile({
-    builderId,
-    sources: ['resume', 'github', 'devpost', 'linkedin', 'portfolio'],
-    dryRun: false,
-  });
+
+  const builder = await BuilderProfile.findById(params.builderId).select('email name').lean();
+  const email =
+    params.builderEmail?.trim() ||
+    (builder && typeof (builder as any).email === 'string' ? String((builder as any).email) : '');
+
+  return {
+    result: await runEnrichmentPipeline({
+      builderId: params.builderId,
+      memRef: { builderId: params.builderId, builderEmail: email },
+      sources: params.sources,
+      research: params.research,
+      deferExperiences: false,
+    }),
+  };
 }
 
 export const POST: APIRoute = async (context) => {
@@ -40,7 +74,12 @@ export const POST: APIRoute = async (context) => {
   const auth = request.headers.get('Authorization') || '';
   if (auth !== `Bearer ${secret}`) return unauthorized();
 
-  let body: { builderId?: string };
+  let body: {
+    builderId?: string;
+    builderEmail?: string;
+    sources?: string[];
+    research?: boolean;
+  };
   try {
     body = await request.json();
   } catch {
@@ -58,8 +97,16 @@ export const POST: APIRoute = async (context) => {
     });
   }
 
+  const sources = parseSources(body.sources);
+  const research = body.research !== false;
+
   try {
-    const result = await runEnrichment(builderId);
+    const { result } = await runEnrichment({
+      builderId,
+      builderEmail: body.builderEmail,
+      sources,
+      research,
+    });
     return new Response(JSON.stringify({ success: true, accepted: false, result }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -73,6 +120,8 @@ export const POST: APIRoute = async (context) => {
       severity: 'error',
       body: message.slice(0, 500),
     });
+    const { clearEnrichmentProgress } = await import('@/lib/talent/builderEnrichment/progress');
+    await clearEnrichmentProgress(builderId).catch(() => {});
     return new Response(
       JSON.stringify({
         success: false,

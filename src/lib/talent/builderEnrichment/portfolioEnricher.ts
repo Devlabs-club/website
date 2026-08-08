@@ -30,7 +30,10 @@ Return strict JSON:
 }
 Only include real shipped projects — skip blog posts unless they demonstrate engineering work.`;
 
-export async function enrichFromPortfolio(builder: any): Promise<SourceEnrichmentResult> {
+export async function enrichFromPortfolio(
+  builder: any,
+  ctx?: { onProgress?: (brief: string) => void | Promise<void> }
+): Promise<SourceEnrichmentResult> {
   const portfolioUrl = builder?.links?.portfolio || builder?.links?.personalWebsite;
   if (!portfolioUrl) {
     return { source: 'portfolio', errors: ['no_portfolio_url'] };
@@ -42,11 +45,17 @@ export async function enrichFromPortfolio(builder: any): Promise<SourceEnrichmen
   }
 
   try {
+    await ctx?.onProgress?.(`Crawling portfolio ${normalized}`);
     const crawled = await crawlMarkdownFromUrl(normalized, {
       maxDepth: 2,
       maxPages: 10,
       maxCharsPerPage: 5000,
     });
+    if (crawled.pages?.length) {
+      await ctx?.onProgress?.(
+        `Read ${crawled.pages.length} portfolio page${crawled.pages.length === 1 ? '' : 's'} from ${normalized}`
+      );
+    }
     const chunk = crawled.combinedMarkdown
       ? { markdown: crawled.combinedMarkdown, provider: 'crawl' as const }
       : await fetchUrlMarkdown(normalized, 'Portfolio', 7000);
@@ -73,6 +82,7 @@ export async function enrichFromPortfolio(builder: any): Promise<SourceEnrichmen
       return { source: 'portfolio', errors: ['openrouter_not_configured'] };
     }
 
+    await ctx?.onProgress?.(`Extracting projects from portfolio ${normalized}`);
     const extraction = await generateOpenRouterReply({
       systemPrompt: PORTFOLIO_EXTRACT_PROMPT,
       userPrompt: chunk.markdown,

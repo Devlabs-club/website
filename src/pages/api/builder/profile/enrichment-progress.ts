@@ -38,17 +38,42 @@ export const GET: APIRoute = async ({ request, locals }) => {
   }).lean()) as any;
 
   if (!profile) {
-    return json({ success: true, active: false, stage: null, label: null, detail: null });
+    return json({
+      success: true,
+      active: false,
+      stage: null,
+      label: null,
+      detail: null,
+      brief: null,
+      log: [],
+    });
   }
 
   const progress = readEnrichmentProgress(profile);
   if (!progress || progress.stage === 'done') {
-    return json({ success: true, active: false, stage: null, label: null, detail: null });
+    return json({
+      success: true,
+      active: false,
+      stage: null,
+      label: null,
+      detail: null,
+      brief: null,
+      log: [],
+    });
   }
 
   if (isEnrichmentProgressStale(progress)) {
     await clearEnrichmentProgress(String(profile._id)).catch(() => {});
-    return json({ success: true, active: false, stage: null, label: null, detail: null, stale: true });
+    return json({
+      success: true,
+      active: false,
+      stage: null,
+      label: null,
+      detail: null,
+      brief: null,
+      log: [],
+      stale: true,
+    });
   }
 
   return json({
@@ -57,6 +82,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
     stage: progress.stage,
     label: progress.label,
     detail: progress.detail,
+    brief: progress.brief || progress.detail || null,
+    log: progress.log || [],
     updatedAt: progress.updatedAt,
   });
 };

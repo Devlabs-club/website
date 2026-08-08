@@ -437,12 +437,23 @@ async function listUserRepos(username: string): Promise<GithubRepo[]> {
 
 export async function enrichGithubReposForUser(
   username: string,
-  builderName?: string
+  builderName?: string,
+  opts?: { onProgress?: (brief: string) => void | Promise<void> }
 ): Promise<{ profile: EnrichedProfileDraft; projects: EnrichedProjectDraft[]; meta: Record<string, unknown> }> {
+  const report = async (brief: string) => {
+    try {
+      await opts?.onProgress?.(brief);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  await report(`Fetching github.com/${username}`);
   const [userRes, repos] = await Promise.all([
     githubFetch(`/users/${encodeURIComponent(username)}`),
     listUserRepos(username),
   ]);
+  await report(`Found ${repos.length} public repos for ${username}`);
 
   const profile: EnrichedProfileDraft = {
     links: { github: `https://github.com/${username}` },
@@ -462,6 +473,7 @@ export async function enrichGithubReposForUser(
   const scored: Array<{ repo: GithubRepo; authorCommits: number }> = [];
   for (const repo of candidates) {
     const [owner, name] = repo.full_name.split('/');
+    await report(`Scoring commits on github.com/${repo.full_name}`);
     const authorCommits = await getAuthorCommitCount(owner, name, username);
     if (authorCommits < MIN_AUTHOR_COMMITS) continue;
     scored.push({ repo, authorCommits });
@@ -492,6 +504,7 @@ export async function enrichGithubReposForUser(
 
   for (const { repo, authorCommits } of selected) {
     const [owner, name] = repo.full_name.split('/');
+    await report(`Reading README + stack for github.com/${repo.full_name}`);
     const [languages, readme, rootFiles, manifests] = await Promise.all([
       getRepoLanguages(owner, name),
       getReadmeText(owner, name),
@@ -506,6 +519,7 @@ export async function enrichGithubReposForUser(
       manifests,
     });
 
+    await report(`Summarizing ${repo.full_name} for your profile`);
     const summary = await summarizeRepoForProfile({
       repo,
       username,
@@ -564,14 +578,20 @@ export async function enrichGithubReposForUser(
   };
 }
 
-export async function enrichFromGithub(builder: any): Promise<SourceEnrichmentResult> {
+export async function enrichFromGithub(
+  builder: any,
+  ctx?: { onProgress?: (brief: string) => void | Promise<void> }
+): Promise<SourceEnrichmentResult> {
   const username = parseGithubUsername(builder?.links?.github);
   if (!username) {
     return { source: 'github', errors: ['no_github_username'] };
   }
 
   try {
-    const result = await enrichGithubReposForUser(username, builder?.name);
+    await ctx?.onProgress?.(`Listing public repos for github.com/${username}`);
+    const result = await enrichGithubReposForUser(username, builder?.name, {
+      onProgress: ctx?.onProgress,
+    });
     return {
       source: 'github',
       profile: result.profile,

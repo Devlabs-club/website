@@ -171,6 +171,7 @@ export async function deepResearchBuilder(params: {
   runtime?: RuntimeEnv;
   /** Force a fresh Exa people search even if fingerprint matches. */
   forceExa?: boolean;
+  onProgress?: (brief: string) => void | Promise<void>;
 }): Promise<DeepResearchResult> {
   const { builder, projects, runtime } = params;
   if (!builder?.name) return EMPTY;
@@ -181,6 +182,11 @@ export async function deepResearchBuilder(params: {
   const priorHash = builder?.enrichmentInsights?.exaResearch?.fingerprint || null;
   const skipExa = !params.forceExa && Boolean(priorHash && priorHash === fingerprintHash);
 
+  await params.onProgress?.(
+    skipExa
+      ? `Searching the web for ${builder.name} (Brave)`
+      : `Searching the web for ${builder.name} (Brave + Exa)`
+  );
   const { results, via, searchProviders, exaSkipped } = await gatherSearchResults(builder, runtime, {
     skipExa,
     fingerprintHash,
@@ -190,6 +196,7 @@ export async function deepResearchBuilder(params: {
     return { ...EMPTY, searchProviders, exaSkipped, exaFingerprint: fingerprintHash };
   }
 
+  await params.onProgress?.(`Found ${results.length} web results for ${builder.name}`);
   const citations = results.map((r) => r.url).filter(Boolean).slice(0, 8);
 
   const seedUrls = [
@@ -204,6 +211,7 @@ export async function deepResearchBuilder(params: {
   const crawledChunks: string[] = [];
 
   for (const url of uniqueSeeds) {
+    await params.onProgress?.(`Crawling ${url}`);
     const { combinedMarkdown, pages } = await crawlMarkdownFromUrl(url, {
       maxDepth: 2,
       maxPages: 6,
@@ -211,8 +219,12 @@ export async function deepResearchBuilder(params: {
     });
     if (combinedMarkdown) {
       crawledChunks.push(combinedMarkdown);
+      await params.onProgress?.(
+        `Read ${pages.length || 1} page${(pages.length || 1) === 1 ? '' : 's'} from ${url}`
+      );
     } else if (pages.length) {
       crawledChunks.push(pages.map((p) => `[${p.url}]\n${p.markdown}`).join('\n\n'));
+      await params.onProgress?.(`Read ${pages.length} pages from ${url}`);
     }
   }
 
@@ -227,6 +239,7 @@ export async function deepResearchBuilder(params: {
   const twitterUrl = builder.links?.twitter;
   if (twitterUrl && hasTwitterApiConfig(runtime)) {
     const handle = parseTwitterHandle(twitterUrl);
+    await params.onProgress?.(`Fetching X posts for ${handle ? `@${handle}` : twitterUrl}`);
     const { posts } = await fetchTopTwitterPosts(handle || twitterUrl, { limit: 4, runtime });
     twitterPosts = posts.map((p) => ({ url: p.url, text: p.text.slice(0, 280), likes: p.likeCount }));
   }
@@ -237,6 +250,7 @@ export async function deepResearchBuilder(params: {
 
   let raw = '';
   try {
+    await params.onProgress?.(`Synthesizing founder-facing dossier for ${builder.name}`);
     raw = await generateOpenRouterReply({
       systemPrompt: `You are a talent researcher building a founder-ready dossier on ONE builder from web-search excerpts + scraped pages + optional Twitter posts.
 Match results to THIS person (handles, employer, school, projects); IGNORE namesakes.

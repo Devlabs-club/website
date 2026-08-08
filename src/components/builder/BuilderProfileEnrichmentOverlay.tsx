@@ -33,6 +33,10 @@ type Props = {
   stage: EnrichmentVisualStage;
   label?: string | null;
   detail?: string | null;
+  /** Exact live fetch brief (URL, repo, page). */
+  brief?: string | null;
+  /** Rolling feed of recent live briefs. */
+  log?: string[];
 };
 
 function formatElapsed(seconds: number) {
@@ -42,18 +46,39 @@ function formatElapsed(seconds: number) {
   return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
-export function BuilderProfileEnrichmentOverlay({ stage, label, detail }: Props) {
+export function BuilderProfileEnrichmentOverlay({
+  stage,
+  label,
+  detail,
+  brief,
+  log = [],
+}: Props) {
   const [visible, setVisible] = useState(true);
   const [displayStage, setDisplayStage] = useState(stage);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [barPulse, setBarPulse] = useState(0);
+  const [briefFlash, setBriefFlash] = useState(false);
   const transitionRef = useRef<number | null>(null);
   const startedAtRef = useRef(Date.now());
+  const logEndRef = useRef<HTMLDivElement | null>(null);
+  const lastBriefRef = useRef<string | null>(null);
 
   const activeStep = STEPS[STAGE_INDEX[displayStage]] || STEPS[0];
   const activeIndex = STAGE_INDEX[displayStage] ?? 0;
   const activeLabel = displayStage === stage && label ? label : activeStep.title;
-  const activeDetail = displayStage === stage && detail ? detail : activeStep.detail;
+  const liveBrief =
+    displayStage === stage && brief?.trim()
+      ? brief.trim()
+      : displayStage === stage && detail
+        ? detail
+        : activeStep.detail;
+  const liveLog = useMemo(() => {
+    const lines = Array.isArray(log) ? log.map(String).filter(Boolean) : [];
+    if (brief?.trim() && !lines.includes(brief.trim())) {
+      return [...lines, brief.trim()].slice(-8);
+    }
+    return lines.slice(-8);
+  }, [brief, log]);
 
   const progressPct = useMemo(() => {
     const base = (activeIndex / STEPS.length) * 100;
@@ -82,6 +107,19 @@ export function BuilderProfileEnrichmentOverlay({ stage, label, detail }: Props)
       if (transitionRef.current) window.clearTimeout(transitionRef.current);
     };
   }, [displayStage, stage]);
+
+  useEffect(() => {
+    const next = brief?.trim() || null;
+    if (!next || next === lastBriefRef.current) return;
+    lastBriefRef.current = next;
+    setBriefFlash(true);
+    const t = window.setTimeout(() => setBriefFlash(false), 420);
+    return () => window.clearTimeout(t);
+  }, [brief]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [liveLog.length, liveBrief]);
 
   return (
     <div
@@ -130,6 +168,20 @@ export function BuilderProfileEnrichmentOverlay({ stage, label, detail }: Props)
           </div>
         </div>
 
+        <div
+          className={`mt-5 border border-black/8 bg-[#fffcfa] px-4 py-3 transition-colors duration-300 ${
+            briefFlash ? 'border-[#ff7417]/45 bg-[#fff4eb]' : ''
+          }`}
+        >
+          <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-[#bf4f08]">
+            Live fetch
+          </p>
+          <p className="mt-1.5 font-mono text-[0.78rem] leading-5 text-[#050505] break-all">
+            {liveBrief}
+            <span className="builder-enrichment-pulse ml-2 inline-block h-1.5 w-1.5 align-middle bg-[#ff7417]" />
+          </p>
+        </div>
+
         <div className="mt-6 grid gap-5 sm:grid-cols-[1fr_148px] sm:items-stretch">
           <ol className="space-y-0 border border-black/8 bg-[#fffcfa]">
             {STEPS.map((step, index) => {
@@ -170,7 +222,7 @@ export function BuilderProfileEnrichmentOverlay({ stage, label, detail }: Props)
                         current ? 'text-black/55' : 'text-black/35'
                       }`}
                     >
-                      {current ? activeDetail : step.detail}
+                      {step.detail}
                     </p>
                   </div>
                 </li>
@@ -187,8 +239,28 @@ export function BuilderProfileEnrichmentOverlay({ stage, label, detail }: Props)
           </div>
         </div>
 
+        {liveLog.length > 0 ? (
+          <div className="mt-5 border border-black/8 bg-[#050505] px-4 py-3">
+            <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-[#ff7417]">
+              Activity
+            </p>
+            <div className="mt-2 max-h-[7.5rem] overflow-y-auto font-mono text-[0.7rem] leading-5 text-white/70">
+              {liveLog.map((line, i) => (
+                <p
+                  key={`${i}-${line.slice(0, 24)}`}
+                  className={`break-all ${i === liveLog.length - 1 ? 'text-white' : 'text-white/45'}`}
+                >
+                  <span className="text-white/25 select-none">› </span>
+                  {line}
+                </p>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+        ) : null}
+
         <p className="mt-5 text-[0.8rem] leading-5 text-black/45">
-          Usually under a minute. Keep this tab open — we&apos;ll drop you into your profile when it&apos;s ready.
+          Keep this tab open — you&apos;ll drop into your profile when enrichment finishes.
         </p>
       </div>
     </div>

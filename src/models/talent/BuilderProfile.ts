@@ -148,6 +148,8 @@ const BuilderProfileSchema = new mongoose.Schema(
         stage: { type: String, default: null },
         label: { type: String, default: null },
         detail: { type: String, default: null },
+        brief: { type: String, default: null },
+        log: [{ type: String }],
         updatedAt: { type: Date, default: null },
       },
       githubShowcase: {

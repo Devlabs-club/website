@@ -367,6 +367,8 @@ export const BuilderHome: React.FC = () => {
   const [enrichmentStage, setEnrichmentStage] = useState<EnrichmentVisualStage>('linkedin');
   const [enrichmentLabel, setEnrichmentLabel] = useState<string | null>(null);
   const [enrichmentDetail, setEnrichmentDetail] = useState<string | null>(null);
+  const [enrichmentBrief, setEnrichmentBrief] = useState<string | null>(null);
+  const [enrichmentLog, setEnrichmentLog] = useState<string[]>([]);
   const sectionInitializedRef = useRef(false);
   const inviteLinkAttemptedRef = useRef(false);
 
@@ -419,6 +421,8 @@ export const BuilderHome: React.FC = () => {
       setEnrichmentStage('linkedin');
       setEnrichmentLabel(null);
       setEnrichmentDetail(null);
+      setEnrichmentBrief(null);
+      setEnrichmentLog([]);
       return;
     }
 
@@ -445,6 +449,14 @@ export const BuilderHome: React.FC = () => {
           setEnrichmentStage(json.stage as EnrichmentVisualStage);
           setEnrichmentLabel(typeof json.label === 'string' ? json.label : null);
           setEnrichmentDetail(typeof json.detail === 'string' ? json.detail : null);
+          setEnrichmentBrief(
+            typeof json.brief === 'string' && json.brief.trim()
+              ? json.brief
+              : typeof json.detail === 'string'
+                ? json.detail
+                : null
+          );
+          setEnrichmentLog(Array.isArray(json.log) ? json.log.map(String).filter(Boolean).slice(-8) : []);
           return;
         }
         // Background job finished (or never started / went stale).
@@ -468,15 +480,17 @@ export const BuilderHome: React.FC = () => {
         setEnrichmentStage('research');
         setEnrichmentLabel('Deep research');
         setEnrichmentDetail('Connecting resume, web presence, and founder-facing highlights.');
+        setEnrichmentBrief('Connecting resume, web presence, and founder-facing highlights.');
       } else if (elapsed > 18_000) {
         setEnrichmentStage('github');
         setEnrichmentLabel('Scanning GitHub');
         setEnrichmentDetail('Repos, languages, and projects that show how you ship.');
+        setEnrichmentBrief('Repos, languages, and projects that show how you ship.');
       }
     };
 
     poll();
-    const intervalId = window.setInterval(poll, 800);
+    const intervalId = window.setInterval(poll, 500);
     const softId = window.setInterval(softAdvance, 2000);
     return () => {
       cancelled = true;
@@ -791,6 +805,8 @@ export const BuilderHome: React.FC = () => {
             stage={enrichmentStage}
             label={enrichmentLabel}
             detail={enrichmentDetail}
+            brief={enrichmentBrief}
+            log={enrichmentLog}
           />
         ) : null
       }

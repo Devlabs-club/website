@@ -10,10 +10,9 @@ import { reloadBuilder, getProjects, updateBuilderScores, updateLinks } from '@/
 import {
   clearEnrichmentProgress,
   initialUiStageForSources,
+  reportSourceProgress,
   setEnrichmentProgress,
   touchEnrichmentProgress,
-  uiStageForSource,
-  type EnrichmentUiStage,
 } from '@/lib/talent/builderEnrichment/progress';
 import type { SourceEnrichmentResult } from './types';
 import { notifyOps, opsPersonFrom, watchOpsDuration } from '@/lib/opsTelegram';
@@ -36,23 +35,17 @@ export type PublicProfileReadiness = {
 
 const SOURCE_ORDER: EnrichmentSource[] = ['linkedin', 'github', 'devpost', 'portfolio', 'twitter', 'resume'];
 
-async function reportSourceProgress(builderId: string, source: EnrichmentSource, sources: EnrichmentSource[]) {
-  const stage = uiStageForSource(source);
-  if (stage) {
-    await setEnrichmentProgress(builderId, stage);
-    return;
-  }
-  const githubIndex = sources.indexOf('github');
-  const sourceIndex = sources.indexOf(source);
-  if (githubIndex >= 0 && sourceIndex > githubIndex) {
-    await setEnrichmentProgress(builderId, 'github');
-    return;
-  }
-  if (sources.includes('linkedin') && sourceIndex > sources.indexOf('linkedin')) {
-    await setEnrichmentProgress(builderId, 'linkedin');
-    return;
-  }
-  await touchEnrichmentProgress(builderId);
+function linkForProgress(builder: any, source: EnrichmentSource): string | null {
+  const links = builder?.links || {};
+  if (source === 'portfolio') return links.portfolio || links.personalWebsite || null;
+  if (source === 'resume') return links.resume || null;
+  return links[source] || null;
+}
+
+async function reportSourceStart(builderId: string, builder: any, source: EnrichmentSource) {
+  await reportSourceProgress(builderId, source, {
+    target: linkForProgress(builder, source),
+  });
 }
 
 function getCompletedSources(builder: any): EnrichmentSource[] {
@@ -220,13 +213,15 @@ export async function runEnrichmentPipeline(params: {
 
   try {
     if (sources.length) {
-      await setEnrichmentProgress(params.builderId, initialUiStageForSources(sources));
+      const first = sources[0];
+      await reportSourceStart(params.builderId, builder, first);
       const res = await enrichBuilderProfile({
         builderId: params.builderId,
         sources,
         runtime: params.runtime,
         deferExperiences: params.deferExperiences,
-        onSourceStart: (source) => reportSourceProgress(params.builderId, source, sources),
+        onSourceStart: (source) => reportSourceStart(params.builderId, builder, source),
+        onProgress: (brief) => touchEnrichmentProgress(params.builderId, brief),
       });
       results.push(...res.sources);
     }
@@ -244,13 +239,18 @@ export async function runEnrichmentPipeline(params: {
     let researchSummary = '';
     let researchResult: DeepResearchResult | null = null;
     if (params.research !== false) {
-      await setEnrichmentProgress(params.builderId, 'research');
+      await setEnrichmentProgress(params.builderId, 'research', {
+        label: 'Deep research',
+        detail: 'Searching the web for shipped proof and founder-facing highlights.',
+        brief: `Researching ${builder.name || builder.email || 'builder'} across the public web`,
+      });
       const projects = await getProjects(params.builderId);
     const research = await deepResearchBuilder({
       builder,
       projects,
       memRef: params.memRef,
       runtime: params.runtime,
+      onProgress: (brief) => touchEnrichmentProgress(params.builderId, brief),
     });
     researchResult = research;
     researchSummary = [research.summary, research.proofPoints.slice(0, 3).join(' | ')].filter(Boolean).join(' — ');
@@ -282,7 +282,8 @@ export async function runEnrichmentPipeline(params: {
         sources: discoveredSources,
         runtime: params.runtime,
         deferExperiences: params.deferExperiences,
-        onSourceStart: (source) => reportSourceProgress(params.builderId, source, discoveredSources),
+        onSourceStart: (source) => reportSourceStart(params.builderId, builder, source),
+        onProgress: (brief) => touchEnrichmentProgress(params.builderId, brief),
       });
       results.push(...res.sources);
     }

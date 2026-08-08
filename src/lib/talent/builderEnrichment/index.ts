@@ -19,15 +19,56 @@ const DEFAULT_ORDER: EnrichmentSource[] = [
   'twitter',
 ];
 
+/** Soft per-source budget so one hung crawl/LLM cannot leave the whole run stuck. */
+const SOURCE_TIMEOUT_MS: Partial<Record<EnrichmentSource, number>> = {
+  linkedin: 120_000,
+  github: 120_000,
+  portfolio: 90_000,
+  resume: 60_000,
+  devpost: 60_000,
+  twitter: 45_000,
+};
+
+async function withSourceTimeout<T>(
+  source: EnrichmentSource,
+  promise: Promise<T>
+): Promise<T | { source: EnrichmentSource; errors: string[] }> {
+  const timeoutMs = SOURCE_TIMEOUT_MS[source] ?? 90_000;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${source}_timed_out_after_${timeoutMs}ms`)),
+          timeoutMs
+        );
+      }),
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : `${source}_failed`;
+    return { source, errors: [message] };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 const ENRICHERS: Record<
   EnrichmentSource,
-  (builder: any, ctx?: { runtime?: RuntimeEnv; deferExperiences?: boolean }) => Promise<import('./types').SourceEnrichmentResult>
+  (
+    builder: any,
+    ctx?: {
+      runtime?: RuntimeEnv;
+      deferExperiences?: boolean;
+      onProgress?: (brief: string) => void | Promise<void>;
+    }
+  ) => Promise<import('./types').SourceEnrichmentResult>
 > = {
-  resume: (builder) => enrichFromResume(builder),
-  github: (builder) => enrichFromGithub(builder),
-  devpost: (builder) => enrichFromDevpost(builder),
+  resume: (builder, ctx) => enrichFromResume(builder, ctx),
+  github: (builder, ctx) => enrichFromGithub(builder, ctx),
+  devpost: (builder, ctx) => enrichFromDevpost(builder, ctx),
   linkedin: (builder, ctx) => enrichFromLinkedIn(builder, ctx),
-  portfolio: (builder) => enrichFromPortfolio(builder),
+  portfolio: (builder, ctx) => enrichFromPortfolio(builder, ctx),
   twitter: (builder, ctx) => enrichFromTwitter(builder, ctx),
 };
 
@@ -40,6 +81,8 @@ export async function enrichBuilderProfile(params: {
   deferExperiences?: boolean;
   runtime?: RuntimeEnv;
   onSourceStart?: (source: EnrichmentSource) => void | Promise<void>;
+  /** Fine-grained live brief for the builder overlay (URLs, repos, pages). */
+  onProgress?: (brief: string) => void | Promise<void>;
 }): Promise<BuilderEnrichmentResult> {
   const builder = await BuilderProfile.findById(params.builderId);
   if (!builder) {
@@ -51,12 +94,52 @@ export async function enrichBuilderProfile(params: {
   const profileFieldsUpdated: string[] = [];
   let projectsCreated = 0;
   let projectsUpdated = 0;
+  const report = async (brief: string) => {
+    try {
+      await params.onProgress?.(brief);
+    } catch {
+      /* progress is best-effort */
+    }
+  };
 
   for (const source of sources) {
     await params.onSourceStart?.(source);
     const enricher = ENRICHERS[source];
-    const result = await enricher(builder, { runtime: params.runtime, deferExperiences: params.deferExperiences });
+    const target =
+      source === 'portfolio'
+        ? builder.links?.portfolio || builder.links?.personalWebsite
+        : source === 'resume'
+          ? builder.links?.resume
+          : (builder.links as any)?.[source];
+    if (target) await report(`Fetching ${target}`);
+
+    const result = (await withSourceTimeout(
+      source,
+      enricher(builder, {
+        runtime: params.runtime,
+        deferExperiences: params.deferExperiences,
+        onProgress: report,
+      })
+    )) as BuilderEnrichmentResult['sources'][number];
     sourceResults.push(result);
+
+    if (result.errors?.length && !result.profile && !result.projects?.length) {
+      console.warn('[enrichBuilderProfile] source failed/timed out', {
+        builderId: params.builderId,
+        source,
+        errors: result.errors,
+      });
+      await report(`${source} skipped: ${result.errors[0]}`);
+      continue;
+    }
+
+    if (result.projects?.length) {
+      await report(
+        `${source}: saved ${result.projects.length} project${result.projects.length === 1 ? '' : 's'}`
+      );
+    } else if (result.profile) {
+      await report(`${source}: profile fields updated`);
+    }
 
     if (params.dryRun) continue;
 

@@ -99,13 +99,14 @@ Return STRICT JSON:
 
 export async function enrichFromTwitter(
   builder: any,
-  ctx?: { runtime?: RuntimeEnv }
+  ctx?: { runtime?: RuntimeEnv; onProgress?: (brief: string) => void | Promise<void> }
 ): Promise<SourceEnrichmentResult> {
   const twitterUrl = builder?.links?.twitter;
   if (!twitterUrl) return { source: 'twitter', errors: ['no_twitter_url'] };
 
   const handle = parseTwitterHandle(twitterUrl);
   const runtime = ctx?.runtime;
+  await ctx?.onProgress?.(`Fetching posts for ${handle ? `@${handle}` : twitterUrl}`);
 
   if (hasTwitterApiConfig(runtime)) {
     const { user, posts, errors: apiErrors } = await fetchTopTwitterPosts(handle || twitterUrl, {

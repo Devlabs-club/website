@@ -186,7 +186,10 @@ export async function enrichDevpostProfile(
 
 export async function enrichFromDevpost(
   builder: any,
-  options?: { includeExistingProjects?: boolean }
+  options?: {
+    includeExistingProjects?: boolean;
+    onProgress?: (brief: string) => void | Promise<void>;
+  }
 ): Promise<SourceEnrichmentResult> {
   const projects: EnrichedProjectDraft[] = [];
   const errors: string[] = [];
@@ -218,11 +221,17 @@ export async function enrichFromDevpost(
   }
 
   for (const profileUrl of profileUrls) {
+    await options?.onProgress?.(`Fetching Devpost profile ${profileUrl}`);
     const result = await enrichDevpostProfile(profileUrl, builder?.name, { maxProjects: 8 });
     projects.push(...result.projects);
     errors.push(...result.errors);
     meta.profileUrl = profileUrl;
     meta.projectUrlsFound = result.projectUrls;
+    if (result.projects.length) {
+      await options?.onProgress?.(
+        `Found ${result.projects.length} Devpost project${result.projects.length === 1 ? '' : 's'}`
+      );
+    }
   }
 
   for (const url of directProjectUrls) {
