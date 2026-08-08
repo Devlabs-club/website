@@ -350,7 +350,14 @@ export async function runEnrichmentPipeline(params: {
   const failedSources = results.filter(
     (r) => r.errors?.length && !r.profile && !r.projects?.length
   );
-  if (failedSources.length) {
+  // Only page ops when LinkedIn/GitHub fully failed, or every requested source failed.
+  // Soft misses (portfolio/devpost/twitter) and non-blocking resume OCR misses should
+  // not look like a total enrichment failure — that was flooding Telegram.
+  const totalHardFailure =
+    (sources.length > 0 && failedSources.length === results.length && results.length > 0) ||
+    failedSources.some((r) => r.source === 'linkedin' || r.source === 'github');
+
+  if (totalHardFailure) {
     notifyOps({
       event: 'enrichment_failed',
       title: `Builder Enrichment failed for ${builderLabel}`,
@@ -358,9 +365,12 @@ export async function runEnrichmentPipeline(params: {
       body: failedSources.map((r) => `${r.source}: ${(r.errors || []).join(', ')}`).join('\n'),
     });
   } else {
+    const softNote = failedSources.length
+      ? ` (soft misses: ${failedSources.map((r) => `${r.source}:${(r.errors || [])[0] || 'error'}`).join(', ')})`
+      : '';
     notifyOps({
       event: 'enrichment_run',
-      title: `New Builder Enrichment ${builderLabel}`,
+      title: `New Builder Enrichment ${builderLabel}${softNote}`,
     });
   }
 

@@ -224,7 +224,16 @@ Schema:
       founderClarity: result.founderClarity || deterministic.founderClarity,
       strengths: Array.isArray(result.strengths) ? result.strengths : deterministic.strengths,
       issues: Array.isArray(result.issues) ? result.issues : deterministic.issues,
-      suggestedFixes: Array.isArray(result.suggestedFixes) ? result.suggestedFixes : deterministic.suggestedFixes,
+      suggestedFixes: Array.isArray(result.suggestedFixes)
+        ? result.suggestedFixes.map((fix: any) => ({
+            field: String(fix?.field || ''),
+            priority: fix?.priority === 'low' || fix?.priority === 'high' ? fix.priority : 'medium',
+            action: String(fix?.action || ''),
+            example: Array.isArray(fix?.example)
+              ? fix.example.map(String).join(', ')
+              : String(fix?.example || ''),
+          }))
+        : deterministic.suggestedFixes,
       fieldScores: result.fieldScores || deterministic.fieldScores,
       source: 'llm'
     };
