@@ -17,6 +17,9 @@ import AgentTraceSetup from './AgentTraceSetup';
 import BuilderShell, { builderNavIcons, type BuilderSection } from './BuilderShell';
 import type { MessageDelivery } from './AgentTraceSetup';
 
+const ENRICHMENT_POLL_MS = 1000;
+const ENRICHMENT_UI_MAX_MS = 6 * 60 * 1000;
+
 type ProfileResponse = {
   success: boolean;
   error?: string;
@@ -460,7 +463,7 @@ export const BuilderHome: React.FC = () => {
           return;
         }
         // Background job finished (or never started / went stale).
-        if (sawActive || Date.now() - startedAt > 4_000) {
+        if (sawActive || Date.now() - startedAt > ENRICHMENT_UI_MAX_MS) {
           await finish();
         }
       } catch {
@@ -472,7 +475,7 @@ export const BuilderHome: React.FC = () => {
     const softAdvance = () => {
       if (cancelled || gotServerStage) return;
       const elapsed = Date.now() - startedAt;
-      if (elapsed > 180_000) {
+      if (elapsed > ENRICHMENT_UI_MAX_MS) {
         void finish();
         return;
       }
@@ -490,7 +493,7 @@ export const BuilderHome: React.FC = () => {
     };
 
     poll();
-    const intervalId = window.setInterval(poll, 500);
+    const intervalId = window.setInterval(poll, ENRICHMENT_POLL_MS);
     const softId = window.setInterval(softAdvance, 2000);
     return () => {
       cancelled = true;

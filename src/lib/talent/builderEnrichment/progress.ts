@@ -4,7 +4,7 @@ import type { EnrichmentSource } from './types';
 export type EnrichmentUiStage = 'linkedin' | 'github' | 'research' | 'done';
 
 /** If progress hasn't been updated for this long, treat the run as dead (e.g. server killed). */
-export const ENRICHMENT_PROGRESS_STALE_MS = 3 * 60 * 1000;
+export const ENRICHMENT_PROGRESS_STALE_MS = 6 * 60 * 1000;
 
 const STAGE_LABELS: Record<EnrichmentUiStage, string> = {
   linkedin: 'Reading LinkedIn',
