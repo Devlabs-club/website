@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { BuilderEnrichmentAsciiVisual, type EnrichmentVisualStage } from './BuilderEnrichmentAsciiVisual';
+import type { EnrichmentVisualStage } from './BuilderEnrichmentAsciiVisual';
 
 const STEPS: Array<{
   id: EnrichmentVisualStage;
@@ -9,17 +9,17 @@ const STEPS: Array<{
   {
     id: 'linkedin',
     title: 'Reading LinkedIn',
-    detail: 'Public profile, roles, education, and builder proof.',
+    detail: 'Work history, school, and the basics.',
   },
   {
     id: 'github',
-    title: 'Scanning GitHub',
-    detail: 'Repos, languages, and projects that show how you ship.',
+    title: 'Checking GitHub',
+    detail: 'Repos, languages, and shipped projects.',
   },
   {
     id: 'research',
-    title: 'Deep research',
-    detail: 'Connecting resume, web presence, and founder-facing highlights.',
+    title: 'Checking the web',
+    detail: 'Resume, Devpost, portfolio, and anything useful.',
   },
 ];
 
@@ -46,6 +46,17 @@ function formatElapsed(seconds: number) {
   return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
+function cleanStatusText(value: string | null | undefined) {
+  const text = value?.trim();
+  if (!text) return null;
+  return text
+    .replace(/founder-facing profile/gi, 'profile')
+    .replace(/founder-facing highlights/gi, 'useful highlights')
+    .replace(/founder-facing fields/gi, 'profile fields')
+    .replace(/\bDeep research\b/g, 'Checking the web')
+    .replace(/\bdeep research\b/g, 'checking the web');
+}
+
 export function BuilderProfileEnrichmentOverlay({
   stage,
   label,
@@ -60,26 +71,17 @@ export function BuilderProfileEnrichmentOverlay({
   const [briefFlash, setBriefFlash] = useState(false);
   const transitionRef = useRef<number | null>(null);
   const startedAtRef = useRef(Date.now());
-  const logEndRef = useRef<HTMLDivElement | null>(null);
   const lastBriefRef = useRef<string | null>(null);
 
   const activeStep = STEPS[STAGE_INDEX[displayStage]] || STEPS[0];
   const activeIndex = STAGE_INDEX[displayStage] ?? 0;
-  const activeLabel = displayStage === stage && label ? label : activeStep.title;
+  const activeLabel = displayStage === stage ? cleanStatusText(label) || activeStep.title : activeStep.title;
   const liveBrief =
     displayStage === stage && brief?.trim()
-      ? brief.trim()
+      ? cleanStatusText(brief) || brief.trim()
       : displayStage === stage && detail
-        ? detail
+        ? cleanStatusText(detail) || detail
         : activeStep.detail;
-  const liveLog = useMemo(() => {
-    const lines = Array.isArray(log) ? log.map(String).filter(Boolean) : [];
-    if (brief?.trim() && !lines.includes(brief.trim())) {
-      return [...lines, brief.trim()].slice(-8);
-    }
-    return lines.slice(-8);
-  }, [brief, log]);
-
   const progressPct = useMemo(() => {
     const base = (activeIndex / STEPS.length) * 100;
     const within = 18 + (barPulse % 22);
@@ -117,10 +119,6 @@ export function BuilderProfileEnrichmentOverlay({
     return () => window.clearTimeout(t);
   }, [brief]);
 
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, [liveLog.length, liveBrief]);
-
   return (
     <div
       className="builder-enrichment-overlay pointer-events-auto absolute inset-0 z-40 flex min-h-full items-center justify-center px-5 py-10"
@@ -135,133 +133,120 @@ export function BuilderProfileEnrichmentOverlay({
       <div className="builder-enrichment-scrim absolute inset-0" aria-hidden />
 
       <div
-        className={`relative z-10 w-full max-w-xl border border-black/10 bg-white px-7 py-8 text-left shadow-[0_24px_80px_rgb(5_5_5_/_0.14)] transition-all duration-300 sm:px-9 sm:py-9 ${
+        className={`relative z-10 w-full max-w-4xl border border-black/10 bg-white text-left shadow-[0_24px_80px_rgb(5_5_5_/_0.14)] transition-all duration-300 ${
           visible ? 'translate-y-0 opacity-100' : 'translate-y-1.5 opacity-0'
         }`}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[0.66rem] font-extrabold uppercase tracking-[0.24em] text-[#bf4f08]">
-              Builder profile enrichment
-            </p>
-            <h2 className="mt-3 text-xl font-extrabold tracking-[-0.03em] text-[#050505] sm:text-2xl">
-              Building your founder-facing profile
-            </h2>
-          </div>
-          <p className="shrink-0 pt-1 font-mono text-[0.7rem] tabular-nums text-black/40">
-            {formatElapsed(elapsedSec)}
-          </p>
-        </div>
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="border-b border-black/10 px-6 py-7 sm:px-8 lg:border-b-0 lg:border-r lg:px-9 lg:py-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[0.66rem] font-extrabold uppercase tracking-[0.24em] text-[#bf4f08]">
+                  Profile update running
+                </p>
+                <h2 className="mt-3 text-[1.7rem] font-extrabold leading-[1.05] tracking-[-0.03em] text-[#050505] sm:text-[2.15rem]">
+                  Pulling your links in.
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-black/50">
+                  Keep this open. Stuff will fill in as each source finishes.
+                </p>
+              </div>
+              <p className="shrink-0 pt-1 font-mono text-[0.72rem] tabular-nums text-black/40">
+                {formatElapsed(elapsedSec)}
+              </p>
+            </div>
 
-        <div className="mt-5">
-          <div className="flex items-center justify-between text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-black/45">
-            <span>
-              Step {activeIndex + 1} of {STEPS.length}
-            </span>
-            <span className="tabular-nums text-[#bf4f08]">{progressPct}%</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden bg-black/[0.06]">
+            <div className="mt-7">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-black/35">
+                    Current
+                  </p>
+                  <p className="mt-1 text-lg font-extrabold tracking-[-0.02em] text-[#050505]">
+                    {activeLabel}
+                    <span className="builder-enrichment-pulse ml-2 inline-block h-2 w-2 align-middle bg-[#ff7417]" />
+                  </p>
+                </div>
+                <span className="font-mono text-2xl font-extrabold tabular-nums text-[#bf4f08]">{progressPct}%</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden bg-black/[0.06]">
+                <div
+                  className="builder-enrichment-progress-fill h-full bg-[#ff7417] transition-[width] duration-700 ease-out"
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+
             <div
-              className="builder-enrichment-progress-fill h-full bg-[#ff7417] transition-[width] duration-700 ease-out"
-              style={{ width: `${progressPct}%` }}
-            />
+              className={`mt-6 border border-black/8 bg-[#fffcfa] px-4 py-4 transition-colors duration-300 ${
+                briefFlash ? 'border-[#ff7417]/45 bg-[#fff4eb]' : ''
+              }`}
+            >
+              <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-[#bf4f08]">
+                Now
+              </p>
+              <p className="mt-2 font-mono text-sm leading-6 text-[#050505] break-all">
+                {liveBrief}
+              </p>
+            </div>
+
+            <p className="mt-5 text-[0.8rem] leading-5 text-black/45">
+              The line above updates as we move through each source.
+            </p>
           </div>
-        </div>
 
-        <div
-          className={`mt-5 border border-black/8 bg-[#fffcfa] px-4 py-3 transition-colors duration-300 ${
-            briefFlash ? 'border-[#ff7417]/45 bg-[#fff4eb]' : ''
-          }`}
-        >
-          <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-[#bf4f08]">
-            Live fetch
-          </p>
-          <p className="mt-1.5 font-mono text-[0.78rem] leading-5 text-[#050505] break-all">
-            {liveBrief}
-            <span className="builder-enrichment-pulse ml-2 inline-block h-1.5 w-1.5 align-middle bg-[#ff7417]" />
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-5 sm:grid-cols-[1fr_148px] sm:items-stretch">
-          <ol className="space-y-0 border border-black/8 bg-[#fffcfa]">
-            {STEPS.map((step, index) => {
-              const done = index < activeIndex;
-              const current = index === activeIndex;
-              return (
-                <li
-                  key={step.id}
-                  className={`flex gap-3 border-b border-black/8 px-4 py-3.5 last:border-b-0 ${
-                    current ? 'bg-[#fff4eb]' : ''
-                  }`}
-                >
-                  <span
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border text-[0.65rem] font-extrabold ${
-                      done
-                        ? 'border-[#ff7417] bg-[#ff7417] text-white'
-                        : current
-                          ? 'border-[#ff7417] text-[#ff7417]'
-                          : 'border-black/15 text-black/30'
+          <aside className="bg-[#fffcfa] px-5 py-6 sm:px-6 lg:py-8">
+            <ol className="space-y-2">
+              {STEPS.map((step, index) => {
+                const done = index < activeIndex;
+                const current = index === activeIndex;
+                return (
+                  <li
+                    key={step.id}
+                    className={`border px-3 py-3 ${
+                      current
+                        ? 'border-[#ff7417]/35 bg-[#fff4eb]'
+                        : done
+                          ? 'border-black/8 bg-white'
+                          : 'border-black/8 bg-transparent'
                     }`}
-                    aria-hidden
                   >
-                    {done ? '✓' : index + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p
-                      className={`text-sm font-extrabold tracking-[-0.02em] ${
-                        current ? 'text-[#050505]' : done ? 'text-black/55' : 'text-black/35'
-                      }`}
-                    >
-                      {current ? activeLabel : step.title}
-                      {current ? (
-                        <span className="builder-enrichment-pulse ml-2 inline-block h-1.5 w-1.5 rounded-none bg-[#ff7417] align-middle" />
-                      ) : null}
-                    </p>
-                    <p
-                      className={`mt-0.5 text-[0.8rem] leading-5 ${
-                        current ? 'text-black/55' : 'text-black/35'
-                      }`}
-                    >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center border text-[0.62rem] font-extrabold ${
+                          done
+                            ? 'border-[#ff7417] bg-[#ff7417] text-white'
+                            : current
+                              ? 'border-[#ff7417] text-[#ff7417]'
+                              : 'border-black/15 text-black/30'
+                        }`}
+                        aria-hidden
+                      >
+                        {done ? '✓' : index + 1}
+                      </span>
+                      <p
+                        className={`text-sm font-extrabold tracking-[-0.02em] ${
+                          current ? 'text-[#050505]' : done ? 'text-black/55' : 'text-black/35'
+                        }`}
+                      >
+                        {current ? activeLabel : step.title}
+                      </p>
+                    </div>
+                    <p className={`mt-2 pl-7 text-[0.78rem] leading-5 ${current ? 'text-black/55' : 'text-black/35'}`}>
                       {step.detail}
                     </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+                  </li>
+                );
+              })}
+            </ol>
 
-          <div className="relative hidden overflow-hidden border border-black/8 bg-[#fffcfa] sm:block">
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/35 to-transparent"
-              aria-hidden
-            />
-            <BuilderEnrichmentAsciiVisual key={displayStage} stage={displayStage} className="h-full min-h-[168px]" />
-          </div>
-        </div>
-
-        {liveLog.length > 0 ? (
-          <div className="mt-5 border border-black/8 bg-[#050505] px-4 py-3">
-            <p className="text-[0.62rem] font-extrabold uppercase tracking-[0.18em] text-[#ff7417]">
-              Activity
-            </p>
-            <div className="mt-2 max-h-[7.5rem] overflow-y-auto font-mono text-[0.7rem] leading-5 text-white/70">
-              {liveLog.map((line, i) => (
-                <p
-                  key={`${i}-${line.slice(0, 24)}`}
-                  className={`break-all ${i === liveLog.length - 1 ? 'text-white' : 'text-white/45'}`}
-                >
-                  <span className="text-white/25 select-none">› </span>
-                  {line}
-                </p>
-              ))}
-              <div ref={logEndRef} />
+            <div className="mt-5 border-t border-black/10 pt-4">
+              <p className="text-[0.72rem] font-semibold leading-5 text-black/45">
+                You can leave this tab open. We will send you back when it is done.
+              </p>
             </div>
-          </div>
-        ) : null}
-
-        <p className="mt-5 text-[0.8rem] leading-5 text-black/45">
-          Keep this tab open — you&apos;ll drop into your profile when enrichment finishes.
-        </p>
+          </aside>
+        </div>
       </div>
     </div>
   );

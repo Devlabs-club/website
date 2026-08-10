@@ -481,14 +481,14 @@ export const BuilderHome: React.FC = () => {
       }
       if (elapsed > 45_000) {
         setEnrichmentStage('research');
-        setEnrichmentLabel('Deep research');
-        setEnrichmentDetail('Connecting resume, web presence, and founder-facing highlights.');
-        setEnrichmentBrief('Connecting resume, web presence, and founder-facing highlights.');
+        setEnrichmentLabel('Checking the web');
+        setEnrichmentDetail('Resume, Devpost, portfolio, and anything useful.');
+        setEnrichmentBrief('Checking resume, Devpost, portfolio, and public links.');
       } else if (elapsed > 18_000) {
         setEnrichmentStage('github');
-        setEnrichmentLabel('Scanning GitHub');
-        setEnrichmentDetail('Repos, languages, and projects that show how you ship.');
-        setEnrichmentBrief('Repos, languages, and projects that show how you ship.');
+        setEnrichmentLabel('Checking GitHub');
+        setEnrichmentDetail('Repos, languages, and shipped projects.');
+        setEnrichmentBrief('Checking repos, languages, and shipped projects.');
       }
     };
 
@@ -671,7 +671,7 @@ export const BuilderHome: React.FC = () => {
           );
         }
         return (
-          <div className="builder-messages-stage relative flex min-h-[calc(100vh-3.5rem)] flex-col">
+          <div className="builder-messages-stage relative flex min-h-screen flex-col">
             <div className="relative z-10 flex flex-1 items-center px-5 py-10 sm:px-7 sm:py-14">
               <BuilderImessageHandoff
                 fetchHandoff={fetchHandoff}
@@ -746,7 +746,7 @@ export const BuilderHome: React.FC = () => {
               subtitle={
                 imessageEnabled
                   ? 'This is what founders see when they browse builders on DevLabs. To update it, text the DevLabs agent in Messages.'
-                  : 'View and edit the generated founder-facing fields directly here.'
+                  : 'Review what got pulled in and edit anything that looks off.'
               }
               actions={
                 hasProfile ? (

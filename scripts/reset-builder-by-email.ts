@@ -14,7 +14,17 @@ import BuilderAgentMemory from '../src/models/talent/BuilderAgentMemory';
 import PhoneVerification from '../src/models/talent/PhoneVerification';
 import ProjectRecord from '../src/models/talent/ProjectRecord';
 import TalentEmbedding from '../src/models/talent/TalentEmbedding';
+import TalentSearchIndex from '../src/models/talent/TalentSearchIndex';
+import TalentSearchKey from '../src/models/talent/TalentSearchKey';
 import AgentWrappedReport from '../src/models/talent/AgentWrappedReport';
+import ContributionRecord from '../src/models/talent/ContributionRecord';
+import FeedbackRecord from '../src/models/talent/FeedbackRecord';
+import MatchRecord from '../src/models/talent/MatchRecord';
+import IntroRequest from '../src/models/talent/IntroRequest';
+import CallSchedule from '../src/models/talent/CallSchedule';
+import Notification from '../src/models/talent/Notification';
+import Shortlist from '../src/models/talent/Shortlist';
+import TalentEmailDelivery from '../src/models/talent/TalentEmailDelivery';
 
 const email = (process.argv[2] || '').toLowerCase().trim();
 if (!email) {
@@ -53,11 +63,35 @@ async function run() {
     results.builderProfiles = (await BuilderProfile.deleteOne({ _id: builderId })).deletedCount || 0;
     results.projectRecords = (await ProjectRecord.deleteMany({ builderId })).deletedCount || 0;
     results.talentEmbeddings = (await TalentEmbedding.deleteMany({ builderId })).deletedCount || 0;
+    results.talentSearchIndexes = (await TalentSearchIndex.deleteMany({ builderId })).deletedCount || 0;
+    results.talentSearchKeys = (await TalentSearchKey.deleteMany({ builderId })).deletedCount || 0;
+    results.contributionRecords = (await ContributionRecord.deleteMany({ builderId })).deletedCount || 0;
+    results.feedbackRecords = (await FeedbackRecord.deleteMany({ builderId })).deletedCount || 0;
+    results.matchRecords = (await MatchRecord.deleteMany({ builderId })).deletedCount || 0;
+    results.introRequests = (await IntroRequest.deleteMany({ builderId })).deletedCount || 0;
+    results.callSchedules = (await CallSchedule.deleteMany({ builderId })).deletedCount || 0;
+    results.notifications = (await Notification.deleteMany({ builderId })).deletedCount || 0;
+    results.talentEmailDeliveries = (await TalentEmailDelivery.deleteMany({ builderId })).deletedCount || 0;
     results.builderAgentMemories = (await BuilderAgentMemory.deleteMany({ builderId })).deletedCount || 0;
     results.agentWrappedReports = (await AgentWrappedReport.deleteMany({ builderId })).deletedCount || 0;
     results.imessageConversationsByBuilder = (
       await ImessageConversation.deleteMany({ builderId })
     ).deletedCount || 0;
+    const shortlistUpdate = await Shortlist.updateMany(
+      {
+        $or: [
+          { hiddenBuilderIds: builderId },
+          { 'candidates.builderId': builderId },
+        ],
+      },
+      {
+        $pull: {
+          hiddenBuilderIds: builderId,
+          candidates: { builderId },
+        },
+      }
+    );
+    results.shortlistsTouched = shortlistUpdate.modifiedCount || 0;
   } else {
     results.builderProfiles = 0;
   }
