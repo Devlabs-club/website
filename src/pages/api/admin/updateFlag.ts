@@ -1,49 +1,15 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '../../../lib/mongodb.ts';
 import mongoose from 'mongoose';
-import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
+import { requireAdmin } from '../../../lib/events/adminAuth';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    const auth = await requireAdmin(request);
+    if (!auth.ok) return auth.response;
+
     // Connect to admin database
     await connectAdminDB();
-
-    // Get token from Authorization header or cookies
-    const authHeader = request.headers.get('Authorization');
-    const cookieHeader = request.headers.get('Cookie');
-    
-    let token = extractTokenFromHeader(authHeader);
-    if (!token && cookieHeader) {
-      token = extractTokenFromCookies(cookieHeader);
-    }
-
-    if (!token) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'No authentication token provided' 
-        }),
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Verify token
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Invalid authentication token' 
-        }),
-        { 
-          status: 401,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
 
     // Parse request body
     const body = await request.json();
@@ -123,4 +89,3 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 };
-

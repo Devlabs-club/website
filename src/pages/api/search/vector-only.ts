@@ -2,9 +2,27 @@ import type { APIRoute } from 'astro';
 import { getVectorStore } from '../../../lib/vectorStore';
 import { connectAdminDB, Application } from '../../../lib/mongodb';
 import User from '../../../models/user.tsx';
+import { getAuthenticatedUser } from '../../../lib/momentumRequestAuth';
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+async function requireTalentSearchAccess(request: Request) {
+  const auth = await getAuthenticatedUser(request);
+  if (auth.error || !auth.user) return json({ error: auth.error || 'Unauthorized' }, auth.status);
+  if (!['founder', 'admin'].includes(String(auth.user.role))) return json({ error: 'Forbidden' }, 403);
+  return null;
+}
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    const forbidden = await requireTalentSearchAccess(request);
+    if (forbidden) return forbidden;
+
     const body = await request.json();
     const { query, filters } = body || {};
     if (!query || typeof query !== 'string') {
@@ -120,8 +138,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     return new Response(JSON.stringify({ results: userProfiles }), { status: 200 });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }), { status: 500 });
+    return json({ error: error?.message || 'Internal server error' }, 500);
   }
 };
-
 

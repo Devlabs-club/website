@@ -57,12 +57,6 @@ function readEnv(key: string): string | undefined {
     const fromProcess = process.env[key]?.trim();
     if (fromProcess) return fromProcess;
   }
-  try {
-    const fromMeta = (import.meta.env as Record<string, string | undefined>)[key];
-    if (typeof fromMeta === 'string' && fromMeta.trim()) return fromMeta.trim();
-  } catch {
-    // import.meta may be unavailable in some workers
-  }
   return undefined;
 }
 

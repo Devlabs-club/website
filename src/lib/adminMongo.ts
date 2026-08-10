@@ -23,8 +23,7 @@ function readEnv(key: string, runtime?: RuntimeEnv): string | undefined {
     const fromProcess = process.env[key]?.trim();
     if (fromProcess) return fromProcess;
   }
-  const fromMeta = (import.meta.env as Record<string, string | undefined>)[key];
-  return typeof fromMeta === 'string' ? fromMeta.trim() : undefined;
+  return undefined;
 }
 
 function adminMongoUri(runtime?: RuntimeEnv): string {
