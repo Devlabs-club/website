@@ -145,14 +145,21 @@ Rules:
 Shortlist control (you have full CRUD):
 - list_shortlist: see who is in the pool with sponsorship signals.
 - remove_builders: remove someone from this role's recommendations by name or id.
+- keep_builders: REPLACE the recommendations pane with only the builders who match the founder's filter (by id or name). Use this when they ask to narrow/show/filter the list.
 - exclude_builders: permanently exclude them from future searches for this role.
 - refresh_shortlist: re-apply visa/must-have/exclusion filters to the current pool (use after visa=No or removals).
 - search_talent: full re-run under current constraints.
-- inspect_talent_pool: evidence for comparisons.
+- inspect_talent_pool: read-only evidence for comparisons. It does NOT change the Recommendations pane.
+
+Filtering / "give me someone who…" / "show only…" (critical):
+- If the founder asks to filter, narrow, or change who appears in recommendations (e.g. no ASU on-campus job, only remote, drop interns), you MUST update the shortlist with tools in the SAME turn — not just answer in chat.
+- Workflow: inspect_talent_pool (or list_shortlist) → keep_builders with the matching people (preferred) OR remove_builders for everyone who fails the filter → briefly say who remains.
+- Optionally persist lasting preferences via edit_job searchRequirements (importance "must"). If the kept pool is empty or thinner than ~3, call search_talent after saving the preference.
+- Never list filtered names in chat while leaving the Recommendations pane unchanged. The pane is the source of truth.
 
 Sponsorship / pool complaints:
 - If the founder says a named builder needs sponsorship AND they do not want to sponsor, that is NOT a request to flip visa to Yes. Set/confirm visa=No, remove_builders or exclude_builders for that person, then refresh_shortlist or search_talent. Tell them who was removed.
-- When visa is No, builders who need sponsorship must leave the pool. If anyone remains who needs sponsorship, remove them immediately.
+- When visa is No, builders who need sponsorship must leave the pool. If anyone remains who need sponsorship, remove them immediately.
 
 After search:
 - Mention the Recommended tab once. Do not repeat "look at the pane on the right" on every edit or follow-up.
@@ -266,7 +273,8 @@ const TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'inspect_talent_pool',
-      description: 'Read evidence from the current founder-owned shortlist and role-scoped builders to answer nuanced talent-pool questions. Never use it for unrelated data.',
+      description:
+        'Read-only: inspect evidence from the current shortlist to answer talent-pool questions. Does NOT update the Recommendations pane. If the founder asked to filter/narrow who is recommended, follow up with keep_builders or remove_builders in the same turn.',
       parameters: {
         type: 'object',
         properties: {
@@ -309,6 +317,27 @@ const TOOLS: ToolDefinition[] = [
           builderIds: { type: 'array', items: { type: 'string' } },
           builderNames: { type: 'array', items: { type: 'string' }, description: 'Match shortlisted builders by first/full name.' },
           reason: { type: 'string' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'keep_builders',
+      description:
+        'Narrow the Recommendations pane to ONLY these builders (by id or name). Removes everyone else from the shortlist. Use when the founder asks to filter/show only people matching a criterion after you inspected the pool.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jobId: { type: 'string' },
+          builderIds: { type: 'array', items: { type: 'string' } },
+          builderNames: { type: 'array', items: { type: 'string' }, description: 'Match shortlisted builders by first/full name.' },
+          reason: { type: 'string', description: 'Why these builders were kept (shown in logs / reply context).' },
+          hideOthers: {
+            type: 'boolean',
+            description: 'Default true. Hide removed builders so they do not reappear until a fresh search.',
+          },
         },
       },
     },
@@ -1164,6 +1193,62 @@ async function toolRemoveBuilders(identity: FounderIdentity, args: Record<string
     reason: reason || null,
     shortlistChanged: true,
     message: `Removed ${matched.map((m) => m.name || m.builderId).join(', ')} from the recommendations.`,
+  };
+}
+
+async function toolKeepBuilders(identity: FounderIdentity, args: Record<string, unknown>, session: any) {
+  const resolved = await resolveJobForSession(identity, args, session);
+  if ('error' in resolved) return resolved;
+  const { jobId } = resolved;
+  const shortlist = await Shortlist.findOne({ opportunityId: jobId, founderEmail: identity.email });
+  if (!shortlist) return { error: 'No shortlist exists. Run search_talent first.' };
+
+  const { matched } = await resolveBuildersOnShortlist({
+    shortlist,
+    builderIds: cleanList(args.builderIds),
+    builderNames: cleanList(args.builderNames),
+  });
+  if (!matched.length) {
+    return {
+      error: 'Could not match any shortlisted builders to keep. Use list_shortlist or inspect_talent_pool first.',
+      shortlistChanged: false,
+    };
+  }
+
+  const keepOrder = matched.map((m) => m.builderId);
+  const keepIds = new Set(keepOrder);
+  const before = Array.isArray(shortlist.candidates) ? shortlist.candidates : [];
+  const byId = new Map(before.map((c: any) => [String(c.builderId), c]));
+  const kept = keepOrder.map((id) => byId.get(id)).filter(Boolean);
+  const removed = before
+    .filter((c: any) => !keepIds.has(String(c.builderId)))
+    .map((c: any) => ({
+      builderId: String(c.builderId),
+      name: c.anonymousLabel || null,
+    }));
+
+  shortlist.candidates = kept;
+  const hideOthers = args.hideOthers !== false;
+  if (hideOthers) {
+    const hidden = new Set((shortlist.hiddenBuilderIds || []).map(String));
+    for (const row of removed) hidden.add(row.builderId);
+    shortlist.hiddenBuilderIds = Array.from(hidden);
+  }
+  shortlist.totalMatches = shortlist.candidates.length;
+  shortlist.strongMatchCount = shortlist.candidates.filter((c: any) => c.matchLabel === 'Strong Match').length;
+  await shortlist.save();
+
+  const reason = cleanString(args.reason);
+  return {
+    kept: matched,
+    removedCount: removed.length,
+    remaining: shortlist.candidates.length,
+    reason: reason || null,
+    shortlistChanged: true,
+    message:
+      kept.length === 1
+        ? `Updated recommendations to show ${matched[0].name || matched[0].builderId}.`
+        : `Updated recommendations to ${kept.length} builders matching your filter.`,
   };
 }
 
@@ -2715,6 +2800,9 @@ async function runTool(name: string, identity: FounderIdentity, session: any, ar
       case 'remove_builders':
         result = await toolRemoveBuilders(identity, args, session);
         break;
+      case 'keep_builders':
+        result = await toolKeepBuilders(identity, args, session);
+        break;
       case 'exclude_builders':
         result = await toolExcludeBuilders(identity, args, session);
         break;
@@ -2978,7 +3066,7 @@ export async function runFounderAgentChat(params: {
     if (!result || result.error) return false;
     return (
       result.shortlistChanged === true ||
-      ['remove_builders', 'exclude_builders', 'refresh_shortlist', 'search_talent'].includes(tool.name)
+      ['remove_builders', 'keep_builders', 'exclude_builders', 'refresh_shortlist', 'search_talent'].includes(tool.name)
     );
   });
   const searchNeedsFollowup = toolCalls.some((tool) => (tool.result as any)?.needsFollowup);

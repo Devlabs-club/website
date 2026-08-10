@@ -25,7 +25,7 @@ import { AgentTraceTeaserSection, type AgentTraceTeaser } from "@/components/fou
 import { FounderTraceViewer } from "@/components/founder/FounderTraceViewer";
 import type { AgentWrappedReport } from "@/lib/agentWrapped/types";
 import { AgentChatPanel } from "@/components/beautiful-ui/AgentChatPanel";
-import { ThinkingState } from "@/components/beautiful-ui/ThinkingState";
+import { LoadingState } from "@/components/beautiful-ui/LoadingState";
 import { toFounderFacingWhyHire } from "@/lib/talent/founderFacingWhyHire";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -271,24 +271,51 @@ const RecommendationCardShimmer: React.FC = () => (
   </div>
 );
 
-const RecommendationsLoadingList: React.FC<{ count?: number; label?: string }> = ({
+const RecommendationsLoadingList: React.FC<{ count?: number; label?: string; showLabel?: boolean }> = ({
   count = 3,
   label = "Loading recommendations…",
+  showLabel = true,
 }) => (
   <div className="space-y-3" aria-busy="true" aria-live="polite">
-    <div className="flex items-center gap-2 px-0.5 text-xs text-black/45">
-      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      {label}
-    </div>
+    {showLabel ? (
+      <div className="flex items-center gap-2 px-0.5 text-xs text-black/45">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {label}
+      </div>
+    ) : null}
     {Array.from({ length: count }, (_, index) => (
       <RecommendationCardShimmer key={index} />
     ))}
   </div>
 );
 
+const SEARCH_CAPTIONS = [
+  "Scanning builder proof-of-work…",
+  "Matching must-have skills…",
+  "Ranking shipped projects…",
+  "Building your shortlist…",
+];
+
+/** Right-pane search progress — pixel loader, not ThinkingState. */
+const RecommendationsSearchStatus: React.FC<{ updating?: boolean }> = ({ updating = false }) => (
+  <div className="rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3.5 py-3">
+    <LoadingState
+      active
+      variant="orbit"
+      label={updating ? "Updating matches" : "Searching builders"}
+      captions={updating ? ["Refreshing ranked shortlist…", "Re-scoring against this role…"] : SEARCH_CAPTIONS}
+    />
+  </div>
+);
+
 function inferChatThinkingSteps(message: string): string[] {
   const text = message.toLowerCase();
-  if (/\b(search|find|shortlist|match|look for|show me|start the search|yes)\b/.test(text)) {
+  if (
+    /\b(search|find|shortlist|match|look for|show me|give me|start the search|yes)\b/.test(text) ||
+    /\b(who (doesn't|does not|dont|don't)|without|no (asu|on[- ]?campus)|only (people|builders|candidates)|filter|narrow)\b/.test(
+      text
+    )
+  ) {
     return [
       "Reading the role brief…",
       "Scanning builder proof-of-work…",
@@ -297,7 +324,7 @@ function inferChatThinkingSteps(message: string): string[] {
       "Building your shortlist…",
     ];
   }
-  if (/\b(remove|exclude|pass on|drop|hide)\b/.test(text)) {
+  if (/\b(remove|exclude|pass on|drop|hide|keep only)\b/.test(text)) {
     return [
       "Updating the shortlist…",
       "Removing builders that don't fit…",
@@ -628,7 +655,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         // When the agent searches or mutates the shortlist, refresh the builders
         // pane. Stay on chat if we're already in the conversation view.
         if (data.searchRan || data.shortlistChanged) {
-          if (data.searchRan) revealRecommendations();
+          revealRecommendations();
           void loadRecommendations();
         } else if (likelySearch) {
           setSearching(false);
@@ -657,6 +684,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
       "Preparing your shortlist…",
     ]);
     setError("");
+    // Show the recommendations pane with LoadingState while discovery runs.
+    setRightPane("recommended");
     try {
       const res = await fetch(`/api/founder/roles/${roleId}/search`, {
         method: "POST",
@@ -1421,6 +1450,8 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   ) : null;
 
   if (job && rightPane === "chat") {
+    const rightPaneSearching = chatSending || searching;
+    const rightPaneUpdating = searching && buckets.recommended.length > 0;
     return (
       <div className="min-h-screen bg-white text-foreground">
         <div className="flex h-16 items-center justify-between border-b border-[#ece7e1] px-6 sm:px-8">
@@ -1476,35 +1507,26 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 </div>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto p-5">
-                {chatSending || searching ? (
-                  <div className="rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3 py-3">
-                    <ThinkingState
-                      active
-                      steps={
-                        thinkingSteps.length
-                          ? thinkingSteps
-                          : searching
-                            ? [
-                                "Searching builders with real proof-of-work…",
-                                "Matching skills to this role…",
-                                "Ranking projects and experience…",
-                              ]
-                            : ["Working on your request…"]
-                      }
-                    />
+                {rightPaneSearching ? <RecommendationsSearchStatus updating={rightPaneUpdating} /> : null}
+                {rightPaneUpdating ? (
+                  <div className="space-y-3 opacity-55 transition-opacity">
+                    {buckets.recommended.map((rec) => (
+                      <RecommendationCard
+                        key={rec.builderId}
+                        rec={rec}
+                        inviteBusy={inviteBusy}
+                        onOpenProfile={() => void openProfile(rec)}
+                        onOpenTrace={() => void handleTraceExpand(rec)}
+                        onInvite={() => void invite(rec.builderId)}
+                        onReject={() => void rejectCandidate(rec.builderId)}
+                      />
+                    ))}
                   </div>
-                ) : null}
-                {searching && buckets.recommended.length > 0 ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-[#ece7e1] bg-[#fffcfa] px-3 py-2 text-xs text-black/45">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Updating matches…
-                  </div>
-                ) : null}
-                {recommendationsLoading && buckets.recommended.length === 0 ? (
+                ) : recommendationsLoading && buckets.recommended.length === 0 ? (
                   <RecommendationsLoadingList label="Loading recommendations…" />
-                ) : searching && buckets.recommended.length === 0 && !chatSending ? (
-                  <RecommendationsLoadingList label="Searching builders with real proof-of-work…" />
-                ) : buckets.recommended.length === 0 && !chatSending && !searching ? (
+                ) : rightPaneSearching && buckets.recommended.length === 0 ? (
+                  <RecommendationsLoadingList showLabel={false} count={3} />
+                ) : buckets.recommended.length === 0 ? (
                   <div className="rounded-2xl border border-dashed border-[#e3ddd4] p-8 text-center text-sm text-black/45">
                     No new recommendations right now.
                   </div>
@@ -1685,8 +1707,25 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
                 transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                 className="mx-auto max-w-4xl space-y-3"
               >
-                {searching && buckets.recommended.length === 0 ? (
-                  <RecommendationsLoadingList label="Searching builders with real proof-of-work…" count={4} />
+                {searching ? (
+                  <RecommendationsSearchStatus updating={buckets.recommended.length > 0} />
+                ) : null}
+                {searching && buckets.recommended.length > 0 ? (
+                  <div className="space-y-3 opacity-55 transition-opacity">
+                    {buckets.recommended.map((rec) => (
+                      <RecommendationCard
+                        key={rec.builderId}
+                        rec={rec}
+                        inviteBusy={inviteBusy}
+                        onOpenProfile={() => void openProfile(rec)}
+                        onOpenTrace={() => void handleTraceExpand(rec)}
+                        onInvite={() => void invite(rec.builderId)}
+                        onReject={() => void rejectCandidate(rec.builderId)}
+                      />
+                    ))}
+                  </div>
+                ) : searching && buckets.recommended.length === 0 ? (
+                  <RecommendationsLoadingList showLabel={false} count={4} />
                 ) : recommendationsLoading && buckets.recommended.length === 0 ? (
                   <RecommendationsLoadingList label="Loading recommendations…" count={4} />
                 ) : buckets.recommended.length === 0 ? (
