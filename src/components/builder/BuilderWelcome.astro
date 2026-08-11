@@ -1,29 +1,57 @@
 ---
-// Builder welcome / claim landing. Wireframe section order, landing theme
-// (cream paper, Manrope, orange accent). Invite token persists identity for claim/link.
+// Builder welcome / claim landing. Matches the builder landing wireframe
+// with the main site cream/orange/Manrope theme. CSS-only motion.
 const baseSignIn = "/auth/signup?redirect=%2Fbuilder%2Fhome";
 
-const features = [
+const steps = [
   {
-    title: "Get hiring opportunities",
-    body: "Founders hiring through DevLabs reach out when your work is a fit.",
-    tone: "opportunity",
+    n: "01",
+    title: "Verify it's you",
+    body: "Sign in with the email this invite was sent to so we can attach your reserved profile.",
+    image: "/landing/community/devhouse-circle.png",
   },
   {
-    title: "Verified builder profile",
-    body: "Stand out as someone from the DevLabs community, not another cold application.",
-    tone: "verified",
+    n: "02",
+    title: "We build your profile",
+    body: "Share your resume or links. We fill in the rest from your public work.",
+    image: "/landing/community/devhacks-build.png",
   },
   {
-    title: "Proof of work",
-    body: "Projects, GitHub, hackathons, and experience in one place founders can actually read.",
-    tone: "proof",
+    n: "03",
+    title: "You confirm and fill any gaps",
+    body: "Add GitHub, portfolio, or preferences if anything is still empty.",
+    image: "/landing/community/devspace-talk.png",
+  },
+  {
+    n: "04",
+    title: "Founders find you",
+    body: "Your profile goes live. Founders reach out directly when it's a real match.",
+    image: "/landing/community/devhacks-crowd.png",
+  },
+];
+
+const faqs = [
+  {
+    q: "Do I need to have attended a DevLabs event to join?",
+    a: "This invite is for people already in the DevLabs community. If you got this email, you're in.",
+  },
+  {
+    q: "What's the difference between a regular profile and a verified one?",
+    a: "A verified profile is tied to your invite email and the work we already pulled for you. Founders trust that more than a blank signup.",
+  },
+  {
+    q: "What if I don't have a GitHub or portfolio?",
+    a: "That's fine. Add LinkedIn or a resume if you have them. Skip anything you don't. Your profile can still go live.",
+  },
+  {
+    q: "Who can see my profile?",
+    a: "Founders hiring through DevLabs. We don't blast your info around, and we only reach out when someone actually wants to talk.",
   },
 ];
 ---
 
 <main class="builder-welcome min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-  <header class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
+  <header class="bw-reveal mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10" style="--d: 0ms">
     <a href="/" aria-label="DevLabs home" class="inline-flex items-center gap-2.5">
       <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
       <span class="text-lg font-extrabold tracking-[-0.02em]">DevLabs</span>
@@ -31,127 +59,245 @@ const features = [
     <a
       href={baseSignIn}
       data-claim-href
-      class="claim-cta inline-flex h-11 items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-6 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(5,5,5,0.12)] transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]"
+      class="claim-cta inline-flex h-11 items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-6 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]"
     >
-      Claim now
+      Create your profile →
     </a>
   </header>
 
-  <!-- Hero with community photo -->
-  <section class="relative mx-auto max-w-7xl px-6 pt-2 sm:px-8 lg:px-10">
-    <div class="relative overflow-hidden rounded-[34px] border border-black/10 bg-[#2f3432] shadow-[0_28px_90px_rgba(5,5,5,0.12)]">
-      <img
-        src="/landing/community/devhacks-crowd.png"
-        alt="DevLabs builders at an event"
-        class="h-[min(68vh,560px)] w-full object-cover object-center"
-      />
-      <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20"></div>
-      <div class="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-        <img src="/logo.png" alt="" class="h-12 w-12 object-contain brightness-0 invert" />
-        <p data-eyebrow class="mt-6 font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-white/70">
-          For builders
+  <!-- Hero -->
+  <section class="mx-auto max-w-7xl px-6 pb-10 pt-6 sm:px-8 lg:px-10 lg:pb-14 lg:pt-10">
+    <div class="bw-reveal mx-auto max-w-3xl text-center" style="--d: 80ms">
+      <p data-eyebrow class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">
+        For builders
+      </p>
+      <h1 class="mt-5 text-[clamp(2.4rem,6.2vw,4.4rem)] font-black leading-[1.02] tracking-[-0.045em]">
+        Get discovered for what you've <span class="text-[#ff7417]">actually built</span>.
+      </h1>
+      <p class="mx-auto mt-5 max-w-2xl text-[clamp(1rem,1.4vw,1.18rem)] font-medium leading-relaxed text-black/58">
+        DevLabs is where founders hire builders based on real, shipped work, not resumes. You're already in the network. Get hired here.
+      </p>
+    </div>
+
+    <div class="bw-reveal mt-10 grid gap-4 sm:grid-cols-3" style="--d: 180ms">
+      <figure class="bw-media group overflow-hidden rounded-[26px] border border-black/10 bg-[#fffaf7]">
+        <img src="/landing/community/devhacks-crowd.png" alt="Builders at a DevLabs event" class="bw-img h-52 w-full object-cover sm:h-60" />
+      </figure>
+      <figure class="bw-media group overflow-hidden rounded-[26px] border border-black/10 bg-[#fffaf7]">
+        <img src="/landing/community/devhacks-build.png" alt="Builders shipping at DevHacks" class="bw-img h-52 w-full object-cover sm:h-60" />
+      </figure>
+      <figure class="bw-media group overflow-hidden rounded-[26px] border border-black/10 bg-[#fffaf7]">
+        <img src="/landing/community/devspace-talk.png" alt="DevLabs community gathering" class="bw-img h-52 w-full object-cover sm:h-60" />
+      </figure>
+    </div>
+
+    <div class="bw-reveal mt-8 flex justify-center" style="--d: 260ms">
+      <a
+        href="#reserved"
+        class="inline-flex h-11 items-center justify-center rounded-full border border-black/12 bg-white px-6 text-sm font-extrabold text-[#050505] transition hover:border-[#ff7417]/50 hover:text-[#bf4f08]"
+      >
+        Already a part of a DevLabs event? →
+      </a>
+    </div>
+  </section>
+
+  <!-- Reserved profile -->
+  <section id="reserved" class="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-20">
+    <div class="bw-reveal grid items-center gap-10 rounded-[34px] border border-black/10 bg-[#fffaf7] p-7 sm:p-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:p-12" style="--d: 0ms">
+      <div>
+        <p class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">
+          Already been to a DevLabs event?
         </p>
-        <h1 class="mt-4 max-w-2xl text-[clamp(2.4rem,6vw,4.2rem)] font-black leading-[1.02] tracking-[-0.045em] text-white">
-          Welcome to DevLabs
-        </h1>
-        <p class="mt-4 max-w-md text-[clamp(1rem,1.5vw,1.15rem)] font-medium leading-relaxed text-white/82">
-          The DevLabs builder community is now online.<br />
-          Your builder profile is ready to claim.
+        <h2 class="mt-4 text-[clamp(1.9rem,3.6vw,3rem)] font-black leading-[1.02] tracking-[-0.04em]">
+          We've reserved a builder profile for you.
+        </h2>
+        <p data-email-note class="mt-5 max-w-lg text-[clamp(0.98rem,1.3vw,1.1rem)] font-medium leading-relaxed text-black/58">
+          If you've been to a DevLabs hackathon, build night, or meetup, you're already part of the community. Claim the profile we put together from your public work.
         </p>
         <a
           href={baseSignIn}
           data-claim-href
-          class="claim-cta mt-8 inline-flex h-[3.35rem] min-w-[12rem] items-center justify-center rounded-full border-2 border-white bg-white px-9 text-sm font-extrabold text-[#050505] transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white"
+          class="claim-cta mt-8 inline-flex h-[3.2rem] items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-8 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]"
         >
-          Claim now →
+          Verify & claim
         </a>
       </div>
-    </div>
-
-    <!-- Overlap intro card -->
-    <div class="relative z-10 mx-auto -mt-10 max-w-3xl rounded-[28px] border border-black/10 bg-white px-7 py-9 text-center shadow-[0_24px_70px_rgba(5,5,5,0.08)] sm:-mt-14 sm:px-12 sm:py-11">
-      <h2 class="text-[clamp(1.6rem,3.2vw,2.2rem)] font-black leading-[1.1] tracking-[-0.03em]">
-        We are building something new for builders.
-      </h2>
-      <p data-intro class="mx-auto mt-4 max-w-xl text-[0.98rem] font-medium leading-relaxed text-black/58">
-        DevLabs is moving from offline events into an online builder network. Founders find people from
-        what they have actually shipped, not just resumes. We already put a profile together for you from
-        your public work.
-      </p>
+      <figure class="bw-media overflow-hidden rounded-[28px] border border-black/10 bg-white">
+        <img
+          src="/landing/community/devhouse-circle.png"
+          alt="DevLabs builders in a circle"
+          class="bw-img aspect-square w-full object-cover"
+        />
+      </figure>
     </div>
   </section>
 
-  <!-- Built for builders -->
-  <section class="mx-auto max-w-3xl px-6 py-16 sm:px-8 lg:px-10">
-    <p class="text-center font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">
-      Built for builders
-    </p>
-    <div class="mt-8 space-y-4">
-      {features.map((feature) => (
-        <div class="overflow-hidden rounded-[24px] border border-black/10 bg-white shadow-[0_14px_40px_rgba(5,5,5,0.05)]">
-          <div class="grid sm:grid-cols-[140px_1fr]">
-            <div
-              class:list={[
-                "relative flex min-h-[120px] items-center justify-center p-4",
-                feature.tone === "opportunity" && "bg-[#fff5ef]",
-                feature.tone === "verified" && "bg-[#f4f1ed]",
-                feature.tone === "proof" && "bg-[#2f3432]",
-              ]}
-            >
-              {feature.tone === "opportunity" ? (
-                <div class="w-full rounded-2xl border border-[#ff7417]/25 bg-white p-3 shadow-sm">
-                  <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-[#bf4f08]">Great match</p>
-                  <p class="mt-1 text-xs font-extrabold text-[#050505]">Full Stack @ Acme</p>
-                  <p class="mt-0.5 text-[0.65rem] font-medium text-black/45">Tempe · Remote</p>
-                </div>
-              ) : null}
-              {feature.tone === "verified" ? (
-                <div class="w-full rounded-2xl border border-black/8 bg-white p-3">
-                  <div class="flex items-center gap-2">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff5ef] text-xs font-black text-[#bf4f08]">B</span>
-                    <div class="min-w-0">
-                      <p class="truncate text-xs font-extrabold">Builder profile</p>
-                      <p class="truncate text-[0.65rem] text-black/45">Product engineer</p>
-                    </div>
-                  </div>
-                  <span class="mt-2 inline-flex rounded-full border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-0.5 text-[0.58rem] font-extrabold uppercase tracking-[0.1em] text-[#bf4f08]">
-                    Verified
-                  </span>
-                </div>
-              ) : null}
-              {feature.tone === "proof" ? (
-                <div class="w-full space-y-1.5">
-                  <div class="rounded-lg bg-white/10 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white/85">GitHub · top repos</div>
-                  <div class="rounded-lg bg-white/10 px-2.5 py-1.5 text-[0.65rem] font-semibold text-white/85">Hackathons · ships</div>
-                  <div class="rounded-lg bg-[#ff7417]/30 px-2.5 py-1.5 text-[0.65rem] font-semibold text-[#ffb27a]">Proof ready</div>
-                </div>
-              ) : null}
+  <!-- What DevLabs is -->
+  <section class="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+    <div class="bw-reveal mx-auto max-w-3xl text-center" style="--d: 0ms">
+      <p class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">
+        What DevLabs is
+      </p>
+      <h2 class="mt-4 text-[clamp(2rem,4vw,3.2rem)] font-black leading-[1.02] tracking-[-0.045em]">
+        Build your profile once. Get discovered from there.
+      </h2>
+      <p class="mx-auto mt-5 max-w-2xl text-[clamp(0.98rem,1.3vw,1.12rem)] font-medium leading-relaxed text-black/58">
+        No applying. No cold outreach. Add your projects, your GitHub, your work once, and founders hiring through DevLabs come to you when it's a real match.
+      </p>
+    </div>
+    <figure class="bw-reveal bw-media mx-auto mt-10 max-w-5xl overflow-hidden rounded-[34px] border border-black/10" style="--d: 120ms">
+      <img
+        src="/landing/hero-meadow.png"
+        alt="DevLabs landscape"
+        class="bw-img h-64 w-full object-cover sm:h-80 lg:h-[26rem]"
+      />
+    </figure>
+  </section>
+
+  <!-- How it works -->
+  <section class="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+    <div class="bw-reveal text-center" style="--d: 0ms">
+      <p class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">How it works</p>
+      <h2 class="mt-4 text-[clamp(2rem,4vw,3rem)] font-black leading-[1.02] tracking-[-0.045em]">
+        Four steps. Then founders can find you.
+      </h2>
+    </div>
+    <div class="mt-12 grid gap-5 sm:grid-cols-2">
+      {steps.map((step, index) => (
+        <article
+          class="bw-reveal overflow-hidden rounded-[28px] border border-black/10 bg-white"
+          style={`--d: ${80 + index * 70}ms`}
+        >
+          <figure class="bw-media overflow-hidden border-b border-black/8 bg-[#fffaf7]">
+            <img src={step.image} alt="" class="bw-img h-44 w-full object-cover sm:h-48" />
+          </figure>
+          <div class="p-6 sm:p-7">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff7417] text-xs font-black text-white">
+                {step.n}
+              </span>
+              <h3 class="text-xl font-extrabold tracking-[-0.02em]">{step.title}</h3>
             </div>
-            <div class="flex flex-col justify-center px-6 py-6 sm:px-7">
-              <h3 class="text-lg font-extrabold tracking-[-0.02em]">{feature.title}</h3>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-black/58">{feature.body}</p>
-            </div>
+            <p class="mt-3 text-sm font-medium leading-relaxed text-black/58">{step.body}</p>
           </div>
-        </div>
+        </article>
       ))}
     </div>
   </section>
 
-  <!-- Bottom CTA -->
-  <section class="mx-auto max-w-7xl px-6 pb-16 sm:px-8 lg:px-10">
-    <div class="rounded-[34px] border border-[#ff7417]/25 bg-[#fff5ef] px-6 py-14 text-center sm:px-12">
-      <h2 class="mx-auto max-w-xl text-[clamp(1.9rem,4vw,2.8rem)] font-black leading-[1.02] tracking-[-0.04em]">
-        Finish setting up your profile.
-      </h2>
-      <p data-email-note class="mx-auto mt-4 max-w-md text-[0.98rem] font-medium leading-relaxed text-[#bf4f08]">
-        We reserved a builder profile for you. Claim it, add anything that is still empty, and you are ready to be discovered.
+  <!-- What founders see -->
+  <section class="mx-auto max-w-7xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+    <div class="bw-reveal mx-auto max-w-2xl text-center" style="--d: 0ms">
+      <p class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">
+        What founders see
       </p>
+      <h2 class="mt-4 text-[clamp(2rem,4vw,3.1rem)] font-black leading-[1.02] tracking-[-0.045em]">
+        This is your profile.
+      </h2>
+      <p class="mx-auto mt-4 max-w-xl text-[clamp(0.98rem,1.3vw,1.1rem)] font-medium leading-relaxed text-black/58">
+        Here's what a founder sees when your profile comes up.
+      </p>
+    </div>
+
+    <div class="bw-reveal mt-10 grid gap-4 lg:grid-cols-3" style="--d: 140ms">
+      <div class="rounded-[26px] border border-black/10 bg-white p-5 shadow-[0_18px_55px_rgba(5,5,5,0.05)]">
+        <div class="flex items-center gap-3">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff5ef] text-lg font-black text-[#bf4f08]">B</div>
+          <div class="min-w-0">
+            <p class="truncate text-[15px] font-extrabold">Your builder profile</p>
+            <p class="truncate text-sm font-medium text-black/50">Full-stack engineer · ships with AI</p>
+          </div>
+        </div>
+        <div class="mt-5 flex flex-wrap gap-2">
+          {["React", "TypeScript", "Python", "LLMs"].map((skill) => (
+            <span class="rounded-full border border-black/10 bg-[#f4f1ed] px-3 py-1 text-xs font-semibold text-black/60">{skill}</span>
+          ))}
+        </div>
+        <div class="mt-5 grid grid-cols-3 gap-3 border-t border-black/8 pt-5">
+          <div>
+            <p class="text-2xl font-black tracking-[-0.04em]">24</p>
+            <p class="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-black/40">Repos</p>
+          </div>
+          <div>
+            <p class="text-2xl font-black tracking-[-0.04em]">6</p>
+            <p class="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-black/40">Hackathons</p>
+          </div>
+          <div>
+            <p class="text-2xl font-black tracking-[-0.04em] text-[#ff7417]">+3</p>
+            <p class="mt-1 text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-black/40">Ships/mo</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-[26px] border border-black/10 bg-[#fffaf7] p-5">
+        <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-[#bf4f08]">Proof of work</p>
+        <ul class="mt-4 space-y-3">
+          {[
+            "Top GitHub projects, summarized",
+            "Roles and impact, not fluff",
+            "Hackathons and event history",
+          ].map((item) => (
+            <li class="flex items-start gap-3 text-sm font-medium text-black/70">
+              <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fff5ef] text-[0.62rem] font-black text-[#bf4f08]">✓</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+        <div class="mt-6 overflow-hidden rounded-[18px] border border-black/8">
+          <img src="/landing/community/devhacks-build.png" alt="" class="h-36 w-full object-cover" />
+        </div>
+      </div>
+
+      <div class="rounded-[26px] border border-black/10 bg-[#2f3432] p-5 text-white">
+        <p class="text-xs font-extrabold uppercase tracking-[0.14em] text-[#ffb27a]">New opportunity</p>
+        <p class="mt-4 text-lg font-extrabold tracking-[-0.02em]">A founder wants to talk</p>
+        <p class="mt-2 text-sm font-medium leading-relaxed text-white/70">
+          Founding engineer role. Matched on the work you've already shipped.
+        </p>
+        <div class="mt-6 rounded-[18px] border border-white/10 bg-white/[0.06] p-4">
+          <p class="text-sm font-extrabold">Full Stack @ Acme Labs</p>
+          <p class="mt-1 text-xs font-medium text-white/50">Tempe · Remote</p>
+          <span class="mt-3 inline-flex rounded-full border border-[#ff7417]/40 bg-[#ff7417]/15 px-2.5 py-1 text-[0.64rem] font-extrabold uppercase tracking-[0.12em] text-[#ffb27a]">
+            Great match
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="mx-auto max-w-3xl px-6 py-14 sm:px-8 lg:px-10 lg:py-16">
+    <div class="bw-reveal text-center" style="--d: 0ms">
+      <p class="font-mono text-[0.72rem] font-extrabold uppercase tracking-[0.28em] text-black/42">FAQ</p>
+      <h2 class="mt-4 text-[clamp(1.9rem,3.6vw,2.8rem)] font-black leading-[1.02] tracking-[-0.04em]">
+        Common questions
+      </h2>
+    </div>
+    <div class="bw-reveal mt-10 divide-y divide-black/10 border-y border-black/10" style="--d: 100ms">
+      {faqs.map((faq) => (
+        <details class="bw-faq group py-5">
+          <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-extrabold tracking-[-0.01em]">
+            {faq.q}
+            <span class="bw-faq-icon text-[#ff7417]">+</span>
+          </summary>
+          <p class="mt-3 text-[0.98rem] font-medium leading-relaxed text-black/58">{faq.a}</p>
+        </details>
+      ))}
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-10 lg:py-20">
+    <div class="bw-reveal relative overflow-hidden rounded-[34px] border border-[#ff7417]/25 bg-[#fff5ef] px-6 py-16 text-center sm:px-12" style="--d: 0ms">
+      <h2 class="mx-auto max-w-2xl text-[clamp(2.2rem,5vw,3.6rem)] font-black leading-[0.96] tracking-[-0.045em]">
+        Ready to be discovered?
+      </h2>
       <a
         href={baseSignIn}
         data-claim-href
-        class="claim-cta mt-8 inline-flex h-[3.35rem] min-w-[12rem] items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]"
+        class="claim-cta mt-9 inline-flex h-[3.5rem] min-w-[13rem] items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-10 text-base font-extrabold text-white transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]"
       >
-        Claim now →
+        Join now
       </a>
     </div>
   </section>
@@ -192,6 +338,75 @@ const features = [
         transparent 24px
       );
   }
+
+  @keyframes bw-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bw-soft-zoom {
+    from {
+      transform: scale(1.04);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+
+  .bw-reveal {
+    opacity: 0;
+    animation: bw-fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: var(--d, 0ms);
+  }
+
+  .bw-media .bw-img {
+    animation: bw-soft-zoom 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .bw-media:hover .bw-img {
+    transform: scale(1.03);
+  }
+
+  .bw-faq summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .bw-faq-icon {
+    display: inline-flex;
+    width: 1.25rem;
+    justify-content: center;
+    transition: transform 220ms ease;
+  }
+
+  .bw-faq[open] .bw-faq-icon {
+    transform: rotate(45deg);
+  }
+
+  .bw-faq p {
+    animation: bw-fade-up 280ms ease both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bw-reveal,
+    .bw-media .bw-img,
+    .bw-faq p {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+
+    .bw-media:hover .bw-img,
+    .claim-cta:hover {
+      transform: none !important;
+    }
+  }
 </style>
 
 <script>
@@ -201,7 +416,7 @@ const features = [
     try {
       localStorage.setItem('devlabs_invite', JSON.stringify(identity));
     } catch {
-      /* localStorage may be unavailable (private mode) */
+      /* localStorage may be unavailable */
     }
     try {
       const value = encodeURIComponent(JSON.stringify(identity));
@@ -269,10 +484,6 @@ const features = [
           document.querySelectorAll('[data-email-note]').forEach((el) => {
             el.textContent = `This invite is tied to ${data.email}. Claim with that email so we can attach your reserved profile.`;
           });
-          const intro = document.querySelector('[data-intro]');
-          if (intro && first) {
-            intro.textContent = `Hey ${first}. DevLabs is moving from offline events into an online builder network. Founders find people from what they have actually shipped, not just resumes. We already put a profile together for you from your public work.`;
-          }
         }
       })
       .catch(() => {
