@@ -1,23 +1,16 @@
 /**
  * Builder welcome / invite email.
  *
- * Web-onboarding variant of the builder invite: instead of the iMessage handoff
- * (see claimEmail.ts), this email invites the builder to claim their profile on
- * the website. Themed to match the DevLabs landing page (cream paper background,
- * near-black text, orange accent, Manrope typography).
- *
- * The CTA links carry a signed identity token (createClaimToken from
- * messaging/claimToken.ts — encodes the builder's email) plus referrer/UTM
- * params so the welcome page can identify the builder and attribute the visit.
+ * Web-onboarding invite: claim the reserved profile on the website.
+ * Themed to match the DevLabs landing page (cream paper, near-black text,
+ * orange accent, Manrope). Section order matches the welcome wireframe.
  */
 
 const CREAM = '#fbf6f3';
-const PANEL = '#fffaf7';
 const INK = '#050505';
 const INK_SOFT = 'rgba(5,5,5,0.62)';
 const INK_FAINT = 'rgba(5,5,5,0.45)';
 const BORDER = 'rgba(5,5,5,0.08)';
-const ORANGE = '#ff7417';
 const ORANGE_DEEP = '#bf4f08';
 const ORANGE_TINT = '#fff5ef';
 const DARK_PILL = '#2f3432';
@@ -31,15 +24,15 @@ type Feature = { title: string; body: string };
 const DEFAULT_FEATURES: Feature[] = [
   {
     title: 'Get hiring opportunities',
-    body: 'Receive opportunities from founders hiring through DevLabs.',
+    body: 'Founders hiring through DevLabs reach out when your work is a fit.',
   },
   {
     title: 'Verified builder profile',
-    body: 'Stand out as a verified member of the DevLabs community.',
+    body: 'Stand out as someone from the DevLabs community, not another cold application.',
   },
   {
     title: 'Proof of work',
-    body: 'Showcase your projects, GitHub, and hackathons in one place.',
+    body: 'Projects, GitHub, hackathons, and experience in one place founders can actually read.',
   },
 ];
 
@@ -91,6 +84,7 @@ export function buildBuilderWelcomeEmail(params: {
   });
   const claimUrl = `${root}/builder/welcome?${query.toString()}`;
   const logoUrl = `${root}/logo.png`;
+  const heroImageUrl = `${root}/landing/community/devhacks-crowd.png`;
 
   const subject = `${firstName}, your DevLabs builder profile is ready to claim`;
 
@@ -106,7 +100,7 @@ export function buildBuilderWelcomeEmail(params: {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" />
 </head>
 <body style="margin:0;padding:0;background:${CREAM};-webkit-font-smoothing:antialiased;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your builder profile is reserved — claim it and get discovered by founders hiring through DevLabs.</div>
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your builder profile is ready to claim. We already put one together from your public work.</div>
   <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background:${CREAM};">
     <tr>
       <td align="center" style="padding:32px 16px;">
@@ -114,13 +108,16 @@ export function buildBuilderWelcomeEmail(params: {
 
           <!-- Hero -->
           <tr>
-            <td style="background:${PANEL};border:1px solid ${BORDER};border-radius:26px;padding:44px 36px;text-align:center;">
-              <img src="${logoUrl}" width="40" height="40" alt="DevLabs" style="display:block;margin:0 auto 18px auto;border:0;" />
-              <h1 style="margin:0 0 10px 0;font-family:${FONT};font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.03em;color:${INK};">Welcome to DevLabs</h1>
-              <p style="margin:0 0 22px 0;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:500;color:${INK_SOFT};">
-                The DevLabs builder community is now online.<br />Your builder profile is ready to claim.
-              </p>
-              ${ctaButton(claimUrl, 'Claim now')}
+            <td style="background:${DARK_PILL};border:1px solid ${BORDER};border-radius:26px;overflow:hidden;">
+              <img src="${heroImageUrl}" width="560" alt="DevLabs builders" style="display:block;width:100%;max-width:560px;height:auto;border:0;" />
+              <div style="padding:32px 28px 36px 28px;text-align:center;">
+                <img src="${logoUrl}" width="36" height="36" alt="DevLabs" style="display:block;margin:0 auto 14px auto;border:0;" />
+                <h1 style="margin:0 0 10px 0;font-family:${FONT};font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.03em;color:#ffffff;">Welcome to DevLabs</h1>
+                <p style="margin:0 0 22px 0;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:500;color:rgba(255,255,255,0.78);">
+                  The DevLabs builder community is now online.<br />Your builder profile is ready to claim.
+                </p>
+                ${ctaButton(claimUrl, 'Claim now')}
+              </div>
             </td>
           </tr>
 
@@ -129,9 +126,9 @@ export function buildBuilderWelcomeEmail(params: {
           <!-- Intro -->
           <tr>
             <td style="background:#ffffff;border:1px solid ${BORDER};border-radius:24px;padding:34px 32px;text-align:center;">
-              <h2 style="margin:0 0 12px 0;font-family:${FONT};font-size:21px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">We're building something new for builders</h2>
+              <h2 style="margin:0 0 12px 0;font-family:${FONT};font-size:21px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">We are building something new for builders</h2>
               <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.6;font-weight:500;color:${INK_SOFT};">
-                Hi ${firstName} — DevLabs is expanding from offline events into an online builder network where founders discover talented developers based on their actual work, not just resumes. We put together a founder-readable profile for you from your public work.
+                Hey ${firstName}. DevLabs is moving from offline events into an online builder network where founders find people from what they have actually shipped, not just resumes. We already put a profile together for you from your public work.
               </p>
             </td>
           </tr>
@@ -153,7 +150,7 @@ export function buildBuilderWelcomeEmail(params: {
             <td style="background:${ORANGE_TINT};border:1px solid rgba(255,116,23,0.28);border-radius:24px;padding:34px 32px;text-align:center;">
               <h2 style="margin:0 0 10px 0;font-family:${FONT};font-size:20px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">Finish setting up your profile</h2>
               <p style="margin:0 0 22px 0;font-family:${FONT};font-size:14px;line-height:1.6;font-weight:500;color:${ORANGE_DEEP};">
-                We've reserved a builder profile for you. Claim it, complete your details, and you're ready to be discovered.
+                We reserved a builder profile for you. Claim it, add anything that is still empty, and you are ready to be discovered.
               </p>
               ${ctaButton(claimUrl, 'Claim now')}
             </td>
@@ -181,17 +178,20 @@ export function buildBuilderWelcomeEmail(params: {
 
   const text = `Welcome to DevLabs, ${firstName}.
 
-Your builder profile is ready to claim. DevLabs is an online builder network where founders discover developers based on their actual work — not just resumes.
+Your builder profile is ready to claim. We already put one together from your public work.
+
+DevLabs is moving from offline events into an online builder network where founders find people from what they have actually shipped, not just resumes.
 
 What you get:
-- Get hiring opportunities from founders hiring through DevLabs
+- Hiring opportunities from founders on DevLabs
 - A verified builder profile
-- Proof of work: your projects, GitHub, and hackathons in one place
+- Proof of work: projects, GitHub, and hackathons in one place
 
-Claim your profile and finish setup:
+Claim your profile:
 ${claimUrl}
 
-This link is tied to your email. — DevLabs`;
+This link is tied to your email.
+DevLabs`;
 
   return { subject, html, text, claimUrl };
 }

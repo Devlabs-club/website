@@ -12,6 +12,11 @@ function redirectParam(): string | null {
   return new URLSearchParams(window.location.search).get("redirect");
 }
 
+function emailParam(): string {
+  if (typeof window === "undefined") return "";
+  return String(new URLSearchParams(window.location.search).get("email") || "").trim();
+}
+
 const authInputClassName =
   "h-[3.35rem] w-full rounded-none border border-border bg-card px-4 text-foreground shadow-[0_14px_24px_rgba(0,0,0,0.04)] outline-none transition-[border-color,box-shadow] duration-300 placeholder:text-muted-foreground focus:border-primary focus:shadow-[0_14px_24px_rgba(255,116,23,0.12)]";
 
@@ -21,7 +26,7 @@ const authInputClassName =
  */
 export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
   const { login, register } = useAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailParam);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
