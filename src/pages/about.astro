@@ -225,6 +225,10 @@ import Layout from "../layouts/Layout.astro";
                                 "Product Hunt sponsored us",
                                 "60+ projects in 36 hours",
                               ],
+                              sponsors: [
+                                "/sponsors/ph.png",
+                                "/sponsors/supermemory.png",
+                              ],
                             },
                             {
                               dateLabel: "June 2025",
@@ -237,6 +241,13 @@ import Layout from "../layouts/Layout.astro";
                                 "Became Arizona's biggest builder community with 500+ members",
                                 "Partnered with the state's top 4 VC's — AZVC, PHX Ventures, Arizona Commerce Authority",
                                 "10 graduated startups from Class of 2025, Dev House, Arizona",
+                              ],
+                              sponsors: [
+                                "/sponsors/loloft.png",
+                                "/sponsors/azvc.png",
+                                "/sponsors/phxventures.webp",
+                                "/sponsors/aca.png",
+                                "/sponsors/siliconoasis.png",
                               ],
                             },
                             {
@@ -279,6 +290,15 @@ import Layout from "../layouts/Layout.astro";
                                 "100+ startups around the world participating",
                                 "11+ counties",
                                 "Demo Day at AWS Loft with Kickstart",
+                              ],
+                              sponsors: [
+                                { url: "/sponsors/momentum/spc.png", class: "h-6" },
+                                { url: "/sponsors/momentum/a16z.png", class: "h-5" },
+                                { url: "/sponsors/momentum/antler.png", class: "h-6" },
+                                { url: "/sponsors/momentum/residency.png", class: "h-7" },
+                                { url: "/sponsors/momentum/kickstart.png", class: "h-7" },
+                                { url: "/sponsors/momentum/stripe.png", class: "h-4" },
+                                { url: "/sponsors/momentum/smallest_ai.png", class: "h-4" },
                               ],
                             },
                           ],
@@ -343,6 +363,34 @@ import Layout from "../layouts/Layout.astro";
                                           <li>{b}</li>
                                         ))}
                                       </ul>
+                                    ) : null}
+                                    {item.sponsors && item.sponsors.length > 0 ? (
+                                      <div class="mt-4 pt-3 border-t border-white/10">
+                                        <div class="text-[10px] uppercase tracking-[0.2em] text-white/35 font-bold font-sans">
+                                          Sponsored by
+                                        </div>
+                                        <div class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-3">
+                                          {item.sponsors.map((sponsor) => {
+                                            const isObject =
+                                              typeof sponsor === "object";
+                                            const logoUrl = isObject
+                                              ? sponsor.url
+                                              : sponsor;
+                                            const logoClass =
+                                              isObject && sponsor.class
+                                                ? sponsor.class
+                                                : "h-6";
+                                            return (
+                                              <img
+                                                src={logoUrl}
+                                                alt="Sponsor"
+                                                loading="lazy"
+                                                class={`${logoClass} w-auto max-w-[78px] object-contain brightness-0 invert opacity-80`}
+                                              />
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
                                     ) : null}
                                   </div>
                                 </div>
