@@ -25,6 +25,7 @@ export const BUILDER_SEARCH_SELECT = [
   'verificationStatus',
   'visibilityStatus',
   'universityOrCompany',
+  'location',
   'education',
   'experiences',
   'enrichmentInsights',

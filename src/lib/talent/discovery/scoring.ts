@@ -27,6 +27,7 @@ import {
   type RoleDimensionScore,
 } from '@/lib/talent/roleEvidenceDimensions';
 import { getPlanEvidenceDimensions } from '@/lib/talent/searchPlan';
+import { locationFitLabel, scoreLocationFit } from '@/lib/talent/builderLocation';
 
 export type CandidateScoreComponents = {
   deterministicSkillFit: number;
@@ -276,14 +277,14 @@ function scoreHireTypeFit(builder: any, opportunity: any): number {
 
 function scoreAvailabilityFit(builder: any, opportunity: any): number {
   const avail = builder.availability || {};
-  let score = avail.availableNow ? 0.85 : 0.5;
+  let score = avail.availableNow ? 0.62 : 0.38;
+  score += 0.38 * scoreLocationFit(builder, opportunity);
 
-  const locationPref = opportunity.locationPreference || '';
-  const remoteOk = !locationPref || /remote/i.test(locationPref);
-  const builderRemote = avail.remotePreference;
-  if (!remoteOk && builderRemote === 'remote') score -= 0.1;
+  const locationPref = opportunity.locationPreference || opportunity.location || opportunity.workMode || '';
+  const onsiteOnly = /onsite|in-office|in office|hybrid/i.test(locationPref) && !/remote/i.test(locationPref);
+  if (onsiteOnly && avail.remotePreference === 'remote') score -= 0.08;
 
-  return Math.max(0.35, Math.min(1, score));
+  return Math.max(0.2, Math.min(1, score));
 }
 
 function scoreProfileQuality(builder: any): number {
@@ -383,6 +384,10 @@ export function buildCandidateExplanation(params: {
   if (components.sponsorshipFit >= 0.85 && opportunityDoesNotSponsor(opportunity)) {
     strongestSignals.push('Likely authorized without sponsorship');
   }
+  const locationSignal = locationFitLabel(builder, opportunity);
+  if (locationSignal && scoreLocationFit(builder, opportunity) >= 0.8) {
+    strongestSignals.push(locationSignal);
+  }
   if (components.availabilityFit >= 0.8) strongestSignals.push('Available now');
   else if (components.deterministicSkillFit >= 0.55) strongestSignals.push('Strong skill fit — availability unconfirmed');
 
@@ -404,6 +409,9 @@ export function buildCandidateExplanation(params: {
   if (components.deterministicSkillFit < 0.4) concerns.push('Skill match below threshold for required stack');
   if (components.proofStrength < 0.4) concerns.push('Limited proof-of-work visibility');
   if (components.contributionClarity < 0.3) concerns.push('Contribution claims are unclear or unverified');
+  if (locationSignal && scoreLocationFit(builder, opportunity) <= 0.35) {
+    concerns.push(locationSignal);
+  }
   if (components.availabilityFit < 0.55) concerns.push('Not marked available now — confirm timing in intro');
   if (components.hireTypeFit < 0.5) concerns.push('Hire type preference may not align');
   if (opportunityAsksGithubActivity(opportunity) && components.githubActivityFit < 0.35) {

@@ -42,6 +42,7 @@ const TalentSearchIndexSchema = new mongoose.Schema(
     normalizedProjectTech: [{ type: String }],
     normalizedContributionTags: [{ type: String }],
     searchTerms: [{ type: String }],
+    normalizedLocationTerms: [{ type: String }],
     preferredWorkType: [{ type: String }],
     links: {
       linkedin: { type: String, default: null },

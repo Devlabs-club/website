@@ -3,6 +3,7 @@ import Shortlist from '@/models/talent/Shortlist';
 import type { DiscoveryResult } from '@/lib/talent/discovery/index';
 import { buildMatchEvidenceFromExplanation } from '@/lib/talent/matchEvidence';
 import { resolveCandidateNarrative } from '@/lib/talent/discovery/scoring';
+import { resolveBuilderBaseLocation } from '@/lib/talent/builderLocation';
 import { entitlementSnapshot, type FounderEntitlements } from '@/lib/billing/entitlements';
 import {
   buildRoleSkillTiers,
@@ -98,6 +99,7 @@ export async function persistDiscoveryCandidates(params: {
         : candidate.builder.rolePreference?.slice(0, 4) || [],
       proofSummary: candidate.explanation.strongestSignals[0] || '',
       whyTheyMatch: resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || []),
+      location: resolveBuilderBaseLocation(candidate.builder).text,
       requirementFindings: candidate.explanation.requirementFindings || [],
     };
   });

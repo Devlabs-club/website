@@ -46,6 +46,7 @@ import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
 import {
   buildRetrievalChannels,
   mergeChannelBuilders,
+  searchLocationChannel,
 } from '@/lib/talent/roleShapedRetrieval';
 import {
   applyCandidateLimit,
@@ -77,6 +78,7 @@ import {
   readCachedGithubActivity,
 } from '@/lib/talent/githubActivity';
 import { evaluateMustHaveGate } from '@/lib/talent/discovery/mustHaveGate';
+import { resolveBuilderBaseLocation, summarizeShortlistLocations } from '@/lib/talent/builderLocation';
 import { buildPoolSummary, renderPoolSummaryMarkdown, type PoolSummary } from '@/lib/talent/poolSummary';
 import FounderProfile from '@/models/talent/FounderProfile';
 
@@ -150,6 +152,12 @@ Shortlist control (you have full CRUD):
 - refresh_shortlist: re-apply visa/must-have/exclusion filters to the current pool (use after visa=No or removals).
 - search_talent: full re-run under current constraints.
 - inspect_talent_pool: read-only evidence for comparisons. It does NOT change the Recommendations pane.
+
+Location questions (critical):
+- If the founder asks where the builders are, whether you found people in a city (e.g. Mumbai), or how the shortlist splits geographically, call list_shortlist or inspect_talent_pool and use locationMix.
+- Quote locationMix.summary. If one builder is in the requested city and the rest are elsewhere in the requested country, say that plainly: for example "We found 1 builder in Mumbai. The rest are from other parts of India."
+- Do not claim the whole shortlist is in the preferred city unless locationMix.requestedCityCount equals the shortlist size.
+- Per-builder location is on each row. Never invent a city.
 
 Filtering / "give me someone who…" / "show only…" (critical):
 - If the founder asks to filter, narrow, or change who appears in recommendations (e.g. no ASU on-campus job, only remote, drop interns), you MUST update the shortlist with tools in the SAME turn — not just answer in chat.
@@ -274,7 +282,7 @@ const TOOLS: ToolDefinition[] = [
     function: {
       name: 'inspect_talent_pool',
       description:
-        'Read-only: inspect evidence from the current shortlist to answer talent-pool questions. Does NOT update the Recommendations pane. If the founder asked to filter/narrow who is recommended, follow up with keep_builders or remove_builders in the same turn.',
+        'Read-only: inspect evidence from the current shortlist to answer talent-pool questions, including where builders are located. Does NOT update the Recommendations pane. If the founder asked to filter/narrow who is recommended, follow up with keep_builders or remove_builders in the same turn.',
       parameters: {
         type: 'object',
         properties: {
@@ -296,7 +304,7 @@ const TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'list_shortlist',
-      description: 'List builders currently recommended for this role, including sponsorship inference. Use before remove/exclude decisions.',
+      description: 'List builders currently recommended for this role, including location and sponsorship inference. Use this to answer where people are (city/country mix) before remove/exclude decisions.',
       parameters: {
         type: 'object',
         properties: {
@@ -774,6 +782,8 @@ function searchResultMessage(search: any, prefix = ''): string {
   } else if (search?.githubActivityUsed === false && total > 0) {
     extras.push('GitHub activity was unavailable for most profiles, so I leaned more on skills and project proof.');
   }
+  const locationSummary = String(search?.poolSummary?.locationMix?.summary || '').trim();
+  if (locationSummary) extras.push(locationSummary);
   return extras.length ? `${base} ${extras.join(' ')}` : base;
 }
 
@@ -785,14 +795,18 @@ async function buildFounderPoolNarrative(summary: PoolSummary): Promise<string> 
     const emptyPoolRule = summary.noRelevantMatches || summary.candidatesReturned === 0
       ? `The shortlist is EMPTY on purpose. Say clearly that no matching builders were found and that closest-fit / weak alternatives are intentionally not shown. Do not invent or recommend any candidates.`
       : `Include 3-5 top recommendations as a numbered list with short bullets (never a markdown table).`;
+    const locationRule = summary.locationMix?.summary
+      ? `Location mix is a required fact. Put it in the overview. If a city was requested, say how many builders are in that city versus elsewhere in the country. Do not imply everyone is in the preferred city unless requestedCityCount equals candidatesReturned. Use this sentence if it matches the JSON: "${summary.locationMix.summary}"`
+      : `If locations are missing, do not invent cities.`;
     const narrative = await generateOpenRouterReply({
       model: 'reasoning',
       temperature: 0,
       maxTokens: 1300,
       systemPrompt: `You are writing an honest founder-facing hiring summary.
-Return Markdown only. Use only the JSON facts supplied. Do not invent qualifications, social activity, work authorization, GitHub activity, or counts.
-Include: a short pool overview, material trade-offs, and evidence coverage.
+Return Markdown only. Use only the JSON facts supplied. Do not invent qualifications, social activity, work authorization, GitHub activity, locations, or counts.
+Include: a short pool overview, location mix when present, material trade-offs, and evidence coverage.
 ${emptyPoolRule}
+${locationRule}
 Treat missing evidence as unknown. If a requested preference has no verified matches, say that plainly.`,
       userPrompt: JSON.stringify(summary),
     });
@@ -804,7 +818,7 @@ Treat missing evidence as unknown. If a requested preference has no verified mat
 }
 
 function shouldUseReasoningModel(message: string) {
-  return /\b(search|find|recommend|candidate|builder|talent|shortlist|pool|rerank|compare|why|github|social|twitter|linkedin|sponsorship|visa|best fit|trade-?off)\b/i.test(
+  return /\b(search|find|recommend|candidate|builder|talent|shortlist|pool|rerank|compare|why|github|social|twitter|linkedin|sponsorship|visa|best fit|trade-?off|mumbai|location|based|india)\b/i.test(
     message
   );
 }
@@ -1131,7 +1145,7 @@ async function toolListShortlist(identity: FounderIdentity, args: Record<string,
   const visible = shortlist.candidates.filter((c: any) => !hidden.has(String(c.builderId)));
   const builderIds = visible.map((c: any) => String(c.builderId));
   const builders = await BuilderProfile.find({ _id: { $in: builderIds } })
-    .select('_id name workAuthorization education location universityOrCompany')
+    .select('_id name workAuthorization education location universityOrCompany experiences')
     .lean();
   const byId = new Map(builders.map((b: any) => [String(b._id), b]));
 
@@ -1139,9 +1153,11 @@ async function toolListShortlist(identity: FounderIdentity, args: Record<string,
     const id = String(c.builderId);
     const builder = byId.get(id);
     const inference = builder ? inferSponsorshipNeed(builder) : null;
+    const resolved = builder ? resolveBuilderBaseLocation(builder) : { text: null };
     return {
       builderId: id,
       name: builder?.name || c.anonymousLabel || null,
+      location: resolved.text,
       matchScore: c.matchScore ?? null,
       matchLabel: c.matchLabel ?? null,
       sponsorship: inference
@@ -1150,10 +1166,20 @@ async function toolListShortlist(identity: FounderIdentity, args: Record<string,
     };
   });
 
+  const locationMix = summarizeShortlistLocations(
+    builders.map((builder: any) => ({
+      name: builder.name,
+      location: builder.location,
+      experiences: builder.experiences,
+    })),
+    job
+  );
+
   return {
     jobId,
     total: rows.length,
     builders: rows,
+    locationMix,
     excludedBuilderIds: jobExcludedBuilderIds(job),
     visa: job.visa || null,
     visaConfirmed: job.visaConfirmed === true,
@@ -1686,9 +1712,10 @@ async function runSearchForJob(
     domainTerms: channels.domainTerms.slice(0, 8),
     mustTerms: channels.mustTerms.slice(0, 8),
     stackTerms: channels.stackTerms.slice(0, 8),
+    locationTerms: channels.locationTerms.slice(0, 8),
   });
   try {
-    const [domainResult, mustResult, stackResult] = await Promise.all([
+    const [domainResult, mustResult, stackResult, locationBuilders] = await Promise.all([
       searchTalentSearchIndex({
         terms: channels.domainTerms.length ? channels.domainTerms : channels.stackTerms,
         limit: channelLimit,
@@ -1701,11 +1728,13 @@ async function runSearchForJob(
         terms: channels.stackTerms,
         limit: channelLimit,
       }),
+      searchLocationChannel(channels.locationTerms, channelLimit),
     ]);
     const mergedBuilders = mergeChannelBuilders({
       domain: domainResult.builders,
       must: mustResult.builders,
       stack: stackResult.builders,
+      location: locationBuilders,
       poolTarget,
     });
     if (mergedBuilders.length > 0) {
@@ -1718,6 +1747,7 @@ async function runSearchForJob(
       domainCount: domainResult.builders.length,
       mustCount: mustResult.builders.length,
       stackCount: stackResult.builders.length,
+      locationCount: locationBuilders.length,
       mergedCount: mergedBuilders.length,
       durationMs: Math.max(domainResult.durationMs, mustResult.durationMs, stackResult.durationMs),
     });
@@ -2006,7 +2036,7 @@ async function runSearchForJob(
       strongCandidates: limitedCandidates.filter((candidate) => candidate.matchLabel === 'Strong Match').length,
     },
   };
-  const poolSummary = buildPoolSummary(limitedResult);
+  const poolSummary = buildPoolSummary(limitedResult, oppPlain);
   const poolNarrative = await buildFounderPoolNarrative(poolSummary);
   logFounderAgent('search_talent:discovery:done', {
     jobId,
@@ -2635,7 +2665,7 @@ async function toolInspectTalentPool(
   if (!jobId || !mongoose.Types.ObjectId.isValid(jobId)) return { error: 'A valid current role is required.' };
 
   const job = await JobPosting.findOne({ _id: jobId, founderEmail: identity.email })
-    .select('title roleTitle skillsNeeded searchRequirements visa')
+    .select('title roleTitle skillsNeeded searchRequirements visa location locationPreference workMode searchPlan')
     .lean();
   if (!job) return { error: 'Role not found.' };
 
@@ -2688,6 +2718,7 @@ async function toolInspectTalentPool(
     const record: Record<string, unknown> = {
       builderId,
       name: builder.name,
+      location: resolveBuilderBaseLocation(builder).text || builder.location || null,
       matchScore: shortlisted?.matchScore ?? null,
       matchLabel: shortlisted?.matchLabel ?? null,
     };
@@ -2695,7 +2726,7 @@ async function toolInspectTalentPool(
       record.profile = {
         headline: builder.headline || null,
         skills: (builder.rolePreference || builder.skills || []).slice(0, 12),
-        location: builder.location || null,
+        location: resolveBuilderBaseLocation(builder).text || builder.location || null,
       };
     }
     if (fields.has('projects')) {
@@ -2712,6 +2743,7 @@ async function toolInspectTalentPool(
       record.experience = (builder.experiences || []).slice(0, 5).map((experience: any) => ({
         title: experience.title || null,
         company: experience.company || null,
+        location: experience.location || null,
         description: String(experience.description || '').slice(0, 280),
       }));
     }
@@ -2759,6 +2791,7 @@ async function toolInspectTalentPool(
     job: { id: String((job as any)._id), title: (job as any).title || (job as any).roleTitle, skills: (job as any).skillsNeeded || [] },
     question: cleanString(args.question) || null,
     cohort: { available: shortlistIds.length, inspected: evidence.length, maxInspectable: 35 },
+    locationMix: summarizeShortlistLocations(builders, job),
     evidence,
     dataBoundary: 'Read-only role-scoped builder/profile/project evidence. Missing evidence is unknown, not negative.',
   };

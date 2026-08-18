@@ -12,6 +12,7 @@ import type { AgentWrappedReport } from '@/lib/agentWrapped/types';
 import type { FounderEntitlements } from '@/lib/billing/entitlements';
 import { buildRoleFitTrace, buildTraceFreshness, type RoleFitTracePayload } from '@/lib/talent/roleFitTrace';
 import { normalizeFounderFacingExperiences } from '@/lib/talent/experienceNormalize';
+import { resolveBuilderBaseLocation } from '@/lib/talent/builderLocation';
 
 export type AgentTraceTeaserPayload = {
   locked: boolean;
@@ -1048,7 +1049,7 @@ export async function buildFullCandidateCard(params: {
     headline: builder.headline || null,
     bio: builder.bio || null,
     avatarUrl: builder.avatarUrl || null,
-    location: builder.location || null,
+    location: resolveBuilderBaseLocation(builder).text || builder.location || null,
     availability: {
       availableNow: Boolean(availability.availableNow),
       remotePreference: availability.remotePreference || null,

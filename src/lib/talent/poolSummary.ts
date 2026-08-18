@@ -1,4 +1,5 @@
 import { resolveCandidateNarrative } from '@/lib/talent/discovery/scoring';
+import { resolveBuilderBaseLocation, summarizeShortlistLocations, type ShortlistLocationMix } from '@/lib/talent/builderLocation';
 
 export type PoolSummary = {
   generatedAt: string;
@@ -28,10 +29,12 @@ export type PoolSummary = {
     name: string;
     score: number;
     label: string;
+    location: string | null;
     whyTheyMatch: string;
     concerns: string[];
     evidence: string[];
   }>;
+  locationMix: ShortlistLocationMix | null;
   evidenceDisclaimer: string;
 };
 
@@ -44,7 +47,7 @@ function hasPublicPresence(builder: any) {
   );
 }
 
-export function buildPoolSummary(result: any): PoolSummary {
+export function buildPoolSummary(result: any, opportunity?: any): PoolSummary {
   const candidates = Array.isArray(result?.candidates) ? result.candidates : [];
   const requirementMap = new Map<string, { text: string; met: number; partial: number; unmet: number }>();
 
@@ -89,12 +92,19 @@ export function buildPoolSummary(result: any): PoolSummary {
       name: String(candidate.builder?.name || 'Builder'),
       score: Math.round((Number(candidate.overallFit) || 0) * 100),
       label: candidate.matchLabel || 'Possible Match',
+      location: resolveBuilderBaseLocation(candidate.builder).text,
       whyTheyMatch: candidate.explanation
         ? resolveCandidateNarrative(candidate.explanation, candidate.builder, candidate.projects || [])
         : '',
       concerns: (candidate.explanation?.concerns || []).slice(0, 2),
       evidence: (candidate.explanation?.strongestSignals || []).slice(0, 3),
     })),
+    locationMix: opportunity
+      ? summarizeShortlistLocations(
+          candidates.map((candidate: any) => candidate.builder).filter(Boolean),
+          opportunity
+        )
+      : null,
     evidenceDisclaimer: `Counts reflect the ${candidates.length} candidates returned from ${Number(result?.totalScanned || 0)} builders scanned on ${new Date(result?.generatedAt || Date.now()).toISOString().slice(0, 10)}.`,
   };
 }
@@ -126,11 +136,15 @@ export function renderPoolSummaryMarkdown(summary: PoolSummary): string {
     `- **${summary.strongCandidates}** strong and **${summary.goodCandidates}** good matches in the current shortlist.`,
     `- Pool confidence: **${summary.confidence}**.`,
   ];
+  if (summary.locationMix?.summary) {
+    lines.push(`- ${summary.locationMix.summary}`);
+  }
 
   if (summary.candidates.length) {
     lines.push('', '### Recommended starting points', '');
     for (const candidate of summary.candidates.slice(0, 5)) {
-      lines.push(`1. **${candidate.name}** (${candidate.score}% · ${candidate.label})`);
+      const place = candidate.location ? ` · ${candidate.location}` : '';
+      lines.push(`1. **${candidate.name}** (${candidate.score}% · ${candidate.label}${place})`);
       if (candidate.whyTheyMatch) lines.push(`   - ${candidate.whyTheyMatch}`);
       if (candidate.concerns.length) lines.push(`   - Watch: ${candidate.concerns.join('; ')}`);
     }

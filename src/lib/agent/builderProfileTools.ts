@@ -8,6 +8,7 @@ import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { computeBuilderScores } from '@/lib/talent/matching';
 import { evaluateBuilderProfileQuality } from '@/lib/talent/profileQuality';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
+import { resolveBuilderBaseLocation } from '@/lib/talent/builderLocation';
 import { generateOpenRouterReply } from '@/lib/openrouter';
 import { fetchUrlMarkdown, normalizeUrl } from '@/lib/talent/builderEnrichment/urlToMarkdown';
 import { updateUserAccount, findUserByEmail } from '@/lib/adminMongo';
@@ -69,7 +70,7 @@ export function buildProfileSnapshot(builder: any, projects: any[]) {
     avatarUrl: builder.avatarUrl || null,
     headline: builder.headline || null,
     bio: builder.bio || null,
-    location: builder.location || null,
+    location: resolveBuilderBaseLocation(builder).text || builder.location || null,
     timezone: builder.timezone || null,
     currentStatus: builder.currentStatus || null,
     universityOrCompany: builder.universityOrCompany || null,

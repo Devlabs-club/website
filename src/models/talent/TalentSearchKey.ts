@@ -6,7 +6,7 @@ const TalentSearchKeySchema = new mongoose.Schema(
     builderId: { type: mongoose.Schema.Types.ObjectId, ref: 'BuilderProfile', required: true, index: true },
     kind: {
       type: String,
-      enum: ['skill', 'project_tech', 'contribution', 'text'],
+      enum: ['skill', 'project_tech', 'contribution', 'text', 'location', 'experience', 'education', 'enrichment', 'highlight', 'bio', 'domain'],
       required: true,
       index: true,
     },

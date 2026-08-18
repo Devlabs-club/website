@@ -43,6 +43,7 @@ describe('pool summary', () => {
     expect(summary.evidenceCoverage.publicPresenceEvidence).toBe(1);
     expect(summary.evidenceCoverage.sponsorshipKnown).toBe(1);
     expect(summary.requirementCoverage[0]).toEqual({ text: 'React', met: 1, partial: 1, unmet: 0 });
+    expect(summary.locationMix).toBeNull();
     expect(renderPoolSummaryMarkdown(summary)).toContain('Missing evidence is treated as unknown');
   });
 });

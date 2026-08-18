@@ -6,6 +6,7 @@ import { scheduleTalentStatsRefresh } from '@/lib/talent/talentDatabaseStats';
 import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/embeddings/upsertTalentEmbedding';
 import { upsertBuilderEmbeddingV2 } from '@/lib/talent/embeddings/upsertTalentEmbeddingV2';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
+import { isPlausibleLocation } from '@/lib/talent/builderLocation';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import {
   dedupeBuilderProfileCollections,
@@ -242,7 +243,7 @@ export async function applyProfileDraft(
     updated.push('avatarUrl');
     await syncBuilderUserAvatar(builder, builder.avatarUrl);
   }
-  if (!isEmpty(draft.location) && (overwrite || isEmpty(builder.location))) {
+  if (isPlausibleLocation(draft.location) && (overwrite || isEmpty(builder.location) || !isPlausibleLocation(builder.location))) {
     builder.location = String(draft.location).trim().slice(0, 120);
     updated.push('location');
   }

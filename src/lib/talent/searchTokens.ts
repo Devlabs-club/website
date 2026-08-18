@@ -3,6 +3,11 @@ import {
   isGithubActivityRequirement,
 } from '@/lib/talent/githubActivity';
 import { expandDomainProofTerms } from '@/lib/talent/roleEvidenceDossier';
+import {
+  looksLikeGeoRequirement,
+  resolveBuilderBaseLocation,
+  scoreLocationFit,
+} from '@/lib/talent/builderLocation';
 
 const INDEX_STOP_TERMS = new Set([
   'a',
@@ -369,7 +374,9 @@ function matchesRoleConcept(text: string, concept: string) {
 function experienceEvidence(builder: any) {
   return (builder?.experiences || []).map((entry: any) => ({
     label: [entry?.title, entry?.company].filter(Boolean).join(' at '),
-    text: normalizeSearchTerm([entry?.title, entry?.company, entry?.description, ...(entry?.skills || [])].join(' ')),
+    text: normalizeSearchTerm(
+      [entry?.title, entry?.company, entry?.location, entry?.description, ...(entry?.skills || [])].join(' ')
+    ),
   }));
 }
 
@@ -545,6 +552,20 @@ export function evaluateFounderRequirement(
   }
   if (compiled?.predicate === 'role_relevance') {
     return evaluateRoleRelevance(builder, projects, compiled?.roleEvidence || compiled);
+  }
+  if (looksLikeGeoRequirement(requirementText)) {
+    const fit = scoreLocationFit(builder, { locationPreference: requirementText });
+    const resolved = resolveBuilderBaseLocation(builder);
+    if (fit >= 0.8) {
+      return { met: 'yes', evidence: (resolved.text || 'Location match').slice(0, 180) };
+    }
+    if (fit >= 0.55) {
+      return { met: 'partial', evidence: (resolved.text || 'Partial location match').slice(0, 180) };
+    }
+    if (!resolved.text) {
+      return { met: 'no', evidence: 'Location not listed on profile' };
+    }
+    return { met: 'no', evidence: `Based in ${resolved.text}`.slice(0, 180) };
   }
 
   const mode = String(compiled?.mode || '');

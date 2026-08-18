@@ -37,14 +37,9 @@ import {
   opportunityRequiresInternship,
   type RoleEvidenceDossier,
 } from '@/lib/talent/roleEvidenceDossier';
-import {
-  buildFallbackSearchPlan,
-  getPlanEvidenceDimensions,
-} from '@/lib/talent/searchPlan';
-import {
-  scoreRoleDimensions,
-  type RoleDimensionScore,
-} from '@/lib/talent/roleEvidenceDimensions';
+import { buildFallbackSearchPlan, getPlanEvidenceDimensions } from '@/lib/talent/searchPlan';
+import { scoreRoleDimensions, type RoleDimensionScore } from '@/lib/talent/roleEvidenceDimensions';
+import { reserveGeoShortlistSeats } from '@/lib/talent/builderLocation';
 
 export type DiscoveryInput = {
   opportunity: any;
@@ -424,7 +419,10 @@ export async function runFounderDiscoveryPipeline(input: DiscoveryInput): Promis
   // evidence. Never pad the shortlist with "closest" weak mismatches.
   const relevantCandidates = filterRelevantCandidates(diversified);
   const noRelevantMatches = relevantCandidates.length === 0;
-  const returnedCandidates = noRelevantMatches ? [] : relevantCandidates.slice(0, limit);
+  const geoBalanced = noRelevantMatches
+    ? []
+    : reserveGeoShortlistSeats(relevantCandidates, opportunity, limit);
+  const returnedCandidates = geoBalanced.slice(0, limit);
 
   // Stage 6: search quality report for the shortlist founders actually see
   const searchQuality = buildSearchQualityReport({

@@ -263,6 +263,17 @@ describe('Ethical Hacker match quality regression', () => {
     expect(merged.length).toBeLessThanOrEqual(80);
   });
 
+  it('reserves location channel seats when geo results exist', () => {
+    const domain = Array.from({ length: 40 }, (_, index) => ({ _id: `domain-${index}` }));
+    const stack = Array.from({ length: 40 }, (_, index) => ({ _id: `stack-${index}` }));
+    const must = Array.from({ length: 20 }, (_, index) => ({ _id: `must-${index}` }));
+    const location = Array.from({ length: 20 }, (_, index) => ({ _id: `loc-${index}` }));
+    const merged = mergeChannelBuilders({ domain, must, stack, location, poolTarget: 80 });
+    const locationCount = merged.filter((builder) => String(builder._id).startsWith('loc-')).length;
+    expect(locationCount).toBeGreaterThanOrEqual(12);
+    expect(merged.length).toBeLessThanOrEqual(80);
+  });
+
   it('ranks Mohak and Andrey above empty-domain stack generalists', async () => {
     const plan = buildFallbackSearchPlan(ethicalHackerOpportunity);
     expect(plan.roleFamily).toBe('specialist');

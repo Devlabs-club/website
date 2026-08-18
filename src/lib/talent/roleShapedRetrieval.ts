@@ -4,9 +4,12 @@ import { searchTalentSearchIndex } from '@/lib/talent/searchIndex';
 import {
   hydrateSearchableBuilderPool,
   profileLimitPoolTarget,
+  searchableBuilderFilter,
 } from '@/lib/talent/searchableBuilderPool';
 import { getPlanEvidenceDimensions } from '@/lib/talent/searchPlan';
 import { vectorSearchTalentBuilders } from '@/lib/talent/embeddings/searchTalentEmbeddingsV2';
+import BuilderProfile from '@/models/talent/BuilderProfile';
+import { locationMatchRegex, roleGeoSearchTerms } from '@/lib/talent/builderLocation';
 
 function uniqueTrimmed(values: Array<string | null | undefined>, max = 24): string[] {
   const seen = new Set<string>();
@@ -37,19 +40,32 @@ export function mergeChannelBuilders(params: {
   must: any[];
   stack: any[];
   vector?: any[];
+  location?: any[];
   poolTarget: number;
 }): any[] {
   const vector = params.vector || [];
-  // No vector channel (disabled/errored/no hits) => identical quotas to before this
-  // channel existed, so behavior is unchanged unless it actually returns results.
+  const location = params.location || [];
+  // Empty optional channels keep the original quotas so behavior is unchanged
+  // unless those channels actually return results.
   const hasVector = vector.length > 0;
-  const domainQuota = Math.max(8, Math.round(params.poolTarget * (hasVector ? 0.32 : 0.4)));
-  const mustQuota = Math.max(6, Math.round(params.poolTarget * (hasVector ? 0.2 : 0.25)));
-  const stackQuota = Math.max(6, Math.round(params.poolTarget * (hasVector ? 0.2 : 0.25)));
-  const vectorQuota = hasVector ? Math.max(6, Math.round(params.poolTarget * 0.2)) : 0;
+  const hasLocation = location.length > 0;
+  const domainQuota = Math.max(
+    8,
+    Math.round(params.poolTarget * (hasLocation ? (hasVector ? 0.26 : 0.34) : hasVector ? 0.32 : 0.4))
+  );
+  const mustQuota = Math.max(
+    6,
+    Math.round(params.poolTarget * (hasLocation ? (hasVector ? 0.16 : 0.2) : hasVector ? 0.2 : 0.25))
+  );
+  const stackQuota = Math.max(
+    6,
+    Math.round(params.poolTarget * (hasLocation ? (hasVector ? 0.16 : 0.2) : hasVector ? 0.2 : 0.25))
+  );
+  const locationQuota = hasLocation ? Math.max(6, Math.round(params.poolTarget * 0.18)) : 0;
+  const vectorQuota = hasVector ? Math.max(6, Math.round(params.poolTarget * (hasLocation ? 0.16 : 0.2))) : 0;
   const fillQuota = Math.max(
     4,
-    params.poolTarget - domainQuota - mustQuota - stackQuota - vectorQuota
+    params.poolTarget - domainQuota - mustQuota - stackQuota - locationQuota - vectorQuota
   );
 
   const selected: any[] = [];
@@ -70,10 +86,11 @@ export function mergeChannelBuilders(params: {
   take(params.domain, domainQuota);
   take(params.must, mustQuota);
   take(params.stack, stackQuota);
+  if (hasLocation) take(location, locationQuota);
   if (hasVector) take(vector, vectorQuota);
 
-  // Fill remaining seats from leftover channel results in domain → must → stack → vector order.
-  const leftovers = [...params.domain, ...params.must, ...params.stack, ...vector];
+  // Fill remaining seats from leftover channel results in domain → must → stack → location → vector order.
+  const leftovers = [...params.domain, ...params.must, ...params.stack, ...location, ...vector];
   take(leftovers, fillQuota + Math.max(0, params.poolTarget - selected.length));
 
   return selected.slice(0, params.poolTarget);
@@ -86,6 +103,7 @@ export function buildRetrievalChannels(params: {
   domainTerms: string[];
   mustTerms: string[];
   stackTerms: string[];
+  locationTerms: string[];
   strategy: ReturnType<typeof buildSearchStrategy>;
 } {
   const { opportunity, founderId } = params;
@@ -93,6 +111,7 @@ export function buildRetrievalChannels(params: {
   const tiers = buildRoleSkillTiers(opportunity);
   const dimensions = getPlanEvidenceDimensions(opportunity?.searchPlan);
   const domainDimension = dimensions.find((dimension) => dimension.id === 'domain_depth');
+  const locationTerms = roleGeoSearchTerms(opportunity);
 
   const domainTerms = uniqueTrimmed(
     [
@@ -133,7 +152,7 @@ export function buildRetrievalChannels(params: {
     24
   );
 
-  return { domainTerms, mustTerms, stackTerms, strategy };
+  return { domainTerms, mustTerms, stackTerms, locationTerms, strategy };
 }
 
 async function searchChannel(terms: string[], limit: number): Promise<any[]> {
@@ -145,6 +164,42 @@ async function searchChannel(terms: string[], limit: number): Promise<any[]> {
     console.warn('[role-shaped-retrieval] channel lookup failed', error);
     return [];
   }
+}
+
+async function findBuildersByLocationTerms(terms: string[], limit: number): Promise<any[]> {
+  const regex = locationMatchRegex(terms);
+  if (!regex || limit <= 0) return [];
+  try {
+    return await BuilderProfile.find({
+      ...searchableBuilderFilter(),
+      $or: [{ location: regex }, { 'experiences.location': regex }],
+    })
+      .select('_id')
+      .limit(limit)
+      .maxTimeMS(3000)
+      .lean();
+  } catch (error) {
+    console.warn('[role-shaped-retrieval] location query failed', error);
+    return [];
+  }
+}
+
+export async function searchLocationChannel(terms: string[], limit: number): Promise<any[]> {
+  if (!terms.length || limit <= 0) return [];
+  const [indexHits, directHits] = await Promise.all([
+    searchChannel(terms, limit),
+    findBuildersByLocationTerms(terms, limit),
+  ]);
+  const selected: any[] = [];
+  const seen = new Set<string>();
+  for (const builder of [...indexHits, ...directHits]) {
+    const id = builderKey(builder);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    selected.push(builder);
+    if (selected.length >= limit) break;
+  }
+  return selected;
 }
 
 /** Atlas $vectorSearch channel (talentembeddings_v2). Already hard-timed and
@@ -186,6 +241,7 @@ export async function retrieveRoleShapedBuilderPool(params: {
   const domainLimit = Math.max(24, Math.round(poolTarget * 0.55));
   const mustLimit = Math.max(16, Math.round(poolTarget * 0.4));
   const stackLimit = Math.max(16, Math.round(poolTarget * 0.4));
+  const locationLimit = Math.max(16, Math.round(poolTarget * 0.35));
   const vectorLimit = Math.max(16, Math.round(poolTarget * 0.4));
 
   // V2 vector channel (main): query is role-shaped from the compiled plan —
@@ -196,10 +252,11 @@ export async function retrieveRoleShapedBuilderPool(params: {
     12
   ).join(' ');
 
-  const [domainBuilders, mustBuilders, stackBuilders, vectorBuilders] = await Promise.all([
+  const [domainBuilders, mustBuilders, stackBuilders, locationBuilders, vectorBuilders] = await Promise.all([
     searchChannel(channels.domainTerms, domainLimit),
     searchChannel(channels.mustTerms, mustLimit),
     searchChannel(channels.stackTerms, stackLimit),
+    searchLocationChannel(channels.locationTerms, locationLimit),
     vectorChannel(vectorQuery, vectorLimit),
   ]);
 
@@ -207,6 +264,7 @@ export async function retrieveRoleShapedBuilderPool(params: {
     domain: domainBuilders,
     must: mustBuilders,
     stack: stackBuilders,
+    location: locationBuilders,
     vector: vectorBuilders,
     poolTarget,
   });
@@ -221,6 +279,7 @@ export async function retrieveRoleShapedBuilderPool(params: {
             ...channels.domainTerms,
             ...channels.mustTerms,
             ...channels.stackTerms,
+            ...channels.locationTerms,
             channels.strategy.primaryQuery,
           ],
           28

@@ -2,6 +2,7 @@ import { countMustSearchRequirements } from '@/lib/talent/searchTokens';
 import { getPlanRetrievalTerms, type SearchPlan } from '@/lib/talent/searchPlan';
 import { buildRoleSkillTiers } from './roleSkillTiers';
 import type { RoleSkillTiers } from './roleSkillTiers';
+import { roleGeoSearchTerms } from '@/lib/talent/builderLocation';
 
 export type SearchMode = 'broad' | 'balanced' | 'strict';
 
@@ -347,6 +348,10 @@ export function computeDynamicWeights(params: {
   }
 
   weights = applyDomainNudges(weights, roleSkillTiers.domain);
+
+  if (roleGeoSearchTerms(opportunity).length > 0) {
+    weights.availabilityFit = Math.max(weights.availabilityFit, 0.12);
+  }
 
   // When a role plan exists, evidence dimensions become the primary ranking signal.
   if (hasEvidenceDimensions) {

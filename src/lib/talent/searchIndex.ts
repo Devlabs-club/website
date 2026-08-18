@@ -10,6 +10,7 @@ import {
   normalizeSearchTerm,
   uniqueSearchTerms,
 } from '@/lib/talent/searchTokens';
+import { builderLocationSearchTerms, collectBuilderLocationTexts } from '@/lib/talent/builderLocation';
 
 const SEARCHABLE_BUILDER_STATUSES = [
   'imported_unverified',
@@ -36,6 +37,7 @@ const BUILDER_INDEX_SELECT = [
   'verificationStatus',
   'visibilityStatus',
   'universityOrCompany',
+  'location',
   'education',
   'experiences',
   'enrichmentInsights',
@@ -173,6 +175,7 @@ function relevanceScore(doc: any, terms: string[]) {
     scoreArray(doc.normalizedRoleDomains, 5) +
     scoreArray(doc.normalizedProjectTech, 5) +
     scoreArray(doc.normalizedContributionTags, 3) +
+    scoreArray(doc.normalizedLocationTerms, 8) +
     scoreArray(doc.searchTerms, 2) +
     Math.min(12, doc.bestProjectEvidenceScore || 0) +
     Math.min(8, doc.projectCount || 0)
@@ -183,7 +186,7 @@ function buildSearchKeyRows(payload: any) {
   const rows = new Map<string, { term: string; builderId: any; kind: string; weight: number; evidenceScore: number; indexedAt: Date }>();
   const add = (
     term: string,
-    kind: 'skill' | 'project_tech' | 'contribution' | 'experience' | 'education' | 'enrichment' | 'highlight' | 'bio' | 'domain' | 'text',
+    kind: 'skill' | 'project_tech' | 'contribution' | 'experience' | 'education' | 'enrichment' | 'highlight' | 'bio' | 'domain' | 'location' | 'text',
     weight: number
   ) => {
     const normalized = normalizeSearchTerm(term);
@@ -211,6 +214,7 @@ function buildSearchKeyRows(payload: any) {
   for (const term of payload.normalizedRoleDomains || []) add(term, 'domain', 5);
   for (const term of payload.normalizedProjectTech || []) add(term, 'project_tech', 5);
   for (const term of payload.normalizedContributionTags || []) add(term, 'contribution', 3);
+  for (const term of payload.normalizedLocationTerms || []) add(term, 'location', 8);
   for (const term of payload.searchTerms || []) add(term, 'text', 2);
 
   return [...rows.values()].slice(0, 180);
@@ -287,6 +291,8 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
   const wrappedLanguages = (agentWrappedReport?.languages || []).map((item: any) => item?.name).filter(Boolean);
   const wrappedFrameworks = (agentWrappedReport?.frameworks || []).map((item: any) => item?.name).filter(Boolean);
   const wrappedAgents = agentWrappedReport?.sourceCoverage?.agents || [];
+  const normalizedLocationTerms = builderLocationSearchTerms(builder);
+  const locationTexts = collectBuilderLocationTexts(builder);
   const searchTerms = expandSearchTerms([
     ...profile.skills,
     ...profile.experienceCompanies,
@@ -296,6 +302,8 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
     ...profile.highlightTerms,
     ...profile.bioKeywords,
     ...profile.experiencePhrases,
+    ...normalizedLocationTerms,
+    ...locationTexts,
     builder.headline,
     builder.bio,
     builder.profileQuality?.oneLineSummary,
@@ -335,6 +343,7 @@ export function buildTalentSearchIndexPayload(builder: any, projects: any[], age
     normalizedRoleDomains,
     normalizedProjectTech,
     normalizedContributionTags,
+    normalizedLocationTerms,
     searchTerms,
     preferredWorkType: builder.preferredWorkType || [],
     links: builder.links || {},

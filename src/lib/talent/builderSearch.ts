@@ -1,3 +1,5 @@
+import { scoreLocationFit } from '@/lib/talent/builderLocation';
+
 export type OpportunityLike = {
   _id?: unknown;
   company?: string | null;
@@ -11,6 +13,8 @@ export type OpportunityLike = {
   timeline?: string | null;
   budget?: string | null;
   locationPreference?: string | null;
+  location?: string | null;
+  workMode?: string | null;
   availabilityNeeded?: string | null;
   builderWillDo?: string | null;
   deliverables?: string[] | null;
@@ -340,20 +344,9 @@ function scoreProofRelevance(builder: any, projects: any[]): number {
 
 function scoreAvailabilityFit(builder: any, opportunity: OpportunityLike): number {
   const avail = builder.availability || {};
-  let score = 0;
-
-  if (avail.availableNow) score += 0.7;
-  else score += 0.15;
-
-  const remote = norm(avail.remotePreference || 'unspecified');
-  const loc = norm(opportunity.locationPreference || opportunity.availabilityNeeded || '');
-  if (!loc || loc.includes('remote') || remote === 'remote' || remote === 'unspecified') {
-    score += 0.1;
-  } else if (loc.includes('hybrid') && remote === 'hybrid') {
-    score += 0.1;
-  }
-
-  return Math.min(1, score);
+  let score = avail.availableNow ? 0.55 : 0.12;
+  score += 0.45 * scoreLocationFit(builder, opportunity);
+  return Math.min(1, Math.max(0.1, score));
 }
 
 function normalizeWorkType(value: string): string {
