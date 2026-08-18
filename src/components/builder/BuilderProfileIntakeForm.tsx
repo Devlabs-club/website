@@ -1,11 +1,20 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { FileText, Upload, WandSparkles } from 'lucide-react';
+import {
+  hasOpenToWorkAnswer,
+  hasResume,
+  hasWorkAuthAnswer,
+  listMissingProofFields,
+  type MissingProofField,
+} from '@/lib/talent/builderProofGaps';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 
 type Props = {
   profile: BuilderProfileView | null;
   onSaved: () => Promise<void> | void;
   onEnrichmentStateChange?: (enriching: boolean) => void;
+  /** When true, only ask for fields that are actually missing. */
+  slim?: boolean;
 };
 
 const MAX_RESUME_BYTES = 10 * 1024 * 1024;
@@ -18,17 +27,21 @@ function RequiredYesNo({
   label,
   value,
   onChange,
+  required = true,
 }: {
   label: string;
   value: boolean | null;
   onChange: (next: boolean) => void;
+  required?: boolean;
 }) {
   return (
     <div className="border border-black/10 bg-[#fffcfa] px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-extrabold text-[#050505]">{label}</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#bf4f08]">Required</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-[#bf4f08]">
+            {required ? 'Required' : 'Optional'}
+          </p>
         </div>
         <div className="flex gap-2">
           {[
@@ -58,26 +71,73 @@ function RequiredYesNo({
   );
 }
 
-export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmentStateChange }: Props) {
+function initialOpenToWork(profile: BuilderProfileView | null): boolean | null {
+  if (typeof profile?.availability?.availableNow === 'boolean') {
+    return profile.availability.availableNow;
+  }
+  return null;
+}
+
+function initialUsCitizen(profile: BuilderProfileView | null): boolean | null {
+  const value = String(profile?.workAuthorization || '').toLowerCase();
+  if (!value) return null;
+  if (value.includes('not a us citizen')) return false;
+  if (value.includes('us citizen')) return true;
+  return null;
+}
+
+export default function BuilderProfileIntakeForm({
+  profile,
+  onSaved,
+  onEnrichmentStateChange,
+  slim = false,
+}: Props) {
+  const missingProof = useMemo(() => listMissingProofFields(profile), [profile]);
+  const askLinkedIn = !slim || missingProof.includes('linkedin');
+  const askGitHub = !slim || missingProof.includes('github');
+  const askResume = !slim || missingProof.includes('resume');
+  const askDevpost = !slim;
+  const askPortfolio = !slim;
+  const askOpenToWork = !slim || !hasOpenToWorkAnswer(profile);
+  const askUsCitizen = !slim || !hasWorkAuthAnswer(profile);
+  const existingResume = hasResume(profile);
+
   const [linkedin, setLinkedin] = useState(profileValue(profile, 'linkedin'));
   const [github, setGithub] = useState(profileValue(profile, 'github'));
   const [devpost, setDevpost] = useState(profileValue(profile, 'devpost'));
-  const [portfolio, setPortfolio] = useState(profileValue(profile, 'portfolio') || profileValue(profile, 'personalWebsite'));
-  const [openToWork, setOpenToWork] = useState<boolean | null>(null);
-  const [isUsCitizen, setIsUsCitizen] = useState<boolean | null>(null);
+  const [portfolio, setPortfolio] = useState(
+    profileValue(profile, 'portfolio') || profileValue(profile, 'personalWebsite')
+  );
+  const [openToWork, setOpenToWork] = useState<boolean | null>(initialOpenToWork(profile));
+  const [isUsCitizen, setIsUsCitizen] = useState<boolean | null>(initialUsCitizen(profile));
   const [resume, setResume] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const hasRequiredFields = useMemo(
-    () =>
-      [linkedin, resume?.name].every((value) => String(value || '').trim()) &&
-      openToWork !== null &&
-      isUsCitizen !== null,
-    [linkedin, resume, openToWork, isUsCitizen]
-  );
+  const hasRequiredFields = useMemo(() => {
+    if (slim) {
+      // Slim mode never blocks save. Builders can skip anything they do not have.
+      return true;
+    }
+    const linkedinOk = !askLinkedIn || Boolean(String(linkedin || '').trim());
+    const resumeOk = !askResume || Boolean(resume?.name) || existingResume;
+    const openOk = !askOpenToWork || openToWork !== null;
+    const citizenOk = !askUsCitizen || isUsCitizen !== null;
+    return linkedinOk && resumeOk && openOk && citizenOk;
+  }, [
+    askLinkedIn,
+    askOpenToWork,
+    askResume,
+    askUsCitizen,
+    existingResume,
+    isUsCitizen,
+    linkedin,
+    openToWork,
+    resume,
+    slim,
+  ]);
 
   const acceptResume = (file: File | null | undefined) => {
     if (!file) {
@@ -99,21 +159,36 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
   };
 
   const submit = async () => {
-    if (openToWork === null || isUsCitizen === null) {
-      setError('Please answer Open to work and US citizen.');
-      return;
+    if (!slim) {
+      if (askOpenToWork && openToWork === null) {
+        setError('Please answer Open to work.');
+        return;
+      }
+      if (askUsCitizen && isUsCitizen === null) {
+        setError('Please answer US citizen.');
+        return;
+      }
+      if (askLinkedIn && !String(linkedin || '').trim()) {
+        setError('LinkedIn is required.');
+        return;
+      }
+      if (askResume && !resume && !existingResume) {
+        setError('Resume PDF is required.');
+        return;
+      }
     }
+
     setSaving(true);
     onEnrichmentStateChange?.(true);
     setError('');
     try {
       const form = new FormData();
-      form.set('linkedin', linkedin);
-      form.set('github', github);
-      form.set('devpost', devpost);
-      form.set('portfolio', portfolio);
-      form.set('openToWork', String(openToWork));
-      form.set('isUsCitizen', String(isUsCitizen));
+      if (askLinkedIn && linkedin) form.set('linkedin', linkedin);
+      if (askGitHub && github) form.set('github', github);
+      if (askDevpost && devpost) form.set('devpost', devpost);
+      if (askPortfolio && portfolio) form.set('portfolio', portfolio);
+      if (askOpenToWork && openToWork !== null) form.set('openToWork', String(openToWork));
+      if (askUsCitizen && isUsCitizen !== null) form.set('isUsCitizen', String(isUsCitizen));
       if (resume) form.set('resume', resume);
 
       const res = await fetch('/api/builder/profile', {
@@ -124,7 +199,6 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) throw new Error(data.error || 'Could not save profile.');
       await onSaved();
-      // Enrichment continues in the background — keep the overlay until progress polling clears it.
       if (!data.enrichment?.started) {
         onEnrichmentStateChange?.(false);
       }
@@ -136,44 +210,109 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
     }
   };
 
+  const missingLabels = missingProof
+    .map((field: MissingProofField) =>
+      field === 'linkedin' ? 'LinkedIn' : field === 'resume' ? 'resume' : 'GitHub'
+    )
+    .join(', ');
+
   return (
     <div className="font-manrope mx-auto w-full max-w-2xl px-5 py-8 sm:px-7 sm:py-10">
-        <section className="border border-black/10 bg-white p-5 sm:p-6">
-          <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">01 · Builder profile</p>
-          <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.03em] text-[#050505]">Add your proof links</h2>
-          <p className="mt-2 text-sm leading-6 text-black/55">
-            LinkedIn, resume, and the two status questions are required. GitHub, Devpost, and portfolio are optional.
-            Experience, projects, and profile copy are generated after enrichment and stay editable in Profile.
-          </p>
+      <section className="border border-black/10 bg-white p-5 sm:p-6">
+        <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">
+          01 · Builder profile
+        </p>
+        <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.03em] text-[#050505]">
+          {slim ? 'Fill in what is missing' : 'Add your proof links'}
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-black/55">
+          {slim
+            ? missingLabels
+              ? `We only need ${missingLabels}. Skip anything you do not have.`
+              : 'Looks like the basics are already here. Save if you want to add more, or head to your profile.'
+            : 'LinkedIn and resume help a lot. Open to work and US citizen help founders know if they can reach out. GitHub, Devpost, and portfolio are optional.'}
+        </p>
 
-          <div className="mt-6 space-y-4">
+        <div className="mt-6 space-y-4">
+          {askLinkedIn ? (
             <label className="block">
-              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">LinkedIn</span>
-              <input required value={linkedin} onChange={(event) => setLinkedin(event.target.value)} placeholder="https://linkedin.com/in/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
+                LinkedIn{' '}
+                {slim ? (
+                  <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
+                ) : null}
+              </span>
+              <input
+                required={!slim}
+                value={linkedin}
+                onChange={(event) => setLinkedin(event.target.value)}
+                placeholder="https://linkedin.com/in/you"
+                className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60"
+              />
             </label>
+          ) : null}
+
+          {askGitHub ? (
             <label className="block">
               <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
                 GitHub <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
               </span>
-              <input value={github} onChange={(event) => setGithub(event.target.value)} placeholder="https://github.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <input
+                value={github}
+                onChange={(event) => setGithub(event.target.value)}
+                placeholder="https://github.com/you"
+                className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60"
+              />
             </label>
+          ) : null}
+
+          {askDevpost ? (
             <label className="block">
               <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
                 Devpost <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
               </span>
-              <input value={devpost} onChange={(event) => setDevpost(event.target.value)} placeholder="https://devpost.com/you" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <input
+                value={devpost}
+                onChange={(event) => setDevpost(event.target.value)}
+                placeholder="https://devpost.com/you"
+                className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60"
+              />
             </label>
+          ) : null}
+
+          {askPortfolio ? (
             <label className="block">
               <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-black/40">
                 Portfolio website{' '}
                 <span className="font-semibold normal-case tracking-normal text-black/35">(optional)</span>
               </span>
-              <input value={portfolio} onChange={(event) => setPortfolio(event.target.value)} placeholder="https://your-site.com" className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60" />
+              <input
+                value={portfolio}
+                onChange={(event) => setPortfolio(event.target.value)}
+                placeholder="https://your-site.com"
+                className="mt-1 h-11 w-full border border-black/10 px-3 text-sm outline-none focus:border-[#ff7417]/60"
+              />
             </label>
+          ) : null}
 
-            <RequiredYesNo label="Open to work" value={openToWork} onChange={setOpenToWork} />
-            <RequiredYesNo label="US citizen" value={isUsCitizen} onChange={setIsUsCitizen} />
+          {askOpenToWork ? (
+            <RequiredYesNo
+              label="Open to work"
+              value={openToWork}
+              onChange={setOpenToWork}
+              required={!slim}
+            />
+          ) : null}
+          {askUsCitizen ? (
+            <RequiredYesNo
+              label="US citizen"
+              value={isUsCitizen}
+              onChange={setIsUsCitizen}
+              required={!slim}
+            />
+          ) : null}
 
+          {askResume ? (
             <div
               role="button"
               tabIndex={0}
@@ -212,16 +351,28 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
                   : 'border-black/18 bg-[#fffcfa] hover:border-[#ff7417]/50'
               }`}
             >
-              {resume ? (
+              {resume || existingResume ? (
                 <FileText className="h-5 w-5 text-[#ff7417]" />
               ) : (
                 <Upload className="h-5 w-5 text-[#ff7417]" />
               )}
               <span className="mt-2 text-sm font-extrabold text-[#050505]">
-                {resume ? resume.name : dragActive ? 'Drop resume PDF here' : 'Drag & drop resume PDF'}
+                {resume
+                  ? resume.name
+                  : existingResume
+                    ? 'Resume already on file'
+                    : dragActive
+                      ? 'Drop resume PDF here'
+                      : 'Drag & drop resume PDF'}
               </span>
               <span className="mt-1 text-xs text-black/40">
-                {resume ? 'Click or drop to replace · Required for auto-fill' : 'or click to browse · Required, used for auto-fill'}
+                {resume
+                  ? 'Click or drop to replace'
+                  : existingResume
+                    ? 'Click or drop to replace · optional'
+                    : slim
+                      ? 'or click to browse · optional'
+                      : 'or click to browse · used for auto-fill'}
               </span>
               <input
                 ref={fileInputRef}
@@ -231,20 +382,21 @@ export default function BuilderProfileIntakeForm({ profile, onSaved, onEnrichmen
                 onChange={(event) => acceptResume(event.target.files?.[0] || null)}
               />
             </div>
-          </div>
+          ) : null}
+        </div>
 
-          {error ? <p className="mt-4 text-sm font-semibold text-red-600">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm font-semibold text-red-600">{error}</p> : null}
 
-          <button
-            type="button"
-            onClick={() => void submit()}
-            disabled={saving || !hasRequiredFields}
-            className="builder-primary-button mt-6 inline-flex h-12 w-full items-center justify-center gap-2 text-sm font-semibold disabled:opacity-45"
-          >
-            <WandSparkles className="h-4 w-4" />
-            Save and enrich profile
-          </button>
-        </section>
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={saving || !hasRequiredFields}
+          className="builder-primary-button mt-6 inline-flex h-12 w-full items-center justify-center gap-2 text-sm font-semibold disabled:opacity-45"
+        >
+          <WandSparkles className="h-4 w-4" />
+          {slim ? 'Save and continue' : 'Save and enrich profile'}
+        </button>
+      </section>
     </div>
   );
 }

@@ -269,6 +269,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
   });
   const existingProfile = Boolean(profile);
 
+  // Brand-new profiles still need LinkedIn + resume + the two status answers.
+  // Existing / pre-enriched profiles can save partial link updates without re-uploading.
   if (!existingProfile) {
     const missing: string[] = [];
     if (!normalizeUrl(body.linkedin ?? body.linkedIn)) missing.push('LinkedIn');

@@ -7,12 +7,18 @@ import {
   ShieldCheck,
   TerminalSquare,
 } from 'lucide-react';
+import {
+  isProfileEnriched,
+  listMissingProofFields,
+  type MissingProofField,
+} from '@/lib/talent/builderProofGaps';
 import BuilderProfileEnrichmentOverlay from './BuilderProfileEnrichmentOverlay';
 import type { EnrichmentVisualStage } from './BuilderEnrichmentAsciiVisual';
 import { BuilderProfilePreview, type BuilderProfileView } from './BuilderProfilePreview';
 import BuilderImessageHandoff from './BuilderImessageHandoff';
 import BuilderProfileIntakeForm from './BuilderProfileIntakeForm';
 import BuilderProfileEditor from './BuilderProfileEditor';
+import BuilderProofGapsPrompt from './BuilderProofGapsPrompt';
 import AgentTraceSetup from './AgentTraceSetup';
 import BuilderShell, { builderNavIcons, type BuilderSection } from './BuilderShell';
 import type { MessageDelivery } from './AgentTraceSetup';
@@ -54,12 +60,22 @@ async function logout() {
   }
 }
 
-function defaultSection(verified: boolean, traceUploaded: boolean, hasProfile: boolean, imessageEnabled: boolean): BuilderSection {
-  // Form-based builders: overview (setup CTA) or home once a profile exists.
-  if (!imessageEnabled) return 'overview';
+function defaultSection(params: {
+  verified: boolean;
+  traceUploaded: boolean;
+  hasProfile: boolean;
+  enriched: boolean;
+  imessageEnabled: boolean;
+}): BuilderSection {
+  const { verified, hasProfile, enriched, imessageEnabled } = params;
+  // Pre-enriched invitees land on their profile. Stub profiles go to the slim form.
+  if (!imessageEnabled) {
+    if (enriched) return 'profile';
+    if (hasProfile) return 'messages';
+    return 'messages';
+  }
   if (!verified) return 'messages';
-  if (!traceUploaded) return 'wrapped';
-  if (hasProfile) return 'overview';
+  if (enriched) return 'profile';
   return 'overview';
 }
 
@@ -91,6 +107,8 @@ function getNextAction(
   traceUploaded: boolean,
   profileVisible: boolean,
   hasProfile: boolean,
+  enriched: boolean,
+  missingProof: MissingProofField[],
   imessageEnabled: boolean,
 ): NextAction | null {
   if (imessageEnabled && !verified) {
@@ -98,18 +116,20 @@ function getNextAction(
       section: 'messages',
       stepLabel: 'Step 1 of 3',
       title: 'Verify your phone',
-      description: 'Open iMessage and send the pre-filled text. No codes — takes about 30 seconds.',
+      description: 'Open iMessage and send the pre-filled text. No codes. Takes about 30 seconds.',
       cta: 'Verify in Messages',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
-  if (!hasProfile) {
+  if (!hasProfile || !enriched) {
     return {
       section: 'messages',
       stepLabel: 'Step 1 of 3',
-      title: 'Complete your builder profile',
-      description: 'Add LinkedIn, resume, plus Open to work and US citizen. GitHub, Devpost, and portfolio are optional.',
-      cta: 'Add required fields',
+      title: hasProfile ? 'Fill in what is missing' : 'Complete your builder profile',
+      description: hasProfile
+        ? 'Add the empty fields so founders can trust your profile. Skip anything you do not have.'
+        : 'Add LinkedIn, resume, plus Open to work and US citizen. GitHub, Devpost, and portfolio are optional.',
+      cta: hasProfile ? 'Fill missing fields' : 'Add required fields',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
@@ -119,22 +139,31 @@ function getNextAction(
       section: 'wrapped',
       stepLabel: 'Step 2 of 3',
       title: 'Set up Agent Wrapped',
-      description: 'Run one terminal command locally. It uploads proof of how you ship with AI — founders see the summary, not your raw prompts.',
+      description: 'Run one terminal command locally. It uploads proof of how you ship with AI. Founders see the summary, not your raw prompts.',
       cta: 'Continue setup',
       icon: <TerminalSquare className="h-5 w-5" />,
     };
   }
   if (!profileVisible) {
     return {
-      section: hasProfile ? 'profile' : 'messages',
+      section: 'profile',
       stepLabel: 'Step 3 of 3',
-      title: hasProfile ? 'Finish your profile' : 'Build your profile',
-      description: hasProfile
-        ? imessageEnabled
-          ? 'Your profile is taking shape. Review it and keep chatting with the DevLabs agent in Messages.'
-          : 'Your profile is taking shape. Review the enriched fields and edit any job descriptions that need cleanup.'
-        : 'Complete the profile form so your proof-of-work profile can be enriched.',
-      cta: hasProfile ? 'View profile' : 'Open form',
+      title: 'Finish your profile',
+      description: imessageEnabled
+        ? 'Your profile is taking shape. Review it and keep chatting with the DevLabs agent in Messages.'
+        : 'Your profile is ready. Review the fields and edit anything that looks off.',
+      cta: 'View profile',
+      icon: <ShieldCheck className="h-5 w-5" />,
+    };
+  }
+  // Enriched web builders with missing proof links still get a soft nudge, not a hard gate.
+  if (!imessageEnabled && missingProof.length) {
+    return {
+      section: 'profile',
+      stepLabel: 'Optional',
+      title: 'A few links are still empty',
+      description: 'Your profile is already live. Add LinkedIn, resume, or GitHub if you have them.',
+      cta: 'Review profile',
       icon: <ShieldCheck className="h-5 w-5" />,
     };
   }
@@ -190,7 +219,8 @@ function BuilderOverview({
   traceUploaded,
   profileVisible,
   hasProfile,
-  profile,
+  enriched,
+  missingProof,
   wrappedPublicUrl,
   imessageEnabled,
   onNavigate,
@@ -199,26 +229,34 @@ function BuilderOverview({
   traceUploaded: boolean;
   profileVisible: boolean;
   hasProfile: boolean;
+  enriched: boolean;
+  missingProof: MissingProofField[];
   profile: BuilderProfileView | null;
   wrappedPublicUrl?: string;
   imessageEnabled: boolean;
   onNavigate: (section: BuilderSection) => void;
 }) {
   const steps = getSetupSteps(verified, traceUploaded, profileVisible, imessageEnabled);
-  const next = getNextAction(verified, traceUploaded, profileVisible, hasProfile, imessageEnabled);
-  const allDone = !next;
+  const next = getNextAction(
+    verified,
+    traceUploaded,
+    profileVisible,
+    hasProfile,
+    enriched,
+    missingProof,
+    imessageEnabled,
+  );
+  // Soft optional nudges do not block "all complete" for pre-enriched builders.
+  const allDone = !next || next.stepLabel === 'Optional';
   const completedCount = steps.filter((s) => s.done).length;
-  const requiredFields = [
-    'LinkedIn profile',
-    'Resume PDF',
-    'Open to work',
-    'US citizen',
-  ];
-  const optionalFields = [
-    'GitHub profile (optional)',
-    'Devpost profile (optional)',
-    'Portfolio website (optional)',
-  ];
+  const requiredFields = enriched
+    ? missingProof.map((field) =>
+        field === 'linkedin' ? 'LinkedIn' : field === 'resume' ? 'Resume PDF' : 'GitHub'
+      )
+    : ['LinkedIn profile', 'Resume PDF', 'Open to work', 'US citizen'];
+  const optionalFields = enriched
+    ? []
+    : ['GitHub profile (optional)', 'Devpost profile (optional)', 'Portfolio website (optional)'];
 
   return (
     <>
@@ -226,8 +264,8 @@ function BuilderOverview({
         title="Overview"
         subtitle={
           allDone
-        ? 'All setup steps are complete. Founders can see your profile and Agent Wrapped summary.'
-        : 'Track your builder setup and finish the remaining steps so founders can discover and reach you.'
+        ? 'Your profile is ready. Founders can find you from what you have already shipped.'
+        : 'Track your builder setup and finish the remaining steps so founders can discover you.'
         }
         actions={
           allDone ? (
@@ -266,9 +304,11 @@ function BuilderOverview({
             {next.cta}
             <ArrowUpRight className="h-4 w-4" />
           </button>
-          {!hasProfile ? (
+          {requiredFields.length ? (
             <div className="mt-6 border-t border-[#ff7417]/20 pt-5">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#bf4f08]">Required to continue</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#bf4f08]">
+                {enriched ? 'Still empty' : 'Helpful to add'}
+              </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {requiredFields.map((field) => (
                   <div key={field} className="flex items-center gap-2 border border-black/10 bg-white px-3 py-2 text-sm font-semibold text-black/60">
@@ -277,15 +317,19 @@ function BuilderOverview({
                   </div>
                 ))}
               </div>
-              <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.14em] text-black/35">Optional</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {optionalFields.map((field) => (
-                  <div key={field} className="flex items-center gap-2 border border-black/8 bg-white/70 px-3 py-2 text-sm font-medium text-black/45">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-[0.62rem] font-extrabold text-black/30">+</span>
-                    {field}
+              {optionalFields.length ? (
+                <>
+                  <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.14em] text-black/35">Optional</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {optionalFields.map((field) => (
+                      <div key={field} className="flex items-center gap-2 border border-black/8 bg-white/70 px-3 py-2 text-sm font-medium text-black/45">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-black/[0.04] text-[0.62rem] font-extrabold text-black/30">+</span>
+                        {field}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -372,6 +416,7 @@ export const BuilderHome: React.FC = () => {
   const [enrichmentDetail, setEnrichmentDetail] = useState<string | null>(null);
   const [enrichmentBrief, setEnrichmentBrief] = useState<string | null>(null);
   const [enrichmentLog, setEnrichmentLog] = useState<string[]>([]);
+  const [proofGapsDismissed, setProofGapsDismissed] = useState(false);
   const sectionInitializedRef = useRef(false);
   const inviteLinkAttemptedRef = useRef(false);
 
@@ -410,7 +455,18 @@ export const BuilderHome: React.FC = () => {
 
       if (!sectionInitializedRef.current) {
         sectionInitializedRef.current = true;
-        setActiveSection(defaultSection(isVerified, uploaded, Boolean(json.profile), imessageEnabled));
+        const loadedProfile = json.profile || null;
+        const enriched =
+          Boolean(loadedProfile?.profileEnriched) || isProfileEnriched(loadedProfile);
+        setActiveSection(
+          defaultSection({
+            verified: isVerified,
+            traceUploaded: uploaded,
+            hasProfile: Boolean(loadedProfile),
+            enriched,
+            imessageEnabled,
+          })
+        );
       }
     } catch {
       setData({ success: false, error: 'Could not load your profile.' });
@@ -567,9 +623,14 @@ export const BuilderHome: React.FC = () => {
   const builderName = profile?.name || data?.basics?.name || 'Your profile';
   const avatarInitial = (builderName || 'B').slice(0, 1).toUpperCase();
   const hasProfile = Boolean(profile);
+  const enriched = Boolean(profile?.profileEnriched) || isProfileEnriched(profile);
+  const missingProof = listMissingProofFields(profile);
   const imessageEnabled = data?.imessageEnabled !== false;
-  // Form-based builders don't need phone verify for a "live" profile.
-  const profileVisible = hasProfile && (imessageEnabled ? verified : true);
+  // Form-based builders are "live" once the profile has real content.
+  // Missing LinkedIn/resume/GitHub stay soft prompts and do not hide the profile.
+  const profileVisible = hasProfile && (imessageEnabled ? verified : enriched);
+  const showProofGapsPrompt =
+    !imessageEnabled && enriched && missingProof.length > 0 && !proofGapsDismissed;
 
   const navGroups = useMemo(
     () => [
@@ -624,8 +685,10 @@ export const BuilderHome: React.FC = () => {
             traceUploaded={traceUploaded}
             profileVisible={profileVisible}
             hasProfile={hasProfile}
+            enriched={enriched}
+            missingProof={missingProof}
             profile={profile}
-            wrappedPublicUrl={data.agentWrapped?.publicUrl}
+            wrappedPublicUrl={data.agentWrapped?.publicUrl || undefined}
             imessageEnabled={imessageEnabled}
             onNavigate={setActiveSection}
           />
@@ -633,15 +696,15 @@ export const BuilderHome: React.FC = () => {
 
       case 'messages':
         if (!imessageEnabled) {
-          if (hasProfile) {
+          if (enriched) {
             return (
               <div className="font-manrope mx-auto max-w-3xl px-5 py-10 sm:px-7">
                 <p className="text-[0.68rem] font-extrabold uppercase tracking-[0.22em] text-[#ff7417]">Profile ready</p>
                 <h2 className="mt-3 text-lg font-extrabold tracking-[-0.02em] text-[#050505]">
-                  Your builder profile is already set up
+                  We already put your profile together
                 </h2>
                 <p className="mt-2 max-w-lg text-sm leading-6 text-black/50">
-                  Review the enriched fields on your profile, or edit anything that needs cleanup.
+                  Review it, edit anything that looks off, and add LinkedIn or resume if those are still empty.
                 </p>
                 <button
                   type="button"
@@ -657,10 +720,15 @@ export const BuilderHome: React.FC = () => {
             <>
               <PageHeader
                 title="Builder profile setup"
-                subtitle="Add LinkedIn, resume, and answer Open to work + US citizen. GitHub, Devpost, and portfolio are optional."
+                subtitle={
+                  hasProfile
+                    ? 'Only fill what is still empty. Skip anything you do not have.'
+                    : 'Add LinkedIn, resume, and answer Open to work + US citizen. GitHub, Devpost, and portfolio are optional.'
+                }
               />
               <BuilderProfileIntakeForm
                 profile={profile}
+                slim={hasProfile}
                 onEnrichmentStateChange={setProfileEnriching}
                 onSaved={async () => {
                   await loadProfile();
@@ -676,7 +744,7 @@ export const BuilderHome: React.FC = () => {
               <BuilderImessageHandoff
                 fetchHandoff={fetchHandoff}
                 title="Verify in Messages"
-                subtitle="Open iMessage and send the pre-filled message. That verifies your number and starts your profile with the DevLabs agent — no codes."
+                subtitle="Open iMessage and send the pre-filled message. That verifies your number and starts your profile with the DevLabs agent. No codes."
                 onVerified={loadProfile}
                 pollVerified
               />
@@ -746,7 +814,7 @@ export const BuilderHome: React.FC = () => {
               subtitle={
                 imessageEnabled
                   ? 'This is what founders see when they browse builders on DevLabs. To update it, text the DevLabs agent in Messages.'
-                  : 'Review what got pulled in and edit anything that looks off.'
+                  : 'We already put this together from your public work. Edit anything that looks off.'
               }
               actions={
                 hasProfile ? (
@@ -778,11 +846,20 @@ export const BuilderHome: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                imessageEnabled ? (
-                  <BuilderProfilePreview profile={profile!} />
-                ) : (
-                  <BuilderProfileEditor profile={profile!} basics={data.basics} onSaved={loadProfile} />
-                )
+                <div className="space-y-5">
+                  {showProofGapsPrompt ? (
+                    <BuilderProofGapsPrompt
+                      missing={missingProof}
+                      onDismiss={() => setProofGapsDismissed(true)}
+                      onSaved={loadProfile}
+                    />
+                  ) : null}
+                  {imessageEnabled ? (
+                    <BuilderProfilePreview profile={profile!} />
+                  ) : (
+                    <BuilderProfileEditor profile={profile!} basics={data.basics} onSaved={loadProfile} />
+                  )}
+                </div>
               )}
             </div>
           </>

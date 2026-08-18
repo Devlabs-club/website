@@ -1,4 +1,8 @@
 import { dedupeProjectsForDisplay, mergeExperiences, mergeStringList } from '@/lib/talent/profileDedup';
+import {
+  getMissingProofFields,
+  isProfileEnriched,
+} from '@/lib/talent/builderProofGaps';
 
 /** Shared API shape for founder + builder profile views (top projects + enrichment highlights). */
 export function serializeBuilderProfile(profile: any, projects: any[] = []) {
@@ -29,29 +33,46 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
     }))
     .filter((row: { source: string }) => row.source);
   const profileQuality = profile.profileQuality || {};
+  const serializedBase = {
+    headline: profile.headline || null,
+    bio: profile.bio || null,
+    skills: mergeStringList(profile.skills || [], []),
+    experiences: mergeExperiences(profile.experiences || [], []),
+    founderHighlights: profile.enrichmentInsights?.founderHighlights || [],
+    enrichmentSources,
+    workAuthorization: profile.workAuthorization || null,
+    links: profile.links || {},
+    availability: profile.availability || {},
+    projects: [] as unknown[],
+  };
 
   return {
     id: String(profile._id),
     name: profile.name,
     email: profile.email || null,
     avatarUrl: profile.avatarUrl || null,
-    headline: profile.headline || null,
-    bio: profile.bio || null,
+    headline: serializedBase.headline,
+    bio: serializedBase.bio,
     location: profile.location || null,
     universityOrCompany: profile.universityOrCompany || null,
     graduationYear: profile.graduationYear || null,
     education: profile.education || [],
-    experiences: mergeExperiences(profile.experiences || [], []),
+    experiences: serializedBase.experiences,
     rolePreference: mergeStringList(profile.rolePreference || [], []),
-    skills: mergeStringList(profile.skills || [], []),
-    workAuthorization: profile.workAuthorization || null,
+    skills: serializedBase.skills,
+    workAuthorization: serializedBase.workAuthorization,
     preferredWorkType: mergeStringList(profile.preferredWorkType || [], []),
-    links: profile.links || {},
-    availability: profile.availability || {},
+    links: serializedBase.links,
+    availability: serializedBase.availability,
     verificationStatus: profile.verificationStatus || 'imported_unverified',
     visibilityStatus: profile.visibilityStatus || 'matched_only',
-    founderHighlights: profile.enrichmentInsights?.founderHighlights || [],
+    founderHighlights: serializedBase.founderHighlights,
     enrichmentSources,
+    profileEnriched: isProfileEnriched({
+      ...serializedBase,
+      projects: dedupeProjectsForDisplay(projects),
+    }),
+    missingProofFields: getMissingProofFields(serializedBase),
     inferredTechStack,
     totalProjectCount: displayProjects.length,
     profileQuality: {

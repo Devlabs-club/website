@@ -41,10 +41,13 @@ export type BuilderProfileView = {
     sourceId?: string | null;
   }>;
   links?: Record<string, string | null>;
+  availability?: { availableNow?: boolean | null; refreshedAt?: string | Date | null };
   verificationStatus?: string;
   visibilityStatus?: string;
   founderHighlights?: Array<{ title?: string; detail?: string; source?: string }>;
   enrichmentSources?: Array<{ source: string; projectCount?: number }>;
+  profileEnriched?: boolean;
+  missingProofFields?: { linkedin: boolean; resume: boolean; github: boolean };
   inferredTechStack?: string[];
   totalProjectCount?: number;
   insightProjects?: Array<{

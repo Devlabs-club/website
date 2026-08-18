@@ -1,55 +1,38 @@
 /**
  * Builder welcome / invite email.
  *
- * Web-onboarding variant of the builder invite: instead of the iMessage handoff
- * (see claimEmail.ts), this email invites the builder to claim their profile on
- * the website. Themed to match the DevLabs landing page (cream paper background,
- * near-black text, orange accent, Manrope typography).
+ * Layout and assets match the DevLabs Figma email
+ * (file 0KYuJXRbfgpngN6rdqbbBP, node 181:9306): sky hero, overlapping
+ * intro card, three illustrated feature rows, closing CTA, branded footer.
  *
- * The CTA links carry a signed identity token (createClaimToken from
- * messaging/claimToken.ts — encodes the builder's email) plus referrer/UTM
- * params so the welcome page can identify the builder and attribute the visit.
+ * Web-onboarding invite: claim the reserved profile on the website.
+ * Closing copy uses claim language (not phone verify).
  */
 
 const CREAM = '#fbf6f3';
-const PANEL = '#fffaf7';
-const INK = '#050505';
-const INK_SOFT = 'rgba(5,5,5,0.62)';
-const INK_FAINT = 'rgba(5,5,5,0.45)';
-const BORDER = 'rgba(5,5,5,0.08)';
-const ORANGE = '#ff7417';
-const ORANGE_DEEP = '#bf4f08';
-const ORANGE_TINT = '#fff5ef';
-const DARK_PILL = '#2f3432';
+const INK = '#3c3c3c';
+const INK_BODY = '#5a5a5a';
+const INK_CTA = '#1a1a1a';
+const ORANGE = '#fb8b34';
+const SKY = '#8eb8d4';
+const CARD_BORDER = '#f0f0f0';
 
 const FONT =
   "'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-const MONO = "'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace";
 
-type Feature = { title: string; body: string };
+type Feature = { title: string; body: string; image: string; alt: string };
 
-const DEFAULT_FEATURES: Feature[] = [
-  {
-    title: 'Get hiring opportunities',
-    body: 'Receive opportunities from founders hiring through DevLabs.',
-  },
-  {
-    title: 'Verified builder profile',
-    body: 'Stand out as a verified member of the DevLabs community.',
-  },
-  {
-    title: 'Proof of work',
-    body: 'Showcase your projects, GitHub, and hackathons in one place.',
-  },
-];
+function asset(root: string, name: string) {
+  return `${root}/email/builder-welcome/${name}`;
+}
 
-function ctaButton(href: string, label: string) {
+function whiteCta(href: string, label: string) {
   return `
   <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin:0 auto;">
     <tr>
-      <td align="center" bgcolor="${DARK_PILL}" style="border-radius:999px;">
+      <td align="center" bgcolor="#ffffff" style="border-radius:9999px;box-shadow:0 4px 8px rgba(40,12,2,0.15);">
         <a href="${href}" target="_blank"
-          style="display:inline-block;padding:15px 34px;font-family:${FONT};font-size:15px;font-weight:800;line-height:1;letter-spacing:-0.01em;color:#ffffff;text-decoration:none;border-radius:999px;background:${DARK_PILL};">
+          style="display:inline-block;padding:10px 16px 10px 20px;font-family:${FONT};font-size:16px;font-weight:800;line-height:24px;letter-spacing:-0.01em;color:${INK_CTA};text-decoration:none;border-radius:9999px;background:#ffffff;">
           ${label}&nbsp;&rarr;
         </a>
       </td>
@@ -57,13 +40,17 @@ function ctaButton(href: string, label: string) {
   </table>`;
 }
 
-function featureCard(feature: Feature) {
+function featureRow(feature: Feature) {
   return `
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 12px 0;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:0 0 24px 0;">
     <tr>
-      <td style="background:#ffffff;border:1px solid ${BORDER};border-radius:20px;padding:22px 24px;">
-        <p style="margin:0 0 6px 0;font-family:${FONT};font-size:16px;font-weight:800;letter-spacing:-0.01em;color:${INK};">${feature.title}</p>
-        <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.55;font-weight:500;color:${INK_SOFT};">${feature.body}</p>
+      <td width="260" valign="middle" style="width:260px;padding:0 24px 0 0;">
+        <img src="${feature.image}" width="260" height="170" alt="${feature.alt}"
+          style="display:block;width:260px;max-width:100%;height:auto;border:0;border-radius:16px;" />
+      </td>
+      <td valign="middle" style="padding:0;">
+        <p style="margin:0 0 10px 0;font-family:${FONT};font-size:18px;line-height:22px;font-weight:500;letter-spacing:-0.02em;color:#000000;">${feature.title}</p>
+        <p style="margin:0;font-family:${FONT};font-size:14px;line-height:20px;font-weight:400;letter-spacing:-0.02em;color:#000000;">${feature.body}</p>
       </td>
     </tr>
   </table>`;
@@ -75,12 +62,11 @@ export function buildBuilderWelcomeEmail(params: {
   token: string;
   websiteRoot?: string;
   ref?: string;
-  features?: Feature[];
+  features?: Array<{ title: string; body: string }>;
 }) {
   const firstName = (params.firstName || 'there').trim();
   const root = (params.websiteRoot || process.env.WEBSITE_ROOT || process.env.PUBLIC_URL || 'https://www.devlabs.club').replace(/\/$/, '');
   const ref = params.ref || 'email-invite';
-  const features = params.features?.length ? params.features : DEFAULT_FEATURES;
 
   const query = new URLSearchParams({
     t: params.token,
@@ -90,11 +76,48 @@ export function buildBuilderWelcomeEmail(params: {
     utm_campaign: 'builder_invite',
   });
   const claimUrl = `${root}/builder/welcome?${query.toString()}`;
-  const logoUrl = `${root}/logo.png`;
+
+  const heroUrl = asset(root, 'hero-sky.jpg');
+  const logoWhiteUrl = asset(root, 'logo-white.png');
+  const introCirclesUrl = asset(root, 'intro-circles.png');
+  const logoOrangeUrl = asset(root, 'logo-orange.png');
+  const footerGlowUrl = asset(root, 'footer-glow.jpg');
+  const igUrl = asset(root, 'social-instagram.png');
+  const xUrl = asset(root, 'social-twitter.png');
+  const fbUrl = asset(root, 'social-facebook.png');
+
+  const defaultFeatures: Feature[] = [
+    {
+      title: 'Get Hiring Opportunities',
+      body: 'Receive opportunities from founders hiring through DevLabs.',
+      image: asset(root, 'feature-hiring.jpg'),
+      alt: 'Hiring opportunity card',
+    },
+    {
+      title: 'Verified Builder Profile',
+      body: 'Stand out as a verified member of the DevLabs community.',
+      image: asset(root, 'feature-verified.jpg'),
+      alt: 'Verified builder profile card',
+    },
+    {
+      title: 'Proof of Work',
+      body: 'Showcase your projects, GitHub, hackathons and experience in one place.',
+      image: asset(root, 'feature-proof.jpg'),
+      alt: 'Proof of work cards',
+    },
+  ];
+
+  const features: Feature[] = params.features?.length
+    ? params.features.map((f, i) => ({
+        ...defaultFeatures[Math.min(i, defaultFeatures.length - 1)],
+        title: f.title,
+        body: f.body,
+      }))
+    : defaultFeatures;
 
   const subject = `${firstName}, your DevLabs builder profile is ready to claim`;
 
-  const featureCards = features.map(featureCard).join('');
+  const featureRows = features.map(featureRow).join('');
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -103,72 +126,136 @@ export function buildBuilderWelcomeEmail(params: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light only" />
   <title>${subject}</title>
+  <!--[if !mso]><!-->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" />
+  <!--<![endif]-->
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td, a, p, h1, h2 { font-family: Arial, Helvetica, sans-serif !important; }
+  </style>
+  <![endif]-->
 </head>
-<body style="margin:0;padding:0;background:${CREAM};-webkit-font-smoothing:antialiased;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your builder profile is reserved — claim it and get discovered by founders hiring through DevLabs.</div>
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background:${CREAM};">
+<body style="margin:0;padding:0;background:#ffffff;-webkit-font-smoothing:antialiased;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your builder profile is ready to claim. We already put one together from your public work.</div>
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#ffffff;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
-        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:560px;width:100%;">
+      <td align="center" style="padding:0;">
+        <table role="presentation" width="600" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;">
 
           <!-- Hero -->
           <tr>
-            <td style="background:${PANEL};border:1px solid ${BORDER};border-radius:26px;padding:44px 36px;text-align:center;">
-              <img src="${logoUrl}" width="40" height="40" alt="DevLabs" style="display:block;margin:0 auto 18px auto;border:0;" />
-              <h1 style="margin:0 0 10px 0;font-family:${FONT};font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.03em;color:${INK};">Welcome to DevLabs</h1>
-              <p style="margin:0 0 22px 0;font-family:${FONT};font-size:15px;line-height:1.55;font-weight:500;color:${INK_SOFT};">
-                The DevLabs builder community is now online.<br />Your builder profile is ready to claim.
+            <td align="center" bgcolor="${SKY}" background="${heroUrl}"
+              style="background-color:${SKY};background-image:url('${heroUrl}');background-size:cover;background-position:center top;background-repeat:no-repeat;padding:40px 30px 320px 30px;text-align:center;">
+              <!--[if gte mso 9]>
+              <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;height:750px;">
+                <v:fill type="frame" src="${heroUrl}" color="${SKY}" />
+                <v:textbox inset="0,0,0,0">
+              <![endif]-->
+              <img src="${logoWhiteUrl}" width="52" height="52" alt="DevLabs"
+                style="display:block;margin:0 auto 12px auto;border:0;width:52px;height:52px;" />
+              <h1 style="margin:0 0 4px 0;font-family:${FONT};font-size:40px;line-height:48px;font-weight:700;letter-spacing:-1px;color:#ffffff;">
+                Welcome to DevLabs
+              </h1>
+              <p style="margin:0 0 72px 0;font-family:${FONT};font-size:20px;line-height:1.3;font-weight:500;letter-spacing:-0.4px;color:#e1e1e1;">
+                The DevLabs builder community is now online.
               </p>
-              ${ctaButton(claimUrl, 'Claim now')}
-            </td>
-          </tr>
-
-          <tr><td style="height:16px;line-height:16px;font-size:0;">&nbsp;</td></tr>
-
-          <!-- Intro -->
-          <tr>
-            <td style="background:#ffffff;border:1px solid ${BORDER};border-radius:24px;padding:34px 32px;text-align:center;">
-              <h2 style="margin:0 0 12px 0;font-family:${FONT};font-size:21px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">We're building something new for builders</h2>
-              <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.6;font-weight:500;color:${INK_SOFT};">
-                Hi ${firstName} — DevLabs is expanding from offline events into an online builder network where founders discover talented developers based on their actual work, not just resumes. We put together a founder-readable profile for you from your public work.
+              <p style="margin:0 0 16px 0;font-family:${FONT};font-size:16px;line-height:22px;font-weight:600;letter-spacing:-0.32px;color:#ffffff;">
+                Your builder profile is ready to claim.
               </p>
+              ${whiteCta(claimUrl, 'Claim Now')}
+              <!--[if gte mso 9]>
+                </v:textbox>
+              </v:rect>
+              <![endif]-->
             </td>
           </tr>
 
-          <tr><td style="height:20px;line-height:20px;font-size:0;">&nbsp;</td></tr>
-
-          <!-- Features -->
+          <!-- Cream body + overlapping intro -->
           <tr>
-            <td style="padding:0 4px 4px 4px;">
-              <p style="margin:0 0 14px 0;text-align:center;font-family:${MONO};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.24em;color:${INK_FAINT};">Built for builders</p>
-              ${featureCards}
+            <td bgcolor="${CREAM}" style="background:${CREAM};padding:0 30px 40px 30px;">
+
+              <!-- Intro card (pulls up over hero) -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin:-94px auto 40px auto;max-width:540px;">
+                <tr>
+                  <td align="center" bgcolor="#ffffff"
+                    style="background:#ffffff;border:2px solid ${CARD_BORDER};border-radius:20px;padding:48px 40px;text-align:center;background-image:url('${introCirclesUrl}');background-size:cover;background-position:center;background-repeat:no-repeat;">
+                    <h2 style="margin:0 0 20px 0;font-family:${FONT};font-size:28px;line-height:32px;font-weight:700;letter-spacing:-1px;color:${INK};">
+                      We&rsquo;re building something new for builders.
+                    </h2>
+                    <p style="margin:0;font-family:${FONT};font-size:16px;line-height:24px;font-weight:500;letter-spacing:-0.32px;color:${INK_BODY};">
+                      Hey ${firstName}. DevLabs is expanding from offline events into an online builder network where founders can discover talented developers based on their actual work, not just resumes.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Features -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:540px;margin:0 auto;">
+                <tr>
+                  <td align="center" style="padding:0 0 24px 0;">
+                    <h2 style="margin:0;font-family:${FONT};font-size:28px;line-height:36px;font-weight:700;letter-spacing:-1px;color:${INK};">
+                      Built for builders
+                    </h2>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    ${featureRows}
+                  </td>
+                </tr>
+              </table>
+
             </td>
           </tr>
-
-          <tr><td style="height:8px;line-height:8px;font-size:0;">&nbsp;</td></tr>
 
           <!-- Closing CTA -->
           <tr>
-            <td style="background:${ORANGE_TINT};border:1px solid rgba(255,116,23,0.28);border-radius:24px;padding:34px 32px;text-align:center;">
-              <h2 style="margin:0 0 10px 0;font-family:${FONT};font-size:20px;line-height:1.25;font-weight:800;letter-spacing:-0.02em;color:${INK};">Finish setting up your profile</h2>
-              <p style="margin:0 0 22px 0;font-family:${FONT};font-size:14px;line-height:1.6;font-weight:500;color:${ORANGE_DEEP};">
-                We've reserved a builder profile for you. Claim it, complete your details, and you're ready to be discovered.
+            <td align="center" bgcolor="${CREAM}" background="${footerGlowUrl}"
+              style="background-color:${CREAM};background-image:url('${footerGlowUrl}');background-size:cover;background-position:center;background-repeat:no-repeat;padding:70px 40px;text-align:center;">
+              <h2 style="margin:0 0 24px 0;font-family:${FONT};font-size:28px;line-height:36px;font-weight:700;letter-spacing:-1px;color:${INK};">
+                Finish setting up your profile.
+              </h2>
+              <p style="margin:0 0 10px 0;font-family:${FONT};font-size:18px;line-height:22px;font-weight:500;letter-spacing:-0.36px;color:#000000;">
+                We&rsquo;ve already reserved a builder profile for you.
               </p>
-              ${ctaButton(claimUrl, 'Claim now')}
+              <p style="margin:0 0 24px 0;font-family:${FONT};font-size:14px;line-height:20px;font-weight:400;letter-spacing:-0.28px;color:#000000;max-width:384px;">
+                Claim it, finish anything that&rsquo;s still empty, and you&rsquo;re ready to be discovered.
+              </p>
+              ${whiteCta(claimUrl, 'Claim Now')}
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:28px 24px 8px 24px;text-align:center;">
-              <p style="margin:0 0 8px 0;font-family:${FONT};font-size:13px;font-weight:700;color:${INK};">DevLabs</p>
-              <p style="margin:0 0 6px 0;font-family:${FONT};font-size:12px;line-height:1.5;color:${INK_FAINT};">
-                We only reach out about your profile and founder intros. This link is tied to your email.
-              </p>
-              <p style="margin:0;font-family:${FONT};font-size:11px;color:${INK_FAINT};">
-                &copy; ${new Date().getFullYear()} DevLabs
-              </p>
+            <td bgcolor="#ffffff" style="background:#ffffff;padding:28px 38px 40px 38px;">
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td valign="middle" style="padding:0;">
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td valign="middle" style="padding:0 8px 0 0;">
+                          <img src="${logoOrangeUrl}" width="30" height="30" alt=""
+                            style="display:block;width:30px;height:30px;border:0;" />
+                        </td>
+                        <td valign="middle" style="padding:0;">
+                          <span style="font-family:${FONT};font-size:22px;line-height:26px;font-weight:600;color:${ORANGE};">DevLabs</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  <td valign="middle" align="right" style="padding:0;">
+                    <a href="https://www.instagram.com/devlabs.asu/" target="_blank" style="display:inline-block;margin:0 0 0 5px;text-decoration:none;">
+                      <img src="${igUrl}" width="24" height="24" alt="Instagram" style="display:block;width:24px;height:24px;border:0;" />
+                    </a>
+                    <a href="https://twitter.com/devlabs_club" target="_blank" style="display:inline-block;margin:0 0 0 5px;text-decoration:none;">
+                      <img src="${xUrl}" width="24" height="24" alt="X" style="display:block;width:24px;height:24px;border:0;" />
+                    </a>
+                    <a href="${root}" target="_blank" style="display:inline-block;margin:0 0 0 5px;text-decoration:none;">
+                      <img src="${fbUrl}" width="24" height="24" alt="DevLabs" style="display:block;width:24px;height:24px;border:0;" />
+                    </a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
@@ -181,17 +268,23 @@ export function buildBuilderWelcomeEmail(params: {
 
   const text = `Welcome to DevLabs, ${firstName}.
 
-Your builder profile is ready to claim. DevLabs is an online builder network where founders discover developers based on their actual work — not just resumes.
+The DevLabs builder community is now online. Your builder profile is ready to claim.
 
-What you get:
-- Get hiring opportunities from founders hiring through DevLabs
-- A verified builder profile
-- Proof of work: your projects, GitHub, and hackathons in one place
+We're building something new for builders. DevLabs is expanding from offline events into an online builder network where founders can discover talented developers based on their actual work, not just resumes.
 
-Claim your profile and finish setup:
+Built for builders:
+- Get Hiring Opportunities: Receive opportunities from founders hiring through DevLabs.
+- Verified Builder Profile: Stand out as a verified member of the DevLabs community.
+- Proof of Work: Showcase your projects, GitHub, hackathons and experience in one place.
+
+We've already reserved a builder profile for you. Claim it, finish anything that's still empty, and you're ready to be discovered.
+
+Claim your profile:
 ${claimUrl}
 
-This link is tied to your email. — DevLabs`;
+DevLabs
+https://www.instagram.com/devlabs.asu/
+https://twitter.com/devlabs_club`;
 
   return { subject, html, text, claimUrl };
 }
