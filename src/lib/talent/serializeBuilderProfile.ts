@@ -1,7 +1,8 @@
 import { dedupeProjectsForDisplay, mergeExperiences, mergeStringList } from '@/lib/talent/profileDedup';
+import { sanitizeStoredBuilderLinksForDisplay } from '@/lib/talent/linkReachability';
 
 /** Shared API shape for founder + builder profile views (top projects + enrichment highlights). */
-export function serializeBuilderProfile(profile: any, projects: any[] = []) {
+export async function serializeBuilderProfile(profile: any, projects: any[] = []) {
   if (!profile) return null;
 
   const githubShowcase = profile.enrichmentInsights?.githubShowcase || {};
@@ -46,7 +47,7 @@ export function serializeBuilderProfile(profile: any, projects: any[] = []) {
     skills: mergeStringList(profile.skills || [], []),
     workAuthorization: profile.workAuthorization || null,
     preferredWorkType: mergeStringList(profile.preferredWorkType || [], []),
-    links: profile.links || {},
+    links: await sanitizeStoredBuilderLinksForDisplay(profile.links, { builderId: profile._id }),
     availability: profile.availability || {},
     verificationStatus: profile.verificationStatus || 'imported_unverified',
     visibilityStatus: profile.visibilityStatus || 'matched_only',

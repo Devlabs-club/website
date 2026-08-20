@@ -13,6 +13,7 @@ import type { FounderEntitlements } from '@/lib/billing/entitlements';
 import { buildRoleFitTrace, buildTraceFreshness, type RoleFitTracePayload } from '@/lib/talent/roleFitTrace';
 import { normalizeFounderFacingExperiences } from '@/lib/talent/experienceNormalize';
 import { resolveBuilderBaseLocation } from '@/lib/talent/builderLocation';
+import { sanitizeStoredBuilderLinksForDisplay } from '@/lib/talent/linkReachability';
 
 export type AgentTraceTeaserPayload = {
   locked: boolean;
@@ -947,14 +948,14 @@ Return only JSON matching the requested shape.`,
   }
 }
 
-function pickBuilderLinks(builder: any) {
-  const links = builder?.links || {};
+async function pickBuilderLinks(builder: any) {
+  const links = await sanitizeStoredBuilderLinksForDisplay(builder?.links, { builderId: builder?._id });
   return {
-    github: links.github || null,
-    linkedin: links.linkedin || null,
-    portfolio: links.portfolio || links.personalWebsite || null,
-    devpost: links.devpost || null,
-    resume: links.resume || null,
+    github: links.github,
+    linkedin: links.linkedin,
+    portfolio: links.portfolio || links.personalWebsite,
+    devpost: links.devpost,
+    resume: links.resume,
   };
 }
 
@@ -1076,7 +1077,7 @@ export async function buildFullCandidateCard(params: {
     riskFlags,
     recommendedNextStep: buildRecommendedNextStep(builder, projects, match),
     projects: relevantProjects,
-    links: pickBuilderLinks(builder),
+    links: await pickBuilderLinks(builder),
     matchStatus: match?.status || 'generated',
     saved: match?.status === 'approved',
     introRequested:

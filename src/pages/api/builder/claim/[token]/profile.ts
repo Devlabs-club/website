@@ -29,7 +29,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   return json({
     success: true,
-    profile: serializeBuilderProfile(profile, projects),
+    profile: await serializeBuilderProfile(profile, projects),
   });
 };
 

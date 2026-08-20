@@ -29,6 +29,7 @@ import { LoadingState } from "@/components/beautiful-ui/LoadingState";
 import { toFounderFacingWhyHire } from "@/lib/talent/founderFacingWhyHire";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 import { Skeleton } from "@/components/ui/skeleton";
+import { githubProfileHref, hrefForProfileField, sanitizeBuilderProfileLinks, websiteHref } from "@/lib/talent/externalProfileHref";
 
 type Job = {
   id: string;
@@ -1966,7 +1967,7 @@ const RecommendationCard: React.FC<{
   onInvite: () => void;
   onReject: () => void;
 }> = ({ rec, inviteBusy, onOpenProfile, onOpenTrace, onInvite, onReject }) => {
-  const links = rec.links || {};
+  const links = sanitizeBuilderProfileLinks(rec.links);
   const verified = Boolean(rec.builderVerificationLabel && rec.builderVerificationLabel !== "Unverified");
   const experiences = rec.experiences || [];
   const projects = rec.projects || [];
@@ -1984,7 +1985,10 @@ const RecommendationCard: React.FC<{
   const traceLocked = Boolean(rec.teasers?.agentTrace?.locked);
   const currentExperience = experiences.find((experience) => experience.isCurrent) || experiences[0];
   const location = cleanLocation(rec.location);
-  const projectHref = primaryProject?.links?.demo || primaryProject?.links?.github || primaryProject?.links?.devpost || null;
+  const projectHref =
+    websiteHref(primaryProject?.links?.demo) ||
+    githubProfileHref(primaryProject?.links?.github) ||
+    hrefForProfileField("devpost", primaryProject?.links?.devpost);
 
   return (
     <article className="rounded-2xl border border-[#ece7e1] bg-white p-5 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)]">

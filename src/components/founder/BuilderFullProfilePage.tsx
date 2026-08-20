@@ -3,7 +3,7 @@ import { AppTopBar } from "@/components/app/AppTopBar";
 import { ArrowLeft, ExternalLink, Loader2 } from "lucide-react";
 import { resolveCompanyLogoUrl } from "@/lib/talent/companyLogo";
 import { sortExperiencesByRecency } from "@/lib/talent/experienceNormalize";
-import { hrefForBuilderLink } from "@/lib/talent/resumeViewUrl";
+import { visibleBuilderLinkEntries } from "@/lib/talent/externalProfileHref";
 
 export type BuilderProfile = {
   id: string;
@@ -90,11 +90,10 @@ export const BuilderProfileView: React.FC<{
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(profile.links || {}).map(([label, href]) =>
-            href ? (
+          {visibleBuilderLinkEntries(profile.links, profile.id).map(({ key, href, label }) => (
               <a
-                key={label}
-                href={hrefForBuilderLink({ key: label, href, builderId: profile.id })}
+                key={key}
+                href={href}
                 target="_blank"
                 rel="noreferrer"
                 className={
@@ -105,8 +104,7 @@ export const BuilderProfileView: React.FC<{
               >
                 {label} <ExternalLink className="h-3 w-3" />
               </a>
-            ) : null
-          )}
+            ))}
         </div>
       </div>
 

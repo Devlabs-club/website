@@ -2,29 +2,16 @@ import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
 import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
-import { hrefForBuilderLink } from '@/lib/talent/resumeViewUrl';
+import { visibleBuilderLinkEntries } from '@/lib/talent/externalProfileHref';
 import type { BuilderProfileView } from './BuilderProfilePreview';
 import { profileIdentityBodyClass, profilePaneBodyClass, profilePaneClass, profilePaneHeaderClass, profileSectionLabelClass } from './builderProfileLayout';
-
-const linkLabel = (key: string) => {
-  const labels: Record<string, string> = {
-    github: 'GitHub',
-    linkedin: 'LinkedIn',
-    devpost: 'Devpost',
-    portfolio: 'Portfolio',
-    personalWebsite: 'Website',
-    twitter: 'X',
-    resume: 'Resume',
-  };
-  return labels[key] || key;
-};
 
 export default function BuilderProfileIdentityPanel({ profile }: { profile: BuilderProfileView }) {
   const skills = [...new Set([...(profile.skills || []), ...(profile.preferredWorkType || [])])].slice(0, 16);
   const displaySkills = skills;
   const experiences = sortExperiencesByRecency(profile.experiences || []).slice(0, 6);
   const education = (profile.education || []).slice(0, 4);
-  const linkEntries = Object.entries(profile.links || {}).filter(([, href]) => Boolean(href));
+  const linkEntries = visibleBuilderLinkEntries(profile.links, profile.id);
 
   return (
     <div className={`${profilePaneClass} h-full`}>
@@ -63,15 +50,15 @@ export default function BuilderProfileIdentityPanel({ profile }: { profile: Buil
           <section>
             <p className={profileSectionLabelClass}>Links</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {linkEntries.map(([key, href]) => (
+              {linkEntries.map(({ key, href, label }) => (
                 <a
                   key={key}
-                  href={hrefForBuilderLink({ key, href: href!, builderId: profile.id })}
+                  href={href}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-black/10 bg-white px-3 text-xs font-semibold text-black/70 transition hover:border-[#ff7417]/40 hover:bg-[#fff5ef]"
                 >
-                  {linkLabel(key)} <ExternalLink className="h-3 w-3 opacity-60" />
+                  {label} <ExternalLink className="h-3 w-3 opacity-60" />
                 </a>
               ))}
             </div>

@@ -12,6 +12,7 @@ import {
 import { pipelineNeedsCallClockTick } from '@/lib/talent/callTiming';
 import { resolveCompanyLogoUrl } from '@/lib/talent/companyLogo';
 import { sortExperiencesByRecency } from '@/lib/talent/experienceNormalize';
+import { githubProfileHref, hrefForProfileField, websiteHref } from '@/lib/talent/externalProfileHref';
 
 const REJECTION_REASONS = [
   { id: 'wrong_skills', label: 'Wrong skill set' },
@@ -427,21 +428,30 @@ export default function FounderCandidateDrawer({
                       </p>
                     ) : null}
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {project.links.github ? (
-                        <a href={project.links.github} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
-                          GitHub
-                        </a>
-                      ) : null}
-                      {project.links.devpost ? (
-                        <a href={project.links.devpost} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
-                          Devpost
-                        </a>
-                      ) : null}
-                      {project.links.demo ? (
-                        <a href={project.links.demo} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
-                          Demo
-                        </a>
-                      ) : null}
+                      {(() => {
+                        const github = githubProfileHref(project.links.github);
+                        const devpost = hrefForProfileField('devpost', project.links.devpost);
+                        const demo = websiteHref(project.links.demo);
+                        return (
+                          <>
+                            {github ? (
+                              <a href={github} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
+                                GitHub
+                              </a>
+                            ) : null}
+                            {devpost ? (
+                              <a href={devpost} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
+                                Devpost
+                              </a>
+                            ) : null}
+                            {demo ? (
+                              <a href={demo} target="_blank" rel="noreferrer" className="text-xs text-[#fa7d22] hover:underline">
+                                Demo
+                              </a>
+                            ) : null}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 ))

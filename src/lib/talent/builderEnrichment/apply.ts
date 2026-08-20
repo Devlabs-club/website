@@ -7,6 +7,8 @@ import { upsertBuilderEmbedding, upsertProjectEmbedding } from '@/lib/talent/emb
 import { upsertBuilderEmbeddingV2 } from '@/lib/talent/embeddings/upsertTalentEmbeddingV2';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
 import { isPlausibleLocation } from '@/lib/talent/builderLocation';
+import { hrefForProfileField } from '@/lib/talent/externalProfileHref';
+import { reachableHrefForField } from '@/lib/talent/linkReachability';
 import { findUserByEmail, updateUserAccount } from '@/lib/adminMongo';
 import {
   dedupeBuilderProfileCollections,
@@ -304,7 +306,9 @@ export async function applyProfileDraft(
     for (const key of ['github', 'linkedin', 'portfolio', 'personalWebsite', 'devpost', 'twitter'] as const) {
       const value = draft.links[key];
       if (!isEmpty(value) && isEmpty(builder.links[key])) {
-        builder.links[key] = String(value).trim();
+        const href = await reachableHrefForField(key, value);
+        if (!href) continue;
+        builder.links[key] = href;
         updated.push(`links.${key}`);
       }
     }
@@ -415,7 +419,10 @@ export async function applyLinkedInCdpToBuilder(
     }
   }
 
-  builder.links = { ...(builder.links || {}), linkedin: linkedinUrl };
+  const linkedinHref = hrefForProfileField('linkedin', linkedinUrl);
+  if (linkedinHref) {
+    builder.links = { ...(builder.links || {}), linkedin: linkedinHref };
+  }
   await builder.save();
 
   const afterExperiences = builder.experiences || [];

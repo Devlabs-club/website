@@ -1,7 +1,7 @@
 import React from 'react';
 import type { FullCandidate } from './founderTypes';
 import { getIntroButtonLabel } from '@/lib/talent/founderIntroUi';
-import { builderResumeViewHref } from '@/lib/talent/resumeViewUrl';
+import { visibleBuilderLinkEntries } from '@/lib/talent/externalProfileHref';
 
 function verificationTone(label: string) {
   if (label === 'DevLabs Verified') return 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10';
@@ -33,6 +33,7 @@ export default function FounderCandidateCard({
 }) {
   if (!unlocked) return null;
   const introButton = getIntroButtonLabel(candidate, null);
+  const linkEntries = visibleBuilderLinkEntries(candidate.links, candidate.builderId);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4 flex flex-col">
@@ -124,36 +125,11 @@ export default function FounderCandidateCard({
       ) : null}
 
       <div className="flex flex-wrap gap-2 text-xs">
-        {candidate.links.github ? (
-          <a href={candidate.links.github} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
-            GitHub
+        {linkEntries.map(({ key, href, label }) => (
+          <a key={key} href={href} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
+            {label}
           </a>
-        ) : null}
-        {candidate.links.devpost ? (
-          <a href={candidate.links.devpost} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
-            Devpost
-          </a>
-        ) : null}
-        {candidate.links.portfolio ? (
-          <a href={candidate.links.portfolio} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
-            Portfolio
-          </a>
-        ) : null}
-        {candidate.links.linkedin ? (
-          <a href={candidate.links.linkedin} target="_blank" rel="noreferrer" className="text-[#fa7d22] hover:underline">
-            LinkedIn
-          </a>
-        ) : null}
-        {candidate.links.resume ? (
-          <a
-            href={builderResumeViewHref(candidate.builderId) || candidate.links.resume}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[#fa7d22] hover:underline"
-          >
-            Resume
-          </a>
-        ) : null}
+        ))}
       </div>
 
       {candidate.riskFlags.length > 0 ? (

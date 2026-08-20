@@ -15,6 +15,8 @@ import { uploadBuilderAvatarToCloudinary, uploadResumeToCloudinary } from '@/lib
 import { parseAndExtractResume } from '@/lib/talent/resumeParser';
 import { refreshBuilderScores } from '@/lib/talent/builderEnrichment/apply';
 import { upsertTalentSearchIndexForBuilder } from '@/lib/talent/searchIndex';
+import { hrefForProfileField } from '@/lib/talent/externalProfileHref';
+import { reachableHrefForField } from '@/lib/talent/linkReachability';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -128,10 +130,10 @@ type ProfileEnrichmentSource = 'resume' | 'github' | 'devpost' | 'linkedin' | 'p
 function readNormalizedProofLinks(links: Record<string, unknown> | null | undefined) {
   const raw = links || {};
   return {
-    linkedin: normalizeUrl(raw.linkedin),
-    github: normalizeUrl(raw.github),
-    devpost: normalizeUrl(raw.devpost),
-    portfolio: normalizeUrl(raw.portfolio ?? raw.personalWebsite),
+    linkedin: hrefForProfileField('linkedin', raw.linkedin),
+    github: hrefForProfileField('github', raw.github),
+    devpost: hrefForProfileField('devpost', raw.devpost),
+    portfolio: hrefForProfileField('portfolio', raw.portfolio ?? raw.personalWebsite),
   };
 }
 
@@ -174,7 +176,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
     }
     const profile = await BuilderProfile.findById(id).lean() as any;
     const projects = profile ? await ProjectRecord.find({ builderId: profile._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
-    return json({ success: Boolean(profile), profile: serializeBuilderProfile(profile, projects) });
+    return json({ success: Boolean(profile), profile: await serializeBuilderProfile(profile, projects) });
   }
 
   const { user, runtime } = await resolveUser(request, locals);
@@ -235,7 +237,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
           agents: uploadedWrapped?.report?.sourceCoverage?.agents || [],
         }
       : null,
-    profile: serializeBuilderProfile(profile, projects),
+    profile: await serializeBuilderProfile(profile, projects),
   });
 };
 
@@ -271,7 +273,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!existingProfile) {
     const missing: string[] = [];
-    if (!normalizeUrl(body.linkedin ?? body.linkedIn)) missing.push('LinkedIn');
+    if (!hrefForProfileField('linkedin', body.linkedin ?? body.linkedIn)) missing.push('LinkedIn');
     if (!resumeFile) missing.push('resume PDF');
     const openToWorkAnswered =
       body.openToWork === true ||
@@ -330,10 +332,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
   profile.links = profile.links || {};
   const previousProofLinks = readNormalizedProofLinks(profile.links);
   const linkUpdates: Record<string, string | null> = {
-    linkedin: normalizeUrl(body.linkedin ?? body.linkedIn),
-    github: normalizeUrl(body.github),
-    devpost: normalizeUrl(body.devpost),
-    portfolio: normalizeUrl(body.portfolio ?? body.personalWebsite),
+    linkedin: await reachableHrefForField('linkedin', body.linkedin ?? body.linkedIn),
+    github: await reachableHrefForField('github', body.github),
+    devpost: await reachableHrefForField('devpost', body.devpost),
+    portfolio: await reachableHrefForField('portfolio', body.portfolio ?? body.personalWebsite),
   };
   for (const [key, value] of Object.entries(linkUpdates)) {
     if (value) profile.links[key] = value;
@@ -472,7 +474,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const projects = refreshed ? await ProjectRecord.find({ builderId: refreshed._id }).sort({ updatedAt: -1 }).limit(20).lean() : [];
   return json({
     success: true,
-    profile: serializeBuilderProfile(refreshed, projects),
+    profile: await serializeBuilderProfile(refreshed, projects),
     enrichment,
   });
 };
