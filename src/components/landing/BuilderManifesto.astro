@@ -1,0 +1,88 @@
+<section id="manifesto" class="manifesto bg-[#fbf6f3] px-5 py-24 text-white sm:px-8 sm:py-32 lg:px-10">
+  <div class="manifesto-frame relative mx-auto w-full max-w-[80rem] overflow-hidden border border-[#ff7417]/35 bg-[#171310] p-5 sm:p-8 lg:aspect-video lg:p-[clamp(2rem,4vw,4rem)]">
+    <div class="manifesto-grid absolute inset-0" aria-hidden="true"></div>
+    <div class="manifesto-glow absolute inset-0" aria-hidden="true"></div>
+
+    <article class="manifesto-letter relative z-10 mx-auto flex h-full w-full max-w-[66rem] flex-col border border-[#ff9d5b]/34 bg-[#0d0b0a]/95 px-6 py-10 shadow-[0_0_60px_rgba(255,116,23,0.1)] sm:px-10 sm:py-12 lg:px-[clamp(2.5rem,4vw,4.5rem)] lg:py-[clamp(2rem,3vw,3.5rem)]">
+      <header class="text-center">
+        <p class="text-[0.62rem] font-extrabold uppercase tracking-[0.22em] text-[#ff8a3d]">The builder manifesto</p>
+        <h2 class="mx-auto mt-4 max-w-3xl text-[clamp(2.25rem,4vw,4.25rem)] font-medium leading-[0.98] tracking-[-0.045em]">
+          What is <strong class="font-black">DevLabs?</strong>
+        </h2>
+        <p class="mx-auto mt-4 max-w-[42rem] text-[clamp(1rem,1.4vw,1.3rem)] font-bold leading-tight text-white">
+          A home for early builders working on ideas that start small but dream big.
+        </p>
+      </header>
+
+      <div class="manifesto-copy mt-9 grid flex-1 gap-8 text-center text-[clamp(0.82rem,1vw,1rem)] font-medium leading-[1.42] text-white/58 lg:mt-[clamp(1.5rem,2.4vw,2.6rem)] lg:grid-cols-2 lg:gap-[clamp(2rem,4vw,4.5rem)] lg:text-left">
+        <div class="space-y-4 lg:space-y-[clamp(0.65rem,1vw,1rem)]">
+          <p>We've poured our hearts into building something bigger than an organization.</p>
+          <p class="font-bold text-white">Ideas born in dorm rooms. In basements. In garages.</p>
+          <p>
+            Those small ideas?<br />
+            <strong class="font-bold text-white">They're the ones we help turn into something real.</strong>
+          </p>
+          <p>
+            For years, we've worked to build DevLabs into a space where young founders feel unstoppable. Because when you're young, the sky isn't the limit - it's just the beginning.
+          </p>
+          <p class="font-bold text-white">The fastest way to grow is to feel the energy of a room full of people who are just as crazy enough to try.</p>
+        </div>
+
+        <div class="space-y-4 lg:space-y-[clamp(0.65rem,1vw,1rem)]">
+          <p>DevLabs is on a mission to become the launchpad for the next 100 student startups.</p>
+          <p class="font-bold text-white">
+            From hackathons to Arizona's first hacker house.<br />
+            From $0 in funding to over $100,000 invested in builders.
+          </p>
+          <p>We've come a long way. But we're just getting started.</p>
+          <p>
+            Welcome to DevLabs, early bird.<br />
+            <strong class="font-bold text-white">You're about to have the ride of your life.</strong>
+          </p>
+          <p class="text-[clamp(1rem,1.3vw,1.25rem)] font-black uppercase tracking-[0.08em] text-[#ff8a3d]">Build. Ship. Repeat.</p>
+        </div>
+      </div>
+
+      <footer class="mt-8 flex flex-col items-center justify-center gap-6 border-t border-white/10 pt-5 sm:flex-row sm:gap-12 lg:mt-[clamp(1rem,2vw,2rem)] lg:justify-end lg:pt-4">
+        <div class="flex items-end gap-3">
+          <img src="/dhanush_sign.png" alt="Dhanush Vardhan's signature" loading="lazy" class="h-8 w-auto max-w-[8rem] object-contain object-left brightness-0 invert" />
+          <p class="text-[0.66rem] font-semibold text-white/42">Dhanush Vardhan</p>
+        </div>
+        <div class="flex items-end gap-3">
+          <img src="/bhoomi_sign.png" alt="Bhoomi Sanjay Sahajsinghani's signature" loading="lazy" class="h-8 w-auto max-w-[7rem] object-contain object-left brightness-0 invert" />
+          <p class="text-[0.66rem] font-semibold text-white/42">Bhoomi Sanjay Sahajsinghani</p>
+        </div>
+      </footer>
+    </article>
+  </div>
+</section>
+
+<style>
+  .manifesto-frame { border-radius: 8px; }
+
+  .manifesto-grid {
+    background-image:
+      linear-gradient(rgba(255, 116, 23, 0.22) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 116, 23, 0.22) 1px, transparent 1px),
+      linear-gradient(rgba(255, 157, 91, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 157, 91, 0.08) 1px, transparent 1px);
+    background-size: 40px 40px, 40px 40px, 8px 8px, 8px 8px;
+  }
+
+  .manifesto-glow {
+    background:
+      radial-gradient(circle at 50% 48%, rgba(255, 116, 23, 0.14), transparent 46%),
+      linear-gradient(180deg, rgba(255, 250, 247, 0.025), transparent 32%);
+  }
+
+  .manifesto-letter { border-radius: 8px; }
+
+  @media (min-width: 1024px) {
+    .manifesto-letter { max-height: 100%; }
+  }
+
+  @media (max-width: 1023px) {
+    .manifesto-frame { min-height: 0; }
+    .manifesto-copy { text-wrap: pretty; }
+  }
+</style>

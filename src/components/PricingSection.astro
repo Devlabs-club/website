@@ -83,6 +83,64 @@ const customPricingSteps = [
   ["Deposit on hire", "Credited back in full"],
   ["If no hire", "Deposit is non-refundable"],
 ];
+
+const builderEvents = [
+  {
+    id: "devhouse-sf",
+    name: "DevHouse SF",
+    meta: "San Francisco · Hacker house",
+    description: "A hiring-focused hacker house where builders worked on real sponsor problems inside San Francisco's startup ecosystem.",
+    image: "/events/devhouse-sf.jpg",
+    alt: "Builders gathered for a DevHouse SF session",
+    statPrimary: "100 builders",
+    statSecondary: "$10k in prizes",
+    link: "https://devhouse.devlabs.club",
+  },
+  {
+    id: "momentum",
+    name: "Momentum",
+    meta: "San Francisco · Four-week intensive",
+    description: "A one-month program for ambitious builders to build, validate, and pitch alongside founders and industry partners.",
+    image: "/momentum_og.jpg",
+    alt: "Momentum by DevLabs program artwork",
+    statPrimary: "4 weeks",
+    statSecondary: "San Francisco",
+    link: "/momentum",
+  },
+  {
+    id: "devhacks",
+    name: "DevHacks",
+    meta: "Arizona · Flagship hackathon",
+    description: "Teams build real prototypes around the clock, learn new technologies, and pitch what they shipped.",
+    image: "/events/devhacks.jpg",
+    alt: "The DevHacks team at the 2025 hackathon",
+    statPrimary: "170+ hackers",
+    statSecondary: "50+ projects",
+    link: "https://devhacks.devlabs.club",
+  },
+  {
+    id: "devhouse-az",
+    name: "DevHouse AZ",
+    meta: "Arizona · Residential program",
+    description: "Arizona's first hacker house brought selected builders together to live, build, and grow around ambitious projects.",
+    image: "/events/devhouse.png",
+    alt: "Builders presenting at DevHouse Arizona",
+    statPrimary: "6 weeks",
+    statSecondary: "12 residents",
+    link: "https://www.gpec.org/news/press-releases/devlabs-launches-hacker-house/",
+  },
+  {
+    id: "devspace",
+    name: "DevSpace",
+    meta: "Arizona · Demo day",
+    description: "A gathering for developers, designers, and entrepreneurs with workshops, startup pitches, and room to meet collaborators.",
+    image: "/events/devspace.webp",
+    alt: "A founder presenting at DevSpace",
+    statPrimary: "$10k grants",
+    statSecondary: "15+ startups",
+    link: "https://devspace.devlabs.club",
+  },
+];
 ---
 
 <section id="pricing" class="pricing-section relative isolate overflow-visible bg-[#fbf6f3] px-5 pb-20 pt-20 text-black sm:px-8 sm:pb-28 sm:pt-28 lg:px-10">
@@ -106,7 +164,7 @@ const customPricingSteps = [
   </div>
   <div class="pricing-glow" aria-hidden="true"></div>
 
-  <div class="pricing-scale relative z-10 mx-auto max-w-[72rem]">
+  <div class="pricing-scale relative z-10 mx-auto max-w-[72rem]" data-audience-panel="founders">
     <div class="mx-auto max-w-[760px] text-center">
       <div class="inline-flex items-center gap-2 border border-black/10 bg-[#fffaf7]/86 px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#bf4f08] shadow-[0_12px_34px_rgba(5,5,5,0.04)]">
         <span class="h-1.5 w-1.5 rounded-full bg-[#ff7417]"></span>
@@ -307,6 +365,95 @@ const customPricingSteps = [
       </div>
     </div>
   </div>
+
+  <div class="builder-events relative z-10 mx-auto max-w-[76rem]" data-audience-panel="builders" data-builder-events>
+    <div class="grid items-end gap-8 border-b border-black/10 pb-10 lg:grid-cols-[1.15fr_0.85fr] lg:pb-14">
+      <div>
+        <p class="text-xs font-extrabold uppercase text-[#bf4f08]">Built in the room</p>
+        <h2 class="mt-5 max-w-[760px] text-[clamp(2.7rem,5.4vw,5rem)] font-normal leading-[0.98] text-black">
+          The events that built <span class="font-extrabold">our community.</span>
+        </h2>
+      </div>
+      <p class="max-w-xl text-[clamp(1rem,1.45vw,1.28rem)] font-medium leading-relaxed text-black/58 lg:justify-self-end lg:pb-2">
+        Hacker houses, hackathons, and founder programs where builders ship in public, meet collaborators, and get seen by startup teams.
+      </p>
+    </div>
+
+    <div class="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-12 xl:gap-16">
+      <div class="builder-event-list" role="tablist" aria-label="DevLabs events">
+        {builderEvents.map((event, index) => (
+          <button
+            type="button"
+            class:list={["builder-event-tab w-full border-b border-black/10 py-6 text-left", index === 0 && "is-active"]}
+            role="tab"
+            aria-selected={index === 0 ? "true" : "false"}
+            aria-controls={`builder-event-${event.id}`}
+            id={`builder-event-tab-${event.id}`}
+            data-builder-event-tab={event.id}
+          >
+            <span class="flex items-center justify-between gap-5">
+              <span class="text-[clamp(1.65rem,2.7vw,2.5rem)] font-semibold leading-none text-black/38 transition-colors">{event.name}</span>
+              <span class="builder-event-dot grid h-7 w-7 shrink-0 place-items-center rounded-full border border-black/20 transition-colors" aria-hidden="true">
+                <span class="h-2.5 w-2.5 rounded-full bg-[#ff7417] opacity-0 transition-opacity"></span>
+              </span>
+            </span>
+            <span class="builder-event-summary mt-5 hidden max-w-md pr-8">
+              <span class="block text-xs font-extrabold uppercase text-[#bf4f08]">{event.meta}</span>
+              <span class="mt-3 block text-sm font-medium leading-relaxed text-black/58">{event.description}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div class="builder-event-frame relative w-full max-w-[37rem] justify-self-end p-1.5">
+        <span class="builder-event-corner left-0 top-0 border-l border-t" aria-hidden="true"></span>
+        <span class="builder-event-corner right-0 top-0 border-r border-t" aria-hidden="true"></span>
+        <span class="builder-event-corner bottom-0 left-0 border-b border-l" aria-hidden="true"></span>
+        <span class="builder-event-corner bottom-0 right-0 border-b border-r" aria-hidden="true"></span>
+
+        <div class="builder-event-stage relative min-h-[30rem] overflow-hidden bg-[#181411] shadow-[0_26px_80px_rgba(5,5,5,0.15)] sm:min-h-[34rem]">
+          {builderEvents.map((event, index) => (
+            <article
+              id={`builder-event-${event.id}`}
+              class:list={["builder-event-panel absolute inset-0", index === 0 && "is-active"]}
+              role="tabpanel"
+              aria-labelledby={`builder-event-tab-${event.id}`}
+              aria-hidden={index === 0 ? "false" : "true"}
+              data-builder-event-panel={event.id}
+            >
+              <img
+                src={event.image}
+                alt={event.alt}
+                class="absolute inset-0 h-full w-full object-cover"
+                loading={index === 0 ? "eager" : "lazy"}
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/68 via-black/8 to-transparent" aria-hidden="true"></div>
+              <div class="absolute inset-x-4 bottom-4 bg-[#fffaf7] p-5 text-black shadow-[0_18px_55px_rgba(5,5,5,0.2)] sm:inset-x-6 sm:bottom-6 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-5">
+                  <div>
+                    <p class="text-xs font-extrabold uppercase text-[#bf4f08]">{event.meta}</p>
+                    <h3 class="mt-2 text-[clamp(1.85rem,3.2vw,2.8rem)] font-extrabold leading-none">{event.name}</h3>
+                  </div>
+                  <a href={event.link} class="builder-event-link group inline-flex h-11 items-center gap-3 border border-[#ff7417] px-4 text-sm font-extrabold text-[#bf4f08] transition hover:bg-[#ff7417] hover:text-white">
+                    Explore event
+                    <span class="transition-transform group-hover:translate-x-1">-&gt;</span>
+                  </a>
+                </div>
+                <div class="mt-6 grid grid-cols-2 border-t border-black/10 pt-5">
+                  <div class="border-r border-black/10 pr-5">
+                    <p class="text-[clamp(1.2rem,2vw,1.75rem)] font-extrabold leading-none">{event.statPrimary}</p>
+                  </div>
+                  <div class="pl-5">
+                    <p class="text-[clamp(1.2rem,2vw,1.75rem)] font-extrabold leading-none">{event.statSecondary}</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <script>
@@ -444,9 +591,51 @@ const customPricingSteps = [
 
   initPricingCheckoutLinks();
   document.addEventListener("astro:page-load", initPricingCheckoutLinks);
+
+  function initBuilderEvents() {
+    document.querySelectorAll<HTMLElement>("[data-builder-events]").forEach((section) => {
+      if (section.dataset.eventsBound === "true") return;
+      section.dataset.eventsBound = "true";
+
+      const tabs = Array.from(section.querySelectorAll<HTMLButtonElement>("[data-builder-event-tab]"));
+      const panels = Array.from(section.querySelectorAll<HTMLElement>("[data-builder-event-panel]"));
+
+      function selectEvent(eventId: string) {
+        tabs.forEach((tab) => {
+          const active = tab.dataset.builderEventTab === eventId;
+          tab.classList.toggle("is-active", active);
+          tab.setAttribute("aria-selected", active ? "true" : "false");
+        });
+        panels.forEach((panel) => {
+          const active = panel.dataset.builderEventPanel === eventId;
+          panel.classList.toggle("is-active", active);
+          panel.setAttribute("aria-hidden", active ? "false" : "true");
+        });
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => selectEvent(tab.dataset.builderEventTab || ""));
+      });
+    });
+  }
+
+  initBuilderEvents();
+  document.addEventListener("astro:page-load", initBuilderEvents);
 </script>
 
 <style>
+  [data-audience-panel="builders"] {
+    display: none;
+  }
+
+  :root[data-audience="builders"] .pricing-section [data-audience-panel="founders"] {
+    display: none;
+  }
+
+  :root[data-audience="builders"] .pricing-section [data-audience-panel="builders"] {
+    display: block;
+  }
+
   .pricing-section {
     margin-top: clamp(-14rem, -13vw, -9rem);
     padding-top: clamp(16rem, 18vw, 22rem);
@@ -464,6 +653,21 @@ const customPricingSteps = [
     height: clamp(23rem, 27vw, 34rem);
     background: linear-gradient(180deg, rgba(251, 246, 243, 0) 0%, rgba(251, 246, 243, 0.9) 34%, rgba(251, 246, 243, 0.62) 72%, rgba(251, 246, 243, 0) 100%);
     pointer-events: none;
+  }
+
+  :root[data-audience="builders"] .pricing-section::before {
+    inset: 0 0 auto;
+    z-index: 1;
+    height: clamp(26rem, 34vw, 40rem);
+    background: linear-gradient(
+      180deg,
+      #fbf6f3 0%,
+      rgba(251, 246, 243, 0.99) 20%,
+      rgba(251, 246, 243, 0.92) 42%,
+      rgba(251, 246, 243, 0.66) 62%,
+      rgba(251, 246, 243, 0.24) 82%,
+      rgba(251, 246, 243, 0) 100%
+    );
   }
 
   .pricing-section::after {
@@ -621,6 +825,77 @@ const customPricingSteps = [
 
   .pricing-card {
     min-width: 0;
+  }
+
+  .builder-event-tab .builder-event-summary {
+    display: none;
+  }
+
+  .builder-event-tab.is-active {
+    padding: 1.75rem;
+    border: 1px solid rgba(5, 5, 5, 0.1);
+    background: rgba(255, 250, 247, 0.92);
+    box-shadow: 0 18px 55px rgba(5, 5, 5, 0.06);
+  }
+
+  .builder-event-tab.is-active + .builder-event-tab {
+    border-top-color: transparent;
+  }
+
+  .builder-event-tab.is-active > span:first-child > span:first-child {
+    color: #050505;
+    font-weight: 800;
+  }
+
+  .builder-event-tab.is-active .builder-event-dot {
+    border-color: rgba(255, 116, 23, 0.5);
+    background: #fff1e8;
+  }
+
+  .builder-event-tab.is-active .builder-event-dot span {
+    opacity: 1;
+  }
+
+  .builder-event-tab.is-active .builder-event-summary {
+    display: block;
+  }
+
+  .builder-event-corner {
+    position: absolute;
+    z-index: 5;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-color: #ff7417;
+    pointer-events: none;
+  }
+
+  .builder-event-panel {
+    visibility: hidden;
+    opacity: 0;
+    transform: scale(1.015);
+    transition: opacity 420ms ease, transform 650ms ease, visibility 420ms;
+  }
+
+  .builder-event-panel.is-active {
+    visibility: visible;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .builder-event-panel > img {
+    transform: scale(1.035);
+    transition: transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  .builder-event-panel.is-active > img {
+    transform: scale(1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .builder-event-panel,
+    .builder-event-panel > img {
+      transition: none;
+    }
   }
 
   .pricing-card-featured::before {

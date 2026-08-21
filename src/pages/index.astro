@@ -4,10 +4,19 @@ export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import PricingSection from "../components/PricingSection.astro";
 import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import BuilderProductJourney from "../components/landing/BuilderProductJourney.astro";
+import BuilderManifesto from "../components/landing/BuilderManifesto.astro";
+import BuilderCommunityImpact from "../components/landing/BuilderCommunityImpact.astro";
 import { tryForFreeHref } from "../lib/productCta";
 
 const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 const ctaHref = tryForFreeHref;
+type Audience = "founders" | "builders";
+const { audience = "founders" } = Astro.props as { audience?: Audience };
+const isBuilders = audience === "builders";
+const pageTitle = isBuilders
+  ? "DevLabs - Get hired for what you build"
+  : "DevLabs - Hire builders who can actually ship";
 
 const navLinks = [
   { label: "Sponsor", href: "/sponsor" },
@@ -196,6 +205,8 @@ const heroSearchCards = [
   },
 ];
 
+const builderPreview = heroSearchCards[0];
+
 const evidenceBento = [
   {
     title: "Shipped Projects",
@@ -313,23 +324,74 @@ const testimonials = [
   },
 ];
 
+const builderTestimonials = [
+  {
+    quote:
+      "My internship at Pretorin was a wild and super productive summer. Isaac was very satisfied with my work, and I exceeded his expectations across the metrics he was measuring in a founding engineer. DevLabs helped connect me with that opportunity.",
+    name: "Harshavardhan Kuthadi",
+    role: "Pretorin Intern",
+    initials: "HK",
+    avatar:
+      "https://media.licdn.com/dms/image/v2/D5603AQG4vPqSAW15xg/profile-displayphoto-scale_100_100/B56Z4PPZUkGoAg-/0/1778372159690?e=1788998400&v=beta&t=6BNpt0FdefjFrVpWIZowVEyjvCxndEBh875sWl2v7Rs",
+    logo: "/logo.png",
+    logoAlt: "DevLabs",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+  {
+    quote:
+      "Pranav had a great experience at Pretorin after getting connected through DevLabs, working closely with the team and gaining real startup engineering experience.",
+    name: "Pranav",
+    role: "Pretorin Intern",
+    initials: "PR",
+    avatar: "/logo.png",
+    logo: "/logo.png",
+    logoAlt: "DevLabs",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+  {
+    quote:
+      "Prasanna joined Supermemory as a Research Engineer after being hired through DevHouse, a DevLabs event. He is enjoying the role and working on meaningful research engineering problems.",
+    name: "Prasanna Moorthy",
+    role: "Research Engineer, Supermemory",
+    initials: "PS",
+    avatar: "/sponsors/supermemory.png",
+    logo: "/sponsors/supermemory.png",
+    logoAlt: "Supermemory",
+    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+  },
+];
+
 ---
 
 <Layout
-  title="DevLabs - Hire builders who can actually ship"
+  title={pageTitle}
   hideNavbar
   hideFooter
   skipPageLoader
   skipParallax
   skipSmoothScroll
 >
-  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
-    <header data-nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
+  <script is:inline define:vars={{ initialAudience: audience }}>
+    document.documentElement.dataset.audience = initialAudience;
+  </script>
+  <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]" data-audience-root data-audience={audience}>
+    <header data-nav class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
       <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
         <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
       </a>
 
-      <nav class="hidden items-center gap-11 text-[15px] font-medium text-black md:flex">
+      <div class="audience-toggle audience-toggle--center absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" aria-label="Choose audience">
+        <a href="/" aria-current={!isBuilders ? "page" : undefined}>
+          <span class="hidden sm:inline">For founders</span>
+          <span class="sm:hidden">Founders</span>
+        </a>
+        <a href="/builders" aria-current={isBuilders ? "page" : undefined}>
+          <span class="hidden sm:inline">For builders</span>
+          <span class="sm:hidden">Builders</span>
+        </a>
+      </div>
+
+      <nav class="hidden items-center gap-7 text-[15px] font-medium text-black lg:flex">
         {navLinks.map((link) => (
           <a href={link.href} class="transition-colors hover:text-[#ff7417]">
             {link.label}
@@ -343,19 +405,14 @@ const testimonials = [
           <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
           <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
           <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-          Hire now
+          <span>Hire builders</span>
         </a>
       </nav>
 
-      <a
-        href={ctaHref}
-        class="relative px-2 py-1 text-sm font-medium text-[#ff7417] md:hidden"
-      >
-        Hire now
-      </a>
+      <a href={ctaHref} class="hidden text-sm font-extrabold text-[#ff7417] sm:inline-flex lg:hidden">Hire builders</a>
     </header>
 
-    <section class="hero-section ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center overflow-hidden px-6 pb-24 pt-24 text-center sm:px-8 lg:px-10">
+    <section class="hero-section ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center overflow-hidden px-6 pb-24 pt-10 text-center sm:px-8 sm:pt-12 lg:px-10">
       <canvas
         class="ascii-star hero-star-left absolute left-[max(-12rem,-13vw)] top-32 h-[clamp(22rem,32vw,32rem)] w-[clamp(22rem,32vw,32rem)] -rotate-[22deg]"
         data-star-canvas
@@ -367,16 +424,32 @@ const testimonials = [
         aria-hidden="true"
       ></canvas>
 
-      <h1 data-hero-headline class="relative z-10 max-w-4xl text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
-        Hire
-        <br class="sm:hidden" />
-        <span class="relative inline-block font-extrabold">
-          builders
-         </span>
-        <br class="sm:hidden" />
-        who can<br />
-        actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
-      </h1>
+      {isBuilders && (
+        <p class="relative z-10 mb-5 text-[0.72rem] font-extrabold uppercase tracking-[0.22em] text-[#bf4f08]">
+          For builders who ship
+        </p>
+      )}
+      <div data-hero-headline class:list={["relative z-10", isBuilders ? "max-w-[1050px]" : "max-w-4xl"]}>
+        {isBuilders ? (
+          <h1 class="text-[clamp(4rem,7vw,6.875rem)] font-normal leading-[0.94] tracking-[-0.035em] text-black">
+            Get hired for<br />
+            <span class="font-extrabold">what you build.</span>
+          </h1>
+        ) : (
+        <h1 class="text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
+          Hire
+          <br class="sm:hidden" />
+          <span class="relative inline-block font-extrabold">builders</span>
+          <br class="sm:hidden" />
+          who can<br />
+          actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
+        </h1>
+        )}
+      </div>
+
+      <p class="relative z-10 mt-6 max-w-3xl text-[clamp(1.02rem,1.65vw,1.35rem)] font-medium leading-relaxed text-black/58" data-audience-copy="heroSubcopy">
+        Tell us who you need and review proof-backed builders ranked by shipped work, events, and real context.
+      </p>
 
       <div
         data-hero-cta
@@ -384,6 +457,9 @@ const testimonials = [
       >
         <a
           href={tryForFreeHref}
+          data-audience-href
+          data-founders-href={tryForFreeHref}
+          data-builders-href="/get-hired"
           class="hero-start-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
         >
           <canvas
@@ -391,48 +467,56 @@ const testimonials = [
             data-ascii-ripple="compact"
             aria-hidden="true"
           ></canvas>
-          <span class="relative z-10">Try for Free</span>
+          <span class="relative z-10" data-audience-copy="primaryCta">Try for Free</span>
         </a>
         <a
           href={bookCallHref}
+          data-audience-href
+          data-founders-href={bookCallHref}
+          data-builders-href="#stories"
           class="hero-book-call-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-9 text-sm font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.06)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-white hover:text-[#bf4f08] hover:shadow-[0_16px_36px_rgba(255,116,23,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
         >
-          Book a Call
+          <span data-audience-copy="secondaryCta">Book a Call</span>
           <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M5 12h14"></path>
             <path d="m12 5 7 7-7 7"></path>
           </svg>
         </a>
       </div>
+      <p class="relative z-10 mt-4 text-sm font-semibold text-black/42" data-audience-copy="heroTrustLine">
+        We find the builders. You choose who to meet.
+      </p>
 
       <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
-        <div class="relative flex min-h-[auto] items-center justify-center overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] px-7 py-8 shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[420px] sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12 lg:py-12">
+        <div class="hero-showcase-frame relative flex min-h-[auto] items-center justify-center overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] px-7 py-8 shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[420px] sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12 lg:py-12">
           <img
             src="/landing/hero-meadow.png"
             alt=""
             loading="eager"
-            class="absolute inset-0 h-full w-full object-cover"
+            class="hero-media hero-media-founders absolute inset-0 h-full w-full object-cover"
           />
           <div class="absolute inset-0 bg-white/5"></div>
 
-          <span class="selection-dot left-7 top-7"></span>
-          <span class="selection-dot right-7 top-7"></span>
-          <span class="selection-dot bottom-7 left-7"></span>
-          <span class="selection-dot bottom-7 right-7"></span>
+          <span class="selection-dot hero-editor-control left-7 top-7"></span>
+          <span class="selection-dot hero-editor-control right-7 top-7"></span>
+          <span class="selection-dot hero-editor-control bottom-7 left-7"></span>
+          <span class="selection-dot hero-editor-control bottom-7 right-7"></span>
 
           <div class="hero-builder-card relative z-10 w-full max-w-[22.5rem] border-2 border-black bg-white p-3 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] min-[400px]:max-w-[26rem] min-[400px]:p-3.5 sm:max-w-[min(76%,720px)] sm:p-4 lg:max-w-[760px] lg:p-5">
             <div class="mb-2.5 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-2.5 py-1.5 text-sm font-semibold text-[#bf4f08]">
               <span class="text-[#ff7417]">✦</span>
-              Builder search
+              <span data-audience-copy="heroCardLabel">Builder search</span>
             </div>
 
-            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label="Find me a cracked App dev with expertise in stripe integration">
-              <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="m21 21-4.3-4.3"></path>
-              </svg>
+            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label={isBuilders ? "Proof sources connected" : "Find me a cracked App dev with expertise in stripe integration"}>
+              {!isBuilders && (
+                <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </svg>
+              )}
               <p class="min-w-0 flex-1 overflow-hidden py-0.5 text-[0.68rem] font-normal leading-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)] sm:leading-[1.35]">
-                <span class="hero-typewriter-text">Find me a cracked App dev with expertise in stripe integration</span>
+                <span class="hero-typewriter-text" data-audience-copy="heroSearch">Find me a cracked App dev with expertise in stripe integration</span>
               </p>
               <a
                 href="/auth/signup"
@@ -451,7 +535,7 @@ const testimonials = [
               </div>
             </div>
 
-            <div class="mt-3 grid gap-2.5 md:grid-cols-2">
+            <div class="mt-3 grid gap-2.5 md:grid-cols-2" data-audience-panel="founders">
               {heroSearchCards.map((card, index) => (
                 <article class={`hero-result-card border border-black/15 bg-[#fffaf7] p-2.5 sm:p-3 ${index === 1 ? "hero-result-card-two" : ""}`}>
                   <div class="flex items-start justify-between gap-2">
@@ -537,7 +621,102 @@ const testimonials = [
               ))}
             </div>
 
-            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+            <article class="builder-proof-card mt-3 border border-[#ece7e1] bg-white p-3 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)] sm:p-5" data-audience-panel="builders">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex min-w-0 gap-3">
+                  <div class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ff7417] text-sm font-black text-white" aria-hidden="true">
+                    {builderPreview.initials}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <p class="text-lg font-semibold leading-tight text-black">{builderPreview.name}</p>
+                      <span class="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[0.62rem] font-semibold text-[#c56a12]">
+                        Strong Match
+                      </span>
+                    </div>
+                    <p class="mt-0.5 text-sm text-black/55">{builderPreview.role} engineer</p>
+                    <div class="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-black/45">
+                      <img src={companyLogoUrl(builderPreview.ex.domain)} alt="" class="h-4 w-4 rounded object-contain" loading="lazy" />
+                      <span>{builderPreview.ex.label} · Available now</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="shrink-0 text-right">
+                  <p class="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-black/35">Fit</p>
+                  <p class="text-2xl font-semibold text-black">{builderPreview.match}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-xl border border-[#ec9149]/35 bg-[#fff7ef] px-4 py-3.5">
+                <p class="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[#c56a12]">Why hire</p>
+                <p class="mt-1.5 text-sm font-medium leading-relaxed text-black/90">
+                  Strong mobile and applied-AI signal backed by shipped projects, repository history, and live product proof.
+                </p>
+              </div>
+
+              <div class="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  [builderPreview.shipped, "Shipped projects"],
+                  [String(builderPreview.sources), "Proof sources"],
+                  [String(builderPreview.repos.length), "Highlighted repos"],
+                ].map(([value, label]) => (
+                  <div class="rounded-lg border border-[#ece7e1] bg-[#fdfaf7] px-3 py-2.5">
+                    <p class="text-lg font-semibold leading-none text-black">{value}</p>
+                    <p class="mt-1 text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-black/40">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div class="mt-3">
+                <div class="flex items-center justify-between">
+                  <p class="text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-black/40">Code and shipping activity</p>
+                  <p class="text-[0.64rem] font-medium text-black/35">12 weeks</p>
+                </div>
+                <div class="mt-1.5 flex h-8 items-end gap-1" aria-hidden="true">
+                  {builderPreview.activity.map((level) => (
+                    <span class="flex-1 rounded-[2px] bg-[#ec9149]" style={`height: ${18 + level * 7}%; opacity: ${0.25 + level * 0.065}`}></span>
+                  ))}
+                </div>
+              </div>
+
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                {builderPreview.repos.map((repo, index) => (
+                  <div class="rounded-lg border border-[#ece7e1] bg-white p-3">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-sm font-semibold text-black">{repo}</p>
+                      <span class="shrink-0 rounded border border-[#ec9149]/25 bg-[#fff7ef] px-1.5 py-0.5 text-[0.58rem] font-semibold text-[#c56a12]">Verified</span>
+                    </div>
+                    <p class="mt-1.5 text-xs leading-relaxed text-black/55">
+                      {index === 0 ? "Mobile product build with shipped user flows and live validation." : "Applied computer-vision project with a working product demo."}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                {["iOS", "Applied AI", "Mobile", "Product engineering"].map((skill) => (
+                  <span class="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[0.68rem] text-black/55">{skill}</span>
+                ))}
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7e1] pt-3">
+                <div class="flex items-center gap-2">
+                  {builderPreview.sourceKeys.map((key) => (
+                    <span class="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45" title={key}>
+                      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
+                    </span>
+                  ))}
+                  <span class="text-xs font-medium text-black/55">Full profile</span>
+                  <span class="text-xs font-medium text-[#c56a12]">Trace</span>
+                </div>
+                <div class="flex gap-2">
+                  <span class="inline-flex h-9 items-center rounded-lg border border-[#ece7e1] px-3 text-xs font-semibold text-black">Pass</span>
+                  <span class="inline-flex h-9 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white">Invite</span>
+                </div>
+              </div>
+            </article>
+
+            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2" data-audience-panel="founders">
               {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
                 <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-1 text-[0.7rem] font-semibold text-[#bf4f08] sm:px-2.5 sm:text-xs">
                   {signal}
@@ -553,14 +732,16 @@ const testimonials = [
           </div>
         </div>
 
-        <span class="corner-square -left-2 -top-2"></span>
-        <span class="corner-square -right-2 -top-2"></span>
-        <span class="corner-square -bottom-2 -left-2"></span>
-        <span class="corner-square -bottom-2 -right-2"></span>
+        <span class="corner-square hero-editor-control -left-2 -top-2"></span>
+        <span class="corner-square hero-editor-control -right-2 -top-2"></span>
+        <span class="corner-square hero-editor-control -bottom-2 -left-2"></span>
+        <span class="corner-square hero-editor-control -bottom-2 -right-2"></span>
       </div>
     </section>
 
-    <section class="ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10">
+    {isBuilders && <BuilderProductJourney ctaHref="/get-hired" />}
+
+    <section class:list={["ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 py-0 text-black sm:px-8 lg:px-10", isBuilders && "hidden"]}>
       <div class="ruler-rails" aria-hidden="true"></div>
       <canvas
         class="ascii-wave absolute inset-0 h-full w-full opacity-100 mix-blend-multiply"
@@ -573,7 +754,7 @@ const testimonials = [
       <div class="relative z-10 mx-auto w-full max-w-7xl py-16 sm:py-20">
         <div data-fluid-panel class="overflow-hidden rounded-none border border-black/10 bg-[#fbf6f3]/82 backdrop-blur-[1px]">
           <div class="border-b border-black/10 px-6 py-6 sm:px-10">
-            <p class="text-[clamp(1.15rem,1.8vw,1.55rem)] font-semibold tracking-[-0.02em] text-black/68">
+            <p class="text-[clamp(1.15rem,1.8vw,1.55rem)] font-semibold tracking-[-0.02em] text-black/68" data-audience-copy="credibilityKicker">
               Worked with folks from
             </p>
           </div>
@@ -581,10 +762,13 @@ const testimonials = [
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
             <div class="flex min-h-[15rem] flex-col justify-between border-b border-black/10 bg-[#f4f1ed]/88 p-8 sm:col-span-2 lg:col-span-1 lg:row-span-2 lg:border-b-0 lg:border-r">
                <div>
-                <p class="text-[clamp(2.5rem,4vw,3.8rem)] font-black leading-none tracking-[-0.04em] text-[#ff7417]">
-                Backed by
+                <p class:list={[
+                  "font-black leading-none tracking-[-0.04em] text-[#ff7417]",
+                  isBuilders ? "text-[clamp(2.25rem,3vw,3.15rem)]" : "text-[clamp(2.5rem,4vw,3.8rem)]",
+                ]}>
+                <span data-audience-copy="credibilityTitle">Backed by</span>
                 </p>
-                <p class="mt-5 max-w-xs text-base font-medium leading-relaxed text-black/62">
+                <p class="mt-5 max-w-xs text-base font-medium leading-relaxed text-black/62" data-audience-copy="credibilityBody">
                   Teams that have watched our builders ship — then hired them.
                 </p>
               </div>
@@ -603,41 +787,41 @@ const testimonials = [
             ))}
 
             <div class="logo-cell hidden min-h-[9.5rem] items-center justify-center border-b border-black/10 p-8 text-center text-sm font-semibold leading-relaxed text-black/38 lg:flex">
-              Builders seen in the room, not just on paper
+              <span data-audience-copy="credibilityAside">Builders seen in the room, not just on paper</span>
             </div>
           </div>
         </div>
 
         <div data-fluid-panel class="mx-auto mt-24 max-w-[22rem] text-center sm:mt-28 sm:max-w-5xl">
           <h2 class="text-[clamp(2rem,9.8vw,6.4rem)] font-black leading-[0.96] tracking-[-0.04em] text-black sm:leading-[0.93]">
-            Hiring
+            <span data-audience-copy="problemLineOne">Hiring</span>
             <br class="sm:hidden" />
-            through
+            <span data-audience-copy="problemLineTwo">through</span>
             <br class="sm:hidden" />
-            resumes is
+            <span data-audience-copy="problemLineThree">resumes is</span>
             <br class="sm:hidden" />
-            broken.
+            <span data-audience-copy="problemLineFour">broken.</span>
             <span class="mt-3 block font-normal text-black/72">
-              You need
+              <span data-audience-copy="problemSubOne">You need</span>
               <br class="sm:hidden" />
-              people
+              <span data-audience-copy="problemSubTwo">people</span>
               <br class="sm:hidden" />
-              who can
+              <span data-audience-copy="problemSubThree">who can</span>
               <br class="sm:hidden" />
               <span class="relative inline-block font-black text-black">
-                ship
+                <span data-audience-copy="problemStrong">ship</span>
                </span>
             </span>
           </h2>
 
-          <p class="mx-auto mt-9 max-w-3xl text-[clamp(1.1rem,2vw,1.6rem)] font-medium leading-relaxed text-black/58">
+          <p class="mx-auto mt-9 max-w-3xl text-[clamp(1.1rem,2vw,1.6rem)] font-medium leading-relaxed text-black/58" data-audience-copy="problemBody">
             DevLabs already knows those people because we watch them build at our events.
           </p>
         </div>
       </div>
     </section>
 
-    <section class="metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10">
+    <section class:list={["metrics-section ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-6 pb-0 pt-24 text-black sm:px-8 lg:px-10", isBuilders && "hidden"]}>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
         <!-- <div class="grid gap-10 border-x border-black/10 px-8 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
@@ -669,7 +853,7 @@ const testimonials = [
                   <span data-count="2000" data-count-suffix="+">2,000+</span>
                 </p>
                 <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                  Builders in the DevLabs network
+                <span data-audience-copy="metricOne">Builders in the DevLabs network</span>
                 </p>
               </div>
             </div>
@@ -687,7 +871,7 @@ const testimonials = [
                 <span data-count="50" data-count-suffix="+">50+</span>
               </p>
               <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                Projects shipped through our programs
+                <span data-audience-copy="metricTwo">Projects shipped through our programs</span>
               </p>
             </div>
           </article>
@@ -705,7 +889,7 @@ const testimonials = [
                 <span data-count="25" data-count-suffix="+">25+</span>
               </p>
               <p class="mt-5 max-w-sm text-2xl font-extrabold leading-tight tracking-[-0.03em]">
-                Events hosted for builders and founders
+                <span data-audience-copy="metricThree">Events hosted for builders and founders</span>
               </p>
             </div>
           </article>
@@ -715,11 +899,11 @@ const testimonials = [
           <div class="relative overflow-hidden border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
             <div class="absolute inset-y-0 left-0 w-1 bg-[#ff7417]"></div>
             <p class="max-w-4xl text-[clamp(1.8rem,3.4vw,3.5rem)] font-black leading-[1.02] tracking-[-0.045em] text-black">
-              A DevLabs builder was hired by
+              <span data-audience-copy="storyLead">A DevLabs builder was hired by</span>
               <span class="inline-flex items-center gap-3 whitespace-nowrap">
                 <img src="/sponsors/supermemory.png" alt="" class="h-8 w-auto object-contain" style="filter: grayscale(1) brightness(0);" />
               </span>
-              after proving their work through the community.
+              <span data-audience-copy="storyTail">after proving their work through the community.</span>
             </p>
           </div>
           <div class="border-b border-black/10 p-8 lg:border-b-0 lg:border-r lg:p-10">
@@ -727,7 +911,7 @@ const testimonials = [
               <span data-count="100" data-count-suffix="+">100+</span>
             </p>
             <p class="mt-4 text-lg font-bold leading-tight text-black/58">
-              Founders joined Momentum
+              <span data-audience-copy="metricFour">Founders joined Momentum</span>
             </p>
           </div>
           <div class="p-8 lg:p-10">
@@ -735,14 +919,14 @@ const testimonials = [
               <span data-count="150" data-count-prefix="$" data-count-suffix="K+">$150K+</span>
             </p>
             <p class="mt-4 text-lg font-bold leading-tight text-black/58">
-              Raised to support builder programs
+              <span data-audience-copy="metricFive">Raised to support builder programs</span>
             </p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="agent-section pricing-flow-before ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10">
+    <section class:list={["agent-section pricing-flow-before ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-0 pt-0 text-black sm:px-8 lg:px-10", isBuilders && "hidden"]}>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
         <div data-fluid-panel class="role-search-panel relative my-16 min-h-[38rem] overflow-hidden sm:my-24 sm:min-h-[44rem] lg:my-28 lg:min-h-[48rem]">
@@ -923,11 +1107,14 @@ const testimonials = [
 
           <div class="role-search-content relative z-10 mx-auto flex min-h-[38rem] max-w-4xl flex-col items-center justify-center px-4 py-14 text-center sm:min-h-[44rem] sm:px-8 sm:py-20 lg:min-h-[48rem] lg:py-24">
             <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">
-              search by role
+              <span data-audience-copy="agentKicker">search by role</span>
             </p>
             <h3 class="mt-4 text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
-              Tell the agent what you need.
+              <span data-audience-copy="agentHeadline">Tell the agent what you need.</span>
             </h3>
+            <p class="mx-auto mt-5 max-w-2xl text-[clamp(1rem,1.5vw,1.18rem)] font-medium leading-relaxed text-black/58" data-audience-copy="agentBody">
+              Describe the role and the agent turns it into an evidence-backed search.
+            </p>
             <div class="mt-8 w-full border-2 border-black bg-white px-3 py-3 text-left shadow-[0_22px_60px_rgba(0,0,0,0.08)] sm:mt-10 sm:px-5 sm:py-4">
               <div class="flex items-center gap-4">
                 <svg class="h-6 w-6 shrink-0 text-[#ff7417]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -935,7 +1122,7 @@ const testimonials = [
                   <path d="m21 21-4.3-4.3"></path>
                 </svg>
                 <p class="min-w-0 flex-1 py-0.5 text-sm font-semibold leading-normal text-black min-[380px]:text-base sm:truncate sm:text-[clamp(1.2rem,2vw,1.7rem)] sm:leading-[1.35]">
-                  full stack dev with expertise in payment integration
+                  <span data-audience-copy="agentPrompt">full stack dev with expertise in payment integration</span>
                 </p>
                 <span class="grid h-10 w-10 shrink-0 place-items-center bg-[#ff7417] text-white sm:h-11 sm:w-11">
                   <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -965,15 +1152,17 @@ const testimonials = [
           <div class="relative z-10 flex min-h-[27rem] items-center justify-center sm:min-h-[34rem] lg:min-h-[40rem]">
             <div class="mx-auto max-w-6xl px-2 py-10 text-center sm:px-12 sm:py-12 lg:px-16 lg:py-16">
               <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/36">
-                founder agent
+                <span data-audience-copy="painKicker">founder agent</span>
               </p>
               <h2 class="mx-auto mt-6 max-w-5xl text-[clamp(2.2rem,11vw,6.6rem)] font-black leading-[0.94] text-black sm:leading-[0.92]">
-                <span class="text-black/18">A bad early</span>
-                hire costs more than money.
+                <span class="text-black/18" data-audience-copy="painMuted">A bad early</span>
+                <span data-audience-copy="painHeadline">hire costs more than money.</span>
               </h2>
-              <p class="mx-auto mt-8 max-w-4xl text-[clamp(1.1rem,1.75vw,1.55rem)] font-medium leading-relaxed text-black/62">
-                The agent turns vague founder needs into evidence-ranked builders, match reasons, and outreach-ready next steps.
-              </p>
+              {!isBuilders && (
+                <p class="mx-auto mt-8 max-w-4xl text-[clamp(1.1rem,1.75vw,1.55rem)] font-medium leading-relaxed text-black/62" data-audience-copy="painBody">
+                  The agent turns vague founder needs into evidence-ranked builders, match reasons, and outreach-ready next steps.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -1123,7 +1312,10 @@ const testimonials = [
 
     <PricingSection />
 
-    <section class="howitworks-section pricing-flow-after ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-24 pt-4 text-black sm:px-8 sm:pb-32 sm:pt-6 lg:px-10">
+    {isBuilders && <BuilderManifesto />}
+    {isBuilders && <BuilderCommunityImpact />}
+
+    <section class:list={["howitworks-section pricing-flow-after ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-24 pt-4 text-black sm:px-8 sm:pb-32 sm:pt-6 lg:px-10", isBuilders && "hidden"]}>
 
       <div class="relative z-10 mx-auto w-full max-w-7xl">
         <div class="grind-panel relative min-h-[clamp(22rem,42vw,34rem)] overflow-hidden rounded-[22px] border border-black/10 bg-[#fffaf7]/84 sm:rounded-[34px]">
@@ -1132,11 +1324,11 @@ const testimonials = [
             <div class="grind-vignette pointer-events-none absolute inset-0 z-10" aria-hidden="true"></div>
             <div class="relative z-20 flex flex-col items-center justify-center">
               <h2 class="text-[clamp(2.35rem,11.5vw,5.8rem)] font-black leading-[0.92] text-black sm:leading-[0.9]">
-                Our builders are grinding every second.
+                <span data-audience-copy="grindHeadline">Our builders are grinding every second.</span>
               </h2>
               <p class="mt-5 flex items-center justify-center gap-2 text-sm font-semibold text-black/45">
                 <span class="grind-live-dot" aria-hidden="true"></span>
-                GitHub contributions from the DevLabs network
+                <span data-audience-copy="grindBody">GitHub contributions from the DevLabs network</span>
               </p>
             </div>
           </div>
@@ -1267,17 +1459,17 @@ const testimonials = [
     */}
 
     <!-- Dark cinematic close: testimonials → footer -->
-    <LandingDarkClose ctaHref={ctaHref}>
-      <section class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
+    <LandingDarkClose ctaHref={isBuilders ? "/get-hired" : ctaHref}>
+      <section id="stories" class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
         <div class="relative z-10 mx-auto w-full max-w-7xl">
           <div class="mx-auto max-w-4xl text-center">
-            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40">proof, not promises</p>
+            <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-white/40" data-audience-copy="testimonialKicker">proof, not promises</p>
             <h2 class="mx-auto mt-6 max-w-3xl text-[clamp(2.35rem,11.5vw,6.4rem)] font-black leading-[0.96] text-white sm:leading-[0.94]">
-              Don't take our word for it.
+              <span data-audience-copy="testimonialHeadline">Don't take our word for it.</span>
             </h2>
           </div>
 
-          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3">
+          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3" data-audience-panel="founders">
             {testimonials.map((t) => (
               <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-5 backdrop-blur-sm sm:min-h-[21rem] sm:p-8">
                 <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
@@ -1307,11 +1499,182 @@ const testimonials = [
               </figure>
             ))}
           </div>
+          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3" data-audience-panel="builders">
+            {builderTestimonials.map((t) => (
+              <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-5 backdrop-blur-sm sm:min-h-[21rem] sm:p-8">
+                <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
+                <div class="flex items-start justify-between gap-5">
+                  <span class="inline-flex h-12 max-w-full items-center rounded-full border border-white/10 bg-white/[0.04] px-4 sm:min-w-[14rem]">
+                    <img src={t.logo} alt={t.logoAlt} loading="lazy" class={t.logoClass} />
+                  </span>
+                  <span class="text-5xl font-black leading-none text-[#ff7417]/22">“</span>
+                </div>
+
+                <blockquote class="mt-8 text-lg font-semibold leading-relaxed text-white/88 sm:mt-10 sm:text-xl">
+                  {t.quote}
+                </blockquote>
+
+                <figcaption class="mt-8 flex items-center gap-4 border-t border-white/10 pt-5">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    loading="lazy"
+                    class="h-16 w-16 shrink-0 border border-[#ff7417]/45 bg-white object-cover p-1 shadow-[0_0_0_4px_rgba(255,116,23,0.08)]"
+                  />
+                  <span class="min-w-0">
+                    <span class="block truncate text-sm font-black text-white">{t.name}</span>
+                    <span class="block text-xs font-semibold leading-snug text-white/52">{t.role}</span>
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </section>
     </LandingDarkClose>
   </main>
 </Layout>
+
+<script>
+  type Audience = "founders" | "builders";
+
+  const audienceCopy: Record<Audience, Record<string, string>> = {
+    founders: {
+      navCta: "Hire now",
+      heroLead: "Hire",
+      heroStrongOne: "builders",
+      heroLineTwo: "who can",
+      heroLineThree: "actually",
+      heroStrongTwo: "ship",
+      heroSubcopy:
+        "Tell us who you need and review proof-backed builders ranked by shipped work, events, and real context.",
+      primaryCta: "Try for Free",
+      secondaryCta: "Book a Call",
+      heroTrustLine: "We find the builders. You choose who to meet.",
+      heroCardLabel: "Builder search",
+      heroSearch: "Find me a cracked App dev with expertise in stripe integration",
+      credibilityKicker: "Worked with folks from",
+      credibilityTitle: "Backed by",
+      credibilityBody: "Teams that have watched our builders ship - then hired them.",
+      credibilityAside: "Builders seen in the room, not just on paper",
+      problemLineOne: "Hiring",
+      problemLineTwo: "through",
+      problemLineThree: "resumes is",
+      problemLineFour: "broken.",
+      problemSubOne: "You need",
+      problemSubTwo: "people",
+      problemSubThree: "who can",
+      problemStrong: "ship",
+      problemBody:
+        "DevLabs already knows those people because we watch them build at our events.",
+      metricOne: "Builders in the DevLabs network",
+      metricTwo: "Projects shipped through our programs",
+      metricThree: "Events hosted for builders and founders",
+      storyLead: "A DevLabs builder was hired by",
+      storyTail: "after proving their work through the community.",
+      metricFour: "Founders joined Momentum",
+      metricFive: "Raised to support builder programs",
+      agentKicker: "search by role",
+      agentHeadline: "Tell the agent what you need.",
+      agentBody:
+        "Describe the role and the agent turns it into an evidence-backed search.",
+      agentPrompt: "full stack dev with expertise in payment integration",
+      painKicker: "founder agent",
+      painMuted: "A bad early",
+      painHeadline: "hire costs more than money.",
+      painBody:
+        "The agent turns vague founder needs into evidence-ranked builders, match reasons, and outreach-ready next steps.",
+      grindHeadline: "Our builders are grinding every second.",
+      grindBody: "GitHub contributions from the DevLabs network",
+      testimonialKicker: "proof, not promises",
+      testimonialHeadline: "Don't take our word for it.",
+      footerHeadline: "Stop hiring from resumes",
+      footerBody:
+        "Tell us who you need and get a proof-backed shortlist of builders who have already shipped - ready to start this week.",
+      footerCta: "Hire with proof",
+    },
+    builders: {
+      navCta: "Join the builder pool",
+      heroLead: "Get hired",
+      heroStrongOne: "for what",
+      heroLineTwo: "you",
+      heroLineThree: "actually",
+      heroStrongTwo: "build.",
+      heroSubcopy:
+        "Turn your projects, hackathon work, and open-source contributions into proof founders can trust.",
+      primaryCta: "Build my profile",
+      secondaryCta: "See builder stories",
+      heroTrustLine: "You review your profile before anything is shared.",
+      heroCardLabel: "Example builder profile",
+      heroSearch: "Proof sources connected",
+      credibilityKicker: "Our events are sponsored by",
+      credibilityTitle: "Sponsors",
+      credibilityBody:
+        "Teams that support DevLabs events and the builders who ship at them.",
+      credibilityAside: "Proof happens in the room, not just on paper",
+      problemLineOne: "Your resume",
+      problemLineTwo: "doesn't show",
+      problemLineThree: "what you can",
+      problemLineFour: "actually do.",
+      problemSubOne: "Your",
+      problemSubTwo: "work",
+      problemSubThree: "should",
+      problemStrong: "speak",
+      problemBody:
+        "Applications reduce everything you've built to a few bullet points. DevLabs gives founders the complete picture: projects, decisions, execution, and proof that you can ship.",
+      metricOne: "Builders in the DevLabs community",
+      metricTwo: "Projects shipped through our programs",
+      metricThree: "Hackathons, hacker houses, and builder events",
+      storyLead: "A DevLabs builder got hired after",
+      storyTail: "founders saw the work they had shipped in the community.",
+      metricFour: "Builders connected with startup opportunities",
+      metricFive: "Funding, prizes, and support delivered",
+      agentKicker: "proof profile",
+      agentHeadline: "Show us what you've built.",
+      agentBody:
+        "Connect your GitHub, portfolio, projects, and agent traces. We'll turn scattered work into a proof-backed builder profile.",
+      agentPrompt: "I build AI workflow tools, full-stack apps, and automation systems",
+      painKicker: "builder proof",
+      painMuted: "A perfect resume",
+      painHeadline: "can't prove you can ship.",
+      grindHeadline: "See what DevLabs builders are shipping.",
+      grindBody: "Live GitHub contributions from the DevLabs network",
+      testimonialKicker: "built here, discovered here",
+      testimonialHeadline: "Builders are turning projects into opportunities.",
+      footerHeadline: "Your work is already the resume.",
+      footerBody:
+        "Turn what you've shipped into proof founders can trust - and put it in front of people looking for builders like you.",
+      footerCta: "Build my profile",
+    },
+  };
+
+  function applyAudience(audience: Audience) {
+    document.documentElement.dataset.audience = audience;
+    document.querySelectorAll<HTMLElement>("[data-audience-root]").forEach((root) => {
+      root.dataset.audience = audience;
+    });
+
+    const copy = audienceCopy[audience];
+    document.querySelectorAll<HTMLElement>("[data-audience-copy]").forEach((node) => {
+      const key = node.dataset.audienceCopy || "";
+      if (copy[key]) node.textContent = copy[key];
+    });
+
+    document.querySelectorAll<HTMLAnchorElement>("[data-audience-href]").forEach((link) => {
+      const next = audience === "builders" ? link.dataset.buildersHref : link.dataset.foundersHref;
+      if (next) link.href = next;
+    });
+
+  }
+
+  function initAudienceContent() {
+    const initial = document.documentElement.dataset.audience === "builders" ? "builders" : "founders";
+    applyAudience(initial);
+  }
+
+  initAudienceContent();
+  document.addEventListener("astro:page-load", initAudienceContent);
+</script>
 
 <script>
   const canvases = Array.from(
@@ -2026,6 +2389,65 @@ const testimonials = [
 </script>
 
 <style>
+  .audience-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid rgb(5 5 5 / 0.12);
+    background: rgb(255 250 247 / 0.82);
+    padding: 0.18rem;
+  }
+
+  .audience-toggle a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: rgb(5 5 5 / 0.42);
+    transition:
+      background-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .audience-toggle a[aria-current="page"] {
+    background: #181411;
+    color: #fff;
+  }
+
+  .audience-toggle--mobile a {
+    min-height: 1.85rem;
+    padding: 0 0.55rem;
+    font-size: 0.68rem;
+  }
+
+  @media (min-width: 768px) {
+    .audience-toggle--mobile {
+      display: none;
+    }
+  }
+
+  [data-audience-panel="builders"] {
+    display: none;
+  }
+
+  [data-audience="builders"] [data-audience-panel="founders"],
+  :root[data-audience="builders"] [data-audience-panel="founders"] {
+    display: none;
+  }
+
+  [data-audience="builders"] [data-audience-panel="builders"],
+  :root[data-audience="builders"] [data-audience-panel="builders"] {
+    display: grid;
+  }
+
+  [data-audience="builders"] .builder-proof-card[data-audience-panel="builders"],
+  :root[data-audience="builders"] .builder-proof-card[data-audience-panel="builders"] {
+    display: block;
+  }
+
   .landing-page {
     font-family: Manrope, system-ui, sans-serif;
     letter-spacing: 0;
@@ -2082,6 +2504,25 @@ const testimonials = [
     position: relative;
   }
 
+  [data-audience="builders"] .hero-search-input {
+    animation: none;
+    border-color: rgb(5 5 5 / 0.16);
+    box-shadow: none;
+  }
+
+  [data-audience="builders"] .hero-typewriter-text {
+    width: auto;
+    border-right: 0;
+    animation: none;
+    white-space: normal;
+  }
+
+  [data-audience="builders"] .hero-search-submit,
+  [data-audience="builders"] .hero-loading-row,
+  [data-audience="builders"] .hero-search-cursor {
+    display: none;
+  }
+
   @media (max-width: 639px) {
     .hero-section {
       padding: 4rem 1.25rem 5rem !important;
@@ -2099,6 +2540,11 @@ const testimonials = [
       top: 5rem !important;
       width: 12rem !important;
       height: 12rem !important;
+    }
+
+    [data-audience="builders"] [data-hero-headline] h1 {
+      font-size: clamp(2.75rem, 13.5vw, 4rem) !important;
+      line-height: 0.96 !important;
     }
 
     [data-hero-headline] {
