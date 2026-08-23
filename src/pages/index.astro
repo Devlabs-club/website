@@ -4,9 +4,11 @@ export const prerender = true;
 import Layout from "../layouts/Layout.astro";
 import PricingSection from "../components/PricingSection.astro";
 import LandingDarkClose from "../components/landing/LandingDarkClose.astro";
+import BuilderHeroFlow from "../components/landing/BuilderHeroFlow.astro";
 import BuilderProductJourney from "../components/landing/BuilderProductJourney.astro";
 import BuilderManifesto from "../components/landing/BuilderManifesto.astro";
 import BuilderCommunityImpact from "../components/landing/BuilderCommunityImpact.astro";
+import BuilderLandingClose from "../components/landing/BuilderLandingClose.astro";
 import { tryForFreeHref } from "../lib/productCta";
 
 const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
@@ -205,8 +207,6 @@ const heroSearchCards = [
   },
 ];
 
-const builderPreview = heroSearchCards[0];
-
 const evidenceBento = [
   {
     title: "Shipped Projects",
@@ -329,35 +329,41 @@ const builderTestimonials = [
     quote:
       "My internship at Pretorin was a wild and super productive summer. Isaac was very satisfied with my work, and I exceeded his expectations across the metrics he was measuring in a founding engineer. DevLabs helped connect me with that opportunity.",
     name: "Harshavardhan Kuthadi",
-    role: "Pretorin Intern",
+    role: "Intern",
+    company: "Pretorin",
+    companyHref: "https://pretorin.com/",
     initials: "HK",
     avatar:
       "https://media.licdn.com/dms/image/v2/D5603AQG4vPqSAW15xg/profile-displayphoto-scale_100_100/B56Z4PPZUkGoAg-/0/1778372159690?e=1788998400&v=beta&t=6BNpt0FdefjFrVpWIZowVEyjvCxndEBh875sWl2v7Rs",
-    logo: "/logo.png",
-    logoAlt: "DevLabs",
-    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+    logo: "/brand/pretorin.png",
+    logoAlt: "Pretorin",
+    logoClass: "h-6 w-auto max-w-[8.5rem] object-contain object-left",
   },
   {
     quote:
       "Pranav had a great experience at Pretorin after getting connected through DevLabs, working closely with the team and gaining real startup engineering experience.",
     name: "Pranav",
-    role: "Pretorin Intern",
+    role: "Intern",
+    company: "Pretorin",
+    companyHref: "https://pretorin.com/",
     initials: "PR",
-    avatar: "/logo.png",
-    logo: "/logo.png",
-    logoAlt: "DevLabs",
-    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+    avatar: "/landing/builders/pranav.jpg",
+    logo: "/brand/pretorin.png",
+    logoAlt: "Pretorin",
+    logoClass: "h-6 w-auto max-w-[8.5rem] object-contain object-left",
   },
   {
     quote:
       "Prasanna joined Supermemory as a Research Engineer after being hired through DevHouse, a DevLabs event. He is enjoying the role and working on meaningful research engineering problems.",
     name: "Prasanna Moorthy",
-    role: "Research Engineer, Supermemory",
+    role: "Research Engineer",
+    company: "Supermemory",
+    companyHref: "https://supermemory.ai/",
     initials: "PS",
-    avatar: "/sponsors/supermemory.png",
-    logo: "/sponsors/supermemory.png",
+    avatar: "/landing/builders/prasanna.jpg",
+    logo: "/landing/builders/supermemory.png",
     logoAlt: "Supermemory",
-    logoClass: "h-7 w-auto max-w-[13rem] object-contain brightness-0 invert opacity-78",
+    logoClass: "h-6 w-auto max-w-[10rem] object-contain object-left",
   },
 ];
 
@@ -375,44 +381,61 @@ const builderTestimonials = [
     document.documentElement.dataset.audience = initialAudience;
   </script>
   <main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]" data-audience-root data-audience={audience}>
-    <header data-nav class="relative mx-auto flex max-w-7xl items-center justify-between px-6 py-8 sm:px-8 lg:px-10">
-      <a href="/" aria-label="DevLabs home" class="inline-flex items-center">
+    <header data-nav class:list={["landing-nav relative z-50 mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10", isBuilders ? "builder-nav" : ""]}>
+      <a href="/" aria-label="DevLabs home" class="landing-nav__logo relative z-[60] inline-flex shrink-0 items-center">
         <img src="/logo.png" alt="" class="h-8 w-8 object-contain" />
       </a>
 
-      <div class="audience-toggle audience-toggle--center absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" aria-label="Choose audience">
-        <a href="/" aria-current={!isBuilders ? "page" : undefined}>
-          <span class="hidden sm:inline">For founders</span>
-          <span class="sm:hidden">Founders</span>
-        </a>
-        <a href="/builders" aria-current={isBuilders ? "page" : undefined}>
-          <span class="hidden sm:inline">For builders</span>
-          <span class="sm:hidden">Builders</span>
-        </a>
-      </div>
+      <button
+        type="button"
+        class="landing-nav__burger relative z-[60] inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-black/15 bg-white p-0 text-[#16343c] lg:hidden"
+        data-nav-menu
+        aria-expanded="false"
+        aria-controls="landing-nav-sheet"
+        aria-label="Open menu"
+      >
+        <svg class="landing-nav__icon-menu h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <svg class="landing-nav__icon-close hidden h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6l-12 12"></path>
+        </svg>
+      </button>
 
-      <nav class="hidden items-center gap-7 text-[15px] font-medium text-black lg:flex">
-        {navLinks.map((link) => (
-          <a href={link.href} class="transition-colors hover:text-[#ff7417]">
-            {link.label}
+      <div class="landing-nav__sheet" id="landing-nav-sheet" data-nav-sheet>
+        <div class="audience-toggle landing-nav__toggle" aria-label="Choose audience">
+          <a href="/" aria-current={!isBuilders ? "page" : undefined}>For founders</a>
+          <a href="/builders" aria-current={isBuilders ? "page" : undefined}>For builders</a>
+        </div>
+
+        <nav class="landing-nav__links flex flex-wrap items-center justify-center text-[15px] font-medium text-black">
+          {navLinks.map((link) => (
+            <a href={link.href} class="shrink-0 transition-colors hover:text-[#ff7417]">
+              {link.label}
+            </a>
+          ))}
+          <a
+            href={isBuilders ? "/get-hired" : ctaHref}
+            data-audience-href
+            data-founders-href={ctaHref}
+            data-builders-href="/get-hired"
+            class="landing-nav__cta relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
+          >
+            <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
+            <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
+            <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
+            <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
+            <span data-audience-copy="navCta">{isBuilders ? "Build my profile" : "Hire builders"}</span>
           </a>
-        ))}
-        <a
-          href={ctaHref}
-          class="relative px-2 py-1 text-[#ff7417] transition-colors hover:text-black"
-        >
-          <span class="pointer-events-none absolute -left-1 top-0 h-2.5 w-2.5 border-l border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -right-1 top-0 h-2.5 w-2.5 border-r border-t border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -left-1 h-2.5 w-2.5 border-b border-l border-[#ff7417]"></span>
-          <span class="pointer-events-none absolute -bottom-0 -right-1 h-2.5 w-2.5 border-b border-r border-[#ff7417]"></span>
-          <span>Hire builders</span>
-        </a>
-      </nav>
-
-      <a href={ctaHref} class="hidden text-sm font-extrabold text-[#ff7417] sm:inline-flex lg:hidden">Hire builders</a>
+        </nav>
+      </div>
     </header>
 
-    <section class="hero-section ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center overflow-hidden px-6 pb-24 pt-10 text-center sm:px-8 sm:pt-12 lg:px-10">
+    <section class:list={[
+      "hero-section ruler-section relative mx-auto flex w-full max-w-7xl flex-col items-center px-6 text-center sm:px-8 lg:px-10",
+      isBuilders ? "builder-hero overflow-visible pb-6 pt-10 sm:pt-12 lg:pt-14" : "overflow-hidden pb-24 pt-10 sm:pt-12",
+    ]}>
+      <div class="ruler-rails" aria-hidden="true"></div>
       <canvas
         class="ascii-star hero-star-left absolute left-[max(-12rem,-13vw)] top-32 h-[clamp(22rem,32vw,32rem)] w-[clamp(22rem,32vw,32rem)] -rotate-[22deg]"
         data-star-canvas
@@ -425,68 +448,84 @@ const builderTestimonials = [
       ></canvas>
 
       {isBuilders && (
-        <p class="relative z-10 mb-5 text-[0.72rem] font-extrabold uppercase tracking-[0.22em] text-[#bf4f08]">
-          For builders who ship
-        </p>
+        <div class="builder-hero-pill relative z-10 mb-6 inline-flex items-center gap-2.5 border border-black/12 bg-white/88 px-3.5 py-2 shadow-[0_10px_30px_rgba(5,5,5,0.05)]">
+          <span class="flex -space-x-2" aria-hidden="true">
+            <img src="/landing/builders/aaditi.jpg" alt="" class="h-6 w-6 rounded-full border-2 border-white object-cover" />
+            <img src="/landing/builders/aakash.jpg" alt="" class="h-6 w-6 rounded-full border-2 border-white object-cover" />
+            <img src="/landing/builders/aanchal.jpg" alt="" class="h-6 w-6 rounded-full border-2 border-white object-cover" />
+            <img src="/landing/builders/abhinav.jpg" alt="" class="h-6 w-6 rounded-full border-2 border-white object-cover" />
+          </span>
+          <span class="text-[0.82rem] font-normal text-[#6d7e84]">1,500+ builder community</span>
+          <span class="text-sm text-[#ff7417]">→</span>
+        </div>
       )}
-      <div data-hero-headline class:list={["relative z-10", isBuilders ? "max-w-[1050px]" : "max-w-4xl"]}>
+      <div data-hero-headline class:list={["relative z-10", isBuilders ? "max-w-[950px]" : "max-w-4xl"]}>
         {isBuilders ? (
-          <h1 class="text-[clamp(4rem,7vw,6.875rem)] font-normal leading-[0.94] tracking-[-0.035em] text-black">
+          <h1 class="builder-hero-title text-[clamp(2.4rem,4.8vw,4.35rem)] font-medium leading-[1.08] tracking-[-0.025em] text-[#16343c]">
             Get hired for<br />
-            <span class="font-extrabold">what you build.</span>
+            <span class="text-[#ff7417]">what you build.</span>
           </h1>
         ) : (
-        <h1 class="text-[clamp(2rem,9.6vw,5.6rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
-          Hire
-          <br class="sm:hidden" />
-          <span class="relative inline-block font-extrabold">builders</span>
-          <br class="sm:hidden" />
-          who can<br />
-          actually <br class="sm:hidden" /><span class="ml-[0.22em] font-extrabold">ship</span>
+        <h1 class="text-[clamp(1.65rem,5.2vw,4.15rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
+          <span class="whitespace-nowrap">Hire <span class="relative inline-block font-extrabold">builders</span> who can</span>
+          <br />
+          actually <span class="relative inline-block font-extrabold">ship</span>
         </h1>
         )}
       </div>
 
-      <p class="relative z-10 mt-6 max-w-3xl text-[clamp(1.02rem,1.65vw,1.35rem)] font-medium leading-relaxed text-black/58" data-audience-copy="heroSubcopy">
-        Tell us who you need and review proof-backed builders ranked by shipped work, events, and real context.
-      </p>
+      {isBuilders ? (
+        <p class="relative z-10 mt-5 max-w-xl text-[clamp(1rem,1.35vw,1.15rem)] font-normal leading-relaxed text-[#3f5359]">
+          Turn your projects, hackathon work, and <span class="whitespace-nowrap">open-source</span> contributions into proof founders can trust.
+        </p>
+      ) : (
+        <p class="relative z-10 mt-6 max-w-3xl text-[clamp(1.02rem,1.65vw,1.35rem)] font-medium leading-relaxed text-black/58" data-audience-copy="heroSubcopy">
+          Tell us who you need and find backed builders from our hackathons, hackerhouses and other events.
+        </p>
+      )}
 
       <div
         data-hero-cta
-        class="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4"
+        class:list={["relative z-20 mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4", isBuilders && "shrink-0"]}
       >
         <a
           href={tryForFreeHref}
           data-audience-href
           data-founders-href={tryForFreeHref}
           data-builders-href="/get-hired"
-          class="hero-start-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center overflow-hidden rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-9 text-sm font-extrabold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417] hover:text-white hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+          class:list={[
+            "hero-start-cta group relative inline-flex items-center justify-center overflow-hidden rounded-full border-2 font-semibold text-white transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4",
+            isBuilders
+              ? "h-[3.05rem] min-w-[10.25rem] border-[#ff7417] bg-[#ff7417] px-6 text-[0.92rem] font-medium shadow-[0_10px_24px_rgba(255,116,23,0.18)] hover:border-[#171b19] hover:bg-[#171b19] focus-visible:outline-[#ff7417]"
+              : "h-[3.65rem] min-w-[11.5rem] border-[#1f2422] bg-[#2f3432] px-9 text-sm shadow-[0_16px_36px_rgba(5,5,5,0.12)] hover:border-[#ff7417] hover:bg-[#ff7417] hover:shadow-[0_16px_36px_rgba(255,116,23,0.22)] focus-visible:outline-[#1f2422]",
+          ]}
         >
           <canvas
             class="hero-start-cta-ripple absolute inset-0 h-full w-full"
             data-ascii-ripple="compact"
             aria-hidden="true"
           ></canvas>
-          <span class="relative z-10" data-audience-copy="primaryCta">Try for Free</span>
+          <span class="relative z-10" data-audience-copy="primaryCta">{isBuilders ? "Build my profile" : "Try for Free"}</span>
         </a>
-        <a
-          href={bookCallHref}
-          data-audience-href
-          data-founders-href={bookCallHref}
-          data-builders-href="#stories"
-          class="hero-book-call-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-9 text-sm font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.06)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-white hover:text-[#bf4f08] hover:shadow-[0_16px_36px_rgba(255,116,23,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
-        >
-          <span data-audience-copy="secondaryCta">Book a Call</span>
-          <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M5 12h14"></path>
-            <path d="m12 5 7 7-7 7"></path>
-          </svg>
-        </a>
+        {!isBuilders && (
+          <a
+            href={bookCallHref}
+            data-audience-href
+            data-founders-href={bookCallHref}
+            data-builders-href="#stories"
+            class="hero-book-call-cta group relative inline-flex h-[3.35rem] min-w-[10.75rem] items-center justify-center gap-2 rounded-full border-2 border-black/15 bg-[#fffaf7]/90 px-9 text-sm font-extrabold text-black shadow-[0_12px_28px_rgba(5,5,5,0.06)] transition-[background-color,color,border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-white hover:text-[#bf4f08] hover:shadow-[0_16px_36px_rgba(255,116,23,0.14)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#1f2422]"
+          >
+            <span data-audience-copy="secondaryCta">Book a Call</span>
+            <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </a>
+        )}
       </div>
-      <p class="relative z-10 mt-4 text-sm font-semibold text-black/42" data-audience-copy="heroTrustLine">
-        We find the builders. You choose who to meet.
-      </p>
-
+      {isBuilders ? (
+        <BuilderHeroFlow />
+      ) : (
       <div data-hero-card class="relative z-10 mt-16 w-full max-w-[1210px]">
         <div class="hero-showcase-frame relative flex min-h-[auto] items-center justify-center overflow-hidden rounded-[34px] border-[3px] border-[#168df7] bg-[#cfe6e9] px-7 py-8 shadow-[0_18px_55px_rgba(12,62,96,0.12)] sm:min-h-[420px] sm:px-10 sm:py-10 lg:min-h-[500px] lg:px-12 lg:py-12">
           <img
@@ -508,13 +547,11 @@ const builderTestimonials = [
               <span data-audience-copy="heroCardLabel">Builder search</span>
             </div>
 
-            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label={isBuilders ? "Proof sources connected" : "Find me a cracked App dev with expertise in stripe integration"}>
-              {!isBuilders && (
-                <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="11" cy="11" r="7"></circle>
-                  <path d="m21 21-4.3-4.3"></path>
-                </svg>
-              )}
+            <div class="hero-search-input relative flex items-center gap-2 border border-black bg-white px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3" aria-label="Find me a cracked App dev with expertise in stripe integration">
+              <svg class="h-4 w-4 shrink-0 text-black sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m21 21-4.3-4.3"></path>
+              </svg>
               <p class="min-w-0 flex-1 overflow-hidden py-0.5 text-[0.68rem] font-normal leading-normal tracking-[-0.02em] text-black min-[380px]:text-[0.7rem] min-[440px]:text-[0.82rem] sm:text-[clamp(0.95rem,1.9vw,1.5rem)] sm:leading-[1.35]">
                 <span class="hero-typewriter-text" data-audience-copy="heroSearch">Find me a cracked App dev with expertise in stripe integration</span>
               </p>
@@ -535,7 +572,7 @@ const builderTestimonials = [
               </div>
             </div>
 
-            <div class="mt-3 grid gap-2.5 md:grid-cols-2" data-audience-panel="founders">
+            <div class="mt-3 grid gap-2.5 md:grid-cols-2">
               {heroSearchCards.map((card, index) => (
                 <article class={`hero-result-card border border-black/15 bg-[#fffaf7] p-2.5 sm:p-3 ${index === 1 ? "hero-result-card-two" : ""}`}>
                   <div class="flex items-start justify-between gap-2">
@@ -621,102 +658,8 @@ const builderTestimonials = [
               ))}
             </div>
 
-            <article class="builder-proof-card mt-3 border border-[#ece7e1] bg-white p-3 shadow-[0_1px_3px_rgba(16,24,40,0.05),0_10px_30px_rgba(16,24,40,0.05)] sm:p-5" data-audience-panel="builders">
-              <div class="flex items-start justify-between gap-4">
-                <div class="flex min-w-0 gap-3">
-                  <div class="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#ff7417] text-sm font-black text-white" aria-hidden="true">
-                    {builderPreview.initials}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-1.5">
-                      <p class="text-lg font-semibold leading-tight text-black">{builderPreview.name}</p>
-                      <span class="rounded-full border border-[#ec9149]/25 bg-[#fff7ef] px-2 py-0.5 text-[0.62rem] font-semibold text-[#c56a12]">
-                        Strong Match
-                      </span>
-                    </div>
-                    <p class="mt-0.5 text-sm text-black/55">{builderPreview.role} engineer</p>
-                    <div class="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-black/45">
-                      <img src={companyLogoUrl(builderPreview.ex.domain)} alt="" class="h-4 w-4 rounded object-contain" loading="lazy" />
-                      <span>{builderPreview.ex.label} · Available now</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="shrink-0 text-right">
-                  <p class="text-[0.62rem] font-semibold uppercase tracking-[0.12em] text-black/35">Fit</p>
-                  <p class="text-2xl font-semibold text-black">{builderPreview.match}</p>
-                </div>
-              </div>
 
-              <div class="mt-4 rounded-xl border border-[#ec9149]/35 bg-[#fff7ef] px-4 py-3.5">
-                <p class="text-[0.66rem] font-semibold uppercase tracking-[0.08em] text-[#c56a12]">Why hire</p>
-                <p class="mt-1.5 text-sm font-medium leading-relaxed text-black/90">
-                  Strong mobile and applied-AI signal backed by shipped projects, repository history, and live product proof.
-                </p>
-              </div>
-
-              <div class="mt-3 grid grid-cols-3 gap-2">
-                {[
-                  [builderPreview.shipped, "Shipped projects"],
-                  [String(builderPreview.sources), "Proof sources"],
-                  [String(builderPreview.repos.length), "Highlighted repos"],
-                ].map(([value, label]) => (
-                  <div class="rounded-lg border border-[#ece7e1] bg-[#fdfaf7] px-3 py-2.5">
-                    <p class="text-lg font-semibold leading-none text-black">{value}</p>
-                    <p class="mt-1 text-[0.58rem] font-semibold uppercase tracking-[0.08em] text-black/40">{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div class="mt-3">
-                <div class="flex items-center justify-between">
-                  <p class="text-[0.64rem] font-semibold uppercase tracking-[0.1em] text-black/40">Code and shipping activity</p>
-                  <p class="text-[0.64rem] font-medium text-black/35">12 weeks</p>
-                </div>
-                <div class="mt-1.5 flex h-8 items-end gap-1" aria-hidden="true">
-                  {builderPreview.activity.map((level) => (
-                    <span class="flex-1 rounded-[2px] bg-[#ec9149]" style={`height: ${18 + level * 7}%; opacity: ${0.25 + level * 0.065}`}></span>
-                  ))}
-                </div>
-              </div>
-
-              <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                {builderPreview.repos.map((repo, index) => (
-                  <div class="rounded-lg border border-[#ece7e1] bg-white p-3">
-                    <div class="flex items-center justify-between gap-2">
-                      <p class="text-sm font-semibold text-black">{repo}</p>
-                      <span class="shrink-0 rounded border border-[#ec9149]/25 bg-[#fff7ef] px-1.5 py-0.5 text-[0.58rem] font-semibold text-[#c56a12]">Verified</span>
-                    </div>
-                    <p class="mt-1.5 text-xs leading-relaxed text-black/55">
-                      {index === 0 ? "Mobile product build with shipped user flows and live validation." : "Applied computer-vision project with a working product demo."}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div class="mt-3 flex flex-wrap items-center gap-1.5">
-                {["iOS", "Applied AI", "Mobile", "Product engineering"].map((skill) => (
-                  <span class="rounded-full border border-[#ece7e1] px-2.5 py-1 text-[0.68rem] text-black/55">{skill}</span>
-                ))}
-              </div>
-
-              <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#ece7e1] pt-3">
-                <div class="flex items-center gap-2">
-                  {builderPreview.sourceKeys.map((key) => (
-                    <span class="grid h-8 w-8 place-items-center rounded-lg border border-[#ece7e1] text-black/45" title={key}>
-                      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={sourceIconSvg(key)}></svg>
-                    </span>
-                  ))}
-                  <span class="text-xs font-medium text-black/55">Full profile</span>
-                  <span class="text-xs font-medium text-[#c56a12]">Trace</span>
-                </div>
-                <div class="flex gap-2">
-                  <span class="inline-flex h-9 items-center rounded-lg border border-[#ece7e1] px-3 text-xs font-semibold text-black">Pass</span>
-                  <span class="inline-flex h-9 items-center rounded-lg bg-[#ec9149] px-3 text-xs font-semibold text-white">Invite</span>
-                </div>
-              </div>
-            </article>
-
-            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2" data-audience-panel="founders">
+            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
               {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
                 <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-1 text-[0.7rem] font-semibold text-[#bf4f08] sm:px-2.5 sm:text-xs">
                   {signal}
@@ -737,6 +680,7 @@ const builderTestimonials = [
         <span class="corner-square hero-editor-control -bottom-2 -left-2"></span>
         <span class="corner-square hero-editor-control -bottom-2 -right-2"></span>
       </div>
+      )}
     </section>
 
     {isBuilders && <BuilderProductJourney ctaHref="/get-hired" />}
@@ -1458,8 +1402,65 @@ const builderTestimonials = [
     </section>
     */}
 
-    <!-- Dark cinematic close: testimonials → footer -->
-    <LandingDarkClose ctaHref={isBuilders ? "/get-hired" : ctaHref}>
+    <!-- Stories and close -->
+    {isBuilders ? (
+      <>
+        <section id="stories" class="ruler-section relative bg-[#fbf6f3] px-5 py-20 sm:px-8 sm:py-24 lg:px-10">
+          <div class="ruler-rails" aria-hidden="true"></div>
+          <div class="relative z-10 mx-auto w-full max-w-[72rem]">
+            <header class="mx-auto max-w-3xl text-center">
+              <p class="flex items-center justify-center gap-2.5 text-[0.95rem] font-normal text-[#7a8b90]">
+                <span class="grid h-[18px] w-[18px] place-items-center rounded-[4px] border border-[#c5d0d3]" aria-hidden="true">
+                  <span class="h-1.5 w-1.5 rounded-[2px] bg-[#9aabad]"></span>
+                </span>
+                Built here, discovered here
+              </p>
+              <h2 class="mx-auto mt-3 max-w-3xl text-[clamp(2rem,3.6vw,3.15rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-[#16343c]">
+                Builders are turning projects into opportunities.
+              </h2>
+            </header>
+
+            <div class="mt-12 grid gap-4 sm:gap-5 lg:grid-cols-3">
+              {builderTestimonials.map((t) => (
+                <figure class="relative flex min-h-[18rem] flex-col justify-between overflow-hidden rounded-[28px] border border-[#e4e4de] bg-white p-6 sm:p-7">
+                  <div class="flex items-start justify-between gap-4">
+                    <img src={t.logo} alt={t.logoAlt} loading="lazy" class={t.logoClass} />
+                    <span class="font-serif text-5xl leading-none text-[#ff7417]/35" aria-hidden="true">“</span>
+                  </div>
+                  <blockquote class="mt-5 text-[1.02rem] font-normal leading-relaxed text-[#5f7177]">
+                    {t.quote}
+                  </blockquote>
+                  <figcaption class="mt-8 flex items-center gap-3.5 border-t border-[#eceae4] pt-5">
+                    <img
+                      src={t.avatar}
+                      alt={t.name}
+                      loading="lazy"
+                      class="h-12 w-12 shrink-0 rounded-full border border-[#eceae4] bg-white object-cover"
+                    />
+                    <span class="min-w-0">
+                      <span class="block truncate text-sm font-medium text-[#16343c]">{t.name}</span>
+                      <span class="block text-xs font-normal leading-snug text-[#8a9aa0]">
+                        {t.role},{" "}
+                        <a
+                          href={t.companyHref}
+                          target="_blank"
+                          rel="noreferrer"
+                          class="underline decoration-[#8a9aa0] underline-offset-[3px] transition hover:text-[#ff7417] hover:decoration-[#ff7417]"
+                        >
+                          {t.company}
+                        </a>
+                      </span>
+                    </span>
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+        <BuilderLandingClose ctaHref="/get-hired" />
+      </>
+    ) : (
+    <LandingDarkClose ctaHref={ctaHref}>
       <section id="stories" class="relative px-5 pb-8 pt-40 sm:px-8 sm:pb-12 sm:pt-52 lg:px-10">
         <div class="relative z-10 mx-auto w-full max-w-7xl">
           <div class="mx-auto max-w-4xl text-center">
@@ -1499,39 +1500,10 @@ const builderTestimonials = [
               </figure>
             ))}
           </div>
-          <div data-fluid-panel class="mt-10 grid gap-4 sm:mt-16 sm:gap-6 lg:grid-cols-3" data-audience-panel="builders">
-            {builderTestimonials.map((t) => (
-              <figure class="relative flex min-h-[19rem] flex-col justify-between overflow-hidden border border-white/12 bg-white/[0.045] p-5 backdrop-blur-sm sm:min-h-[21rem] sm:p-8">
-                <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#ff7417]/70 to-transparent"></div>
-                <div class="flex items-start justify-between gap-5">
-                  <span class="inline-flex h-12 max-w-full items-center rounded-full border border-white/10 bg-white/[0.04] px-4 sm:min-w-[14rem]">
-                    <img src={t.logo} alt={t.logoAlt} loading="lazy" class={t.logoClass} />
-                  </span>
-                  <span class="text-5xl font-black leading-none text-[#ff7417]/22">“</span>
-                </div>
-
-                <blockquote class="mt-8 text-lg font-semibold leading-relaxed text-white/88 sm:mt-10 sm:text-xl">
-                  {t.quote}
-                </blockquote>
-
-                <figcaption class="mt-8 flex items-center gap-4 border-t border-white/10 pt-5">
-                  <img
-                    src={t.avatar}
-                    alt={t.name}
-                    loading="lazy"
-                    class="h-16 w-16 shrink-0 border border-[#ff7417]/45 bg-white object-cover p-1 shadow-[0_0_0_4px_rgba(255,116,23,0.08)]"
-                  />
-                  <span class="min-w-0">
-                    <span class="block truncate text-sm font-black text-white">{t.name}</span>
-                    <span class="block text-xs font-semibold leading-snug text-white/52">{t.role}</span>
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
         </div>
       </section>
     </LandingDarkClose>
+    )}
   </main>
 </Layout>
 
@@ -1540,17 +1512,17 @@ const builderTestimonials = [
 
   const audienceCopy: Record<Audience, Record<string, string>> = {
     founders: {
-      navCta: "Hire now",
+      navCta: "Hire builders",
       heroLead: "Hire",
       heroStrongOne: "builders",
       heroLineTwo: "who can",
       heroLineThree: "actually",
       heroStrongTwo: "ship",
       heroSubcopy:
-        "Tell us who you need and review proof-backed builders ranked by shipped work, events, and real context.",
+        "Tell us who you need and find backed builders from our hackathons, hackerhouses and other events.",
       primaryCta: "Try for Free",
       secondaryCta: "Book a Call",
-      heroTrustLine: "We find the builders. You choose who to meet.",
+      heroTrustLine: "",
       heroCardLabel: "Builder search",
       heroSearch: "Find me a cracked App dev with expertise in stripe integration",
       credibilityKicker: "Worked with folks from",
@@ -1594,7 +1566,7 @@ const builderTestimonials = [
       footerCta: "Hire with proof",
     },
     builders: {
-      navCta: "Join the builder pool",
+      navCta: "Build my profile",
       heroLead: "Get hired",
       heroStrongOne: "for what",
       heroLineTwo: "you",
@@ -1690,6 +1662,11 @@ const builderTestimonials = [
   function createStarAsciiRenderer(canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return () => {};
+
+    const accent =
+      document.documentElement.dataset.audience === "builders"
+        ? "255, 116, 23"
+        : "250, 125, 34";
 
     const image = new Image();
     image.src = "/star.svg";
@@ -1794,7 +1771,7 @@ const builderTestimonials = [
             Math.floor(alpha * (chars.length - 1)),
           );
 
-          ctx.fillStyle = `rgba(250, 125, 34, ${opacity})`;
+          ctx.fillStyle = `rgba(${accent}, ${opacity})`;
           ctx.fillText(chars[charIndex], col * charWidth, row * fontSize);
         }
       }
@@ -2121,6 +2098,46 @@ const builderTestimonials = [
   });
 </script>
 
+<script>
+  function initLandingMenu() {
+    const nav = document.querySelector<HTMLElement>("[data-nav]");
+    const button = nav?.querySelector<HTMLButtonElement>("[data-nav-menu]");
+    if (!nav || !button || nav.dataset.menuReady) return;
+    nav.dataset.menuReady = "true";
+
+    const setOpen = (open: boolean) => {
+      nav.classList.toggle("is-open", open);
+      document.documentElement.classList.toggle("nav-open", open);
+      button.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    };
+
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setOpen(!nav.classList.contains("is-open"));
+    });
+
+    nav.querySelector("[data-nav-sheet]")?.addEventListener("click", (event) => {
+      if ((event.target as HTMLElement).closest("a")) setOpen(false);
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!nav.contains(event.target as Node)) setOpen(false);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setOpen(false);
+    });
+
+    window.matchMedia("(min-width: 1024px)").addEventListener("change", (event) => {
+      if (event.matches) setOpen(false);
+    });
+  }
+
+  initLandingMenu();
+  document.addEventListener("astro:page-load", initLandingMenu);
+</script>
+
 <!-- Scroll storytelling: GSAP ScrollTrigger choreography -->
 <script>
   import gsap from "gsap";
@@ -2146,14 +2163,23 @@ const builderTestimonials = [
     if (reduce) return;
 
     // Hide synchronously so there's no flash before the timeline runs.
-    if (nav) gsap.set(nav, { opacity: 0, y: -16 });
+    const mobileNav = window.matchMedia("(max-width: 1023px)").matches;
+    if (nav) gsap.set(nav, mobileNav ? { opacity: 0 } : { opacity: 0, y: -16 });
     if (cta) gsap.set(cta, { opacity: 0, y: 22 });
     if (card) gsap.set(card, { opacity: 0, y: 40 });
     if (headline) gsap.set(headline, { opacity: 0 });
 
     ready.then(() => {
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-      if (nav) tl.to(nav, { opacity: 1, y: 0, duration: 0.7 }, 0);
+      if (nav) {
+        tl.to(
+          nav,
+          mobileNav
+            ? { opacity: 1, duration: 0.7 }
+            : { opacity: 1, y: 0, duration: 0.7, clearProps: "transform" },
+          0,
+        );
+      }
 
       if (headline) {
         try {
@@ -2388,14 +2414,81 @@ const builderTestimonials = [
   });
 </script>
 
+<style is:global>
+  html.nav-open,
+  html.nav-open body,
+  html.nav-open .landing-page {
+    overflow: hidden;
+  }
+
+  html.nav-open .landing-page > :not([data-nav]) {
+    visibility: hidden;
+    pointer-events: none;
+  }
+</style>
+
 <style>
+  .landing-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    isolation: isolate;
+  }
+
+  .landing-nav.is-open {
+    transform: none !important;
+  }
+
+  .landing-nav__logo {
+    position: relative;
+    z-index: 60;
+  }
+
+  .landing-nav__burger {
+    display: inline-flex !important;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex-shrink: 0;
+    color: #16343c;
+    z-index: 60;
+  }
+
+  .landing-nav.is-open .landing-nav__icon-menu { display: none; }
+  .landing-nav.is-open .landing-nav__icon-close { display: block; }
+
+  .landing-nav__sheet {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    z-index: 40;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1.75rem;
+    padding: 5.25rem 1.5rem 2.5rem;
+    border: 0;
+    background: #fbf6f3;
+    box-shadow: none;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .landing-nav.is-open .landing-nav__sheet {
+    display: flex;
+  }
+
   .audience-toggle {
     display: inline-flex;
     align-items: center;
     gap: 0;
     border: 1px solid rgb(5 5 5 / 0.12);
     background: rgb(255 250 247 / 0.82);
-    padding: 0.18rem;
+    padding: 0.15rem;
   }
 
   .audience-toggle a {
@@ -2403,13 +2496,21 @@ const builderTestimonials = [
     align-items: center;
     justify-content: center;
     min-height: 2rem;
-    padding: 0 0.75rem;
-    font-size: 0.78rem;
-    font-weight: 800;
-    color: rgb(5 5 5 / 0.42);
+    padding: 0 0.7rem;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0;
+    color: #000;
+    white-space: nowrap;
     transition:
       background-color 160ms ease,
       color 160ms ease;
+  }
+
+  .audience-toggle a:hover {
+    color: #ff7417;
   }
 
   .audience-toggle a[aria-current="page"] {
@@ -2417,16 +2518,65 @@ const builderTestimonials = [
     color: #fff;
   }
 
-  .audience-toggle--mobile a {
-    min-height: 1.85rem;
-    padding: 0 0.55rem;
-    font-size: 0.68rem;
+  .audience-toggle a[aria-current="page"]:hover {
+    color: #fff;
   }
 
-  @media (min-width: 768px) {
-    .audience-toggle--mobile {
-      display: none;
+  .landing-nav__links {
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+  }
+
+  .builder-nav {
+    min-height: var(--builder-nav-h, 5rem);
+  }
+
+  @media (min-width: 1024px) {
+    .landing-nav {
+      display: flex;
+      justify-content: space-between;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
     }
+
+    .landing-nav.builder-nav {
+      padding-top: 1.5rem;
+      padding-bottom: 1.5rem;
+    }
+
+    .landing-nav__burger {
+      display: none !important;
+    }
+
+    .landing-nav__sheet {
+      display: contents;
+      position: static;
+      inset: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      overflow: visible;
+    }
+
+    .landing-nav__toggle {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .landing-nav__links {
+      margin-left: auto;
+      width: auto;
+      flex-direction: row;
+      gap: 2rem;
+    }
+  }
+
+  .landing-page[data-audience="builders"] {
+    --builder-nav-h: 5rem;
   }
 
   [data-audience-panel="builders"] {
@@ -2504,6 +2654,31 @@ const builderTestimonials = [
     position: relative;
   }
 
+  .builder-hero {
+    height: calc(100svh - var(--builder-nav-h, 5rem));
+    min-height: calc(100svh - var(--builder-nav-h, 5rem));
+  }
+
+  .builder-hero .ascii-star {
+    z-index: 1;
+  }
+
+  .builder-hero [data-hero-headline],
+  .builder-hero .builder-hero-pill,
+  .builder-hero > p {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+  }
+
+  .builder-hero-title {
+    text-shadow: none;
+  }
+
+  .builder-hero-pill {
+    border-radius: 999px;
+  }
+
   [data-audience="builders"] .hero-search-input {
     animation: none;
     border-color: rgb(5 5 5 / 0.16);
@@ -2523,9 +2698,44 @@ const builderTestimonials = [
     display: none;
   }
 
+  [data-audience="builders"] .hero-showcase-frame,
+  :root[data-audience="builders"] .hero-showcase-frame {
+    border-radius: 0;
+    border-color: #ff7417;
+    background: #efe6df;
+    box-shadow: 0 18px 55px rgba(91, 42, 12, 0.1);
+  }
+
+  [data-audience="builders"] .hero-showcase-frame .selection-dot,
+  [data-audience="builders"] .hero-editor-control.selection-dot,
+  :root[data-audience="builders"] .hero-showcase-frame .selection-dot {
+    border-color: #ff7417;
+    background: #fbf6f3;
+  }
+
+  [data-audience="builders"] .hero-editor-control.corner-square,
+  :root[data-audience="builders"] .hero-editor-control.corner-square {
+    border-color: #ff7417;
+    background: #fbf6f3;
+  }
+
+  [data-audience="builders"] .hero-builder-card,
+  :root[data-audience="builders"] .hero-builder-card {
+    border-width: 1px;
+    border-color: rgba(5, 5, 5, 0.18);
+    box-shadow: none;
+  }
+
   @media (max-width: 639px) {
     .hero-section {
       padding: 4rem 1.25rem 5rem !important;
+    }
+
+    .hero-section.builder-hero {
+      height: auto !important;
+      min-height: 0 !important;
+      padding: 2.5rem 1.25rem 0.75rem !important;
+      overflow: visible !important;
     }
 
     .hero-star-left {
@@ -2543,11 +2753,11 @@ const builderTestimonials = [
     }
 
     [data-audience="builders"] [data-hero-headline] h1 {
-      font-size: clamp(2.75rem, 13.5vw, 4rem) !important;
-      line-height: 0.96 !important;
+      font-size: clamp(2.15rem, 10.8vw, 2.85rem) !important;
+      line-height: 1.04 !important;
     }
 
-    [data-hero-headline] {
+    [data-audience="builders"] [data-hero-headline] {
       max-width: 22rem !important;
       font-size: clamp(2.1rem, 10.8vw, 3.4rem) !important;
       line-height: 1.08 !important;
@@ -2574,6 +2784,10 @@ const builderTestimonials = [
       min-height: 0 !important;
       border-radius: 20px !important;
       padding: 2rem 1.65rem !important;
+    }
+
+    [data-audience="builders"] [data-hero-card] > div {
+      border-radius: 0 !important;
     }
 
     .hero-builder-card {

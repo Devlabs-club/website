@@ -1,0 +1,347 @@
+---
+const sources = [
+  { id: "github", label: "GitHub", position: "left-[1.28%] top-[0.98%]", delay: "0ms" },
+  { id: "linkedin", label: "LinkedIn", position: "left-[22.92%] top-[12.5%]", delay: "130ms" },
+  { id: "hackathons", label: "Hackathons", position: "left-[40.61%] top-[17.77%]", delay: "260ms" },
+  { id: "chatgpt", label: "ChatGPT", position: "left-[78.91%] top-[21.25%]", delay: "390ms" },
+  { id: "cursor", label: "Cursor", position: "left-[98.3%] top-[6.85%]", delay: "520ms" },
+];
+---
+
+<div class="builder-orbit relative z-0 mt-8 flex min-h-0 w-full flex-1 items-center justify-center px-4" data-builder-flow>
+  <div class="builder-orbit__stage relative mx-auto w-full overflow-visible" role="img" aria-label="GitHub, LinkedIn, hackathon, ChatGPT, and Cursor proof become one founder-ready DevLabs profile">
+    <svg class="builder-orbit__paths builder-orbit__paths--desktop absolute inset-0 h-full w-full" viewBox="0 0 1176 920" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="orbitStroke" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff7417" stop-opacity="0.46"></stop>
+          <stop offset="0.68" stop-color="#ff7417" stop-opacity="0.92"></stop>
+          <stop offset="1" stop-color="#ff7417"></stop>
+        </linearGradient>
+      </defs>
+      <!-- GitHub: deeper bowl into the left of the hub, matching the drawn arc. -->
+      <path class="builder-orbit__path" data-orbit-path="github" d="M15.0321 9 C15.0321 280 100 500 540 508"></path>
+      <path class="builder-orbit__path" data-orbit-path="linkedin" d="M269.532 115 C269.532 381.05 376.699 514.08 591.032 514.08"></path>
+      <path class="builder-orbit__path builder-orbit__path--dash" data-orbit-path="hackathons" d="M477.532 163.5 C477.532 397.22 515.365 514.08 591.032 514.08"></path>
+      <path class="builder-orbit__path builder-orbit__path--dash" data-orbit-path="chatgpt" d="M928.032 195.5 C928.032 407.89 815.699 514.08 591.032 514.08"></path>
+      <path class="builder-orbit__path" data-orbit-path="cursor" d="M1156.03 63 C1156.03 363.72 967.697 514.08 591.032 514.08"></path>
+      <path class="builder-orbit__path builder-orbit__path--stem" d="M591.032 514.08 V920"></path>
+    </svg>
+
+    <svg class="builder-orbit__paths builder-orbit__paths--mobile absolute inset-0 h-full w-full" viewBox="0 0 390 460" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="orbitStrokeMobile" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ff7417" stop-opacity="0.42"></stop>
+          <stop offset="0.7" stop-color="#ff7417" stop-opacity="0.95"></stop>
+          <stop offset="1" stop-color="#ff7417"></stop>
+        </linearGradient>
+      </defs>
+      <!-- GitHub: vertical drop, then a wide sweep into the trunk -->
+      <path class="builder-orbit__path" data-orbit-path="github" d="M31 32 C31 205 195 155 195 260"></path>
+      <!-- LinkedIn -->
+      <path class="builder-orbit__path builder-orbit__path--dash" d="M133 118 C133 195 195 170 195 260"></path>
+      <!-- Hackathons (takes ChatGPT's inner-right slot) -->
+      <path class="builder-orbit__path builder-orbit__path--dash" data-orbit-path="hackathons" d="M257 118 C257 195 195 170 195 260"></path>
+      <!-- Cursor: vertical drop, then a wide sweep into the trunk -->
+      <path class="builder-orbit__path" data-orbit-path="cursor" d="M359 32 C359 205 195 155 195 260"></path>
+      <path class="builder-orbit__path builder-orbit__path--stem" d="M195 260 V390"></path>
+    </svg>
+
+    {sources.map((source) => (
+      <div class:list={["builder-orbit__source absolute z-20 -translate-x-1/2", source.position]} data-source={source.id} style={`--float-delay:${source.delay}`}>
+        <span class="builder-orbit__source-ring grid h-16 w-16 place-items-center rounded-full border-[3px] border-white bg-white text-[#1c211f] shadow-[0_12px_36px_rgba(255,116,23,0.16)]">
+          {source.id === "github" && (
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.26c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.3 9.3 0 0 1 12 6.84c.85 0 1.71.12 2.51.35 1.9-1.32 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.95.68 1.92 0 1.38-.01 2.49-.01 2.83 0 .26.18.58.69.48A10.03 10.03 0 0 0 22 12.26C22 6.58 17.52 2 12 2Z"/></svg>
+          )}
+          {source.id === "linkedin" && (
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.94 8.5H3.75V20h3.19V8.5ZM5.34 3.5a1.85 1.85 0 1 0 0 3.7 1.85 1.85 0 0 0 0-3.7ZM20.25 20h-3.18v-5.6c0-1.33-.02-3.05-1.86-3.05-1.86 0-2.15 1.45-2.15 2.95V20H9.88V8.5h3.05v1.57h.04c.43-.8 1.47-1.65 3.02-1.65 3.23 0 3.83 2.13 3.83 4.9V20Z"/></svg>
+          )}
+          {source.id === "hackathons" && (
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5A2.5 2.5 0 0 1 4.5 1H7M17 6h2.5A2.5 2.5 0 0 0 19.5 1H17"/></svg>
+          )}
+          {source.id === "cursor" && (
+            <img class="h-9 w-9 object-contain" src="/brand/cursor-ai.svg" alt="" aria-hidden="true" />
+          )}
+          {source.id === "chatgpt" && (
+            <img class="h-9 w-9 object-contain" src="/brand/chatgpt.svg" alt="" aria-hidden="true" />
+          )}
+        </span>
+        <span class="relative z-10 mt-2 block whitespace-nowrap bg-[#fbf6f3] px-2.5 py-1 text-center text-[0.62rem] font-medium uppercase tracking-[0.08em] text-[#61757b]">{source.label}</span>
+      </div>
+    ))}
+
+    <span class="builder-orbit__bead" data-orbit-bead data-path="github" data-dur="5200" data-delay="0"></span>
+    <span class="builder-orbit__bead" data-orbit-bead data-path="cursor" data-dur="4700" data-delay="1200"></span>
+    <span class="builder-orbit__bead builder-orbit__bead--small" data-orbit-bead data-path="hackathons" data-dur="4200" data-delay="2000"></span>
+
+    <div class="builder-orbit__hub absolute left-[50.26%] top-[55.88%] z-20 grid h-20 w-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[4px] border-[#ff7417]/25 bg-white shadow-[0_14px_40px_rgba(255,116,23,0.2)]">
+      <img src="/logo.png" alt="DevLabs" class="builder-orbit__logo h-11 w-11 object-contain" />
+    </div>
+
+    <div class="builder-orbit__stem absolute left-[50.26%] top-[61%] z-10 h-[12%] w-0.5 -translate-x-1/2 bg-[#ff7417]" aria-hidden="true"></div>
+
+    <div class="builder-orbit__result absolute left-[50.26%] top-[78%] z-20 -translate-x-1/2 rounded-full border border-[#ff7417]/45 bg-white px-7 py-3 text-center shadow-[0_16px_38px_rgba(255,116,23,0.1)]">
+      <p class="whitespace-nowrap text-[0.68rem] font-medium uppercase tracking-[0.1em] text-[#ff7417]">Proof-backed profile</p>
+    </div>
+  </div>
+</div>
+
+<style>
+  .builder-orbit__stage {
+    width: min(100%, 57.5rem);
+    max-height: 100%;
+    aspect-ratio: 1176 / 700;
+  }
+
+  .builder-orbit__path {
+    fill: none;
+    stroke: url(#orbitStroke);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+    stroke-linecap: round;
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 1200;
+    animation: orbit-draw 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  .builder-orbit__path--dash {
+    stroke-dasharray: 8 8;
+    stroke-dashoffset: 0;
+    opacity: 0;
+    animation: orbit-fade 1s ease 0.35s forwards;
+  }
+
+  .builder-orbit__source {
+    animation: orbit-source-in 0.7s ease both;
+    animation-delay: var(--float-delay);
+  }
+
+  .builder-orbit__source-ring {
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    border-radius: 999px;
+    outline: 1px solid rgba(255, 116, 23, 0.28);
+    outline-offset: 5px;
+  }
+
+  .builder-orbit__hub {
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    border-radius: 999px;
+    animation: orbit-hub 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.8s both;
+  }
+
+  .builder-orbit__paths--mobile { display: none; }
+  .builder-orbit__result { animation: orbit-result 0.75s ease 1.15s both; }
+
+  .builder-orbit__bead {
+    position: absolute;
+    z-index: 15;
+    left: 0;
+    top: 0;
+    width: 22px;
+    height: 22px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: #ff7417;
+    border: 4px solid #fff;
+    box-shadow: 0 0 0 1px rgba(255, 116, 23, 0.3);
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    will-change: left, top;
+  }
+
+  .builder-orbit__bead--small {
+    width: 18px;
+    height: 18px;
+    border-width: 3.5px;
+  }
+
+  @keyframes orbit-draw { to { stroke-dashoffset: 0; } }
+  @keyframes orbit-fade { to { opacity: 0.75; } }
+  @keyframes orbit-source-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(0.92); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  @keyframes orbit-hub { from { opacity: 0; transform: translate(-50%, -50%) scale(0.7); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  @keyframes orbit-result { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+  @media (max-width: 639px) {
+    .builder-orbit {
+      z-index: 10;
+      margin-top: -3.05rem;
+      flex: none;
+      height: 26.5rem;
+      padding-inline: 0;
+    }
+
+    .builder-orbit__stage {
+      width: 100%;
+      height: 100%;
+      max-height: none;
+      aspect-ratio: 390 / 460;
+      overflow: visible;
+    }
+
+    .builder-orbit__paths--desktop { display: none !important; }
+    .builder-orbit__paths--mobile { display: block !important; }
+
+    .builder-orbit__paths--mobile .builder-orbit__path {
+      stroke: #ff7417;
+      stroke: url(#orbitStrokeMobile);
+      stroke-width: 2.4;
+      stroke-dasharray: 900;
+    }
+
+    .builder-orbit__paths--mobile .builder-orbit__path--dash {
+      stroke-dasharray: 7 7;
+    }
+
+    .builder-orbit__source-ring {
+      height: 2.7rem;
+      width: 2.7rem;
+      border-width: 2px;
+      outline-width: 1px;
+      outline-offset: 3px;
+    }
+
+    .builder-orbit__source-ring svg,
+    .builder-orbit__source-ring img {
+      height: 1.35rem;
+      width: 1.35rem;
+    }
+
+    .builder-orbit__source > span:last-child {
+      margin-top: 0.3rem;
+      font-size: 0.52rem;
+      letter-spacing: 0.06em;
+    }
+
+    .builder-orbit__source[data-source="github"],
+    .builder-orbit__source[data-source="cursor"] {
+      top: 1.525rem !important;
+    }
+
+    .builder-orbit__source[data-source="github"] { left: 8% !important; }
+    .builder-orbit__source[data-source="cursor"] { left: 92% !important; }
+    .builder-orbit__source[data-source="linkedin"] { left: 34% !important; top: 28% !important; }
+    .builder-orbit__source[data-source="hackathons"] { left: 66% !important; top: 28% !important; }
+    .builder-orbit__source[data-source="chatgpt"] { display: none !important; }
+
+    .builder-orbit__hub {
+      left: 50% !important;
+      top: 58% !important;
+      height: 3.4rem;
+      width: 3.4rem;
+      border-width: 3px;
+    }
+
+    .builder-orbit__logo {
+      height: 1.8rem;
+      width: 1.8rem;
+    }
+
+    .builder-orbit__stem {
+      left: 50% !important;
+      top: 64% !important;
+      height: 14%;
+    }
+
+    .builder-orbit__result {
+      left: 50% !important;
+      top: 86% !important;
+      padding: 0.45rem 0.9rem;
+    }
+
+    .builder-orbit__result p {
+      font-size: 0.58rem;
+    }
+
+    .builder-orbit__bead {
+      width: 18px;
+      height: 18px;
+      border-width: 3.5px;
+    }
+
+    .builder-orbit__bead--small {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .builder-orbit__path,
+    .builder-orbit__source,
+    .builder-orbit__hub,
+    .builder-orbit__result { animation: none !important; opacity: 1; stroke-dashoffset: 0; }
+    .builder-orbit__bead { opacity: 1; }
+  }
+</style>
+
+<script>
+  function initBuilderOrbit(root: HTMLElement) {
+    const beads = [...root.querySelectorAll<HTMLElement>("[data-orbit-bead]")];
+    const mobileMq = window.matchMedia("(max-width: 639px)");
+    const reducedMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let raf = 0;
+    const startedAt = performance.now();
+
+    const visibleSvg = () =>
+      root.querySelector<SVGSVGElement>(
+        mobileMq.matches ? ".builder-orbit__paths--mobile" : ".builder-orbit__paths--desktop",
+      );
+
+    const place = (bead: HTMLElement, t: number) => {
+      const name = bead.dataset.path;
+      const svg = visibleSvg();
+      const path = svg?.querySelector<SVGPathElement>(`[data-orbit-path="${name}"]`);
+      if (!svg || !path) return;
+
+      const vb = svg.viewBox.baseVal;
+      const length = path.getTotalLength();
+      const point = path.getPointAtLength(length * t);
+      bead.style.left = `${(point.x / vb.width) * 100}%`;
+      bead.style.top = `${(point.y / vb.height) * 100}%`;
+    };
+
+    const tick = (now: number) => {
+      beads.forEach((bead) => {
+        const duration = Number(bead.dataset.dur) || 5000;
+        const delay = Number(bead.dataset.delay) || 0;
+        const elapsed = now - startedAt - delay;
+        if (elapsed < 0) {
+          bead.style.opacity = "0";
+          place(bead, 0);
+          return;
+        }
+        place(bead, (elapsed % duration) / duration);
+        bead.style.opacity = "1";
+      });
+      raf = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      cancelAnimationFrame(raf);
+      if (reducedMq.matches) {
+        beads.forEach((bead) => {
+          place(bead, 0.38);
+          bead.style.opacity = "1";
+        });
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    mobileMq.addEventListener("change", start);
+    reducedMq.addEventListener("change", start);
+    start();
+  }
+
+  function bootBuilderOrbits() {
+    document.querySelectorAll<HTMLElement>("[data-builder-flow]").forEach((root) => {
+      if (root.dataset.orbitReady) return;
+      root.dataset.orbitReady = "true";
+      initBuilderOrbit(root);
+    });
+  }
+
+  bootBuilderOrbits();
+  document.addEventListener("astro:page-load", bootBuilderOrbits);
+</script>

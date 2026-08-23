@@ -144,6 +144,7 @@ const builderEvents = [
 ---
 
 <section id="pricing" class="pricing-section relative isolate overflow-visible bg-[#fbf6f3] px-5 pb-20 pt-20 text-black sm:px-8 sm:pb-28 sm:pt-28 lg:px-10">
+  <div class="builder-page-rails ruler-rails" aria-hidden="true"></div>
   <div class="pricing-side pricing-side-left" aria-hidden="true">
     <span></span>
     <span></span>
@@ -366,52 +367,50 @@ const builderEvents = [
     </div>
   </div>
 
-  <div class="builder-events relative z-10 mx-auto max-w-[76rem]" data-audience-panel="builders" data-builder-events>
-    <div class="grid items-end gap-8 border-b border-black/10 pb-10 lg:grid-cols-[1.15fr_0.85fr] lg:pb-14">
+  <div class="builder-events relative z-10 mx-auto max-w-[72rem]" data-audience-panel="builders" data-builder-events>
+    <header class="mb-10 flex flex-col gap-6 sm:mb-12 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <p class="text-xs font-extrabold uppercase text-[#bf4f08]">Built in the room</p>
-        <h2 class="mt-5 max-w-[760px] text-[clamp(2.7rem,5.4vw,5rem)] font-normal leading-[0.98] text-black">
-          The events that built <span class="font-extrabold">our community.</span>
+        <p class="flex items-center gap-2.5 text-[0.95rem] font-normal text-[#7a8b90]">
+          <span class="grid h-[18px] w-[18px] place-items-center rounded-[4px] border border-[#c5d0d3]" aria-hidden="true">
+            <span class="h-1.5 w-1.5 rounded-[2px] bg-[#9aabad]"></span>
+          </span>
+          Built in the room
+        </p>
+        <h2 class="mt-3 max-w-[720px] text-[clamp(2rem,3.6vw,3.15rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-[#16343c]">
+          The events that built our community.
         </h2>
       </div>
-      <p class="max-w-xl text-[clamp(1rem,1.45vw,1.28rem)] font-medium leading-relaxed text-black/58 lg:justify-self-end lg:pb-2">
+      <p class="max-w-xl text-[1.02rem] font-normal leading-relaxed text-[#6d7e84] lg:pb-1">
         Hacker houses, hackathons, and founder programs where builders ship in public, meet collaborators, and get seen by startup teams.
       </p>
-    </div>
+    </header>
 
-    <div class="mt-10 grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-12 xl:gap-16">
+    <div class="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-12 xl:gap-16">
       <div class="builder-event-list" role="tablist" aria-label="DevLabs events">
         {builderEvents.map((event, index) => (
           <button
             type="button"
-            class:list={["builder-event-tab w-full border-b border-black/10 py-6 text-left", index === 0 && "is-active"]}
+            class:list={["builder-event-tab w-full border-b border-[#eceae4] py-5 text-left", index === 0 && "is-active"]}
             role="tab"
             aria-selected={index === 0 ? "true" : "false"}
             aria-controls={`builder-event-${event.id}`}
             id={`builder-event-tab-${event.id}`}
             data-builder-event-tab={event.id}
           >
-            <span class="flex items-center justify-between gap-5">
-              <span class="text-[clamp(1.65rem,2.7vw,2.5rem)] font-semibold leading-none text-black/38 transition-colors">{event.name}</span>
-              <span class="builder-event-dot grid h-7 w-7 shrink-0 place-items-center rounded-full border border-black/20 transition-colors" aria-hidden="true">
-                <span class="h-2.5 w-2.5 rounded-full bg-[#ff7417] opacity-0 transition-opacity"></span>
-              </span>
+            <span class="flex items-baseline gap-4">
+              <span class="builder-event-index text-[0.85rem] font-medium text-[#b3c0c4]">{String(index + 1).padStart(2, "0")}</span>
+              <span class="builder-event-name text-[clamp(1.35rem,2.2vw,1.85rem)] font-medium leading-none text-[#9aa8ac] transition-colors">{event.name}</span>
             </span>
-            <span class="builder-event-summary mt-5 hidden max-w-md pr-8">
-              <span class="block text-xs font-extrabold uppercase text-[#bf4f08]">{event.meta}</span>
-              <span class="mt-3 block text-sm font-medium leading-relaxed text-black/58">{event.description}</span>
+            <span class="builder-event-summary mt-3 hidden max-w-md pl-9">
+              <span class="block text-[0.78rem] font-medium text-[#bf4f08]">{event.meta}</span>
+              <span class="mt-2 block text-[0.95rem] font-normal leading-relaxed text-[#6d7e84]">{event.description}</span>
             </span>
           </button>
         ))}
       </div>
 
-      <div class="builder-event-frame relative w-full max-w-[37rem] justify-self-end p-1.5">
-        <span class="builder-event-corner left-0 top-0 border-l border-t" aria-hidden="true"></span>
-        <span class="builder-event-corner right-0 top-0 border-r border-t" aria-hidden="true"></span>
-        <span class="builder-event-corner bottom-0 left-0 border-b border-l" aria-hidden="true"></span>
-        <span class="builder-event-corner bottom-0 right-0 border-b border-r" aria-hidden="true"></span>
-
-        <div class="builder-event-stage relative min-h-[30rem] overflow-hidden bg-[#181411] shadow-[0_26px_80px_rgba(5,5,5,0.15)] sm:min-h-[34rem]">
+      <div class="builder-event-frame relative w-full max-w-[37rem] justify-self-end">
+        <div class="builder-event-stage relative min-h-[28rem] overflow-hidden rounded-[28px] border border-[#e4e4de] bg-white sm:min-h-[32rem]">
           {builderEvents.map((event, index) => (
             <article
               id={`builder-event-${event.id}`}
@@ -427,25 +426,21 @@ const builderEvents = [
                 class="absolute inset-0 h-full w-full object-cover"
                 loading={index === 0 ? "eager" : "lazy"}
               />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/68 via-black/8 to-transparent" aria-hidden="true"></div>
-              <div class="absolute inset-x-4 bottom-4 bg-[#fffaf7] p-5 text-black shadow-[0_18px_55px_rgba(5,5,5,0.2)] sm:inset-x-6 sm:bottom-6 sm:p-6">
-                <div class="flex flex-wrap items-start justify-between gap-5">
+              <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" aria-hidden="true"></div>
+              <div class="absolute inset-x-4 bottom-4 rounded-2xl border border-white/70 bg-white/95 p-5 text-[#16343c] shadow-[0_16px_40px_rgba(40,30,16,0.12)] backdrop-blur-sm sm:inset-x-5 sm:bottom-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <p class="text-xs font-extrabold uppercase text-[#bf4f08]">{event.meta}</p>
-                    <h3 class="mt-2 text-[clamp(1.85rem,3.2vw,2.8rem)] font-extrabold leading-none">{event.name}</h3>
+                    <p class="text-[0.78rem] font-medium text-[#bf4f08]">{event.meta}</p>
+                    <h3 class="mt-1.5 text-[clamp(1.35rem,2.2vw,1.85rem)] font-semibold leading-none">{event.name}</h3>
                   </div>
-                  <a href={event.link} class="builder-event-link group inline-flex h-11 items-center gap-3 border border-[#ff7417] px-4 text-sm font-extrabold text-[#bf4f08] transition hover:bg-[#ff7417] hover:text-white">
+                  <a href={event.link} class="builder-event-link group inline-flex h-10 items-center gap-2 rounded-full bg-[#ff7417] px-4 text-[0.88rem] font-medium text-white transition hover:bg-[#e9630d]">
                     Explore event
-                    <span class="transition-transform group-hover:translate-x-1">-&gt;</span>
+                    <span class="transition-transform group-hover:translate-x-0.5">→</span>
                   </a>
                 </div>
-                <div class="mt-6 grid grid-cols-2 border-t border-black/10 pt-5">
-                  <div class="border-r border-black/10 pr-5">
-                    <p class="text-[clamp(1.2rem,2vw,1.75rem)] font-extrabold leading-none">{event.statPrimary}</p>
-                  </div>
-                  <div class="pl-5">
-                    <p class="text-[clamp(1.2rem,2vw,1.75rem)] font-extrabold leading-none">{event.statSecondary}</p>
-                  </div>
+                <div class="mt-5 grid grid-cols-2 gap-4 border-t border-[#eceae4] pt-4">
+                  <p class="text-[1.05rem] font-medium leading-none">{event.statPrimary}</p>
+                  <p class="text-[1.05rem] font-medium leading-none">{event.statSecondary}</p>
                 </div>
               </div>
             </article>
@@ -634,6 +629,33 @@ const builderEvents = [
 
   :root[data-audience="builders"] .pricing-section [data-audience-panel="builders"] {
     display: block;
+  }
+
+  :root[data-audience="builders"] .pricing-section {
+    margin-top: 0;
+    padding-top: clamp(4rem, 6vw, 6rem);
+    padding-bottom: clamp(4rem, 6vw, 6rem);
+    background-color: #fbf6f3;
+    background-image:
+      linear-gradient(to right, rgba(5, 5, 5, 0.032) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(5, 5, 5, 0.032) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center top;
+  }
+
+  .builder-page-rails {
+    display: none;
+  }
+
+  :root[data-audience="builders"] .builder-page-rails {
+    display: block;
+  }
+
+  :root[data-audience="builders"] .pricing-section::before,
+  :root[data-audience="builders"] .pricing-section::after,
+  :root[data-audience="builders"] .pricing-glow,
+  :root[data-audience="builders"] .pricing-side {
+    display: none;
   }
 
   .pricing-section {
@@ -832,41 +854,19 @@ const builderEvents = [
   }
 
   .builder-event-tab.is-active {
-    padding: 1.75rem;
-    border: 1px solid rgba(5, 5, 5, 0.1);
-    background: rgba(255, 250, 247, 0.92);
-    box-shadow: 0 18px 55px rgba(5, 5, 5, 0.06);
+    padding-bottom: 1.5rem;
   }
 
-  .builder-event-tab.is-active + .builder-event-tab {
-    border-top-color: transparent;
+  .builder-event-tab.is-active .builder-event-index {
+    color: #ff7417;
   }
 
-  .builder-event-tab.is-active > span:first-child > span:first-child {
-    color: #050505;
-    font-weight: 800;
-  }
-
-  .builder-event-tab.is-active .builder-event-dot {
-    border-color: rgba(255, 116, 23, 0.5);
-    background: #fff1e8;
-  }
-
-  .builder-event-tab.is-active .builder-event-dot span {
-    opacity: 1;
+  .builder-event-tab.is-active .builder-event-name {
+    color: #16343c;
   }
 
   .builder-event-tab.is-active .builder-event-summary {
     display: block;
-  }
-
-  .builder-event-corner {
-    position: absolute;
-    z-index: 5;
-    width: 1.35rem;
-    height: 1.35rem;
-    border-color: #ff7417;
-    pointer-events: none;
   }
 
   .builder-event-panel {

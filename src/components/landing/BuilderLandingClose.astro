@@ -1,0 +1,53 @@
+---
+interface Props {
+  ctaHref: string;
+}
+
+const { ctaHref } = Astro.props;
+const year = new Date().getFullYear();
+---
+
+<section class="ruler-section relative isolate overflow-hidden bg-[#fbf6f3] px-5 pb-10 pt-8 sm:px-8 sm:pb-12 lg:px-10">
+  <div class="ruler-rails" aria-hidden="true"></div>
+  <div class="relative z-10 mx-auto max-w-[72rem]">
+    <div class="builder-close-cta relative isolate flex min-h-[22rem] items-center justify-center overflow-hidden rounded-[32px] px-6 py-14 text-center shadow-[0_28px_80px_rgba(40,12,2,0.18)] sm:min-h-[27rem] sm:px-10 sm:py-20">
+      <img src="/landing/footer-bg.png" alt="" loading="lazy" class="absolute inset-0 h-full w-full origin-[center_18%] scale-[1.7] object-cover object-[42%_16%]" />
+      <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_50%_38%,rgba(40,12,2,0.18),transparent_72%)]" aria-hidden="true"></div>
+      <div class="relative z-10 mx-auto flex max-w-2xl flex-col items-center">
+        <img src="/logo.png" alt="DevLabs" class="h-11 w-11 object-contain brightness-0 invert" />
+        <h2 class="mt-6 text-[clamp(2rem,4.2vw,3.15rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-white drop-shadow-[0_2px_18px_rgba(40,12,2,0.35)]">
+          Your work is already the resume.
+        </h2>
+        <p class="mx-auto mt-4 max-w-md text-[1.02rem] font-normal leading-relaxed text-white drop-shadow-[0_1px_10px_rgba(40,12,2,0.45)]">
+          Turn what you've shipped into proof founders can trust — and put it in front of people looking for builders like you.
+        </p>
+        <a
+          href={ctaHref}
+          class="group mt-8 inline-flex h-12 items-center gap-2.5 rounded-full bg-white px-6 text-[0.95rem] font-medium text-[#1a1a1a] shadow-[0_16px_44px_rgba(40,12,2,0.3)] transition hover:bg-[#1a1a1a] hover:text-white"
+        >
+          Build my profile
+          <svg class="h-4 w-4 transition group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <footer class="mt-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-3">
+        <img src="/logo.png" alt="DevLabs" class="h-7 w-7 object-contain" />
+        <span class="text-sm font-medium text-[#8a9aa0]">© {year} DevLabs</span>
+      </div>
+      <div class="flex flex-wrap gap-x-7 gap-y-2 text-sm font-medium text-[#6d7e84]">
+        <a href="/auth/signup" class="transition hover:text-[#ff7417]">Hire talent</a>
+        <a href="/get-hired" class="transition hover:text-[#ff7417]">Join the builder pool</a>
+        <a href="/events" class="transition hover:text-[#ff7417]">Events</a>
+        <a href="/sponsor" class="transition hover:text-[#ff7417]">Sponsor</a>
+        <a href="/momentum" class="transition hover:text-[#ff7417]">Momentum</a>
+        <a href="/about" class="transition hover:text-[#ff7417]">Our story</a>
+        <a href="/discord" class="transition hover:text-[#ff7417]">Discord</a>
+      </div>
+    </footer>
+  </div>
+</section>
