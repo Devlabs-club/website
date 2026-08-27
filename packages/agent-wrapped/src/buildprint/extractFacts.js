@@ -14,7 +14,9 @@ const DOCS_TERMS = /\b(readme|docs|comment|instructions|agents\.md|claude\.md)\b
 
 function countMatches(text, pattern) {
   pattern.lastIndex = 0;
-  return [...text.matchAll(pattern)].length;
+  let count = 0;
+  for (const _ of String(text || '').matchAll(pattern)) count += 1;
+  return count;
 }
 
 function sessionDurationMinutes(sample) {

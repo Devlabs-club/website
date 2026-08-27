@@ -39,6 +39,23 @@ function num(v) {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 
+/** Loop min/max — `Math.min(...arr)` throws RangeError past ~100k args. */
+export function minNumber(values) {
+  let min = Infinity;
+  for (const value of values) {
+    if (Number.isFinite(value) && value < min) min = value;
+  }
+  return min === Infinity ? null : min;
+}
+
+export function maxNumber(values) {
+  let max = -Infinity;
+  for (const value of values) {
+    if (Number.isFinite(value) && value > max) max = value;
+  }
+  return max === -Infinity ? null : max;
+}
+
 function rateForModel(model) {
   if (model) {
     for (const r of MODEL_RATES) {
@@ -291,9 +308,30 @@ function sqliteAll(db, sql, ...params) {
   if (typeof db.prepare !== 'function') return [];
   const stmt = db.prepare(sql);
   if (typeof stmt.all === 'function') return stmt.all(...params);
-  // node:sqlite StatementSync
-  if (typeof stmt.iterate === 'function') return [...stmt.iterate(...params)];
+  if (typeof stmt.iterate === 'function') {
+    const rows = [];
+    for (const row of stmt.iterate(...params)) rows.push(row);
+    return rows;
+  }
   return [];
+}
+
+function forEachCursorKv(db, sql, onRow) {
+  const PAGE = 1000;
+  let lastKey = '';
+  for (;;) {
+    let rows = [];
+    try {
+      rows = sqliteAll(db, sql, lastKey, PAGE);
+    } catch {
+      break;
+    }
+    if (!rows.length) break;
+    const nextKey = rows[rows.length - 1]?.key;
+    for (const row of rows) onRow(row);
+    if (rows.length < PAGE || !nextKey || nextKey === lastKey) break;
+    lastKey = nextKey;
+  }
 }
 
 async function collectCursorSqlite(bucket) {
@@ -304,77 +342,71 @@ async function collectCursorSqlite(bucket) {
 
   try {
     const composers = new Map();
-    let lastKey = '';
-    const PAGE = 500;
-    for (;;) {
-      const rows = sqliteAll(
+
+    try {
+      const headers = sqliteAll(
         db,
-        "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'composerData:%' AND key > ? ORDER BY key LIMIT ?",
-        lastKey,
-        PAGE,
+        'SELECT composerId, createdAt, lastUpdatedAt FROM composerHeaders',
       );
-      if (!rows.length) break;
-      for (const row of rows) {
-        lastKey = row.key;
-        let parsed;
-        try {
-          parsed = JSON.parse(row.value);
-        } catch {
-          continue;
-        }
-        if (!parsed || typeof parsed !== 'object') continue;
-        const composerId = parsed.composerId ?? String(row.key).slice('composerData:'.length);
-        const modelConfig =
-          parsed.modelConfig && typeof parsed.modelConfig === 'object' ? parsed.modelConfig : null;
-        const modelName =
-          (modelConfig && typeof modelConfig.modelName === 'string' ? modelConfig.modelName : null) ??
-          (typeof parsed.latestSelectedModel === 'string' ? parsed.latestSelectedModel : null);
-        composers.set(composerId, {
-          createdAt: parseTs(parsed.createdAt),
-          model: normalizeModelId(modelName),
+      for (const row of headers) {
+        if (!row.composerId) continue;
+        composers.set(row.composerId, {
+          createdAt: parseTs(row.createdAt),
+          lastUpdatedAt: parseTs(row.lastUpdatedAt),
+          model: null,
         });
       }
-      if (rows.length < PAGE) break;
+    } catch {
+      // Older Cursor DBs may not have composerHeaders.
     }
 
-    lastKey = '';
-    for (;;) {
-      const rows = sqliteAll(
-        db,
-        "SELECT key, value FROM cursorDiskKV WHERE key LIKE 'bubbleId:%' AND key > ? ORDER BY key LIMIT ?",
-        lastKey,
-        PAGE,
-      );
-      if (!rows.length) break;
-      for (const row of rows) {
-        lastKey = row.key;
+    forEachCursorKv(
+      db,
+      `SELECT key,
+              json_extract(value, '$.composerId') as composerId,
+              json_extract(value, '$.createdAt') as createdAt,
+              json_extract(value, '$.modelConfig.modelName') as modelName,
+              json_extract(value, '$.latestSelectedModel') as latestSelectedModel
+       FROM cursorDiskKV
+       WHERE key LIKE 'composerData:%' AND key > ?
+       ORDER BY key LIMIT ?`,
+      (row) => {
+        const composerId = row.composerId || String(row.key).slice('composerData:'.length);
+        const prev = composers.get(composerId) || {};
+        composers.set(composerId, {
+          createdAt: parseTs(row.createdAt) ?? prev.createdAt ?? null,
+          lastUpdatedAt: prev.lastUpdatedAt ?? null,
+          model: normalizeModelId(row.modelName) || normalizeModelId(row.latestSelectedModel) || prev.model || null,
+        });
+      },
+    );
+
+    forEachCursorKv(
+      db,
+      `SELECT key, json_extract(value, '$.createdAt') as createdAt
+       FROM cursorDiskKV
+       WHERE key LIKE 'bubbleId:%' AND key > ?
+       ORDER BY key LIMIT ?`,
+      (row) => {
         const parts = String(row.key).split(':');
-        if (parts.length < 3) continue;
+        if (parts.length < 3) return;
         const conversationId = parts[1];
-        let parsed;
-        try {
-          parsed = JSON.parse(row.value);
-        } catch {
-          continue;
-        }
-        const createdAt = parseTs(parsed?.createdAt);
         const session = ensureSession(bucket, conversationId);
+        const createdAt = parseTs(row.createdAt);
         if (createdAt != null) session.timestamps.push(createdAt);
         const composer = composers.get(conversationId);
         if (composer?.model) session.model = composer.model;
-        if (composer?.createdAt != null) session.timestamps.push(composer.createdAt);
-      }
-      if (rows.length < PAGE) break;
-    }
+      },
+    );
 
-    // Ensure composers with no bubbles still count via createdAt
     for (const [composerId, composer] of composers.entries()) {
       const session = ensureSession(bucket, composerId);
       if (composer.createdAt != null) session.timestamps.push(composer.createdAt);
+      if (composer.lastUpdatedAt != null) session.timestamps.push(composer.lastUpdatedAt);
       if (composer.model) session.model = composer.model;
     }
 
-    return true;
+    return bucket.sessions.size > 0;
   } catch {
     return false;
   } finally {
@@ -409,7 +441,7 @@ function rollupAgent(bucket, agentLabel, windowStartMs, options = {}) {
     if (!timestamps.length && !session.input && !session.output) continue;
 
     const durationMs = estimateActiveDurationMs(timestamps);
-    const minTs = timestamps.length ? Math.min(...timestamps) : null;
+    const minTs = minNumber(timestamps);
     const inWindow = minTs != null && minTs >= windowStartMs;
 
     allTimeMs += durationMs;
@@ -510,15 +542,35 @@ export async function collectUsageTelemetry() {
   const codex = emptyBucket();
   const cursor = emptyBucket();
 
-  await collectClaudeJsonl(claude);
-  await collectCodexJsonl(codex);
-  const cursorOk = await collectCursorSqlite(cursor);
+  try {
+    await collectClaudeJsonl(claude);
+  } catch {
+    // continue with other agents
+  }
+  try {
+    await collectCodexJsonl(codex);
+  } catch {
+    // continue with other agents
+  }
+  let cursorOk = false;
+  try {
+    cursorOk = await collectCursorSqlite(cursor);
+  } catch {
+    cursorOk = false;
+  }
 
-  const rolls = [
-    rollupAgent(claude, 'Claude Code', windowStartMs),
-    rollupAgent(codex, 'Codex', windowStartMs),
-    rollupAgent(cursor, 'Cursor', windowStartMs, { estimateTokensFromHours: true }),
-  ];
+  const rolls = [];
+  for (const item of [
+    [claude, 'Claude Code', {}],
+    [codex, 'Codex', {}],
+    [cursor, 'Cursor', { estimateTokensFromHours: true }],
+  ]) {
+    try {
+      rolls.push(rollupAgent(item[0], item[1], windowStartMs, item[2]));
+    } catch {
+      // Skip a single agent rather than failing the whole wrapped run.
+    }
+  }
 
   const anySessions = rolls.some((r) => r.allTimeSessions > 0);
   if (!anySessions) return null;

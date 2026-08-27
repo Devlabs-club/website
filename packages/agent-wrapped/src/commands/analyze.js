@@ -89,7 +89,16 @@ export async function analyzeCommand(argv) {
 
     const samples = await readSourceSamples(sources);
     console.log('Collecting usage telemetry (hours, tokens, models, rhythm)...');
-    const usage = await collectUsageTelemetry();
+    let usage = null;
+    try {
+      usage = await collectUsageTelemetry();
+    } catch (error) {
+      console.error('Usage telemetry hit a local analysis error; continuing with session summaries only.');
+      const message = error instanceof Error ? error.message : String(error);
+      if (/call stack/i.test(message)) {
+        console.error('This is a stack overflow from large local agent logs, not an account limit.');
+      }
+    }
     const report = generateReport({
       builderId: tokenPayload.builderId,
       builderName: tokenPayload.email?.split('@')[0],

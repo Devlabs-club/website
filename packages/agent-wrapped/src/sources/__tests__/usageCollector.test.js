@@ -4,6 +4,8 @@ import {
   estimateActiveDurationMs,
   formatPeakHour,
   formatTokenCount,
+  maxNumber,
+  minNumber,
   MAX_ACTIVE_GAP_MINUTES,
 } from '../usageCollector.js';
 
@@ -46,6 +48,14 @@ test('formatPeakHour formats local-style labels', () => {
   assert.equal(formatPeakHour(13), '1:00 pm');
   assert.equal(formatPeakHour(0), '12:00 am');
   assert.equal(formatPeakHour(12), '12:00 pm');
+});
+
+test('minNumber and maxNumber survive 200k timestamps', () => {
+  const base = Date.parse('2026-01-01T12:00:00Z');
+  const timestamps = Array.from({ length: 200_000 }, (_, i) => base + i);
+  assert.equal(minNumber(timestamps), base);
+  assert.equal(maxNumber(timestamps), base + 199_999);
+  assert.doesNotThrow(() => estimateActiveDurationMs(timestamps));
 });
 
 test('generateReport attaches usage aggregates', async () => {
@@ -110,6 +120,6 @@ test('generateReport attaches usage aggregates', async () => {
   assert.equal(report.usage.tokens.total, 2_000_000_000);
   assert.equal(report.usage.models[0].id, 'Opus');
   assert.equal(report.usage.rhythm.peakHour, 13);
-  assert.equal(report.localAnalysisVersion, '0.4.2');
+  assert.equal(report.localAnalysisVersion, '0.4.3');
   assert.match(report.sourceCoverage.confidenceNotes.join(' '), /Methodology/);
 });

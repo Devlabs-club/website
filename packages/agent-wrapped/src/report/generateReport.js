@@ -27,7 +27,9 @@ const FRAMEWORK_PATTERNS = {
 
 function countMatches(text, pattern) {
   pattern.lastIndex = 0;
-  return [...text.matchAll(pattern)].length;
+  let count = 0;
+  for (const _ of String(text || '').matchAll(pattern)) count += 1;
+  return count;
 }
 
 function clamp(value) {
@@ -36,8 +38,19 @@ function clamp(value) {
 
 const DEFAULT_SESSION_MINUTES = 42;
 
-function scoreFromTerms(text, terms) {
-  return terms.reduce((sum, term) => sum + countMatches(text, term), 0);
+function scoreFromTermsOnSamples(samples, terms) {
+  let sum = 0;
+  for (const sample of samples) {
+    const text = sample.text || '';
+    for (const term of terms) sum += countMatches(text, term);
+  }
+  return sum;
+}
+
+function countPatternOnSamples(samples, pattern) {
+  let hits = 0;
+  for (const sample of samples) hits += countMatches(sample.text || '', pattern);
+  return hits;
 }
 
 function makeReportId(builderId) {
@@ -64,15 +77,21 @@ function computeTimeInvested(samples) {
     .length * Math.max(12, Math.round(avgTimedMinutes * 0.35));
 
   const totalMinutes = timedTotalMinutes + estimatedUntimedMinutes + configMinutes;
+  let longest = 0;
+  for (const value of timedMinutes) if (value > longest) longest = value;
   const longestSessionMinutes = timedMinutes.length
-    ? Math.round(Math.max(...timedMinutes))
+    ? Math.round(longest)
     : Math.round(Math.max(DEFAULT_SESSION_MINUTES, avgTimedMinutes));
 
-  const allStarts = timedSessions.map((sample) => sample.timeRange.startMs);
-  const allEnds = timedSessions.map((sample) => sample.timeRange.endMs);
+  let minStart = Infinity;
+  let maxEnd = -Infinity;
+  for (const sample of timedSessions) {
+    if (sample.timeRange.startMs < minStart) minStart = sample.timeRange.startMs;
+    if (sample.timeRange.endMs > maxEnd) maxEnd = sample.timeRange.endMs;
+  }
   const daysCovered =
-    allStarts.length && allEnds.length
-      ? Math.max(1, Math.ceil((Math.max(...allEnds) - Math.min(...allStarts)) / 86_400_000))
+    Number.isFinite(minStart) && Number.isFinite(maxEnd)
+      ? Math.max(1, Math.ceil((maxEnd - minStart) / 86_400_000))
       : undefined;
 
   return {
@@ -126,7 +145,6 @@ function computeAgentSplit(samples, agents) {
 }
 
 export function generateReport({ builderId, builderName, samples, usage = null, publicRoot }) {
-  const allText = samples.map((sample) => sample.text).join('\n').toLowerCase();
   const agents = [...new Set(samples.map((sample) => sample.agent))];
   const sessionCount =
     usage?.sessions?.allTime ||
@@ -134,14 +152,14 @@ export function generateReport({ builderId, builderName, samples, usage = null, 
     samples.length;
 
   const languageHits = Object.entries(LANGUAGE_PATTERNS)
-    .map(([name, pattern]) => ({ name, hits: countMatches(allText, pattern) }))
+    .map(([name, pattern]) => ({ name, hits: countPatternOnSamples(samples, pattern) }))
     .filter((item) => item.hits > 0)
     .sort((a, b) => b.hits - a.hits)
     .slice(0, 6);
   const languageTotal = languageHits.reduce((sum, item) => sum + item.hits, 0) || 1;
 
   const frameworks = Object.entries(FRAMEWORK_PATTERNS)
-    .map(([name, pattern]) => ({ name, hits: countMatches(allText, pattern) }))
+    .map(([name, pattern]) => ({ name, hits: countPatternOnSamples(samples, pattern) }))
     .filter((item) => item.hits > 0)
     .sort((a, b) => b.hits - a.hits)
     .slice(0, 10)
@@ -166,12 +184,12 @@ export function generateReport({ builderId, builderName, samples, usage = null, 
     frameworks,
   });
 
-  const frontend = scoreFromTerms(allText, [/\b(ui|react|component|frontend|css|tailwind|page|route)\b/gi]);
-  const backend = scoreFromTerms(allText, [/\b(api|server|auth|backend|database|endpoint|worker)\b/gi]);
-  const database = scoreFromTerms(allText, [/\b(database|postgres|mongo|sql|schema|migration|prisma)\b/gi]);
-  const infra = scoreFromTerms(allText, [/\b(deploy|vercel|cloudflare|docker|env|ci|github action)\b/gi]);
-  const tests = scoreFromTerms(allText, [/\b(test|spec|vitest|jest|playwright|pytest|lint|typecheck)\b/gi]);
-  const docs = scoreFromTerms(allText, [/\b(readme|docs|comment|instructions|agents\.md|claude\.md)\b/gi]);
+  const frontend = scoreFromTermsOnSamples(samples, [/\b(ui|react|component|frontend|css|tailwind|page|route)\b/gi]);
+  const backend = scoreFromTermsOnSamples(samples, [/\b(api|server|auth|backend|database|endpoint|worker)\b/gi]);
+  const database = scoreFromTermsOnSamples(samples, [/\b(database|postgres|mongo|sql|schema|migration|prisma)\b/gi]);
+  const infra = scoreFromTermsOnSamples(samples, [/\b(deploy|vercel|cloudflare|docker|env|ci|github action)\b/gi]);
+  const tests = scoreFromTermsOnSamples(samples, [/\b(test|spec|vitest|jest|playwright|pytest|lint|typecheck)\b/gi]);
+  const docs = scoreFromTermsOnSamples(samples, [/\b(readme|docs|comment|instructions|agents\.md|claude\.md)\b/gi]);
 
   const buildSurface = {
     frontend: clamp(frontend * 4),

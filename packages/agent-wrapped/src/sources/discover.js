@@ -6,6 +6,17 @@ import { createHash } from 'node:crypto';
 const MAX_SAMPLE_BYTES = 160_000;
 const CHUNK_SCAN_BYTES = 256_000;
 const DEFAULT_SESSION_MINUTES = 42;
+const MAX_WALK_DEPTH = 14;
+const SKIP_DIRS = new Set([
+  'node_modules',
+  '.git',
+  'extensions',
+  'plugins',
+  'browser-logs',
+  'ai-tracking',
+  'debug-logs',
+  '.cache',
+]);
 
 async function exists(target) {
   try {
@@ -16,22 +27,33 @@ async function exists(target) {
   }
 }
 
-async function listFiles(dir) {
+function defaultAccept(_full, name) {
+  return /\.(json|jsonl|md|txt|toml)$/i.test(name);
+}
+
+async function listFiles(dir, options = {}) {
   const results = [];
-  async function walk(current) {
+  const accept = options.accept || defaultAccept;
+  const stack = [{ dir, depth: 0 }];
+  while (stack.length) {
+    const { dir: current, depth } = stack.pop();
+    if (depth > MAX_WALK_DEPTH) continue;
     let entries = [];
     try {
       entries = await fs.readdir(current, { withFileTypes: true });
     } catch {
-      return;
+      continue;
     }
     for (const entry of entries) {
       const full = path.join(current, entry.name);
-      if (entry.isDirectory()) await walk(full);
-      else if (/\.(json|jsonl|md|txt|toml)$/i.test(entry.name)) results.push(full);
+      if (entry.isDirectory()) {
+        if (SKIP_DIRS.has(entry.name)) continue;
+        stack.push({ dir: full, depth: depth + 1 });
+        continue;
+      }
+      if (accept(full, entry.name)) results.push(full);
     }
   }
-  await walk(dir);
   const withMtime = await Promise.all(
     results.map(async (file) => {
       try {
@@ -45,10 +67,10 @@ async function listFiles(dir) {
   return withMtime.sort((a, b) => b.mtimeMs - a.mtimeMs).map((item) => item.file);
 }
 
-async function addSource(sources, agent, kind, target) {
+async function addSource(sources, agent, kind, target, options = {}) {
   if (!(await exists(target))) return;
   const stat = await fs.stat(target);
-  const files = stat.isDirectory() ? await listFiles(target) : [target];
+  const files = stat.isDirectory() ? await listFiles(target, options) : [target];
   if (!files.length) return;
   sources.push({
     agent,
@@ -69,9 +91,18 @@ export async function discoverAgentSources({ imports = [] } = {}) {
   await addSource(sources, 'Codex', 'local config', path.join(home, '.codex', 'config.toml'));
   await addSource(sources, 'Codex', 'session/export summaries', path.join(home, '.codex', 'sessions'));
   await addSource(sources, 'Codex', 'agent instructions', path.join(home, '.codex', 'AGENTS.md'));
-  await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, '.cursor'));
   await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, '.cursor', 'chats'));
-  await addSource(sources, 'Cursor', 'session/export summaries', path.join(home, 'Library', 'Application Support', 'Cursor', 'User', 'History'));
+  await addSource(
+    sources,
+    'Cursor',
+    'session/export summaries',
+    path.join(home, '.cursor', 'projects'),
+    {
+      accept: (full, name) =>
+        /\.jsonl$/i.test(name) && full.includes(`${path.sep}agent-transcripts${path.sep}`),
+    }
+  );
+  await addSource(sources, 'Cursor', 'agent instructions', path.join(home, '.cursor', 'skills'));
 
   for (const manual of imports.filter(Boolean)) {
     await addSource(sources, 'Manual import', 'exported session summary', path.resolve(manual));
@@ -107,8 +138,13 @@ function collectTimestamps(text) {
 
 function rangeFromTimestamps(times) {
   if (!times.length) return null;
-  const startMs = Math.min(...times);
-  const endMs = Math.max(...times);
+  let startMs = Infinity;
+  let endMs = -Infinity;
+  for (const value of times) {
+    if (!Number.isFinite(value)) continue;
+    if (value < startMs) startMs = value;
+    if (value > endMs) endMs = value;
+  }
   if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return null;
   return { startMs, endMs, source: 'timestamps' };
 }
