@@ -1,0 +1,72 @@
+---
+const testimonials = [
+  {
+    company: "DeepMind",
+    logo: "/sponsors/deepmind.png",
+    quote: "The energy was electric and I’ve never seen a crowd like this before.",
+    author: "Paige Bailey",
+    role: "Lead DevRel, Google DeepMind",
+    avatar: "/team/paige.png",
+    featured: false,
+  },
+  {
+    company: "supermemory",
+    logo: "/sponsors/supermemory.png",
+    quote:
+      "I ended up hiring from the Devhouse. I’m super satisfied and this is the kind of talent you dont see in any hackathon.",
+    author: "Dhravya Shah",
+    role: "Founder, Supermemory",
+    avatar: "/team/dhravya.png",
+    featured: true,
+  },
+  {
+    company: "Browser Use",
+    logo: "/sponsors/browser-use.png",
+    quote: "This is one of the best hackathons we’ve sponsored.",
+    author: "Saurav Panda",
+    role: "Founding Engineer, Browser Use",
+    avatar: "/team/saurav.png",
+    featured: false,
+  },
+];
+---
+
+<section class="testimonials">
+  <div class="testimonials__glow" aria-hidden="true"></div>
+  <header class="testimonials__top">
+    <div class="testimonials__copy">
+      <div class="testimonials__pill deck-brand-lockup">
+        <img src="/logo.svg" alt="" />
+        <span>Devlabs</span>
+      </div>
+      <h1>Don’t take our word for it</h1>
+    </div>
+
+    <div class="testimonials__aside">
+      <p>Founders and sponsors see the builder signal before the first intro.</p>
+      <div class="testimonials__actions" aria-hidden="true">
+        <span>Partner proof</span>
+        <span>Community signal</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="testimonials__cards">
+    {testimonials.map((item) => (
+      <article class:list={["testimonial-card", item.featured && "testimonial-card--featured"]}>
+        <div class="testimonial-card__brand">
+          <img src={item.logo} alt={item.company} loading="lazy" />
+        </div>
+        <span class="testimonial-card__quote" aria-hidden="true">&ldquo;</span>
+        <p>{item.quote}</p>
+        <footer>
+          <img src={item.avatar} alt={item.author} loading="lazy" />
+          <div>
+            <strong>{item.author}</strong>
+            <span>{item.role}</span>
+          </div>
+        </footer>
+      </article>
+    ))}
+  </div>
+</section>

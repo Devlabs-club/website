@@ -1,0 +1,220 @@
+#pitchDeck .cover-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(ellipse 82% 62% at 50% 100%, rgba(255, 116, 23, 0.09), transparent 66%),
+    linear-gradient(180deg, #fffefd 0%, #fbfaf8 100%);
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .cover-slide * {
+  box-sizing: border-box;
+}
+
+#pitchDeck .cover-glow-tl,
+#pitchDeck .cover-glow-tr,
+#pitchDeck .cover-glow-r,
+#pitchDeck .cover-vignette,
+#pitchDeck .cover-grain,
+#pitchDeck .cover-watermark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#pitchDeck .cover-glow-tl {
+  background: radial-gradient(
+    ellipse 78% 88% at 2% -14%,
+    rgba(255, 218, 179, 0.82) 0%,
+    rgba(250, 134, 47, 0.18) 34%,
+    rgba(18, 10, 7, 0) 68%
+  );
+}
+
+#pitchDeck .cover-glow-tr {
+  background: radial-gradient(
+    ellipse 88% 102% at 104% -2%,
+    rgba(255, 184, 112, 0.5) 0%,
+    rgba(255, 116, 23, 0.3) 22%,
+    rgba(255, 116, 23, 0.1) 50%,
+    rgba(18, 10, 7, 0) 72%
+  );
+}
+
+#pitchDeck .cover-glow-r {
+  background: radial-gradient(
+    ellipse 84% 124% at 106% 50%,
+    rgba(255, 134, 47, 0.22) 0%,
+    rgba(255, 195, 132, 0.14) 42%,
+    rgba(18, 10, 7, 0) 70%
+  );
+}
+
+#pitchDeck .cover-vignette {
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.1) 56%, rgba(255, 255, 255, 0) 100%),
+    radial-gradient(ellipse 85% 88% at 28% 56%, rgba(18, 10, 7, 0) 26%, rgba(250, 134, 47, 0.05) 100%);
+}
+
+#pitchDeck .cover-watermark {
+  z-index: 1;
+  overflow: hidden;
+  -webkit-mask-image: radial-gradient(ellipse 45% 60% at 70% 51%, #000 0%, #000 32%, rgba(0, 0, 0, 0.34) 55%, transparent 78%);
+  mask-image: radial-gradient(ellipse 45% 60% at 70% 51%, #000 0%, #000 32%, rgba(0, 0, 0, 0.34) 55%, transparent 78%);
+}
+
+#pitchDeck .cover-watermark img {
+  position: absolute;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+#pitchDeck .cover-watermark-main {
+  left: 440px;
+  top: -205px;
+  width: 1360px;
+  height: 1360px;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  transform: rotate(0deg);
+  filter: sepia(1) saturate(3) hue-rotate(340deg);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, #000 38%, rgba(0, 0, 0, 0.5) 58%, transparent 76%);
+  mask-image: radial-gradient(ellipse at center, #000 0%, #000 38%, rgba(0, 0, 0, 0.5) 58%, transparent 76%);
+}
+
+#pitchDeck .cover-watermark-crop {
+  left: 925px;
+  top: -430px;
+  width: 1180px;
+  height: 1180px;
+  opacity: 0.06;
+  mix-blend-mode: multiply;
+  transform: rotate(0deg);
+  filter: sepia(1) saturate(3) hue-rotate(340deg) blur(1px);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0, 0, 0, 0.42) 40%, transparent 68%);
+  mask-image: radial-gradient(ellipse at center, #000 0%, rgba(0, 0, 0, 0.42) 40%, transparent 68%);
+}
+
+#pitchDeck .cover-grain {
+  z-index: 3;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+#pitchDeck .cover-header {
+  position: absolute;
+  top: 48px;
+  left: 64px;
+  right: 64px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#pitchDeck .cover-brand {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: #100b09;
+}
+
+#pitchDeck .cover-brand img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(250, 134, 47, 0.22));
+}
+
+#pitchDeck .cover-slide .cover-brand span {
+  font-size: 31px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: none;
+}
+
+#pitchDeck .cover-meta {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: rgba(16, 11, 9, 0.46);
+  text-transform: uppercase;
+}
+
+#pitchDeck .cover-meta i {
+  display: block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fa862f;
+  box-shadow: 0 0 10px rgba(250, 134, 47, 0.55);
+}
+
+#pitchDeck .cover-slide .cover-title {
+  position: absolute;
+  left: 64px;
+  bottom: 148px;
+  z-index: 10;
+  margin: 0;
+  font-size: 136px;
+  font-weight: 400;
+  line-height: 0.99;
+  letter-spacing: -0.055em;
+  color: #100b09;
+  text-transform: lowercase;
+}
+
+#pitchDeck .cover-slide .cover-title span {
+  display: block;
+}
+
+#pitchDeck .cover-slide .cover-title strong {
+  font-weight: 400;
+  color: rgba(16, 11, 9, 0.58);
+}
+
+#pitchDeck .cover-slide .cover-accent {
+  display: inline;
+  font-style: normal;
+  font-weight: 400;
+  color: #ff7417;
+  text-shadow: 0 8px 24px rgba(255, 116, 23, 0.12);
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+#pitchDeck .cover-slide .cover-footer {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  bottom: 56px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: rgba(16, 11, 9, 0.44);
+  text-transform: none;
+}
+
+#pitchDeck .cover-footer p {
+  margin: 0;
+}

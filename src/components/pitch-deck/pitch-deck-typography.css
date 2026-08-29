@@ -1,0 +1,249 @@
+@import url("https://api.fontshare.com/v2/css?f[]=open-sauce-sans@300,400,500,600,700,800&display=swap");
+
+#pitchDeck {
+  font-family:
+    "Open Sauce Sans",
+    "Open Sauce",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#pitchDeck * {
+  font-family: inherit;
+}
+
+#pitchDeck .deck-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: #100b09;
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+#pitchDeck .deck-brand-lockup img {
+  display: block;
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(250, 134, 47, 0.18));
+}
+
+#pitchDeck .deck-brand-lockup span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}
+
+/* Brand lockup — lowercase, bold */
+#pitchDeck .cover-brand span,
+#pitchDeck .solution-brand span,
+#pitchDeck .story-brand span,
+#pitchDeck .product-copy__brand {
+  font-weight: 700;
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+}
+
+/* Deck meta — uppercase, medium, tracked */
+#pitchDeck .cover-meta,
+#pitchDeck .solution-meta,
+#pitchDeck .story-meta {
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Section eyebrows & micro labels — uppercase, bold */
+#pitchDeck .solution-eyebrow,
+#pitchDeck .product-copy__eyebrow,
+#pitchDeck .story-supported,
+#pitchDeck .product-demo__label,
+#pitchDeck .solution-card__tag,
+#pitchDeck .solution-product__label,
+#pitchDeck .product-sources__badge {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Hero headlines — lowercase, heavy */
+#pitchDeck .cover-title {
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+#pitchDeck .cover-title strong {
+  font-weight: 400;
+}
+
+#pitchDeck .cover-accent {
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+#pitchDeck .problem-headline,
+#pitchDeck .solution-title,
+#pitchDeck .story-title,
+#pitchDeck .product-copy h1 {
+  text-transform: lowercase;
+}
+
+#pitchDeck .problem-headline {
+  font-weight: 800;
+}
+
+#pitchDeck .solution-title {
+  font-weight: 700;
+}
+
+#pitchDeck .story-title,
+#pitchDeck .product-copy h1 {
+  font-weight: 800;
+}
+
+/* Subtitles & supporting copy — lowercase, regular */
+#pitchDeck .problem-subtitle,
+#pitchDeck .solution-lead,
+#pitchDeck .product-copy__lead,
+#pitchDeck .builder-criteria__item-detail,
+#pitchDeck .solution-point p,
+#pitchDeck .product-copy__point p,
+#pitchDeck .problem-stat__label,
+#pitchDeck .story-stat__label,
+#pitchDeck .product-sources__copy p,
+#pitchDeck .product-bento__panel-copy p,
+#pitchDeck .product-community__card p,
+#pitchDeck .solution-card p,
+#pitchDeck .solution-product__role {
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+#pitchDeck .problem-subtitle em {
+  font-style: normal;
+  font-weight: 600;
+}
+
+#pitchDeck .solution-lead strong {
+  font-weight: 700;
+}
+
+/* Stat numbers — extra bold */
+#pitchDeck .problem-stat__value,
+#pitchDeck .story-stat__value {
+  font-weight: 800;
+}
+
+/* Feature & step titles — lowercase, semibold */
+#pitchDeck .product-copy__point h2,
+#pitchDeck .solution-card h3,
+#pitchDeck .product-sources__copy h3,
+#pitchDeck .product-bento__panel-copy h3 {
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-point p {
+  font-weight: 500;
+}
+
+/* Builder criteria list labels — uppercase, bold */
+#pitchDeck .builder-criteria__item-label {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+#pitchDeck .builder-criteria__panel-intro {
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+#pitchDeck .builder-criteria__headline-strong,
+#pitchDeck .builder-criteria__highlight,
+#pitchDeck .builder-criteria__banner-strong {
+  font-weight: 800;
+}
+
+#pitchDeck .builder-criteria__headline-muted,
+#pitchDeck .builder-criteria__banner-muted {
+  font-weight: 300;
+}
+
+#pitchDeck .builder-criteria__strike {
+  font-weight: 300;
+  text-transform: lowercase;
+}
+
+/* Footer & URL — lowercase, light */
+#pitchDeck .cover-footer {
+  font-weight: 400;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+}
+
+/* Hub node captions — uppercase, compact */
+#pitchDeck .product-source-hub__node span {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Step numbers */
+#pitchDeck .product-copy__point span {
+  font-weight: 800;
+}
+
+/* Pricing CTAs */
+#pitchDeck .pricing-card__cta-label,
+#pitchDeck .pricing-card__cta-arrow {
+  text-transform: none;
+  font-weight: 600;
+}
+
+#pitchDeck .deck-brand-lockup.deck-brand-lockup {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  flex: 0 0 auto;
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #100b09;
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+#pitchDeck .deck-brand-lockup.deck-brand-lockup img {
+  display: block;
+  width: 50px;
+  height: 50px;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(250, 134, 47, 0.18));
+}
+
+#pitchDeck .deck-brand-lockup.deck-brand-lockup span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  text-transform: none;
+}

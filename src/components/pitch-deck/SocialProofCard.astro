@@ -1,0 +1,166 @@
+---
+interface Props {
+  slot: string;
+  href?: string;
+  source: string;
+  meta: string;
+  title: string;
+  author?: string;
+  wide?: boolean;
+  reddit?: boolean;
+  hero?: boolean;
+}
+
+const { slot, href, source, meta, title, author, wide = false, reddit = false, hero = false } = Astro.props;
+const Tag = href ? "a" : "article";
+const isReddit = reddit || source.startsWith("r/");
+---
+
+<Tag
+  href={href}
+  target={href ? "_blank" : undefined}
+  rel={href ? "noreferrer" : undefined}
+  class:list={["problem-card", `problem-card--${slot}`, wide && "problem-card--wide", hero && "problem-card--hero"]}
+>
+  {!hero && (
+    <div class="problem-card__header">
+      <span class:list={["problem-card__avatar", isReddit && "problem-card__avatar--reddit"]}>
+        {isReddit ? "r/" : "in"}
+      </span>
+      <div class="problem-card__meta">
+        <p class="problem-card__source">{source}</p>
+        <p class="problem-card__time">{meta}</p>
+      </div>
+    </div>
+  )}
+
+  <p class="problem-card__title">{title}</p>
+  {author && !hero && <p class="problem-card__author">{author}</p>}
+</Tag>
+
+<style is:global>
+  #pitchDeck .problem-card {
+    position: absolute;
+    z-index: 3;
+    display: block;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #050505;
+    padding: 16px 22px 18px;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+    width: 358px;
+    height: 128px;
+  }
+
+  #pitchDeck .problem-card--wide {
+    width: 454px;
+    height: 132px;
+  }
+
+  #pitchDeck .problem-card--hero {
+    width: 334px;
+    height: 124px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 24px;
+  }
+
+  #pitchDeck .problem-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #pitchDeck .problem-card__header--compact {
+    gap: 8px;
+  }
+
+  #pitchDeck .problem-card__avatar {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #0a66c2;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  #pitchDeck .problem-card__avatar--reddit {
+    background: #ff4500;
+    font-size: 9px;
+    font-weight: 900;
+  }
+
+  #pitchDeck .problem-card__meta {
+    min-width: 0;
+  }
+
+  #pitchDeck .problem-card__source {
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.1;
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  #pitchDeck .problem-card__time {
+    margin: 2px 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: rgba(255, 255, 255, 0.42);
+  }
+
+  #pitchDeck .problem-card__header--compact .problem-card__time {
+    margin: 0;
+  }
+
+  #pitchDeck .problem-card__title {
+    margin: 12px 0 0;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1.14;
+    letter-spacing: -0.032em;
+    color: #fff;
+  }
+
+  #pitchDeck .problem-card--wide .problem-card__title {
+    font-size: 21px;
+    line-height: 1.18;
+  }
+
+  #pitchDeck .problem-card--hero .problem-card__title {
+    margin: 0;
+    -webkit-line-clamp: 1;
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  #pitchDeck .problem-card__author {
+    margin: 6px 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.44);
+  }
+</style>

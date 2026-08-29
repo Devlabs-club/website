@@ -1,0 +1,16 @@
+---
+interface Props {
+  className?: string;
+}
+
+const { className = "" } = Astro.props;
+---
+
+<div
+  class:list={[
+    "grid h-[92px] w-[92px] place-items-center rounded-[22px] border border-white/30 bg-white/20 text-white shadow-[0_16px_36px_rgba(180,88,24,0.15)] backdrop-blur-xl",
+    className,
+  ]}
+>
+  <img src="/logo.png" alt="" class="h-[56px] w-[56px] object-contain" />
+</div>

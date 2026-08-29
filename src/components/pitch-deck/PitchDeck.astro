@@ -1,0 +1,463 @@
+---
+import "./cover.css";
+import "./problem-slide.css";
+import "./solution-slide.css";
+import "./story-slide.css";
+import "./product-slide.css";
+import "./builder-criteria-slide.css";
+import "./testimonials-slide.css";
+import "./competitor-analysis.css";
+import "./pricing-slide.css";
+import "./pitch-deck-typography.css";
+import ProductBento from "./ProductBento.astro";
+import BuilderCriteria from "./BuilderCriteria.astro";
+import TestimonialsSlide from "./TestimonialsSlide.astro";
+import CompetitorAnalysis from "./CompetitorAnalysis.astro";
+import PricingSlide from "./PricingSlide.astro";
+import AudienceCard from "./AudienceCard.astro";
+import Bar from "./Bar.astro";
+import DonutChart from "./DonutChart.astro";
+import Header from "./PitchDeckHeader.astro";
+import Icon from "./PitchDeckIcon.astro";
+import SolutionVisual from "./SolutionVisual.astro";
+import StoryPolaroids from "./StoryPolaroids.astro";
+const slides = [
+  "The Future of hiring",
+  "The problem",
+  "Our solution",
+  "Our story",
+  "Product demo",
+  "What we look for",
+  "Testimonials",
+  "Competitor analysis",
+  "Pricing",
+  "Platform growth",
+  "Audience segments",
+];
+
+const cardBase =
+  "absolute inset-0 overflow-hidden rounded-[8px] bg-[#fffaf6] text-[#fa862f] shadow-[0_1px_0_rgba(180,88,24,0.08)]";
+const metaClass = "text-[11px] font-semibold uppercase tracking-[0.22em] text-[#fa862f]/55";
+const brandClass = "flex items-center gap-2.5 text-[15px] font-semibold leading-none text-[#fa862f]";
+const panelGradient =
+  "bg-[linear-gradient(135deg,rgba(255,247,241,0.96)_0%,rgba(255,214,176,0.78)_54%,rgba(250,134,47,0.42)_100%)]";
+
+const storyPhotos = [
+  { src: "/landing/community/devhacks-crowd.png", alt: "DevHacks crowd" },
+  { src: "/landing/community/devhacks-build.png", alt: "Builders at DevHacks" },
+  { src: "/landing/community/devspace-talk.png", alt: "DevSpace talk" },
+  { src: "/landing/community/devhouse-circle.png", alt: "DevHouse community" },
+  { src: "/events/devhacks.jpg", alt: "DevHacks event" },
+  { src: "/events/DevHacks3.jpg", alt: "DevHacks builders" },
+  { src: "/events/DevHacks6.jpg", alt: "DevHacks demo day" },
+  { src: "/events/devhouse-sf.jpg", alt: "DevHouse SF" },
+  { src: "/events/devspace.webp", alt: "DevSpace community" },
+];
+
+const storyStats = [
+  { value: "2000+", label: "vetted builders in our talent pool" },
+  { value: "20", label: "events across AZ & SF" },
+  { value: "4", label: "companies hired from us" },
+  { value: "100K", label: "invested in events till now" },
+];
+
+const storySponsors = [
+  { name: "Browser Use", src: "/sponsors/browser-use.png" },
+  { name: "Dodo Payments", src: "/sponsors/momentum/dodo_payments.svg" },
+  { name: "Stripe", src: "/sponsors/momentum/stripe.png" },
+  { name: "DeepMind", src: "/sponsors/deepmind.png" },
+  { name: "TinyFish", src: "/sponsors/momentum/tinyfish.png" },
+  { name: "supermemory", src: "/sponsors/supermemory.png" },
+  { name: "omi", src: "/sponsors/omi.png" },
+];
+
+const problemQuotePool = [
+  {
+    quote: "A great resume doesn't always equal a great startup hire.",
+    name: "Candace Nelson",
+    role: "Founder",
+    width: 348,
+  },
+  {
+    quote: "The volume is high, but the signal is very low.",
+    name: "Dineke Mulder",
+    role: "Talent leader",
+    width: 292,
+  },
+  {
+    quote: "We care more about proof of work than credentials.",
+    name: "Tony Chen",
+    role: "Founder, KleePay",
+    width: 324,
+  },
+  {
+    quote: "We were literally getting 2,000+ resumes for a single role.",
+    name: "Wouter Durville",
+    role: "Co-founder, TestGorilla",
+    width: 372,
+  },
+  {
+    quote: "Conventional resume screens miss extraordinary people.",
+    name: "Eric Glyman",
+    role: "Co-founder & CEO, Ramp",
+    width: 356,
+  },
+  {
+    quote: "Top talent doesn't cold apply.",
+    name: "Tim He",
+    role: "Startup founder",
+    width: 248,
+  },
+];
+
+const repeatProblemQuotes = (quotes: typeof problemQuotePool, count: number) =>
+  Array.from({ length: count }, (_, index) => quotes[index % quotes.length]!);
+
+const problemQuoteRows = [
+  repeatProblemQuotes(problemQuotePool, 7),
+  repeatProblemQuotes([...problemQuotePool].reverse(), 7),
+];
+---
+
+<div
+  id="pitchDeck"
+  class="relative h-full min-h-[100vh] w-full isolate overflow-hidden bg-[#1a100c] text-[#fa862f] antialiased"
+>
+  <div
+    id="deckFit"
+    class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+    style="top: calc(50% - 18px)"
+  >
+    <div id="deckScale" class="relative origin-top-left" style="width: 1600px; height: 900px">
+      <section class="pitch-slide cover-slide" data-slide="1" aria-label={slides[0]}>
+        <div class="cover-glow-tl"></div>
+        <div class="cover-glow-tr"></div>
+        <div class="cover-glow-r"></div>
+        <div class="cover-watermark" aria-hidden="true">
+          <img class="cover-watermark-main" src="/logo.svg" alt="" />
+          <img class="cover-watermark-crop" src="/logo.svg" alt="" />
+        </div>
+        <div class="cover-vignette"></div>
+        <div class="cover-grain"></div>
+
+        <header class="cover-header">
+          <div class="cover-brand deck-brand-lockup">
+            <img src="/logo.svg" alt="" />
+            <span>Devlabs</span>
+          </div>
+          <p class="cover-meta"><i></i> Pitch Deck</p>
+        </header>
+
+        <h1 class="cover-title">
+          <span>the <strong>future</strong></span>
+          <span>of <em class="cover-accent">hiring</em></span>
+        </h1>
+
+        <div class="cover-footer">
+          <p>www.devlabs.club</p>
+          <p>2026</p>
+        </div>
+      </section>
+
+      <section class="pitch-slide problem-slide hidden" data-slide="2" aria-label={slides[1]}>
+        <div class="problem-layout">
+          <div class="problem-orbits" aria-hidden="true"></div>
+          <div class="problem-watermark" aria-hidden="true">
+            <img src="/logo.svg" alt="" />
+          </div>
+
+          <header class="problem-header">
+            <div class="cover-brand deck-brand-lockup">
+              <img src="/logo.svg" alt="" />
+              <span>Devlabs</span>
+            </div>
+            <p class="problem-meta"><i></i> The problem</p>
+          </header>
+
+          <div class="problem-main">
+            <div class="problem-copy">
+              <h1 class="problem-headline">
+                Finding the right technical talent is hard for early-stage startups.
+              </h1>
+              <p class="problem-subtitle">
+                Too many applications. Too little proof. And the best builders rarely cold apply.
+              </p>
+            </div>
+          </div>
+
+          <div class="problem-quotes-stack">
+            {problemQuoteRows.map((row, rowIndex) => (
+              <div class:list={["problem-quotes-track", rowIndex === 1 && "problem-quotes-track--stagger"]}>
+                <div class="problem-quotes-row" style={`--row-lead-width: ${row[0]?.width ?? 280}px`}>
+                  {row.map((item) => (
+                    <article class="problem-quote" style={`--quote-width: ${item.width}px`}>
+                      <span class="problem-quote__mark" aria-hidden="true">&ldquo;</span>
+                      <blockquote class="problem-quote__text">{item.quote}</blockquote>
+                      <footer class="problem-quote__author">
+                        <strong>{item.name}</strong>
+                        <span>{item.role}</span>
+                      </footer>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="pitch-slide solution-slide hidden" data-slide="3" aria-label={slides[2]}>
+        <div class="solution-layout">
+          <div class="solution-copy">
+            <header class="solution-header">
+              <div class="solution-brand deck-brand-lockup">
+                <img src="/logo.svg" alt="" />
+                <span>Devlabs</span>
+              </div>
+              <p class="solution-meta"><i></i> Pitch Deck</p>
+            </header>
+
+            <p class="solution-eyebrow">Our solution</p>
+            <h1 class="solution-title">Proof over <em>resume hell.</em></h1>
+            <p class="solution-lead">
+              At Devlabs, we connect <strong>vetted builders</strong> with startups — based on their
+              <strong>proof of work</strong>.
+            </p>
+
+            <ul class="solution-points">
+              <li class="solution-point">
+                <div class="solution-point__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.4 6.4 20.5l2.1-6.7L3 9.8h6.8L12 3z"></path>
+                  </svg>
+                </div>
+                <p>Builders shipping at hackathons and hacker houses</p>
+              </li>
+              <li class="solution-point">
+                <div class="solution-point__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M4 20h16M6 20V8l6-4 6 4v12M10 12h4v8h-4v-8z"></path>
+                  </svg>
+                </div>
+                <p>Startups looking for their first technical hires</p>
+              </li>
+              <li class="solution-point">
+                <div class="solution-point__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M7 7h10v10H7zM4 4h16v16H4zM9 12h6M12 9v6"></path>
+                  </svg>
+                </div>
+                <p>Devlabs brings them together with real proof, not PDFs</p>
+              </li>
+            </ul>
+          </div>
+
+          <SolutionVisual />
+        </div>
+      </section>
+
+      <section class="pitch-slide story-slide hidden" data-slide="4" aria-label={slides[3]}>
+        <div class="story-watermark" aria-hidden="true">
+          <img src="/logo.svg" alt="" />
+        </div>
+
+        <div class="story-content">
+          <header class="story-header">
+            <div class="story-brand deck-brand-lockup">
+              <img src="/logo.svg" alt="" />
+              <span>Devlabs</span>
+            </div>
+            <p class="story-meta"><i></i> Pitch Deck</p>
+          </header>
+
+          <StoryPolaroids photos={storyPhotos} />
+
+          <div class="story-main">
+            <h1 class="story-title">Our story</h1>
+            <div class="story-stats">
+              {storyStats.map((stat) => (
+                <article class="story-stat">
+                  <p class="story-stat__value">{stat.value}</p>
+                  <p class="story-stat__label">{stat.label}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <footer class="story-sponsors">
+            <p class="story-supported">supported by</p>
+            <div class="story-logos">
+              {storySponsors.map((sponsor) => (
+                <img src={sponsor.src} alt={sponsor.name} loading="lazy" />
+              ))}
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <section class="pitch-slide product-slide hidden" data-slide="5" aria-label={slides[4]}>
+        <div class="product-layout">
+          <aside class="product-copy">
+            <div class="product-copy__brand deck-brand-lockup">
+              <img src="/logo.svg" alt="" />
+              <span>Devlabs</span>
+            </div>
+            <p class="product-copy__eyebrow">Product demo</p>
+            <h1>Hire engineers based on what they&rsquo;ve built.</h1>
+            <p class="product-copy__lead">
+              Devlabs matches founders with proven builders using their projects, hackathon performance, and coding activity.
+            </p>
+            <div class="product-copy__points">
+              <article class="product-copy__point">
+                <span>01</span>
+                <div>
+                  <h2>Collect the proof</h2>
+                  <p>GitHub, hackathons, projects, and AI coding tools.</p>
+                </div>
+              </article>
+              <article class="product-copy__point">
+                <span>02</span>
+                <div>
+                  <h2>Match the right builders</h2>
+                  <p>Our agent finds builders whose work fits the role.</p>
+                </div>
+              </article>
+              <article class="product-copy__point">
+                <span>03</span>
+                <div>
+                  <h2>See why. Then invite.</h2>
+                  <p>Review the evidence and reach out directly.</p>
+                </div>
+              </article>
+            </div>
+          </aside>
+          <ProductBento />
+        </div>
+      </section>
+
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="6" aria-label={slides[5]}>
+        <BuilderCriteria />
+      </section>
+
+      <section class="pitch-slide testimonials-slide hidden" data-slide="7" aria-label={slides[6]}>
+        <TestimonialsSlide />
+      </section>
+
+      <section class="pitch-slide competitor-slide hidden" data-slide="8" aria-label={slides[7]}>
+        <CompetitorAnalysis />
+      </section>
+
+      <section class="pitch-slide pricing-slide hidden" data-slide="9" aria-label={slides[8]}>
+        <PricingSlide />
+      </section>
+
+      <section class:list={[cardBase, "pitch-slide hidden"]} data-slide="10" aria-label={slides[9]}>
+        <Header />
+        <p class="absolute left-[72px] top-[378px] w-[310px] text-[38px] font-medium leading-[1.14] tracking-[-0.04em]">
+          User Growth by<br />any Platform<br />Consistent gains<br />Adoption:
+        </p>
+        <p class={metaClass + " absolute bottom-[72px] left-[72px]"}>2026 PLAN INTRO</p>
+        <div class="absolute left-[678px] top-[86px] z-10 w-[150px] rounded-[13px] bg-white p-[18px] shadow-[0_16px_40px_rgba(250,134,47,0.08)]">
+          <div class="mb-[28px] grid h-[64px] w-[64px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,#fa862f,#ffc48a)] text-white">
+            <Icon kind="trend" className="h-9 w-9" />
+          </div>
+          <p class="text-[16px] font-medium leading-[1.1] text-[#fa862f]/80">Multi-Platform<br />Adoption</p>
+        </div>
+        <div class="absolute bottom-[66px] right-[62px] top-[212px] w-[820px]">
+          <div class="absolute left-0 right-0 top-[120px] border-t border-dashed border-[#fa862f]/45"></div>
+          <div class="absolute left-0 right-0 top-[265px] border-t border-dashed border-[#fa862f]/45"></div>
+          <div class="absolute left-0 right-0 top-[410px] border-t border-dashed border-[#fa862f]/45"></div>
+          <Bar className="left-[80px] h-[150px]" label="+12%" icon="laptop" />
+          <Bar className="left-[365px] h-[300px]" label="+16%" icon="apple" />
+          <Bar className="right-[10px] h-[455px]" label="+21%" icon="android" />
+        </div>
+      </section>
+
+      <section class:list={[cardBase, "pitch-slide hidden"]} data-slide="11" aria-label={slides[10]}>
+        <Header />
+        <div class="absolute inset-x-[70px] bottom-[116px] top-[170px]">
+          <AudienceCard className="left-[0px] top-[0px]" number="01" icon="laptop" lines={["The Digital-First", "Generation. Targeting", "young specialists"]} />
+          <AudienceCard className="left-[610px] top-[164px]" number="02" icon="clipboard" lines={["Tailored solutions for", "large-scale hospital", "groups and private clinics."]} />
+          <AudienceCard className="right-[0px] top-[322px]" number="03" icon="globe" lines={["Standarizing AI", "healthcare protocols", "international medical"]} />
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <button class="absolute inset-y-0 left-0 z-20 w-[18%] cursor-pointer border-0 bg-transparent" type="button" aria-label="Previous slide" data-prev></button>
+  <button class="absolute inset-y-0 right-0 z-20 w-[18%] cursor-pointer border-0 bg-transparent" type="button" aria-label="Next slide" data-next></button>
+
+  <nav class="absolute bottom-[18px] left-1/2 z-30 -translate-x-1/2" aria-label="Slides">
+    <div class="flex gap-2">
+      {slides.map((_, index) => (
+        <button
+          class:list={["h-[9px] rounded-full border-0 bg-[#fa862f]/30 p-0 transition-all", index === 0 ? "w-[22px] bg-[#fa862f]" : "w-[9px]"]}
+          type="button"
+          aria-label={`Go to slide ${index + 1}`}
+          data-dot={index + 1}
+        />
+      ))}
+    </div>
+  </nav>
+  <p class="absolute bottom-4 right-6 z-30 m-0 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/35 max-[900px]:hidden">
+    Arrow keys to present
+  </p>
+</div>
+
+
+<script is:inline>
+  const slideWidth = 1600;
+  const slideHeight = 900;
+  const slides = Array.from(document.querySelectorAll(".pitch-slide"));
+  const dots = Array.from(document.querySelectorAll("[data-dot]"));
+  const fit = document.getElementById("deckFit");
+  const scaleEl = document.getElementById("deckScale");
+  let index = 0;
+
+  const setScale = () => {
+    if (!fit || !scaleEl) return;
+    const scale = Math.min((window.innerWidth - 56) / slideWidth, (window.innerHeight - 92) / slideHeight);
+    fit.style.width = `${slideWidth * scale}px`;
+    fit.style.height = `${slideHeight * scale}px`;
+    scaleEl.style.transform = `scale(${scale})`;
+  };
+
+  const go = (next) => {
+    index = ((next % slides.length) + slides.length) % slides.length;
+    slides.forEach((slide, i) => slide.classList.toggle("hidden", i !== index));
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("w-[22px]", i === index);
+      dot.classList.toggle("w-[9px]", i !== index);
+      dot.classList.toggle("bg-[#fa862f]", i === index);
+      dot.classList.toggle("bg-[#fa862f]/30", i !== index);
+    });
+    const hash = `#${index + 1}`;
+    if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+  };
+
+  const syncFromHash = () => {
+    const fromHash = Number.parseInt(window.location.hash.replace("#", ""), 10);
+    if (fromHash >= 1 && fromHash <= slides.length) go(fromHash - 1);
+  };
+
+  document.querySelector("[data-prev]")?.addEventListener("click", () => go(index - 1));
+  document.querySelector("[data-next]")?.addEventListener("click", () => go(index + 1));
+  dots.forEach((dot, i) => dot.addEventListener("click", () => go(i)));
+  window.addEventListener("resize", setScale);
+  window.addEventListener("hashchange", syncFromHash);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" || event.key === " " || event.key === "PageDown") {
+      event.preventDefault();
+      go(index + 1);
+    } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault();
+      go(index - 1);
+    } else if (event.key === "Home") {
+      go(0);
+    } else if (event.key === "End") {
+      go(slides.length - 1);
+    }
+  });
+  setScale();
+  syncFromHash();
+</script>

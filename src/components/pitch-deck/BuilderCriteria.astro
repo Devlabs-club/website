@@ -1,0 +1,59 @@
+---
+const criteria = [
+  { label: "Quality of code", detail: "Clean, working, thoughtfully built.", open: true },
+  { label: "Projects shipped", detail: "Things that actually went live.", open: true },
+  { label: "Hackathons joined", detail: "Shows up, builds under pressure.", open: true },
+  { label: "Speed of development", detail: "How fast an idea becomes real.", open: true },
+  { label: "Online presence", detail: "Active, visible, building in public.", open: true },
+];
+---
+
+<section class="builder-criteria">
+  <div class="builder-criteria__brand deck-brand-lockup">
+    <img src="/logo.svg" alt="" />
+    <span>Devlabs</span>
+  </div>
+
+  <div class="builder-criteria__main">
+    <div class="builder-criteria__copy">
+      <h1 class="builder-criteria__headline">
+        <span class="builder-criteria__headline-strong">We don&rsquo;t look at your </span>
+        <span class="builder-criteria__strike">university</span>
+        <br />
+        <span class="builder-criteria__headline-muted">or </span>
+        <span class="builder-criteria__strike">GPA</span>
+        <span class="builder-criteria__headline-muted"> and </span>
+        <span class="builder-criteria__strike">resume</span>
+        <span class="builder-criteria__headline-muted">.</span>
+        <br />
+        <span class="builder-criteria__headline-strong">We already know if you can </span>
+        <span class="builder-criteria__highlight">ship</span>
+      </h1>
+    </div>
+
+    <div class="builder-criteria__panel">
+      <p class="builder-criteria__panel-intro">We look for your</p>
+      <ul class="builder-criteria__list">
+        {criteria.map((item) => (
+          <li class:list={["builder-criteria__item", item.open && "is-open"]}>
+            <div class="builder-criteria__item-head">
+              <span class="builder-criteria__item-label">{item.label}</span>
+              <span class="builder-criteria__item-toggle" aria-hidden="true">&minus;</span>
+            </div>
+            <p class="builder-criteria__item-detail">{item.detail}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+
+  <footer class="builder-criteria__banner">
+    <div class="builder-criteria__banner-logo" aria-hidden="true">
+      <img src="/logo.svg" alt="" />
+    </div>
+    <p class="builder-criteria__banner-text">
+      <span class="builder-criteria__banner-strong">We&rsquo;re helping startups </span>
+      <span class="builder-criteria__banner-muted">change the way they hire.</span>
+    </p>
+  </footer>
+</section>

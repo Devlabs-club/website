@@ -1,0 +1,22 @@
+---
+interface Props {
+  center?: boolean;
+}
+
+const { center = false } = Astro.props;
+---
+
+<header class="absolute left-[52px] right-[52px] top-[44px] z-20 flex items-center justify-between">
+  <div class="deck-brand-lockup">
+    <img src="/logo.svg" alt="" />
+    <span>Devlabs</span>
+  </div>
+  <p
+    class:list={[
+      "text-[11px] font-semibold uppercase tracking-[0.22em] text-[#fa862f]/55",
+      center && "absolute left-1/2 -translate-x-1/2",
+    ]}
+  >
+    2026 PLAN INTRO
+  </p>
+</header>

@@ -1,0 +1,128 @@
+---
+const competitors = [
+  {
+    name: "LinkedIn",
+    logo: "/sponsors/companies/linkedin.svg",
+    modifier: "linkedin",
+  },
+  {
+    name: "Wellfound",
+    logo: "/pitch-deck/logos/wellfound.svg",
+    modifier: "wellfound",
+  },
+  {
+    name: "Juicebox",
+    logo: "/pitch-deck/logos/juicebox.svg",
+    modifier: "juicebox",
+  },
+  {
+    name: "Rightfit",
+    logo: "/pitch-deck/logos/rightfit.svg",
+    modifier: "rightfit",
+  },
+  {
+    name: "Devlabs",
+    logo: "/logo.svg",
+    modifier: "devlabs",
+    featured: true,
+  },
+];
+
+const rows = [
+  {
+    factor: "Where talent comes from",
+    values: ["Professional network", "Startup applicants", "Open web", "Talent community", "Builder community + events"],
+  },
+  {
+    factor: "Main hiring signal",
+    values: ["Profile", "Resume", "Aggregated profiles", "Shipped projects", "Projects + live building"],
+  },
+  {
+    factor: "Creates new proof",
+    values: ["—", "—", "—", "—", "Hackathons & build events"],
+    devlabsCheck: true,
+  },
+  {
+    factor: "Shows how they build",
+    values: ["—", "—", "—", "Project output", "AI coding traces"],
+    devlabsCheck: true,
+  },
+  {
+    factor: "Role matching",
+    values: ["Search & filters", "AI sourcing", "AI sourcing", "Curated matching", "Ranked builder matches"],
+  },
+  {
+    factor: "Why-hire evidence",
+    values: ["Limited", "Limited", "Profile summary", "Proof of work", "Evidence per match"],
+  },
+  {
+    factor: "Built for early teams",
+    values: ["—", "Yes", "—", "Yes", "Yes"],
+    devlabsCheck: true,
+  },
+];
+---
+
+<section class="competitor-analysis">
+  <div class="competitor-analysis__watermark" aria-hidden="true">
+    <img src="/logo.svg" alt="" />
+  </div>
+
+  <header class="competitor-analysis__header">
+    <div>
+      <div class="competitor-analysis__brand deck-brand-lockup">
+        <img src="/logo.svg" alt="" />
+        <span>Devlabs</span>
+      </div>
+      <h1>Why Devlabs wins early technical hiring</h1>
+    </div>
+    <p>
+      Most platforms organize existing candidates. Devlabs creates new proof and ranks builders by what they ship.
+    </p>
+  </header>
+
+  <div class="competitor-table" role="table" aria-label="Competitor analysis">
+    <div class="competitor-table__row competitor-table__row--head" role="row">
+      <div class="competitor-table__factor" role="columnheader">Criteria</div>
+      {competitors.map((competitor) => (
+        <div
+          class:list={[
+            "competitor-table__company",
+            `competitor-table__company--${competitor.modifier}`,
+            competitor.featured && "competitor-table__company--featured",
+          ]}
+          role="columnheader"
+        >
+          <span class="competitor-table__logo">
+            <img src={competitor.logo} alt="" loading="lazy" />
+          </span>
+          <strong>{competitor.name}</strong>
+        </div>
+      ))}
+    </div>
+
+    {rows.map((row) => (
+      <div class="competitor-table__row" role="row">
+        <div class="competitor-table__factor" role="rowheader">{row.factor}</div>
+        {row.values.map((value, index) => {
+          const isDevlabs = index === competitors.length - 1;
+          const showCheck = isDevlabs && row.devlabsCheck;
+
+          return (
+            <div
+              class:list={[
+                "competitor-table__cell",
+                isDevlabs && "competitor-table__cell--devlabs",
+                showCheck && "competitor-table__cell--check",
+              ]}
+              role="cell"
+            >
+              {showCheck && <span class="competitor-table__check" aria-hidden="true">✓</span>}
+              <p>{value}</p>
+            </div>
+          );
+        })}
+      </div>
+    ))}
+  </div>
+</section>

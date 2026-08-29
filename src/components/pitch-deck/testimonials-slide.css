@@ -1,0 +1,298 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+#pitchDeck .testimonials-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 78% 28%, rgba(250, 134, 47, 0.12), transparent 32%),
+    radial-gradient(circle at 16% 88%, rgba(255, 204, 142, 0.2), transparent 36%),
+    linear-gradient(180deg, #fffdf9 0%, #fbf8f1 100%);
+  color: #100b09;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .testimonials-slide * {
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+#pitchDeck .testimonials {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 74px 74px 72px;
+}
+
+#pitchDeck .testimonials::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(250, 134, 47, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(250, 134, 47, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+#pitchDeck .testimonials__glow {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: 840px;
+  height: 560px;
+  transform: translate(-50%, -50%);
+  background: url("/logo.svg") center / contain no-repeat;
+  opacity: 0.035;
+  filter: sepia(1) saturate(2.5) hue-rotate(342deg);
+  pointer-events: none;
+}
+
+#pitchDeck .testimonials__top {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 620px) minmax(0, 548px);
+  justify-content: space-between;
+  gap: 120px;
+}
+
+#pitchDeck .testimonials__copy {
+  padding-top: 8px;
+}
+
+#pitchDeck .testimonials__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 30px;
+  padding: 10px 16px 10px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 134, 47, 0.12);
+  background: rgba(250, 134, 47, 0.08);
+  box-shadow: 0 14px 34px rgba(250, 134, 47, 0.08);
+  color: rgba(16, 11, 9, 0.62);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+#pitchDeck .testimonials__pill img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+#pitchDeck .testimonials__copy h1 {
+  margin: 0;
+  max-width: 570px;
+  color: #100b09;
+  font-size: 60px;
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.062em;
+}
+
+#pitchDeck .testimonials__aside {
+  padding-top: 24px;
+}
+
+#pitchDeck .testimonials__aside p {
+  margin: 0;
+  max-width: 440px;
+  color: rgba(16, 11, 9, 0.54);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.35;
+  letter-spacing: -0.04em;
+}
+
+#pitchDeck .testimonials__actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 30px;
+}
+
+#pitchDeck .testimonials__actions span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 14px;
+  border: 1px solid rgba(20, 14, 10, 0.08);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow:
+    0 18px 38px rgba(21, 14, 8, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  color: rgba(16, 11, 9, 0.72);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .testimonials__cards {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: 150px;
+}
+
+#pitchDeck .testimonial-card {
+  position: relative;
+  display: flex;
+  min-height: 366px;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background:
+    radial-gradient(ellipse 64% 78% at 78% 2%, rgba(255, 255, 255, 0.92), transparent 62%),
+    rgba(255, 255, 255, 0.68);
+  box-shadow:
+    0 26px 60px rgba(21, 14, 8, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  padding: 34px 32px 30px;
+}
+
+#pitchDeck .testimonial-card--featured {
+  border-color: rgba(250, 134, 47, 0.28);
+  background:
+    radial-gradient(circle at 22% 14%, rgba(255, 255, 255, 0.72), transparent 30%),
+    linear-gradient(127deg, #ffb986 0%, #ff9f54 48%, #fa862f 100%);
+  box-shadow:
+    0 28px 70px rgba(181, 81, 20, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
+}
+
+#pitchDeck .testimonial-card--featured::before {
+  content: "";
+  position: absolute;
+  right: -162px;
+  bottom: -214px;
+  width: 470px;
+  height: 470px;
+  background: url("/logo.svg") center / contain no-repeat;
+  filter: brightness(0) invert(1);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+#pitchDeck .testimonial-card__brand {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-width: 170px;
+  height: 54px;
+  padding: 0 20px;
+  border-radius: 15px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow:
+    0 14px 32px rgba(21, 14, 8, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+#pitchDeck .testimonial-card--featured .testimonial-card__brand {
+  background: rgba(255, 255, 255, 0.42);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+#pitchDeck .testimonial-card__brand img {
+  display: block;
+  width: auto;
+  max-width: 178px;
+  max-height: 28px;
+  object-fit: contain;
+  filter: grayscale(1) brightness(0.08);
+}
+
+#pitchDeck .testimonial-card--featured .testimonial-card__brand img {
+  filter: grayscale(1) brightness(0.1);
+}
+
+#pitchDeck .testimonial-card__quote {
+  position: absolute;
+  right: 34px;
+  top: 30px;
+  z-index: 2;
+  color: rgba(250, 134, 47, 0.32);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 78px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+#pitchDeck .testimonial-card--featured .testimonial-card__quote {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+#pitchDeck .testimonial-card p {
+  position: relative;
+  z-index: 2;
+  max-width: 390px;
+  margin: 58px 0 0;
+  color: rgba(16, 11, 9, 0.82);
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.048em;
+}
+
+#pitchDeck .testimonial-card footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(16, 11, 9, 0.08);
+}
+
+#pitchDeck .testimonial-card footer img {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  border: 2px solid rgba(250, 134, 47, 0.34);
+  object-fit: cover;
+  box-shadow: 0 12px 22px rgba(21, 14, 8, 0.12);
+}
+
+#pitchDeck .testimonial-card footer div {
+  display: grid;
+  gap: 4px;
+}
+
+#pitchDeck .testimonial-card footer strong {
+  color: rgba(16, 11, 9, 0.92);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+
+#pitchDeck .testimonial-card footer span {
+  color: rgba(16, 11, 9, 0.54);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}

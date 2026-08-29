@@ -1,0 +1,335 @@
+#pitchDeck .pricing-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 84% 14%, rgba(250, 134, 47, 0.12), transparent 34%),
+    radial-gradient(circle at 12% 92%, rgba(255, 204, 142, 0.2), transparent 38%),
+    linear-gradient(180deg, #fffdf9 0%, #faf8f4 100%);
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .pricing-slide * {
+  box-sizing: border-box;
+}
+
+#pitchDeck .pricing-slide__content {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: 48px 64px 52px;
+}
+
+#pitchDeck .pricing-slide__content::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(250, 134, 47, 0.034) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(250, 134, 47, 0.028) 1px, transparent 1px);
+  background-size: 72px 72px;
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+#pitchDeck .pricing-slide__watermark {
+  position: absolute;
+  left: -74px;
+  top: 124px;
+  z-index: 0;
+  color: rgba(250, 134, 47, 0.06);
+  font-size: 116px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.07em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+#pitchDeck .pricing-slide__header,
+#pitchDeck .pricing-grid {
+  position: relative;
+  z-index: 2;
+}
+
+#pitchDeck .pricing-slide__header {
+  display: grid;
+  grid-template-columns: minmax(0, 720px) minmax(0, 460px);
+  justify-content: space-between;
+  align-items: start;
+  gap: 64px;
+  margin-bottom: 26px;
+}
+
+#pitchDeck .pricing-slide__brand {
+  margin-bottom: 18px;
+}
+
+#pitchDeck .pricing-slide__header h1 {
+  margin: 0;
+  max-width: 640px;
+  color: #100b09;
+  font-size: 56px;
+  font-weight: 500;
+  line-height: 1.02;
+  letter-spacing: -0.064em;
+  text-align: left;
+  text-transform: lowercase;
+}
+
+#pitchDeck .pricing-slide__header > p {
+  max-width: 420px;
+  margin: 52px 0 0;
+  color: rgba(16, 11, 9, 0.52);
+  font-size: 23px;
+  font-weight: 300;
+  line-height: 1.38;
+  letter-spacing: -0.038em;
+}
+
+#pitchDeck .pricing-grid {
+  display: grid;
+  width: min(100%, 1340px);
+  flex: 1;
+  min-height: 0;
+  align-self: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 24px;
+}
+
+#pitchDeck .pricing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 518px;
+  border: 1px solid rgba(20, 14, 10, 0.08);
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(250, 134, 47, 0.08), transparent 40%),
+    rgba(255, 255, 255, 0.88);
+  color: #0f0b09;
+  box-shadow:
+    0 24px 60px rgba(21, 14, 8, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+#pitchDeck .pricing-card--featured {
+  min-height: 548px;
+  border-color: rgba(250, 134, 47, 0.32);
+  background:
+    radial-gradient(circle at 18% 6%, rgba(255, 255, 255, 0.78), transparent 30%),
+    linear-gradient(155deg, #fff6ed 0%, #ffd9b5 42%, #fa862f 100%);
+  box-shadow:
+    0 32px 72px rgba(181, 81, 20, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  transform: translateY(-6px);
+}
+
+#pitchDeck .pricing-card__ribbon {
+  display: flex;
+  height: 44px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: #fa862f;
+  color: #fffaf5;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .pricing-card__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  padding: 22px 24px 24px;
+}
+
+#pitchDeck .pricing-card--featured .pricing-card__body {
+  padding-bottom: 26px;
+}
+
+#pitchDeck .pricing-card__eyebrow {
+  margin: 0;
+  color: rgba(16, 11, 9, 0.44);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .pricing-card h2 {
+  margin: 12px 0 8px;
+  color: #100b09;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+}
+
+#pitchDeck .pricing-card__description {
+  min-height: 48px;
+  margin: 0;
+  color: rgba(16, 11, 9, 0.54);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.38;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .pricing-card__price {
+  margin-top: 14px;
+  padding-block: 16px;
+  border-top: 1px solid rgba(20, 14, 10, 0.08);
+  border-bottom: 1px solid rgba(20, 14, 10, 0.08);
+}
+
+#pitchDeck .pricing-card--featured .pricing-card__price {
+  border-top-color: rgba(255, 255, 255, 0.28);
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+
+#pitchDeck .pricing-card__price strong {
+  display: block;
+  color: #100b09;
+  font-size: 40px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.065em;
+}
+
+#pitchDeck .pricing-card__price span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(16, 11, 9, 0.56);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .pricing-card__features {
+  flex: 1;
+  padding-top: 16px;
+}
+
+#pitchDeck .pricing-card__features ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .pricing-card__features li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  color: rgba(16, 11, 9, 0.76);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .pricing-card__check {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 1px solid rgba(250, 134, 47, 0.36);
+  border-radius: 50%;
+  background: rgba(250, 134, 47, 0.1);
+  color: #fa862f;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+#pitchDeck .pricing-card__features li em {
+  font-style: normal;
+}
+
+#pitchDeck .pricing-card__feature--muted {
+  color: rgba(16, 11, 9, 0.36) !important;
+}
+
+#pitchDeck .pricing-card__feature--muted .pricing-card__check {
+  border-color: rgba(15, 11, 9, 0.12);
+  background: rgba(15, 11, 9, 0.04);
+  color: rgba(15, 11, 9, 0.32);
+}
+
+#pitchDeck .pricing-card__cta {
+  display: inline-flex;
+  width: 100%;
+  min-height: 54px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 999px;
+  appearance: none;
+  cursor: default;
+  font: inherit;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#pitchDeck .pricing-card__cta-label {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+#pitchDeck .pricing-card__cta-arrow {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+#pitchDeck .pricing-card__cta--secondary {
+  border: 1.5px solid rgba(16, 11, 9, 0.88);
+  background: #fff;
+  color: #100b09;
+  box-shadow: 0 10px 24px rgba(16, 11, 9, 0.06);
+}
+
+#pitchDeck .pricing-card__cta--primary {
+  border: 1.5px solid #100b09;
+  background: #100b09;
+  color: #fffaf5;
+  box-shadow:
+    0 16px 34px rgba(16, 11, 9, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+#pitchDeck .pricing-card__cta--primary .pricing-card__cta-label,
+#pitchDeck .pricing-card__cta--primary .pricing-card__cta-arrow {
+  color: #fffaf5;
+  font-weight: 600;
+}
+
+#pitchDeck .pricing-card--featured .pricing-card__cta--primary {
+  margin-top: 18px;
+}

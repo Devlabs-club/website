@@ -1,0 +1,55 @@
+---
+interface Photo {
+  src: string;
+  alt: string;
+}
+
+interface Props {
+  photos: Photo[];
+}
+
+const { photos } = Astro.props;
+
+const slots = [
+  { style: "left: 5.0%; top: 78px; --r: -1deg; --s: 0.82;" },
+  { style: "left: 14.9%; top: 126px; --r: -13deg; --s: 1.02;" },
+  { style: "left: 25.0%; top: 120px; --r: -4deg; --s: 1;" },
+  { style: "left: 34.7%; top: 86px; --r: 8deg; --s: 1.04;" },
+  { style: "left: 44.7%; top: 64px; --r: -1deg; --s: 1.02;" },
+  { style: "left: 54.8%; top: 126px; --r: -13deg; --s: 1.02;" },
+  { style: "left: 64.9%; top: 120px; --r: -4deg; --s: 1;" },
+  { style: "left: 74.6%; top: 86px; --r: 8deg; --s: 1.04;" },
+  { style: "left: 84.7%; top: 64px; --r: -1deg; --s: 1.02;" },
+  { style: "left: 94.6%; top: 126px; --r: -13deg; --s: 1.02;" },
+];
+---
+
+<div class="story-polaroids">
+  <div class="story-strings" aria-hidden="true">
+    <svg viewBox="0 0 1600 150" preserveAspectRatio="none">
+      <path
+        class="story-string"
+        d="M -18 7 Q 286 172 610 36"
+      />
+      <path
+        class="story-string"
+        d="M 574 7 Q 888 164 1214 36"
+      />
+      <path
+        class="story-string"
+        d="M 1176 7 Q 1452 150 1620 70"
+      />
+    </svg>
+  </div>
+
+  <div class="story-photos">
+    {slots.map((slot, index) => {
+      const photo = photos[index] ?? photos[index % photos.length];
+      return (
+        <figure class="story-polaroid" style={slot.style}>
+          <img src={photo.src} alt={photo.alt} loading="eager" decoding="async" />
+        </figure>
+      );
+    })}
+  </div>
+</div>
