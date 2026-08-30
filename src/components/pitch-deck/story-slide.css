@@ -5,129 +5,74 @@
   height: 900px;
   overflow: hidden;
   border-radius: 28px;
-  background:
-    radial-gradient(ellipse 82% 62% at 50% 100%, rgba(250, 134, 47, 0.1), transparent 66%),
-    linear-gradient(180deg, #fffdf9 0%, #faf8f4 100%);
+  background: transparent;
   color: #100b09;
-  font-family:
-    "Inter",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
-}
-
-#pitchDeck .story-slide * {
-  font-family: inherit;
-}
-
-#pitchDeck .story-watermark {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-#pitchDeck .story-watermark img {
-  width: 560px;
-  height: 560px;
-  object-fit: contain;
-  opacity: 0.045;
-  filter: sepia(1) saturate(2.4) hue-rotate(340deg);
 }
 
 #pitchDeck .story-content {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
 #pitchDeck .story-header {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  padding: 44px 64px 0;
+}
+
+#pitchDeck .story-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 44px 72px 0;
-}
-
-#pitchDeck .story-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: #100b09;
-}
-
-#pitchDeck .story-brand img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-}
-
-#pitchDeck .story-slide .story-brand span {
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  text-transform: none;
-}
-
-#pitchDeck .story-slide .story-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: rgba(16, 11, 9, 0.48);
-  text-transform: none;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 #pitchDeck .story-meta i {
   display: block;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: #fa862f;
-  box-shadow: 0 0 10px rgba(250, 134, 47, 0.55);
+  box-shadow: 0 0 20px rgba(250, 134, 47, 0.42);
+}
+
+#pitchDeck .story-lead {
+  margin: 0;
+  max-width: 1080px;
+  font-size: 58px;
+  color: #100b09;
+  text-align: center;
+}
+
+#pitchDeck .story-lead .deck-accent {
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
 }
 
 #pitchDeck .story-polaroids {
-  position: relative;
-  width: 100%;
-  height: 268px;
-  margin: 8px 0 0;
-  padding: 0;
-  overflow: visible;
-}
-
-#pitchDeck .story-strings {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 3;
-  height: 150px;
-  pointer-events: none;
-}
-
-#pitchDeck .story-strings svg {
-  display: block;
+  z-index: 1;
   width: 100%;
-  height: 150px;
-}
-
-#pitchDeck .story-string {
-  fill: none;
-  stroke: rgba(16, 11, 9, 0.78);
-  stroke-width: 2.35;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  height: 268px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
 }
 
 #pitchDeck .story-photos {
@@ -194,31 +139,36 @@
 }
 
 #pitchDeck .story-main {
+  position: relative;
+  z-index: 3;
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 44px;
-  padding: 0 64px;
+  gap: 36px;
+  min-height: 0;
+  padding: 120px 64px 0;
   text-align: center;
-}
-
-#pitchDeck .story-slide .story-title {
-  margin: 0;
-  font-size: 66px;
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.07em;
-  color: #100b09;
-  text-transform: none;
 }
 
 #pitchDeck .story-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0;
-  width: min(100%, 1248px);
+  width: min(100%, 720px);
   text-align: left;
+}
+
+#pitchDeck .story-subtitle {
+  margin: 8px 0 0;
+  max-width: 920px;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+  color: #100b09;
+  text-align: center;
 }
 
 #pitchDeck .story-stat {
@@ -266,14 +216,10 @@
 
 #pitchDeck .story-sponsors {
   position: relative;
-  margin: 0 72px 48px;
+  z-index: 3;
+  flex-shrink: 0;
+  margin: 0 64px 48px;
   padding: 27px 46px 32px;
-  overflow: hidden;
-  border-radius: 27px;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 34%),
-    linear-gradient(101deg, #ffd3bb 0%, #ffd0a5 29%, #ffba78 57%, #fa862f 100%);
-  box-shadow: 0 28px 70px rgba(158, 75, 21, 0.14);
 }
 
 #pitchDeck .story-slide .story-supported {

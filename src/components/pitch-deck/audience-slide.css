@@ -1,0 +1,104 @@
+#pitchDeck .audience-slide .deck-slide-layout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 44px 64px 48px;
+}
+
+#pitchDeck .audience-slide .audience-main {
+  position: relative;
+  min-height: 0;
+}
+
+#pitchDeck .audience-slide .audience-copy {
+  max-width: 520px;
+  padding-top: 12px;
+}
+
+#pitchDeck .audience-slide .audience-copy h1 {
+  margin: 28px 0 0;
+  color: #130a07;
+  font-size: 52px;
+}
+
+#pitchDeck .audience-slide .audience-copy p {
+  margin: 18px 0 0;
+  max-width: 420px;
+  color: rgba(22, 11, 7, 0.54);
+  font-size: 19px;
+  font-weight: 300;
+  line-height: 1.38;
+}
+
+#pitchDeck .audience-cards {
+  position: absolute;
+  inset: 0;
+}
+
+#pitchDeck .audience-card {
+  position: absolute;
+  display: flex;
+  width: 300px;
+  height: 220px;
+  flex-direction: column;
+  padding: 22px 24px 20px;
+  transform: rotate(var(--audience-rotate, 0deg));
+}
+
+#pitchDeck .audience-card__num {
+  margin: 0 0 auto;
+  color: rgba(250, 134, 47, 0.32);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+}
+
+#pitchDeck .audience-card--orange .audience-card__num {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+#pitchDeck .audience-card h2 {
+  margin: 0;
+  color: #130a07;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .audience-card--orange h2 {
+  color: rgba(255, 255, 255, 0.98);
+}
+
+#pitchDeck .audience-card p {
+  margin: 10px 0 0;
+  color: rgba(22, 11, 7, 0.52);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .audience-card--orange p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+#pitchDeck .audience-card--1 {
+  left: 480px;
+  top: 24px;
+  --audience-rotate: -4deg;
+}
+
+#pitchDeck .audience-card--2 {
+  left: 720px;
+  top: 168px;
+  --audience-rotate: 3deg;
+}
+
+#pitchDeck .audience-card--3 {
+  right: 64px;
+  bottom: 32px;
+  --audience-rotate: -2deg;
+}

@@ -1,59 +1,139 @@
 ---
-const criteria = [
-  { label: "Quality of code", detail: "Clean, working, thoughtfully built.", open: true },
-  { label: "Projects shipped", detail: "Things that actually went live.", open: true },
-  { label: "Hackathons joined", detail: "Shows up, builds under pressure.", open: true },
-  { label: "Speed of development", detail: "How fast an idea becomes real.", open: true },
-  { label: "Online presence", detail: "Active, visible, building in public.", open: true },
+const sources = [
+  { name: "GitHub", src: "/brand/github.svg", angle: 205 },
+  { name: "LinkedIn", src: "/socials/linkedin.svg", angle: 232 },
+  { name: "Claude", src: "/brand/claude.png", angle: 270 },
+  { name: "Codex", src: "/brand/chatgpt.svg", angle: 308 },
+  { name: "Web", src: "", angle: 335 },
+];
+
+const polar = (angle: number, radius: number) => {
+  const rad = (angle * Math.PI) / 180;
+  return {
+    x: 50 + Math.cos(rad) * radius,
+    y: 50 + Math.sin(rad) * radius,
+  };
+};
+
+const routePath = (x: number, y: number, index: number) => {
+  const format = (value: number) => value.toFixed(1);
+
+  // Keep the top source vertical and let the side sources enter horizontally
+  // before curving into the Devlabs core, like the reference orbit.
+  if (index === 2 || Math.abs(x - 50) < 1) {
+    return `M ${format(x)} ${format(y)} C 50 ${format(y + 8)} 50 43 50 50`;
+  }
+
+  const towardCenter = (50 - x) * 0.28;
+  const bendX = x + towardCenter;
+  const bendY = y;
+  const settleX = x + (50 - x) * 0.68;
+  const settleY = 50 + (y - 50) * 0.18;
+
+  return `M ${format(x)} ${format(y)} C ${format(bendX)} ${format(bendY)} ${format(settleX)} ${format(settleY)} 50 50`;
+};
+
+const traceCards = [
+  {
+    prompt: "Which model did they reach for?",
+    title: "Claude into Codex",
+    detail: "Explored the system, then shipped the working path.",
+  },
+  {
+    prompt: "What kind of builder are they?",
+    title: "The Architect",
+    detail: "Plans first, codifies decisions, and keeps scope tight.",
+  },
+  {
+    prompt: "When do they move fastest?",
+    title: "Night builder",
+    detail: "Most commits land after the room gets quiet.",
+  },
 ];
 ---
 
 <section class="builder-criteria">
-  <div class="builder-criteria__brand deck-brand-lockup">
-    <img src="/logo.svg" alt="" />
-    <span>Devlabs</span>
-  </div>
-
-  <div class="builder-criteria__main">
-    <div class="builder-criteria__copy">
-      <h1 class="builder-criteria__headline">
-        <span class="builder-criteria__headline-strong">We don&rsquo;t look at your </span>
-        <span class="builder-criteria__strike">university</span>
-        <br />
-        <span class="builder-criteria__headline-muted">or </span>
-        <span class="builder-criteria__strike">GPA</span>
-        <span class="builder-criteria__headline-muted"> and </span>
-        <span class="builder-criteria__strike">resume</span>
-        <span class="builder-criteria__headline-muted">.</span>
-        <br />
-        <span class="builder-criteria__headline-strong">We already know if you can </span>
-        <span class="builder-criteria__highlight">ship</span>
-      </h1>
-    </div>
-
-    <div class="builder-criteria__panel">
-      <p class="builder-criteria__panel-intro">We look for your</p>
-      <ul class="builder-criteria__list">
-        {criteria.map((item) => (
-          <li class:list={["builder-criteria__item", item.open && "is-open"]}>
-            <div class="builder-criteria__item-head">
-              <span class="builder-criteria__item-label">{item.label}</span>
-              <span class="builder-criteria__item-toggle" aria-hidden="true">&minus;</span>
-            </div>
-            <p class="builder-criteria__item-detail">{item.detail}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
-  </div>
-
-  <footer class="builder-criteria__banner">
-    <div class="builder-criteria__banner-logo" aria-hidden="true">
+  <header class="builder-criteria__header deck-slide-header">
+    <div class="deck-brand-lockup">
       <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
     </div>
-    <p class="builder-criteria__banner-text">
-      <span class="builder-criteria__banner-strong">We&rsquo;re helping startups </span>
-      <span class="builder-criteria__banner-muted">change the way they hire.</span>
-    </p>
-  </footer>
+    <p class="deck-slide-meta"><i></i> What we look for</p>
+  </header>
+
+  <div class="builder-criteria__intro">
+    <h1 class="builder-criteria__title">
+      We already know
+      <em>if you can ship</em>
+    </h1>
+  </div>
+
+  <div class="look-cards">
+    <article class="look-card look-card--traces deck-card">
+      <h2>Agent traces</h2>
+      <p>We see how they reasoned, recovered, tested, and shipped — not a writeup after the fact.</p>
+
+      <div class="trace-peek-deck" aria-hidden="true">
+        {traceCards.map((card, index) => (
+          <article class:list={["trace-peek-card", `trace-peek-card--${index + 1}`]}>
+            <div class="trace-peek-card__top">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="trace-peek-card__body">
+              <p>{card.prompt}</p>
+              <h3>{card.title}</h3>
+              <span>{card.detail}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </article>
+
+    <article class="look-card deck-card deck-card--orange">
+      <h2>2,000+ verified builders</h2>
+      <p>Already in the pool — scored from events, shipped work, and public signal.</p>
+    </article>
+
+    <article class="look-card look-card--proof deck-card">
+      <div class="look-card__copy">
+        <h2>Backed by proof</h2>
+        <p>LinkedIn, GitHub, Claude, Codex, and the open web resolve into one profile.</p>
+      </div>
+
+      <div class="proof-orbit" aria-hidden="true">
+        <svg class="proof-orbit__lines" viewBox="0 0 100 100">
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="22"></circle>
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="31"></circle>
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="40"></circle>
+          {sources.map((source, index) => {
+            const point = polar(source.angle, 36);
+            return <path d={routePath(point.x, point.y, index)}></path>;
+          })}
+        </svg>
+        <div class="proof-orbit__core">
+          <img src="/logo.svg" alt="" />
+        </div>
+        {sources.map((source) => {
+          const point = polar(source.angle, 36);
+          return (
+            <span
+              class:list={["proof-node", `proof-node--${source.name.toLowerCase()}`]}
+              style={`left:${point.x}%; top:${point.y}%`}
+            >
+              {source.src ? (
+                <img src={source.src} alt="" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <circle cx="12" cy="12" r="8"></circle>
+                  <path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16"></path>
+                </svg>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </article>
+  </div>
 </section>

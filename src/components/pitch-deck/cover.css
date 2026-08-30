@@ -6,8 +6,9 @@
   overflow: hidden;
   border-radius: 28px;
   background:
-    radial-gradient(ellipse 82% 62% at 50% 100%, rgba(255, 116, 23, 0.09), transparent 66%),
-    linear-gradient(180deg, #fffefd 0%, #fbfaf8 100%);
+    radial-gradient(ellipse 90% 70% at 50% 112%, rgba(250, 134, 47, 0.24) 0%, transparent 58%),
+    radial-gradient(ellipse 78% 58% at 50% -4%, rgba(255, 196, 140, 0.95) 0%, rgba(255, 220, 186, 0.55) 38%, transparent 74%),
+    linear-gradient(180deg, #fff3e6 0%, #faf8f4 46%, #f7f2eb 100%);
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
@@ -124,20 +125,20 @@
 #pitchDeck .cover-brand {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   color: #100b09;
 }
 
 #pitchDeck .cover-brand img {
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 0 10px rgba(250, 134, 47, 0.22));
 }
 
 #pitchDeck .cover-slide .cover-brand span {
-  font-size: 31px;
+  font-size: 22px;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -172,11 +173,7 @@
   z-index: 10;
   margin: 0;
   font-size: 136px;
-  font-weight: 400;
-  line-height: 0.99;
-  letter-spacing: -0.055em;
   color: #100b09;
-  text-transform: lowercase;
 }
 
 #pitchDeck .cover-slide .cover-title span {
@@ -190,10 +187,11 @@
 
 #pitchDeck .cover-slide .cover-accent {
   display: inline;
+  font-family: Manrope, system-ui, sans-serif;
   font-style: normal;
   font-weight: 400;
-  color: #ff7417;
-  text-shadow: 0 8px 24px rgba(255, 116, 23, 0.12);
+  color: #fa862f;
+  text-shadow: 0 8px 24px rgba(250, 134, 47, 0.18);
   background: none;
   -webkit-background-clip: unset;
   background-clip: unset;

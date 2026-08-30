@@ -1,82 +1,96 @@
 ---
-const sources = [
-  { id: "linkedin", label: "LinkedIn", src: "/sponsors/companies/linkedin.svg", x: 50, y: 16 },
-  { id: "github", label: "GitHub", src: "/brand/github.svg", x: 82, y: 38 },
-  { id: "hackathons", label: "Hackathons", src: "/events/devhacks_logo.svg", x: 78, y: 78 },
-  { id: "claude", label: "Claude", src: "/brand/claude.png", x: 50, y: 88 },
-  { id: "cursor", label: "Cursor", src: "/brand/cursor-ai.svg", x: 18, y: 38 },
-];
-
-const communityFaces = [
-  "/landing/community/devhacks-crowd.png",
-  "/landing/community/devhacks-build.png",
-  "/landing/community/devspace-talk.png",
+const signals = [
+  { id: "projects", label: "Projects + GitHub", src: "/brand/github.svg" },
+  { id: "collab", label: "Collaboration" },
+  { id: "trace", label: "Agent traces" },
 ];
 ---
 
-<div class="product-bento">
-  <article class="product-bento__panel product-bento__sources">
-    <div class="product-sources__copy">
-      <div class="product-sources__heading">
-        <h3>Proof of work</h3>
-        <span class="product-sources__badge">5 sources</span>
-      </div>
-      <p>Real evidence from where builders already ship.</p>
+<div class="product-journey">
+  <article class="product-step">
+    <div class="product-step__label">
+      <p class="product-step__meta">01 &mdash; Discover</p>
+      <p class="product-step__support">Hackathons, hacker houses and build nights</p>
     </div>
-    <div class="product-source-hub" aria-hidden="true">
-      <svg class="product-source-hub__lines" viewBox="0 0 520 320" preserveAspectRatio="none">
-        {sources.map((source) => (
-          <line
-            x1="260"
-            y1="178"
-            x2={(source.x / 100) * 520}
-            y2={(source.y / 100) * 320}
-            stroke="rgba(31, 42, 46, 0.22)"
-            stroke-width="1"
-            stroke-dasharray="3 5"
-            stroke-linecap="round"
-          />
-        ))}
-      </svg>
-      <div class="product-source-hub__center">
-        <img src="/logo.svg" alt="" />
-      </div>
-      {sources.map((source) => (
-        <div class="product-source-hub__node" style={`left: ${source.x}%; top: ${source.y}%;`}>
-          <div class:list={["product-source-hub__icon", `product-source-hub__icon--${source.id}`]}>
-            <img src={source.src} alt="" />
-          </div>
-          <span>{source.label}</span>
+    <figure class="product-step__photo">
+      <img src="/landing/community/devhacks-build.png" alt="Builders shipping together at DevHacks" />
+    </figure>
+  </article>
+
+  <div class="product-arrow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h12m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </div>
+
+  <article class="product-step product-step--prove">
+    <div class="product-step__label">
+      <p class="product-step__meta">02 &mdash; Prove</p>
+      <p class="product-step__support">Projects, collaboration and agent traces</p>
+    </div>
+    <div class="product-signals">
+      {signals.map((signal) => (
+        <div class:list={["product-signal", `product-signal--${signal.id}`]}>
+          {signal.id === "projects" ? (
+            <img src={signal.src} alt="" />
+          ) : signal.id === "collab" ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <circle cx="8" cy="8" r="2.4"></circle>
+              <circle cx="16" cy="8" r="2.4"></circle>
+              <path d="M4.5 18c.6-2.4 2.4-3.6 3.5-3.6s2.9 1.2 3.5 3.6M12.5 18c.6-2.4 2.4-3.6 3.5-3.6s2.9 1.2 3.5 3.6" stroke-linecap="round"></path>
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M5 17V7m4 10V11m4 6V9m4 8V5" stroke-linecap="round"></path>
+            </svg>
+          )}
+          <span>{signal.label}</span>
         </div>
       ))}
     </div>
   </article>
 
-  <article class="product-bento__panel product-bento__community">
-    <div class="product-community">
-      <div class="product-community__card product-community__card--primary">
-        <div class="product-community__avatars">
-          {communityFaces.map((face) => (
-            <img src={face} alt="" />
-          ))}
-        </div>
-        <p>Build with Devlabs</p>
-      </div>
-      <div class="product-community__arrow" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none">
-          <path d="M12 5v12m0 0-4-4m4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </div>
-      <div class="product-community__card product-community__card--secondary">
-        <p>Ship projects. Build proof. Get hired.</p>
-      </div>
-    </div>
-  </article>
+  <div class="product-arrow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h12m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </div>
 
-  <article class="product-bento__panel product-bento__demo">
-    <div class="product-demo__label">Recommendations engine</div>
-    <div class="product-demo__screen">
-      <img src="/pitch-deck/recommendations-demo.png" alt="Recommendations panel showing matched builders and why-hire evidence" loading="eager" />
+  <article class="product-step product-step--hire">
+    <div class="product-step__label">
+      <p class="product-step__meta">03 &mdash; Hire</p>
+      <p class="product-step__support">Ranked builders with why-hire evidence</p>
     </div>
+    <article class="product-hire deck-card">
+      <header class="product-hire__header">
+        <img src="/landing/builders/aakash.jpg" alt="" />
+        <div>
+          <h3>Aakash K.</h3>
+          <p>Full-stack · DevHacks winner</p>
+        </div>
+      </header>
+
+      <div class="product-hire__why">
+        <p>Why hire</p>
+        <blockquote>
+          Shipped 3 production apps. Public GitHub proof on every project. Won DevHacks SF.
+        </blockquote>
+      </div>
+
+      <div class="product-hire__evidence">
+        <p>Shipped projects</p>
+        <strong>11 projects with public proof links</strong>
+        <div>
+          <span>GraphGuard</span>
+          <span>python</span>
+          <span>go</span>
+        </div>
+      </div>
+
+      <footer class="product-hire__actions">
+        <span class="product-hire__trace">Unlock trace</span>
+        <span class="product-hire__invite">Invite</span>
+      </footer>
+    </article>
   </article>
 </div>

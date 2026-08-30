@@ -1,46 +1,39 @@
 ---
+import "./deck-shared.css";
 import "./cover.css";
 import "./problem-slide.css";
-import "./solution-slide.css";
 import "./story-slide.css";
 import "./product-slide.css";
 import "./builder-criteria-slide.css";
 import "./testimonials-slide.css";
 import "./competitor-analysis.css";
 import "./pricing-slide.css";
+import "./growth-slide.css";
+import "./audience-slide.css";
+import "./competitive-advantage.css";
 import "./pitch-deck-typography.css";
-import ProductBento from "./ProductBento.astro";
 import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
 import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
-import AudienceCard from "./AudienceCard.astro";
-import Bar from "./Bar.astro";
-import DonutChart from "./DonutChart.astro";
-import Header from "./PitchDeckHeader.astro";
-import Icon from "./PitchDeckIcon.astro";
-import SolutionVisual from "./SolutionVisual.astro";
+import TargetAudience from "./TargetAudience.astro";
+import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
+import SolutionSearch from "./SolutionSearch.astro";
+
 const slides = [
   "The Future of hiring",
   "The problem",
-  "Our solution",
   "Our story",
-  "Product demo",
+  "The solution",
+  "The product",
   "What we look for",
   "Testimonials",
   "Competitor analysis",
   "Pricing",
-  "Platform growth",
-  "Audience segments",
+  "Target audience",
+  "Competitive advantage",
 ];
-
-const cardBase =
-  "absolute inset-0 overflow-hidden rounded-[8px] bg-[#fffaf6] text-[#fa862f] shadow-[0_1px_0_rgba(180,88,24,0.08)]";
-const metaClass = "text-[11px] font-semibold uppercase tracking-[0.22em] text-[#fa862f]/55";
-const brandClass = "flex items-center gap-2.5 text-[15px] font-semibold leading-none text-[#fa862f]";
-const panelGradient =
-  "bg-[linear-gradient(135deg,rgba(255,247,241,0.96)_0%,rgba(255,214,176,0.78)_54%,rgba(250,134,47,0.42)_100%)]";
 
 const storyPhotos = [
   { src: "/landing/community/devhacks-crowd.png", alt: "DevHacks crowd" },
@@ -51,14 +44,12 @@ const storyPhotos = [
   { src: "/events/DevHacks3.jpg", alt: "DevHacks builders" },
   { src: "/events/DevHacks6.jpg", alt: "DevHacks demo day" },
   { src: "/events/devhouse-sf.jpg", alt: "DevHouse SF" },
-  { src: "/events/devspace.webp", alt: "DevSpace community" },
+  { src: "/events/devhouse.png", alt: "DevHouse hangout" },
 ];
 
 const storyStats = [
-  { value: "2000+", label: "vetted builders in our talent pool" },
-  { value: "20", label: "events across AZ & SF" },
-  { value: "4", label: "companies hired from us" },
-  { value: "100K", label: "invested in events till now" },
+  { value: "20", label: "events across Arizona and San Francisco" },
+  { value: "$100K+", label: "invested in events" },
 ];
 
 const storySponsors = [
@@ -110,13 +101,26 @@ const problemQuotePool = [
   },
 ];
 
+const problemBottomRowLeadQuote = {
+  quote:
+    "Top talent doesn't cold apply — the best builders are already shipping, and you have to meet them where they build.",
+  name: "Tim He",
+  role: "Startup founder",
+  width: 432,
+};
+
 const repeatProblemQuotes = (quotes: typeof problemQuotePool, count: number) =>
   Array.from({ length: count }, (_, index) => quotes[index % quotes.length]!);
 
 const problemQuoteRows = [
   repeatProblemQuotes(problemQuotePool, 7),
-  repeatProblemQuotes([...problemQuotePool].reverse(), 7),
+  (() => {
+    const row = repeatProblemQuotes([...problemQuotePool].reverse(), 7);
+    row[0] = problemBottomRowLeadQuote;
+    return row;
+  })(),
 ];
+
 ---
 
 <div
@@ -149,7 +153,7 @@ const problemQuoteRows = [
         </header>
 
         <h1 class="cover-title">
-          <span>the <strong>future</strong></span>
+          <span>The <strong>future</strong></span>
           <span>of <em class="cover-accent">hiring</em></span>
         </h1>
 
@@ -160,12 +164,21 @@ const problemQuoteRows = [
       </section>
 
       <section class="pitch-slide problem-slide hidden" data-slide="2" aria-label={slides[1]}>
-        <div class="problem-layout">
-          <div class="problem-orbits" aria-hidden="true"></div>
-          <div class="problem-watermark" aria-hidden="true">
-            <img src="/logo.svg" alt="" />
+        <div class="problem-bg" aria-hidden="true">
+          <div class="problem-bg__base"></div>
+          <div class="problem-bg__signal-lens"></div>
+          <div class="problem-bg__scan-lines"></div>
+          <div class="problem-bg__inbox-stack">
+            <span class="problem-bg__doc problem-bg__doc--back"></span>
+            <span class="problem-bg__doc problem-bg__doc--mid"></span>
+            <span class="problem-bg__doc problem-bg__doc--front"></span>
           </div>
+          <div class="problem-bg__stack-fade"></div>
+          <div class="problem-bg__grain"></div>
+          <div class="problem-bg__fade"></div>
+        </div>
 
+        <div class="problem-layout">
           <header class="problem-header">
             <div class="cover-brand deck-brand-lockup">
               <img src="/logo.svg" alt="" />
@@ -189,8 +202,14 @@ const problemQuoteRows = [
             {problemQuoteRows.map((row, rowIndex) => (
               <div class:list={["problem-quotes-track", rowIndex === 1 && "problem-quotes-track--stagger"]}>
                 <div class="problem-quotes-row" style={`--row-lead-width: ${row[0]?.width ?? 280}px`}>
-                  {row.map((item) => (
-                    <article class="problem-quote" style={`--quote-width: ${item.width}px`}>
+                  {row.map((item, cardIndex) => (
+                    <article
+                      class:list={[
+                        "problem-quote",
+                        cardIndex % 2 === 0 ? "problem-quote--white" : "problem-quote--orange",
+                      ]}
+                      style={`--quote-width: ${item.width}px`}
+                    >
                       <span class="problem-quote__mark" aria-hidden="true">&ldquo;</span>
                       <blockquote class="problem-quote__text">{item.quote}</blockquote>
                       <footer class="problem-quote__author">
@@ -206,74 +225,27 @@ const problemQuoteRows = [
         </div>
       </section>
 
-      <section class="pitch-slide solution-slide hidden" data-slide="3" aria-label={slides[2]}>
-        <div class="solution-layout">
-          <div class="solution-copy">
-            <header class="solution-header">
-              <div class="solution-brand deck-brand-lockup">
-                <img src="/logo.svg" alt="" />
-                <span>Devlabs</span>
-              </div>
-              <p class="solution-meta"><i></i> Pitch Deck</p>
-            </header>
-
-            <p class="solution-eyebrow">Our solution</p>
-            <h1 class="solution-title">Proof over <em>resume hell.</em></h1>
-            <p class="solution-lead">
-              At Devlabs, we connect <strong>vetted builders</strong> with startups — based on their
-              <strong>proof of work</strong>.
-            </p>
-
-            <ul class="solution-points">
-              <li class="solution-point">
-                <div class="solution-point__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M12 3l2.2 6.8H21l-5.5 4 2.1 6.7L12 16.4 6.4 20.5l2.1-6.7L3 9.8h6.8L12 3z"></path>
-                  </svg>
-                </div>
-                <p>Builders shipping at hackathons and hacker houses</p>
-              </li>
-              <li class="solution-point">
-                <div class="solution-point__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M4 20h16M6 20V8l6-4 6 4v12M10 12h4v8h-4v-8z"></path>
-                  </svg>
-                </div>
-                <p>Startups looking for their first technical hires</p>
-              </li>
-              <li class="solution-point">
-                <div class="solution-point__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M7 7h10v10H7zM4 4h16v16H4zM9 12h6M12 9v6"></path>
-                  </svg>
-                </div>
-                <p>Devlabs brings them together with real proof, not PDFs</p>
-              </li>
-            </ul>
-          </div>
-
-          <SolutionVisual />
-        </div>
-      </section>
-
-      <section class="pitch-slide story-slide hidden" data-slide="4" aria-label={slides[3]}>
-        <div class="story-watermark" aria-hidden="true">
-          <img src="/logo.svg" alt="" />
+      <section class="pitch-slide story-slide hidden" data-slide="3" aria-label={slides[2]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
         </div>
 
         <div class="story-content">
           <header class="story-header">
-            <div class="story-brand deck-brand-lockup">
-              <img src="/logo.svg" alt="" />
-              <span>Devlabs</span>
-            </div>
-            <p class="story-meta"><i></i> Pitch Deck</p>
+            <p class="story-meta"><i></i> Our story</p>
           </header>
 
           <StoryPolaroids photos={storyPhotos} />
 
           <div class="story-main">
-            <h1 class="story-title">Our story</h1>
+            <h1 class="story-lead">
+              We built the <em class="deck-accent">community</em> before the hiring platform.
+            </h1>
+            <p class="story-subtitle">Then startups started hiring our builders.</p>
             <div class="story-stats">
               {storyStats.map((stat) => (
                 <article class="story-stat">
@@ -284,7 +256,7 @@ const problemQuoteRows = [
             </div>
           </div>
 
-          <footer class="story-sponsors">
+          <footer class="story-sponsors deck-banner">
             <p class="story-supported">supported by</p>
             <div class="story-logos">
               {storySponsors.map((sponsor) => (
@@ -295,91 +267,154 @@ const problemQuoteRows = [
         </div>
       </section>
 
-      <section class="pitch-slide product-slide hidden" data-slide="5" aria-label={slides[4]}>
-        <div class="product-layout">
-          <aside class="product-copy">
+      <section class="pitch-slide sol-slide hidden" data-slide="4" aria-label={slides[3]}>
+        <div class="sol-field" aria-hidden="true">
+          <img class="sol-field__hero" src="/landing/community/devhacks-crowd.png" alt="" />
+          <div class="sol-field__wash"></div>
+          <div class="sol-field__moments">
+            <figure class="sol-moment">
+              <img src="/landing/community/devhacks-build.png" alt="" />
+              <figcaption>DevHacks</figcaption>
+            </figure>
+            <figure class="sol-moment">
+              <img src="/landing/community/devhouse-circle.png" alt="" />
+              <figcaption>DevHouse</figcaption>
+            </figure>
+            <figure class="sol-moment">
+              <img src="/landing/community/devspace-talk.png" alt="" />
+              <figcaption>build nights</figcaption>
+            </figure>
+            <figure class="sol-moment">
+              <img src="/events/devhouse-sf.jpg" alt="" />
+              <figcaption>DevHouse SF</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <header class="sol-chrome deck-slide-header">
+          <div class="deck-brand-lockup">
+            <img src="/logo.svg" alt="" />
+            <span>Devlabs</span>
+          </div>
+          <p class="deck-slide-meta"><i></i> The solution</p>
+        </header>
+
+        <div class="sol-stage">
+          <div class="sol-copy">
+            <h1>
+              The hire was already
+              <span>in the <em>room.</em></span>
+            </h1>
+            <p class="sol-narrative">We watch them ship at events. Then we hire from that proof.</p>
+          </div>
+
+          <SolutionSearch />
+
+          <footer class="sol-rail">
+            <p class="sol-rail__path">
+              from the event <i></i> the proof <i></i> the hire
+            </p>
+            <p class="sol-rail__stats">
+              <strong>20</strong> events
+              <span>·</span>
+              <strong>4</strong> hires
+            </p>
+          </footer>
+        </div>
+      </section>
+
+      <section class="pitch-slide product-reveal-slide hidden" data-slide="5" aria-label={slides[4]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+
+        <div class="product-reveal">
+          <header class="product-header deck-slide-header">
             <div class="product-copy__brand deck-brand-lockup">
               <img src="/logo.svg" alt="" />
               <span>Devlabs</span>
             </div>
-            <p class="product-copy__eyebrow">Product demo</p>
-            <h1>Hire engineers based on what they&rsquo;ve built.</h1>
-            <p class="product-copy__lead">
-              Devlabs matches founders with proven builders using their projects, hackathon performance, and coding activity.
-            </p>
-            <div class="product-copy__points">
-              <article class="product-copy__point">
-                <span>01</span>
-                <div>
-                  <h2>Collect the proof</h2>
-                  <p>GitHub, hackathons, projects, and AI coding tools.</p>
-                </div>
-              </article>
-              <article class="product-copy__point">
-                <span>02</span>
-                <div>
-                  <h2>Match the right builders</h2>
-                  <p>Our agent finds builders whose work fits the role.</p>
-                </div>
-              </article>
-              <article class="product-copy__point">
-                <span>03</span>
-                <div>
-                  <h2>See why. Then invite.</h2>
-                  <p>Review the evidence and reach out directly.</p>
-                </div>
-              </article>
+            <p class="deck-slide-meta"><i></i> The product</p>
+          </header>
+
+          <div class="product-reveal-copy">
+            <h1>Tell us who you need. See who has already <em class="deck-accent">proved it.</em></h1>
+            <p>ranked builders, clear why-hire evidence, and the proof behind every recommendation.</p>
+          </div>
+
+          <div class="product-reveal-stage">
+            <div class="product-reveal-shot deck-card">
+              <img
+                src="/pitch-deck/product-agent-demo.png"
+                alt="Devlabs agent conversation and ranked builder recommendations for a founding software engineer role"
+              />
             </div>
-          </aside>
-          <ProductBento />
+            <p class="product-reveal-note">describe the role in chat — matches arrive with proof attached</p>
+          </div>
         </div>
       </section>
 
       <section class="pitch-slide builder-criteria-slide hidden" data-slide="6" aria-label={slides[5]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
         <BuilderCriteria />
       </section>
 
       <section class="pitch-slide testimonials-slide hidden" data-slide="7" aria-label={slides[6]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
         <TestimonialsSlide />
       </section>
 
       <section class="pitch-slide competitor-slide hidden" data-slide="8" aria-label={slides[7]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
         <CompetitorAnalysis />
       </section>
 
       <section class="pitch-slide pricing-slide hidden" data-slide="9" aria-label={slides[8]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
         <PricingSlide />
       </section>
 
-      <section class:list={[cardBase, "pitch-slide hidden"]} data-slide="10" aria-label={slides[9]}>
-        <Header />
-        <p class="absolute left-[72px] top-[378px] w-[310px] text-[38px] font-medium leading-[1.14] tracking-[-0.04em]">
-          User Growth by<br />any Platform<br />Consistent gains<br />Adoption:
-        </p>
-        <p class={metaClass + " absolute bottom-[72px] left-[72px]"}>2026 PLAN INTRO</p>
-        <div class="absolute left-[678px] top-[86px] z-10 w-[150px] rounded-[13px] bg-white p-[18px] shadow-[0_16px_40px_rgba(250,134,47,0.08)]">
-          <div class="mb-[28px] grid h-[64px] w-[64px] place-items-center rounded-[13px] bg-[linear-gradient(135deg,#fa862f,#ffc48a)] text-white">
-            <Icon kind="trend" className="h-9 w-9" />
-          </div>
-          <p class="text-[16px] font-medium leading-[1.1] text-[#fa862f]/80">Multi-Platform<br />Adoption</p>
+      <section class="pitch-slide growth-slide hidden" data-slide="10" aria-label={slides[9]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
         </div>
-        <div class="absolute bottom-[66px] right-[62px] top-[212px] w-[820px]">
-          <div class="absolute left-0 right-0 top-[120px] border-t border-dashed border-[#fa862f]/45"></div>
-          <div class="absolute left-0 right-0 top-[265px] border-t border-dashed border-[#fa862f]/45"></div>
-          <div class="absolute left-0 right-0 top-[410px] border-t border-dashed border-[#fa862f]/45"></div>
-          <Bar className="left-[80px] h-[150px]" label="+12%" icon="laptop" />
-          <Bar className="left-[365px] h-[300px]" label="+16%" icon="apple" />
-          <Bar className="right-[10px] h-[455px]" label="+21%" icon="android" />
-        </div>
+        <TargetAudience />
       </section>
 
-      <section class:list={[cardBase, "pitch-slide hidden"]} data-slide="11" aria-label={slides[10]}>
-        <Header />
-        <div class="absolute inset-x-[70px] bottom-[116px] top-[170px]">
-          <AudienceCard className="left-[0px] top-[0px]" number="01" icon="laptop" lines={["The Digital-First", "Generation. Targeting", "young specialists"]} />
-          <AudienceCard className="left-[610px] top-[164px]" number="02" icon="clipboard" lines={["Tailored solutions for", "large-scale hospital", "groups and private clinics."]} />
-          <AudienceCard className="right-[0px] top-[322px]" number="03" icon="globe" lines={["Standarizing AI", "healthcare protocols", "international medical"]} />
-        </div>
+      <section class="pitch-slide advantage-slide hidden" data-slide="11" aria-label={slides[10]}>
+        <CompetitiveAdvantage />
       </section>
     </div>
   </div>
@@ -403,7 +438,6 @@ const problemQuoteRows = [
     Arrow keys to present
   </p>
 </div>
-
 
 <script is:inline>
   const slideWidth = 1600;

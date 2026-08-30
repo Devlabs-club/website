@@ -1,0 +1,86 @@
+---
+const featured = [
+  {
+    n: "01",
+    title: "Event-led sourcing",
+    body: "Hackathons, hacker houses and build nights—not cold applications.",
+  },
+  {
+    n: "02",
+    title: "Proof before profiles",
+    body: "We watch them code, collaborate and ship before we recommend.",
+  },
+];
+
+const rest = [
+  { n: "03", title: "Proof-backed signals" },
+  { n: "04", title: "Curated shortlists" },
+  { n: "05", title: "Existing builder network" },
+  { n: "06", title: "We create the signal" },
+];
+
+const metrics = [
+  { value: "2,000+", label: "vetted builders" },
+  { value: "20", label: "events in AZ & SF" },
+  { value: "4", label: "companies hired" },
+  { value: "$100K", label: "invested in events" },
+];
+
+const partners = [
+  { name: "Stripe", src: "/sponsors/momentum/stripe.png" },
+  { name: "Google DeepMind", src: "/sponsors/deepmind.png" },
+  { name: "Dodo Payments", src: "/sponsors/momentum/dodo_payments.svg" },
+  { name: "Browser Use", src: "/sponsors/browser-use.png" },
+  { name: "Supermemory", src: "/sponsors/supermemory.png" },
+];
+---
+
+<section class="advantage">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Competitive advantage</p>
+  </header>
+
+  <div class="advantage__intro">
+    <h1>Our advantage starts before a builder applies</h1>
+    <p>Competitors search for talent. Devlabs creates the signal that identifies it.</p>
+  </div>
+
+  <div class="advantage-lead">
+    {featured.map((item) => (
+      <article class="advantage-lead__card">
+        <p class="advantage-card__n">{item.n}</p>
+        <h2>{item.title}</h2>
+        <p>{item.body}</p>
+      </article>
+    ))}
+  </div>
+
+  <div class="advantage-rest">
+    {rest.map((item) => (
+      <article class="advantage-rest__item">
+        <b>{item.n}</b>
+        <h2>{item.title}</h2>
+      </article>
+    ))}
+  </div>
+
+  <div class="advantage-foot">
+    <div class="advantage-facts">
+      {metrics.map((metric) => (
+        <div class="advantage-metric">
+          <strong>{metric.value}</strong>
+          <span>{metric.label}</span>
+        </div>
+      ))}
+    </div>
+    <div class="advantage-logos">
+      {partners.map((partner) => (
+        <img src={partner.src} alt={partner.name} />
+      ))}
+    </div>
+  </div>
+</section>

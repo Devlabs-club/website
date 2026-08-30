@@ -5,292 +5,156 @@
   height: 900px;
   overflow: hidden;
   border-radius: 28px;
-  background:
-    radial-gradient(circle at 81% 22%, rgba(250, 134, 47, 0.12), transparent 32%),
-    radial-gradient(circle at 14% 89%, rgba(255, 207, 155, 0.2), transparent 36%),
-    linear-gradient(180deg, #fffdf9 0%, #faf7f0 100%);
+  background: transparent;
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
 
-#pitchDeck .competitor-slide * {
-  box-sizing: border-box;
-}
-
 #pitchDeck .competitor-analysis {
   position: relative;
+  z-index: 2;
   display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
-  flex-direction: column;
-  padding: 44px 56px 48px;
-}
-
-#pitchDeck .competitor-analysis::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(250, 134, 47, 0.032) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(250, 134, 47, 0.028) 1px, transparent 1px);
-  background-size: 72px 72px;
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-#pitchDeck .competitor-analysis__watermark {
-  position: absolute;
-  right: -44px;
-  top: 72px;
-  width: 520px;
-  height: 520px;
-  opacity: 0.03;
-  pointer-events: none;
-}
-
-#pitchDeck .competitor-analysis__watermark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: sepia(1) saturate(2.5) hue-rotate(342deg);
+  padding: 40px 64px 44px;
 }
 
 #pitchDeck .competitor-analysis__header {
-  position: relative;
-  z-index: 2;
-  display: grid;
   flex-shrink: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-  align-items: end;
-  gap: 48px;
-  margin-bottom: 22px;
+  margin-bottom: 56px;
 }
 
-#pitchDeck .competitor-analysis__brand {
-  margin-bottom: 14px;
+#pitchDeck .competitor-analysis__top {
+  margin-bottom: 22px;
 }
 
 #pitchDeck .competitor-analysis__header h1 {
   margin: 0;
-  max-width: 680px;
-  color: #100b09;
-  font-size: 46px;
-  font-weight: 500;
-  line-height: 1.04;
-  letter-spacing: -0.058em;
-  text-transform: lowercase;
+  max-width: none;
+  color: #130a07;
+  font-size: 56px;
+  white-space: nowrap;
 }
 
-#pitchDeck .competitor-analysis__header > p {
-  margin: 0 0 6px;
-  color: rgba(16, 11, 9, 0.52);
-  font-size: 18px;
-  font-weight: 300;
-  line-height: 1.38;
-  letter-spacing: -0.03em;
-}
-
-#pitchDeck .competitor-table {
+#pitchDeck .competitor-matrix {
+  --label-w: 300px;
   position: relative;
-  z-index: 2;
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 22px;
-  border: 1px solid rgba(20, 14, 10, 0.08);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow:
-    0 28px 70px rgba(27, 16, 10, 0.09),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
-}
-
-#pitchDeck .competitor-table__row {
   display: grid;
   flex: 1;
-  grid-template-columns: 196px repeat(4, minmax(0, 1fr)) 212px;
+  grid-template-columns: var(--label-w) repeat(5, minmax(0, 1fr));
+  grid-template-rows: 108px repeat(6, minmax(0, 1fr));
   min-height: 0;
-  border-bottom: 1px solid rgba(20, 14, 10, 0.07);
 }
 
-#pitchDeck .competitor-table__row:last-child {
-  border-bottom: 0;
+#pitchDeck .competitor-matrix__highlight {
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  left: calc(var(--label-w) + 10px);
+  width: calc((100% - var(--label-w)) / 5 - 20px);
+  pointer-events: none;
 }
 
-#pitchDeck .competitor-table__row--head {
-  flex: 0 0 72px;
-  min-height: 72px;
-  max-height: 72px;
-  background:
-    linear-gradient(90deg, rgba(250, 134, 47, 0.08), transparent 42%),
-    rgba(255, 250, 245, 0.88);
+#pitchDeck .competitor-matrix__corner,
+#pitchDeck .competitor-matrix__logo,
+#pitchDeck .competitor-matrix__factor,
+#pitchDeck .competitor-matrix__mark {
+  position: relative;
+  z-index: 1;
 }
 
-#pitchDeck .competitor-table__row:not(.competitor-table__row--head):nth-child(odd) {
-  background: rgba(255, 250, 245, 0.42);
+#pitchDeck .competitor-matrix__factor,
+#pitchDeck .competitor-matrix__mark {
+  border-bottom: 1px solid rgba(20, 14, 10, 0.08);
 }
 
-#pitchDeck .competitor-table__factor,
-#pitchDeck .competitor-table__company,
-#pitchDeck .competitor-table__cell {
-  min-width: 0;
-  border-right: 1px solid rgba(20, 14, 10, 0.055);
-}
-
-#pitchDeck .competitor-table__factor {
+#pitchDeck .competitor-matrix__factor {
   display: flex;
   align-items: center;
-  padding: 8px 14px;
-  background: rgba(255, 246, 239, 0.5);
-  color: rgba(16, 11, 9, 0.88);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.25;
+  padding-right: 24px;
+  color: rgba(16, 11, 9, 0.72);
+  font-size: 18px;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
-#pitchDeck .competitor-table__row--head .competitor-table__factor {
-  align-items: center;
-  color: rgba(16, 11, 9, 0.4);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-#pitchDeck .competitor-table__company {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 8px 6px;
-  text-align: center;
-}
-
-#pitchDeck .competitor-table__company strong {
-  color: rgba(16, 11, 9, 0.82);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-}
-
-#pitchDeck .competitor-table__logo {
+#pitchDeck .competitor-matrix__logo {
   display: grid;
   place-items: center;
-  width: 100%;
-  max-width: 100%;
-  height: 24px;
 }
 
-#pitchDeck .competitor-table__logo img {
+#pitchDeck .competitor-matrix__logo span {
+  display: grid;
+  place-items: center;
+}
+
+#pitchDeck .competitor-matrix__logo img {
   display: block;
-  max-width: 100%;
-  max-height: 24px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
 }
 
-#pitchDeck .competitor-table__company--linkedin .competitor-table__logo img {
-  width: 22px;
-  height: 22px;
+#pitchDeck .competitor-matrix__logo--linkedin img {
+  width: 44px;
+  height: 44px;
 }
 
-#pitchDeck .competitor-table__company--rightfit .competitor-table__logo img {
-  max-width: 72px;
+#pitchDeck .competitor-matrix__logo--wellfound img {
+  width: 104px;
+  height: auto;
 }
 
-#pitchDeck .competitor-table__company--juicebox .competitor-table__logo img {
-  max-width: 88px;
+#pitchDeck .competitor-matrix__logo--juicebox img {
+  width: 108px;
+  height: auto;
 }
 
-#pitchDeck .competitor-table__company--wellfound .competitor-table__logo img {
-  max-width: 92px;
+#pitchDeck .competitor-matrix__logo--rightfit img {
+  width: 52px;
+  height: auto;
 }
 
-#pitchDeck .competitor-table__company--devlabs,
-#pitchDeck .competitor-table__cell--devlabs {
-  background:
-    radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.58), transparent 34%),
-    linear-gradient(180deg, rgba(250, 134, 47, 0.22), rgba(250, 134, 47, 0.1));
+#pitchDeck .competitor-matrix__logo--devlabs img {
+  width: 48px;
+  height: 48px;
+  filter: brightness(0) invert(1);
 }
 
-#pitchDeck .competitor-table__company--devlabs {
-  border-left: 1px solid rgba(250, 134, 47, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+#pitchDeck .competitor-matrix__mark.is-featured {
+  border-bottom-color: rgba(255, 255, 255, 0.18);
 }
 
-#pitchDeck .competitor-table__company--devlabs .competitor-table__logo img {
+#pitchDeck .competitor-matrix__mark.is-featured i {
+  background: rgba(255, 255, 255, 0.96);
+  color: #e8741f;
+  box-shadow: 0 6px 16px rgba(16, 11, 9, 0.08);
+}
+
+#pitchDeck .competitor-matrix__mark {
+  display: grid;
+  place-items: center;
+}
+
+#pitchDeck .competitor-matrix__mark i {
+  display: grid;
+  place-items: center;
   width: 28px;
   height: 28px;
+  border-radius: 50%;
+  background: #8fbf4a;
+  color: #14320a;
 }
 
-#pitchDeck .competitor-table__company--devlabs strong {
-  color: #d86412;
+#pitchDeck .competitor-matrix__mark i svg {
+  width: 14px;
+  height: 14px;
 }
 
-#pitchDeck .competitor-table__cell {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 10px;
-  color: rgba(16, 11, 9, 0.62);
-  text-align: center;
-}
-
-#pitchDeck .competitor-table__cell p {
-  margin: 0;
-  min-width: 0;
-  font-size: 12.5px;
+#pitchDeck .competitor-matrix__mark b {
+  color: rgba(16, 11, 9, 0.28);
+  font-size: 22px;
   font-weight: 400;
-  line-height: 1.32;
-  letter-spacing: -0.02em;
-  overflow-wrap: anywhere;
-  hyphens: auto;
-}
-
-#pitchDeck .competitor-table__cell--devlabs {
-  justify-content: flex-start;
-  padding-inline: 12px;
-  text-align: left;
-}
-
-#pitchDeck .competitor-table__cell--devlabs p {
-  color: rgba(16, 11, 9, 0.92);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.28;
-}
-
-#pitchDeck .competitor-table__cell--check {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  align-items: start;
-  justify-content: stretch;
-  gap: 8px;
-  padding-block: 10px;
-}
-
-#pitchDeck .competitor-table__check {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  margin-top: 1px;
-  border-radius: 999px;
-  background: rgba(250, 134, 47, 0.14);
-  color: #d86412;
-  font-size: 12px;
-  font-weight: 700;
   line-height: 1;
-}
-
-#pitchDeck .competitor-table__cell--check p {
-  text-align: left;
-}
-
-#pitchDeck .competitor-table__row > :last-child {
-  border-right: 0;
 }

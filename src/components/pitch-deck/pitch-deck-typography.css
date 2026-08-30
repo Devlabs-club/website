@@ -1,13 +1,5 @@
-@import url("https://api.fontshare.com/v2/css?f[]=open-sauce-sans@300,400,500,600,700,800&display=swap");
-
 #pitchDeck {
-  font-family:
-    "Open Sauce Sans",
-    "Open Sauce",
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font-family: Manrope, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -16,12 +8,22 @@
   font-family: inherit;
 }
 
+#pitchDeck em,
+#pitchDeck .cover-accent,
+#pitchDeck .deck-accent,
+#pitchDeck .builder-criteria__title em,
+#pitchDeck .builder-criteria__highlight {
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+}
+
 #pitchDeck .deck-brand-lockup {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 12px;
   color: #100b09;
-  font-size: 31px;
+  font-size: 22px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -30,8 +32,8 @@
 
 #pitchDeck .deck-brand-lockup img {
   display: block;
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   filter: drop-shadow(0 0 10px rgba(250, 134, 47, 0.18));
 }
@@ -76,39 +78,33 @@
   text-transform: uppercase;
 }
 
-/* Hero headlines — lowercase, heavy */
-#pitchDeck .cover-title {
-  font-weight: 400;
-  text-transform: lowercase;
+#pitchDeck .cover-title,
+#pitchDeck .problem-headline,
+#pitchDeck .story-lead,
+#pitchDeck .solution-title,
+#pitchDeck .sol-slide h1,
+#pitchDeck .product-slide .product-intro h1,
+#pitchDeck .product-reveal-slide .product-reveal-copy h1,
+#pitchDeck .builder-criteria-slide .builder-criteria__title,
+#pitchDeck .testimonials__intro h1,
+#pitchDeck .competitor-analysis__header h1,
+#pitchDeck .pricing-slide__intro h1,
+#pitchDeck .growth-slide .target-copy h1,
+#pitchDeck .advantage-slide .advantage__intro h1 {
+  font-family: Manrope, system-ui, sans-serif;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.065em;
+  text-transform: none;
 }
 
 #pitchDeck .cover-title strong {
-  font-weight: 400;
+  font-weight: 500;
 }
 
 #pitchDeck .cover-accent {
-  font-weight: 500;
-  text-transform: lowercase;
-}
-
-#pitchDeck .problem-headline,
-#pitchDeck .solution-title,
-#pitchDeck .story-title,
-#pitchDeck .product-copy h1 {
-  text-transform: lowercase;
-}
-
-#pitchDeck .problem-headline {
-  font-weight: 800;
-}
-
-#pitchDeck .solution-title {
-  font-weight: 700;
-}
-
-#pitchDeck .story-title,
-#pitchDeck .product-copy h1 {
-  font-weight: 800;
+  font-weight: 400;
+  text-transform: none;
 }
 
 /* Subtitles & supporting copy — lowercase, regular */
@@ -169,9 +165,12 @@
 }
 
 #pitchDeck .builder-criteria__headline-strong,
-#pitchDeck .builder-criteria__highlight,
 #pitchDeck .builder-criteria__banner-strong {
   font-weight: 800;
+}
+
+#pitchDeck .builder-criteria__highlight {
+  font-weight: 400;
 }
 
 #pitchDeck .builder-criteria__headline-muted,
@@ -215,14 +214,14 @@
   align-items: center;
   width: fit-content;
   flex: 0 0 auto;
-  gap: 18px;
+  gap: 12px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   color: #100b09;
-  font-size: 31px;
+  font-size: 22px;
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -231,8 +230,8 @@
 
 #pitchDeck .deck-brand-lockup.deck-brand-lockup img {
   display: block;
-  width: 50px;
-  height: 50px;
+  width: 36px;
+  height: 36px;
   max-width: none;
   max-height: none;
   object-fit: contain;

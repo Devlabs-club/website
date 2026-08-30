@@ -51,19 +51,19 @@ const plans = [
 ];
 ---
 
-<section class="pricing-slide__content">
-  <div class="pricing-slide__watermark" aria-hidden="true">Pricing</div>
-
-  <header class="pricing-slide__header">
-    <div class="pricing-slide__copy">
-      <div class="pricing-slide__brand deck-brand-lockup">
-        <img src="/logo.svg" alt="" />
-        <span>Devlabs</span>
-      </div>
-      <h1>a bad early hire costs more than money</h1>
+<section class="pricing-slide__content deck-slide-layout">
+  <header class="pricing-slide__header deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
     </div>
-    <p>Simple pricing for proving who can build before you spend months screening.</p>
+    <p class="deck-slide-meta"><i></i> Pricing</p>
   </header>
+
+  <div class="pricing-slide__intro">
+    <h1>A bad early hire costs more than money</h1>
+    <p>Simple pricing for proving who can build before you spend months screening.</p>
+  </div>
 
   <div class="pricing-grid">
     {plans.map((plan) => (

@@ -5,453 +5,431 @@
   height: 900px;
   overflow: hidden;
   border-radius: 28px;
-  background:
-    radial-gradient(ellipse 82% 62% at 50% 100%, rgba(250, 134, 47, 0.1), transparent 66%),
-    linear-gradient(180deg, #fffdf9 0%, #faf8f4 100%);
+  background: transparent;
   color: #100b09;
-  font-family:
-    "Inter",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
-}
-
-#pitchDeck .solution-slide * {
-  font-family: inherit;
 }
 
 #pitchDeck .solution-layout {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 760px 1fr;
+  grid-template-rows: auto 1fr;
   height: 100%;
+  padding: 44px 64px 46px;
+  gap: 22px;
+}
+
+#pitchDeck .solution-body {
+  display: grid;
+  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  gap: 64px;
+  min-height: 0;
+  align-items: stretch;
 }
 
 #pitchDeck .solution-copy {
   display: flex;
   flex-direction: column;
-  padding: 48px 56px 56px 72px;
-}
-
-#pitchDeck .solution-brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: #100b09;
-}
-
-#pitchDeck .solution-brand img {
-  width: 38px;
-  height: 38px;
-  object-fit: contain;
-}
-
-#pitchDeck .solution-slide .solution-brand span {
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  text-transform: none;
-}
-
-#pitchDeck .solution-slide .solution-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 0 0 auto;
-  font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: rgba(16, 11, 9, 0.48);
-  text-transform: none;
-}
-
-#pitchDeck .solution-meta i {
-  display: block;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #fa862f;
-  box-shadow: 0 0 10px rgba(250, 134, 47, 0.55);
-}
-
-#pitchDeck .solution-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-#pitchDeck .solution-eyebrow {
-  margin: 52px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #fa862f;
+  justify-content: flex-start;
+  min-height: 0;
+  padding-top: 112px;
+  padding-right: 8px;
 }
 
 #pitchDeck .solution-slide .solution-title {
-  margin: 18px 0 0;
-  max-width: 620px;
-  font-size: 76px;
-  font-weight: 400;
-  line-height: 0.98;
-  letter-spacing: -0.07em;
+  margin: 0;
+  max-width: 410px;
+  font-size: 62px;
   color: #100b09;
-  text-transform: none;
 }
 
 #pitchDeck .solution-title em {
+  font-family: Manrope, system-ui, sans-serif;
   font-style: normal;
-  background: linear-gradient(110deg, #e56e16 0%, #fa862f 48%, #ffb347 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-weight: 400;
+  color: #fa862f;
 }
 
 #pitchDeck .solution-slide .solution-lead {
-  margin: 28px 0 0;
-  max-width: 580px;
-  font-size: 24px;
+  margin: 24px 0 0;
+  max-width: 400px;
+  font-size: 19px;
   font-weight: 300;
   line-height: 1.46;
-  letter-spacing: -0.018em;
+  letter-spacing: -0.02em;
   color: rgba(16, 11, 9, 0.58);
-  text-transform: none;
 }
 
 #pitchDeck .solution-slide .solution-lead strong {
-  font-weight: 500;
+  font-weight: 600;
   color: #100b09;
 }
 
 #pitchDeck .solution-points {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin: 36px 0 0;
+  gap: 18px;
+  margin: 46px 0 0;
   padding: 0;
   list-style: none;
 }
 
 #pitchDeck .solution-point {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 18px;
-  padding: 18px 22px;
-  border-radius: 18px;
-  border: 1px solid rgba(20, 14, 10, 0.06);
-  background: rgba(244, 243, 241, 0.78);
-  box-shadow:
-    0 12px 30px rgba(21, 14, 8, 0.045),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  max-width: 410px;
 }
 
-#pitchDeck .solution-point__icon {
-  display: grid;
+#pitchDeck .solution-point span {
+  display: inline-grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #fff4ea 0%, #ffd9b8 100%);
-  box-shadow:
-    0 0 0 1px rgba(250, 134, 47, 0.14),
-    0 10px 24px rgba(250, 134, 47, 0.14);
+  border-radius: 12px;
+  background: rgba(250, 134, 47, 0.1);
   color: #fa862f;
-}
-
-#pitchDeck .solution-point__icon svg {
-  width: 24px;
-  height: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 #pitchDeck .solution-slide .solution-point p {
   margin: 0;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.28;
+  line-height: 1.32;
   letter-spacing: -0.02em;
-  color: #100b09;
-  text-transform: none;
+  color: rgba(16, 11, 9, 0.64);
+  text-transform: lowercase;
 }
+
+/* ── Solution visual funnel ── */
 
 #pitchDeck .solution-visual {
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 24% 14%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 34%),
-    linear-gradient(101deg, #ffd3bb 0%, #ffd0a5 29%, #ffba78 57%, #fa862f 100%);
-}
-
-#pitchDeck .solution-visual__glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 44%);
-}
-
-#pitchDeck .solution-panel {
-  position: relative;
-  z-index: 1;
   display: flex;
-  flex-direction: column;
+  min-height: 0;
+  height: 100%;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  padding: 56px 42px;
 }
 
-#pitchDeck .solution-flow {
+#pitchDeck .solution-visual__frame {
   position: relative;
+  display: flex;
+  width: min(100%, 840px);
+  height: 100%;
+  max-height: 700px;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 30px 24px;
+  overflow: hidden;
+  border-radius: 30px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background:
+    radial-gradient(ellipse 58% 44% at 50% 46%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 249, 243, 0.54) 45%, transparent 72%),
+    radial-gradient(ellipse 66% 50% at 50% 34%, rgba(250, 134, 47, 0.1) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 251, 247, 0.72) 100%);
+  box-shadow:
+    0 26px 74px rgba(58, 30, 14, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+#pitchDeck .solution-visual__frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(250, 134, 47, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(250, 134, 47, 0.06) 1px, transparent 1px);
+  background-size: 58px 58px;
+  opacity: 0.42;
+  mask-image: radial-gradient(ellipse 76% 70% at 50% 48%, #000 0%, transparent 78%);
+  pointer-events: none;
+}
+
+#pitchDeck .solution-visual__topline {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+#pitchDeck .solution-visual__label {
+  margin: 0;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .solution-visual__topline span {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-visual__photos {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+#pitchDeck .solution-visual__photo {
+  position: relative;
+  width: 146px;
+  height: 98px;
+  margin: 0;
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(250, 134, 47, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 34px rgba(57, 31, 16, 0.1);
+  transform: rotate(var(--photo-rotate, 0deg));
+}
+
+#pitchDeck .solution-visual__photo:nth-child(2) {
+  width: 164px;
+  height: 108px;
+  z-index: 2;
+}
+
+#pitchDeck .solution-visual__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+#pitchDeck .solution-visual__graph {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+#pitchDeck .solution-visual__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#pitchDeck .solution-visual__sources {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+#pitchDeck .solution-visual__source {
+  position: absolute;
+  left: var(--source-x);
+  top: var(--source-y);
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: min(100%, 520px);
-  gap: 0;
+  gap: 8px;
+  transform: translate(-50%, -50%);
 }
 
-#pitchDeck .solution-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  padding: 22px 22px 22px 20px;
-  border-radius: 22px;
-  border: 1px solid rgba(20, 14, 10, 0.06);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 249, 242, 0.82) 100%);
-  box-shadow:
-    0 22px 48px rgba(120, 56, 14, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(14px);
-  color: #100b09;
-}
-
-#pitchDeck .solution-card__icon {
+#pitchDeck .solution-visual__source-icon {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  background: rgba(250, 134, 47, 0.12);
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  border: 1px solid rgba(250, 134, 47, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 16px 34px rgba(32, 18, 8, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+#pitchDeck .solution-visual__source-icon img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+#pitchDeck .solution-visual__source-icon--linkedin img {
+  width: 26px;
+  height: 26px;
+}
+
+#pitchDeck .solution-visual__source-icon--github img {
+  filter: invert(1);
+}
+
+#pitchDeck .solution-visual__source-icon--claude img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+#pitchDeck .solution-visual__source-icon--hackathons img {
+  width: 31px;
+  height: 31px;
+}
+
+#pitchDeck .solution-visual__source-icon svg {
+  width: 28px;
+  height: 28px;
   color: #fa862f;
 }
 
-#pitchDeck .solution-card__icon svg {
-  width: 28px;
-  height: 28px;
-}
-
-#pitchDeck .solution-slide .solution-card h3 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  text-transform: none;
-}
-
-#pitchDeck .solution-slide .solution-card p {
-  margin: 4px 0 0;
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 1.35;
-  color: rgba(16, 11, 9, 0.52);
-  text-transform: none;
-}
-
-#pitchDeck .solution-card__tag {
-  padding: 7px 12px;
-  border-radius: 999px;
-  background: rgba(250, 134, 47, 0.1);
-  border: 1px solid rgba(250, 134, 47, 0.18);
+#pitchDeck .solution-visual__source span {
+  color: rgba(22, 11, 7, 0.52);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #c45a12;
-  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-transform: lowercase;
 }
 
-#pitchDeck .solution-bridge {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-  padding: 14px 0;
-}
-
-#pitchDeck .solution-bridge__line {
-  width: 2px;
-  height: 34px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.88) 100%);
-  box-shadow: 0 0 18px rgba(255, 255, 255, 0.32);
-}
-
-#pitchDeck .solution-hub {
-  position: relative;
+#pitchDeck .solution-visual__hub {
+  position: absolute;
+  left: 50%;
+  top: 72%;
+  z-index: 3;
   display: grid;
   place-items: center;
-  width: 112px;
-  height: 112px;
-  border-radius: 28px;
-  background:
-    linear-gradient(145deg, #ffffff 0%, #fff5ea 52%, #ffd7b2 100%);
+  width: 108px;
+  height: 108px;
+  border-radius: 30px;
+  border: 1px solid rgba(250, 134, 47, 0.28);
+  background: linear-gradient(145deg, #ffffff 0%, #fff4e9 52%, #ffd0a5 100%);
   box-shadow:
-    0 0 0 1px rgba(255, 220, 170, 0.3),
-    0 0 48px rgba(255, 255, 255, 0.36),
-    0 24px 48px rgba(120, 56, 14, 0.14);
+    0 0 0 8px rgba(250, 134, 47, 0.08),
+    0 24px 48px rgba(250, 134, 47, 0.18);
+  transform: translate(-50%, -50%);
 }
 
-#pitchDeck .solution-hub img {
+#pitchDeck .solution-visual__hub img {
   width: 58px;
   height: 58px;
   object-fit: contain;
-  filter: none;
 }
 
-#pitchDeck .solution-bridge__arms {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 420px;
-  height: 2px;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
+#pitchDeck .solution-visual__profile {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  max-width: 620px;
+  flex-shrink: 0;
+  margin-top: 8px;
+  padding: 17px 20px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 252, 249, 0.91) 100%);
+  box-shadow:
+    0 18px 46px rgba(21, 14, 8, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
 }
 
-#pitchDeck .solution-bridge__arms::before,
-#pitchDeck .solution-bridge__arms::after {
+#pitchDeck .solution-visual__profile::before {
   content: "";
   position: absolute;
   top: 0;
-  width: 42%;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(255, 176, 84, 0.85), rgba(255, 176, 84, 0.08));
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.28);
-}
-
-#pitchDeck .solution-bridge__arms::before {
   left: 0;
-  transform: scaleX(-1);
-}
-
-#pitchDeck .solution-bridge__arms::after {
   right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #fa862f 0%, #ffb56e 100%);
+  opacity: 0.75;
 }
 
-#pitchDeck .solution-product {
-  position: absolute;
-  right: -8px;
-  bottom: -72px;
-  width: 292px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 247, 240, 0.92) 100%);
-  box-shadow:
-    0 28px 60px rgba(0, 0, 0, 0.34),
-    0 0 0 1px rgba(250, 134, 47, 0.08);
-  color: #1a100c;
-}
-
-#pitchDeck .solution-product__label {
-  margin: 0 0 12px;
+#pitchDeck .solution-visual__profile-label {
+  margin: 0 0 10px;
+  color: #fa862f;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #fa862f;
 }
 
-#pitchDeck .solution-product__header {
+#pitchDeck .solution-visual__profile-header {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-#pitchDeck .solution-product__avatar {
+#pitchDeck .solution-visual__avatar {
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 13px;
   background: linear-gradient(145deg, #ffd4ad, #fa862f);
-  font-size: 16px;
-  font-weight: 700;
   color: #fff;
+  font-size: 15px;
+  font-weight: 700;
 }
 
-#pitchDeck .solution-product__name {
+#pitchDeck .solution-visual__name {
   margin: 0;
+  color: #100b09;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
-#pitchDeck .solution-product__role {
+#pitchDeck .solution-visual__role {
   margin: 2px 0 0;
+  color: rgba(16, 11, 9, 0.52);
   font-size: 12px;
-  color: rgba(26, 16, 12, 0.58);
+  font-weight: 400;
+  text-transform: lowercase;
 }
 
-#pitchDeck .solution-product__signals {
+#pitchDeck .solution-visual__signals {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 6px;
+  margin-top: 12px;
 }
 
-#pitchDeck .solution-product__signal {
-  padding: 6px 10px;
+#pitchDeck .solution-visual__signals span {
+  padding: 5px 9px;
   border-radius: 999px;
   background: rgba(250, 134, 47, 0.1);
-  font-size: 11px;
-  font-weight: 600;
   color: #c45a12;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: lowercase;
 }
 
-#pitchDeck .solution-product__match {
+#pitchDeck .solution-visual__match {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
   border-top: 1px solid rgba(250, 134, 47, 0.12);
+  color: rgba(16, 11, 9, 0.58);
   font-size: 12px;
   font-weight: 600;
-  color: rgba(26, 16, 12, 0.62);
 }
 
-#pitchDeck .solution-product__match strong {
-  font-size: 22px;
+#pitchDeck .solution-visual__match strong {
+  color: #fa862f;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.04em;
-  color: #fa862f;
-}
-
-#pitchDeck .solution-stripes {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 120px;
-  pointer-events: none;
-  opacity: 0.35;
-  background: repeating-linear-gradient(
-    90deg,
-    rgba(255, 176, 84, 0) 0,
-    rgba(255, 176, 84, 0) 18px,
-    rgba(255, 176, 84, 0.16) 18px,
-    rgba(255, 176, 84, 0.16) 34px
-  );
-  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
 }
