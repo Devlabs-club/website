@@ -1,0 +1,50 @@
+---
+const founders = [
+  {
+    name: "Dhanush Vardhan",
+    role: "Co-founder",
+    photo: "/pitchdeck-canva/team/dhanush.png",
+    prior: "ex. Google · Cloudflare",
+  },
+  {
+    name: "Bhoomi Singhani",
+    role: "Co-founder",
+    photo: "/pitchdeck-canva/team/bhoomi.png",
+    prior: "ex. Twilio",
+  },
+];
+---
+
+<section class="team">
+  <svg class="cover-strokes" viewBox="0 0 1600 900" fill="none" aria-hidden="true">
+    <path class="cover-stroke cover-stroke--arc" d="M -170 142 C 78 226 350 112 510 -96" />
+    <path class="cover-stroke cover-stroke--upper" d="M 1428 -116 L 984 188 L 1718 438" />
+    <path class="cover-stroke cover-stroke--lower" d="M 532 930 L 674 702 L 1248 556 L 1484 724 L 1628 980" />
+  </svg>
+
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> The team</p>
+  </header>
+
+  <div class="team__intro">
+    <h1>We lived the problem</h1>
+    <p>Now we are solving it — with the same operator background founders already trust.</p>
+  </div>
+
+  <div class="team-board">
+    {founders.map((founder) => (
+      <article class="team-row deck-card">
+        <img src={founder.photo} alt="" />
+        <div class="team-row__copy">
+          <p>{founder.role}</p>
+          <h2>{founder.name}</h2>
+          <p class="team-row__creds">{founder.prior}</p>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

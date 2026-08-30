@@ -1,5 +1,14 @@
 ---
-const testimonials = [
+const featured = {
+  company: "supermemory",
+  logo: "/sponsors/supermemory.png",
+  quote: "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
+  author: "Dhravya Shah",
+  role: "Founder, Supermemory",
+  avatar: "/team/dhravya.png",
+};
+
+const sponsors = [
   {
     company: "DeepMind",
     logo: "/sponsors/deepmind.png",
@@ -7,17 +16,6 @@ const testimonials = [
     author: "Paige Bailey",
     role: "Lead DevRel, Google DeepMind",
     avatar: "/team/paige.png",
-    featured: false,
-  },
-  {
-    company: "supermemory",
-    logo: "/sponsors/supermemory.png",
-    quote:
-      "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
-    author: "Dhravya Shah",
-    role: "Founder, Supermemory",
-    avatar: "/team/dhravya.png",
-    featured: true,
   },
   {
     company: "Browser Use",
@@ -26,7 +24,6 @@ const testimonials = [
     author: "Saurav Panda",
     role: "Founding Engineer, Browser Use",
     avatar: "/team/saurav.png",
-    featured: false,
   },
 ];
 ---
@@ -45,28 +42,38 @@ const testimonials = [
     <p>Founders and sponsors see the builder signal before the first intro.</p>
   </div>
 
-  <div class="testimonials__cards">
-    {testimonials.map((item, index) => (
-      <article
-        class:list={[
-          "testimonial-card",
-          "deck-card",
-          item.featured ? "deck-card--orange testimonial-card--featured" : index === 0 ? "" : "",
-        ]}
-      >
-        <div class="testimonial-card__brand">
-          <img src={item.logo} alt={item.company} loading="lazy" />
+  <div class="testimonials__board">
+    <article class="testimonial-card testimonial-card--featured deck-card deck-card--orange">
+      <div class="testimonial-card__brand">
+        <img src={featured.logo} alt={featured.company} loading="lazy" />
+      </div>
+      <span class="testimonial-card__mark" aria-hidden="true">&ldquo;</span>
+      <p>{featured.quote}</p>
+      <footer>
+        <img src={featured.avatar} alt={featured.author} loading="lazy" />
+        <div>
+          <strong>{featured.author}</strong>
+          <span>{featured.role}</span>
         </div>
-        <span class="testimonial-card__quote" aria-hidden="true">&ldquo;</span>
-        <p>{item.quote}</p>
-        <footer>
-          <img src={item.avatar} alt={item.author} loading="lazy" />
-          <div>
-            <strong>{item.author}</strong>
-            <span>{item.role}</span>
+      </footer>
+    </article>
+
+    <div class="testimonials__stack">
+      {sponsors.map((item) => (
+        <article class="testimonial-card deck-card">
+          <div class="testimonial-card__brand">
+            <img src={item.logo} alt={item.company} loading="lazy" />
           </div>
-        </footer>
-      </article>
-    ))}
+          <p>{item.quote}</p>
+          <footer>
+            <img src={item.avatar} alt={item.author} loading="lazy" />
+            <div>
+              <strong>{item.author}</strong>
+              <span>{item.role}</span>
+            </div>
+          </footer>
+        </article>
+      ))}
+    </div>
   </div>
 </section>

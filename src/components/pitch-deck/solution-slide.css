@@ -4,7 +4,7 @@
   width: 1600px;
   height: 900px;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 0;
   background: transparent;
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);

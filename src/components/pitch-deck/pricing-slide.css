@@ -4,7 +4,7 @@
   width: 1600px;
   height: 900px;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 0;
   background: transparent;
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
@@ -62,7 +62,7 @@
   min-height: 480px;
   padding-top: 3px;
   border: 1px solid rgba(20, 14, 10, 0.08);
-  border-radius: 22px;
+  border-radius: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 252, 248, 0.9) 100%);
   box-shadow:
     0 24px 60px rgba(21, 14, 8, 0.07),

@@ -4,7 +4,7 @@
   width: 1600px;
   height: 900px;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 0;
   background: transparent;
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
@@ -154,9 +154,9 @@
 
 #pitchDeck .story-stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
-  width: min(100%, 720px);
+  width: min(100%, 1240px);
   text-align: left;
 }
 
@@ -173,7 +173,7 @@
 
 #pitchDeck .story-stat {
   position: relative;
-  padding: 0 44px;
+  padding: 0 28px;
 }
 
 #pitchDeck .story-stat:first-child {
@@ -187,17 +187,17 @@
 #pitchDeck .story-stat:not(:last-child)::after {
   content: "";
   position: absolute;
-  top: 18px;
+  top: 10px;
   right: 0;
   width: 1px;
-  height: 88px;
-  background: rgba(16, 11, 9, 0.12);
+  height: 72px;
+  background: #130a07;
 }
 
 #pitchDeck .story-slide .story-stat__value {
   margin: 0;
-  font-size: 84px;
-  font-weight: 500;
+  font-size: 56px;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -0.045em;
   color: #fa862f;
@@ -205,33 +205,43 @@
 
 #pitchDeck .story-slide .story-stat__label {
   margin: 10px 0 0;
-  max-width: 240px;
-  font-size: 26px;
-  font-weight: 300;
-  line-height: 1.12;
-  letter-spacing: -0.028em;
-  color: rgba(16, 11, 9, 0.68);
+  max-width: 220px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: #130a07;
   text-transform: none;
 }
 
 #pitchDeck .story-sponsors {
   position: relative;
   z-index: 3;
+  overflow: hidden;
   flex-shrink: 0;
   margin: 0 64px 48px;
-  padding: 27px 46px 32px;
+  padding: 24px 40px 26px;
+  border-radius: 0;
+  background: #fa862f;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--deck-cut)),
+    calc(100% - var(--deck-cut)) 100%,
+    0 100%
+  );
 }
 
 #pitchDeck .story-slide .story-supported {
   position: relative;
   z-index: 2;
-  margin: 0 0 22px;
+  margin: 0 0 18px;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   text-align: center;
-  color: rgba(16, 11, 9, 0.46);
+  color: rgba(255, 250, 244, 0.78);
 }
 
 #pitchDeck .story-logos {
@@ -240,33 +250,43 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  gap: 20px;
 }
 
 #pitchDeck .story-logos img {
   display: block;
-  max-height: 36px;
+  flex: 0 1 auto;
+  max-height: 32px;
   width: auto;
-  max-width: 168px;
+  max-width: 148px;
   object-fit: contain;
-  opacity: 0.84;
-  filter: brightness(0) saturate(0) opacity(0.82);
+  opacity: 1;
+  filter: none;
+  mix-blend-mode: screen;
 }
 
 #pitchDeck .story-logos img[alt="Dodo Payments"] {
-  max-height: 34px;
+  max-height: 30px;
+  mix-blend-mode: normal;
 }
 
 #pitchDeck .story-logos img[alt="Stripe"] {
-  max-height: 36px;
+  max-height: 32px;
 }
 
 #pitchDeck .story-logos img[alt="DeepMind"] {
-  max-height: 38px;
-  filter: brightness(0) saturate(0) opacity(0.82);
-  opacity: 0.84;
+  max-height: 32px;
+  filter: grayscale(1) brightness(6);
+}
+
+#pitchDeck .story-logos img[alt="smallest.ai"] {
+  max-height: 28px;
+}
+
+#pitchDeck .story-logos img[alt="Composio"] {
+  max-height: 30px;
 }
 
 #pitchDeck .story-logos img[alt="omi"] {
-  max-height: 38px;
+  max-height: 32px;
 }

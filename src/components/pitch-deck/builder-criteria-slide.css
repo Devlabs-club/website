@@ -4,7 +4,7 @@
   width: 1600px;
   height: 900px;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 0;
   background: transparent;
   color: #100b09;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
@@ -40,7 +40,7 @@
   color: #fa862f;
   font-family: Manrope, system-ui, sans-serif;
   font-style: normal;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 #pitchDeck .look-cards {
@@ -58,7 +58,7 @@
   justify-content: space-between;
   min-height: 0;
   padding: 28px 26px 26px;
-  border-radius: 28px;
+  border-radius: 0;
   background:
     radial-gradient(ellipse 70% 55% at 100% 0%, rgba(250, 134, 47, 0.1) 0%, transparent 58%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, #fff6ec 100%);
@@ -92,11 +92,11 @@
   position: relative;
   z-index: 1;
   margin: 0;
-  max-width: 280px;
+  max-width: 340px;
   color: rgba(22, 11, 7, 0.54);
-  font-size: 15px;
+  font-size: 21px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.38;
   letter-spacing: -0.02em;
 }
 
@@ -111,13 +111,13 @@
 }
 
 #pitchDeck .look-card--traces p {
-  max-width: 300px;
+  max-width: 340px;
 }
 
 #pitchDeck .trace-peek-deck {
   position: absolute;
   left: 50%;
-  bottom: -138px;
+  bottom: -92px;
   z-index: 2;
   width: 330px;
   height: 355px;
@@ -151,7 +151,7 @@
   z-index: 3;
   width: 224px;
   height: 314px;
-  transform: translateX(-50%) translateY(-16px) rotate(0.8deg);
+  transform: translateX(-50%) translateY(-28px) rotate(0.8deg);
 }
 
 #pitchDeck .trace-peek-card--3 {
@@ -269,7 +269,7 @@
 }
 
 #pitchDeck .look-card--proof p {
-  max-width: 320px;
+  max-width: 460px;
 }
 
 #pitchDeck .proof-orbit {
@@ -291,10 +291,11 @@
 
 #pitchDeck .proof-orbit__lines path {
   fill: none;
-  stroke: rgba(196, 94, 18, 0.5);
-  stroke-width: 0.95;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke: rgba(196, 94, 18, 0.58);
+  stroke-width: 0.4;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 8;
 }
 
 #pitchDeck .proof-orbit__ripple {
@@ -347,6 +348,10 @@
   width: 28px;
   height: 28px;
   object-fit: contain;
+}
+
+#pitchDeck .proof-node--github img {
+  filter: brightness(0);
 }
 
 #pitchDeck .proof-node--web {

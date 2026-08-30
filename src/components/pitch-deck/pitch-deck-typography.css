@@ -1,3 +1,7 @@
+#pitchDeck .pitch-slide {
+  border-radius: 0;
+}
+
 #pitchDeck {
   font-family: Manrope, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -11,7 +15,6 @@
 #pitchDeck em,
 #pitchDeck .cover-accent,
 #pitchDeck .deck-accent,
-#pitchDeck .builder-criteria__title em,
 #pitchDeck .builder-criteria__highlight {
   font-family: Manrope, system-ui, sans-serif;
   font-style: normal;
@@ -78,17 +81,22 @@
   text-transform: uppercase;
 }
 
+#pitchDeck .cover-slide .cover-title,
 #pitchDeck .cover-title,
 #pitchDeck .problem-headline,
 #pitchDeck .story-lead,
 #pitchDeck .solution-title,
 #pitchDeck .sol-slide h1,
+#pitchDeck .solution-flow-slide .solution-flow__intro h1,
 #pitchDeck .product-slide .product-intro h1,
 #pitchDeck .product-reveal-slide .product-reveal-copy h1,
+#pitchDeck .product-proof-slide .product-proof__intro h1,
+#pitchDeck .hire-example-slide .hire-example__intro h1,
 #pitchDeck .builder-criteria-slide .builder-criteria__title,
 #pitchDeck .testimonials__intro h1,
 #pitchDeck .competitor-analysis__header h1,
 #pitchDeck .pricing-slide__intro h1,
+#pitchDeck .team-slide .team__intro h1,
 #pitchDeck .advantage-slide .advantage__intro h1 {
   font-family: Manrope, system-ui, sans-serif;
   font-weight: 500;

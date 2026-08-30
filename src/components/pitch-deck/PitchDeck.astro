@@ -9,6 +9,8 @@ import "./testimonials-slide.css";
 import "./competitor-analysis.css";
 import "./pricing-slide.css";
 import "./competitive-advantage.css";
+import "./product-proof.css";
+import "./team-slide.css";
 import "./pitch-deck-typography.css";
 import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
@@ -16,19 +18,21 @@ import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
 import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
-import SolutionSearch from "./SolutionSearch.astro";
+import ProductProof from "./ProductProof.astro";
+import TeamSlide from "./TeamSlide.astro";
+import CoverSlide from "./CoverSlide.astro";
 
 const slides = [
   "The Future of hiring",
   "The problem",
   "Our story",
-  "The solution",
   "The product",
   "What we look for",
   "Testimonials",
   "Competitor analysis",
   "Pricing",
   "Competitive advantage",
+  "The team",
 ];
 
 const storyPhotos = [
@@ -44,8 +48,10 @@ const storyPhotos = [
 ];
 
 const storyStats = [
-  { value: "20", label: "events across Arizona and San Francisco" },
-  { value: "$100K+", label: "invested in events" },
+  { value: "2000+", label: "vetted builders in our talent pool" },
+  { value: "20", label: "events across AZ & SF" },
+  { value: "4", label: "companies hired from us" },
+  { value: "100K", label: "invested in events till now" },
 ];
 
 const storySponsors = [
@@ -53,6 +59,8 @@ const storySponsors = [
   { name: "Dodo Payments", src: "/sponsors/momentum/dodo_payments.svg" },
   { name: "Stripe", src: "/sponsors/momentum/stripe.png" },
   { name: "DeepMind", src: "/sponsors/deepmind.png" },
+  { name: "smallest.ai", src: "/sponsors/momentum/smallest_ai.png" },
+  { name: "Composio", src: "/sponsors/momentum/composio.png" },
   { name: "TinyFish", src: "/sponsors/momentum/tinyfish.png" },
   { name: "supermemory", src: "/sponsors/supermemory.png" },
   { name: "omi", src: "/sponsors/omi.png" },
@@ -130,33 +138,7 @@ const problemQuoteRows = [
   >
     <div id="deckScale" class="relative origin-top-left" style="width: 1600px; height: 900px">
       <section class="pitch-slide cover-slide" data-slide="1" aria-label={slides[0]}>
-        <div class="cover-glow-tl"></div>
-        <div class="cover-glow-tr"></div>
-        <div class="cover-glow-r"></div>
-        <div class="cover-watermark" aria-hidden="true">
-          <img class="cover-watermark-main" src="/logo.svg" alt="" />
-          <img class="cover-watermark-crop" src="/logo.svg" alt="" />
-        </div>
-        <div class="cover-vignette"></div>
-        <div class="cover-grain"></div>
-
-        <header class="cover-header">
-          <div class="cover-brand deck-brand-lockup">
-            <img src="/logo.svg" alt="" />
-            <span>Devlabs</span>
-          </div>
-          <p class="cover-meta"><i></i> Pitch Deck</p>
-        </header>
-
-        <h1 class="cover-title">
-          <span>The <strong>future</strong></span>
-          <span>of <em class="cover-accent">hiring</em></span>
-        </h1>
-
-        <div class="cover-footer">
-          <p>www.devlabs.club</p>
-          <p>2026</p>
-        </div>
+        <CoverSlide />
       </section>
 
       <section class="pitch-slide problem-slide hidden" data-slide="2" aria-label={slides[1]}>
@@ -241,7 +223,6 @@ const problemQuoteRows = [
             <h1 class="story-lead">
               We built the <em class="deck-accent">community</em> before the hiring platform.
             </h1>
-            <p class="story-subtitle">Then startups started hiring our builders.</p>
             <div class="story-stats">
               {storyStats.map((stat) => (
                 <article class="story-stat">
@@ -250,9 +231,10 @@ const problemQuoteRows = [
                 </article>
               ))}
             </div>
+            <p class="story-subtitle">Then startups started hiring our builders.</p>
           </div>
 
-          <footer class="story-sponsors deck-banner">
+          <footer class="story-sponsors">
             <p class="story-supported">supported by</p>
             <div class="story-logos">
               {storySponsors.map((sponsor) => (
@@ -263,98 +245,11 @@ const problemQuoteRows = [
         </div>
       </section>
 
-      <section class="pitch-slide sol-slide hidden" data-slide="4" aria-label={slides[3]}>
-        <div class="sol-field" aria-hidden="true">
-          <img class="sol-field__hero" src="/landing/community/devhacks-crowd.png" alt="" />
-          <div class="sol-field__wash"></div>
-          <div class="sol-field__moments">
-            <figure class="sol-moment">
-              <img src="/landing/community/devhacks-build.png" alt="" />
-              <figcaption>DevHacks</figcaption>
-            </figure>
-            <figure class="sol-moment">
-              <img src="/landing/community/devhouse-circle.png" alt="" />
-              <figcaption>DevHouse</figcaption>
-            </figure>
-            <figure class="sol-moment">
-              <img src="/landing/community/devspace-talk.png" alt="" />
-              <figcaption>build nights</figcaption>
-            </figure>
-            <figure class="sol-moment">
-              <img src="/events/devhouse-sf.jpg" alt="" />
-              <figcaption>DevHouse SF</figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <header class="sol-chrome deck-slide-header">
-          <div class="deck-brand-lockup">
-            <img src="/logo.svg" alt="" />
-            <span>Devlabs</span>
-          </div>
-          <p class="deck-slide-meta"><i></i> The solution</p>
-        </header>
-
-        <div class="sol-stage">
-          <div class="sol-copy">
-            <h1>
-              The hire was already
-              <span>in the <em>room.</em></span>
-            </h1>
-            <p class="sol-narrative">We watch them ship at events. Then we hire from that proof.</p>
-          </div>
-
-          <SolutionSearch />
-
-          <footer class="sol-rail">
-            <p class="sol-rail__path">
-              from the event <i></i> the proof <i></i> the hire
-            </p>
-            <p class="sol-rail__stats">
-              <strong>20</strong> events
-              <span>·</span>
-              <strong>4</strong> hires
-            </p>
-          </footer>
-        </div>
+      <section class="pitch-slide product-proof-slide hidden" data-slide="4" aria-label={slides[3]}>
+        <ProductProof />
       </section>
 
-      <section class="pitch-slide product-reveal-slide hidden" data-slide="5" aria-label={slides[4]}>
-        <div class="deck-bg" aria-hidden="true">
-          <div class="deck-bg__base"></div>
-          <div class="deck-bg__lens"></div>
-          <div class="deck-bg__scan-lines"></div>
-          <div class="deck-bg__grain"></div>
-          <div class="deck-bg__fade"></div>
-        </div>
-
-        <div class="product-reveal">
-          <header class="product-header deck-slide-header">
-            <div class="product-copy__brand deck-brand-lockup">
-              <img src="/logo.svg" alt="" />
-              <span>Devlabs</span>
-            </div>
-            <p class="deck-slide-meta"><i></i> The product</p>
-          </header>
-
-          <div class="product-reveal-copy">
-            <h1>Tell us who you need. See who has already <em class="deck-accent">proved it.</em></h1>
-            <p>ranked builders, clear why-hire evidence, and the proof behind every recommendation.</p>
-          </div>
-
-          <div class="product-reveal-stage">
-            <div class="product-reveal-shot deck-card">
-              <img
-                src="/pitch-deck/product-agent-demo.png"
-                alt="Devlabs agent conversation and ranked builder recommendations for a founding software engineer role"
-              />
-            </div>
-            <p class="product-reveal-note">describe the role in chat — matches arrive with proof attached</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="pitch-slide builder-criteria-slide hidden" data-slide="6" aria-label={slides[5]}>
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="5" aria-label={slides[4]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -365,7 +260,7 @@ const problemQuoteRows = [
         <BuilderCriteria />
       </section>
 
-      <section class="pitch-slide testimonials-slide hidden" data-slide="7" aria-label={slides[6]}>
+      <section class="pitch-slide testimonials-slide hidden" data-slide="6" aria-label={slides[5]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -376,7 +271,7 @@ const problemQuoteRows = [
         <TestimonialsSlide />
       </section>
 
-      <section class="pitch-slide competitor-slide hidden" data-slide="8" aria-label={slides[7]}>
+      <section class="pitch-slide competitor-slide hidden" data-slide="7" aria-label={slides[6]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -387,7 +282,7 @@ const problemQuoteRows = [
         <CompetitorAnalysis />
       </section>
 
-      <section class="pitch-slide pricing-slide hidden" data-slide="9" aria-label={slides[8]}>
+      <section class="pitch-slide pricing-slide hidden" data-slide="8" aria-label={slides[7]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -398,8 +293,12 @@ const problemQuoteRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide advantage-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide advantage-slide hidden" data-slide="9" aria-label={slides[8]}>
         <CompetitiveAdvantage />
+      </section>
+
+      <section class="pitch-slide team-slide hidden" data-slide="10" aria-label={slides[9]}>
+        <TeamSlide />
       </section>
     </div>
   </div>

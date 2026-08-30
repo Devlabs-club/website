@@ -1,0 +1,124 @@
+#pitchDeck .hire-example-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #faf8f4;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .hire-example-slide.hidden {
+  display: none;
+}
+
+#pitchDeck .hire-example {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+  padding: 40px 64px 40px;
+}
+
+#pitchDeck .hire-example__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.75fr);
+  gap: 40px;
+  align-items: end;
+  margin: 28px 0 36px;
+}
+
+#pitchDeck .hire-example-slide .hire-example__intro h1 {
+  margin: 0;
+  max-width: 760px;
+  color: #130a07;
+  font-size: 48px;
+}
+
+#pitchDeck .hire-example__intro p {
+  margin: 0;
+  color: #130a07;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+#pitchDeck .hire-card {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+  min-height: 0;
+  padding: 28px;
+  background: #fa862f;
+  color: #fff;
+}
+
+#pitchDeck .hire-card img {
+  display: block;
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+}
+
+#pitchDeck .hire-card__source {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .hire-card h2 {
+  margin: 10px 0 6px;
+  color: #fff;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+}
+
+#pitchDeck .hire-card__role {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+#pitchDeck .hire-card__why {
+  margin: 16px 0 0;
+  max-width: 620px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+#pitchDeck .hire-card__badge {
+  align-self: start;
+  margin: 0;
+  padding: 10px 14px;
+  background: #fff;
+  color: #fa862f;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#pitchDeck .hire-example__bottom {
+  margin: 28px 0 0;
+  color: #130a07;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .hire-card,
+#pitchDeck .hire-card img,
+#pitchDeck .hire-card__badge {
+  border-radius: 0;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%);
+}

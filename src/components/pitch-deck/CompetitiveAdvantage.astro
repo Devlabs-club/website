@@ -13,10 +13,21 @@ const featured = [
 ];
 
 const rest = [
-  { n: "03", title: "Proof-backed signals" },
-  { n: "04", title: "Curated shortlists" },
-  { n: "05", title: "Existing builder network" },
-  { n: "06", title: "We create the signal" },
+  {
+    n: "03",
+    title: "Proof-backed signals",
+    body: "We observe how builders code, collaborate and ship before recommending them.",
+  },
+  {
+    n: "04",
+    title: "Curated shortlists",
+    body: "Founders receive a small, ranked shortlist with clear why-hire evidence, not hundreds of resumes.",
+  },
+  {
+    n: "05",
+    title: "Existing builder network",
+    body: "2,000+ vetted builders across 20 events",
+  },
 ];
 
 const metrics = [
@@ -45,7 +56,7 @@ const partners = [
   </header>
 
   <div class="advantage__intro">
-    <h1>Our advantage starts before a builder applies</h1>
+    <h1>How we are better</h1>
     <p>Competitors search for talent. Devlabs creates the signal that identifies it.</p>
   </div>
 
@@ -64,6 +75,7 @@ const partners = [
       <article class="advantage-rest__item">
         <b>{item.n}</b>
         <h2>{item.title}</h2>
+        <p>{item.body}</p>
       </article>
     ))}
   </div>
