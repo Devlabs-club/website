@@ -8,15 +8,12 @@ import "./builder-criteria-slide.css";
 import "./testimonials-slide.css";
 import "./competitor-analysis.css";
 import "./pricing-slide.css";
-import "./growth-slide.css";
-import "./audience-slide.css";
 import "./competitive-advantage.css";
 import "./pitch-deck-typography.css";
 import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
 import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
-import TargetAudience from "./TargetAudience.astro";
 import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
 import SolutionSearch from "./SolutionSearch.astro";
@@ -31,7 +28,6 @@ const slides = [
   "Testimonials",
   "Competitor analysis",
   "Pricing",
-  "Target audience",
   "Competitive advantage",
 ];
 
@@ -402,18 +398,7 @@ const problemQuoteRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide growth-slide hidden" data-slide="10" aria-label={slides[9]}>
-        <div class="deck-bg" aria-hidden="true">
-          <div class="deck-bg__base"></div>
-          <div class="deck-bg__lens"></div>
-          <div class="deck-bg__scan-lines"></div>
-          <div class="deck-bg__grain"></div>
-          <div class="deck-bg__fade"></div>
-        </div>
-        <TargetAudience />
-      </section>
-
-      <section class="pitch-slide advantage-slide hidden" data-slide="11" aria-label={slides[10]}>
+      <section class="pitch-slide advantage-slide hidden" data-slide="10" aria-label={slides[9]}>
         <CompetitiveAdvantage />
       </section>
     </div>
