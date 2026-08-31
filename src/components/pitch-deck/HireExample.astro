@@ -1,0 +1,38 @@
+---
+const hire = {
+  name: "Prasanna Moorthy",
+  avatar: "/landing/builders/prasanna.jpg",
+  title: "Research Engineer",
+  company: "Supermemory",
+  source: "Hired through DevHouse",
+  why: "Joined from a Devlabs event — not a cold application. Now shipping research engineering in production.",
+};
+---
+
+<section class="hire-example">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Hiring example</p>
+  </header>
+
+  <div class="hire-example__intro">
+    <h1>The hire was already in the room</h1>
+    <p>Founders were already hiring from our events. The product captures why those hires happened.</p>
+  </div>
+
+  <article class="hire-card">
+    <img src={hire.avatar} alt="" />
+    <div class="hire-card__copy">
+      <p class="hire-card__source">{hire.source}</p>
+      <h2>{hire.name}</h2>
+      <p class="hire-card__role">{hire.title} · {hire.company}</p>
+      <p class="hire-card__why">{hire.why}</p>
+    </div>
+    <p class="hire-card__badge">Strong match</p>
+  </article>
+
+  <p class="hire-example__bottom">Then founders hire from that proof.</p>
+</section>

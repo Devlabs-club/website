@@ -1,0 +1,134 @@
+#pitchDeck .cover-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background:
+    radial-gradient(ellipse 80% 72% at 72% 26%, rgba(255, 182, 71, 0.42) 0%, rgba(255, 122, 25, 0.22) 38%, transparent 70%),
+    radial-gradient(ellipse 66% 58% at 6% 86%, rgba(111, 33, 5, 0.26) 0%, transparent 64%),
+    linear-gradient(135deg, #ff7a1a 0%, #f45c08 48%, #df4200 100%);
+  color: #fffaf4;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .cover-slide.hidden {
+  display: none;
+}
+
+#pitchDeck .cover {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+}
+
+#pitchDeck .cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%, transparent 100%),
+    radial-gradient(ellipse 42% 48% at 34% 48%, rgba(255, 139, 53, 0.22) 0%, transparent 70%);
+}
+
+#pitchDeck .cover-strokes {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#pitchDeck .cover-stroke {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pitchDeck .cover-stroke--arc {
+  stroke: #6b1900;
+  stroke-width: 42;
+  opacity: 0.28;
+}
+
+#pitchDeck .cover-stroke--upper {
+  stroke: #5a1300;
+  stroke-width: 40;
+  opacity: 0.3;
+}
+
+#pitchDeck .cover-stroke--lower {
+  stroke: #6b1900;
+  stroke-width: 38;
+  opacity: 0.29;
+}
+
+#pitchDeck .cover-slide .cover-title.cover-title {
+  position: absolute;
+  left: 72px;
+  top: 48%;
+  z-index: 3;
+  margin: 0;
+  transform: translateY(-50%);
+  color: #fffaf4;
+  font-size: 118px;
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.072em;
+}
+
+#pitchDeck .cover-slide .cover-title.cover-title span {
+  display: block;
+}
+
+#pitchDeck .cover-slide .cover-title.cover-title em {
+  display: inline-block;
+  margin-left: 0.08em;
+  color: #fffaf4;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+}
+
+#pitchDeck .cover-lockup {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  padding: 22px 32px 22px 28px;
+  border-radius: 0;
+  clip-path: polygon(
+    var(--deck-cut) 0,
+    100% 0,
+    100% 100%,
+    0 100%,
+    0 var(--deck-cut)
+  );
+  background: rgba(255, 250, 244, 0.96);
+  box-shadow:
+    0 18px 40px rgba(86, 23, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+#pitchDeck .cover-lockup img {
+  display: block;
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+#pitchDeck .cover-lockup strong {
+  color: #130a07;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}

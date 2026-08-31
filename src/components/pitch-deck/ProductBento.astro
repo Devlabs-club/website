@@ -1,0 +1,96 @@
+---
+const signals = [
+  { id: "projects", label: "Projects + GitHub", src: "/brand/github.svg" },
+  { id: "collab", label: "Collaboration" },
+  { id: "trace", label: "Agent traces" },
+];
+---
+
+<div class="product-journey">
+  <article class="product-step">
+    <div class="product-step__label">
+      <p class="product-step__meta">01 &mdash; Discover</p>
+      <p class="product-step__support">Hackathons, hacker houses and build nights</p>
+    </div>
+    <figure class="product-step__photo">
+      <img src="/landing/community/devhacks-build.png" alt="Builders shipping together at DevHacks" />
+    </figure>
+  </article>
+
+  <div class="product-arrow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h12m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </div>
+
+  <article class="product-step product-step--prove">
+    <div class="product-step__label">
+      <p class="product-step__meta">02 &mdash; Prove</p>
+      <p class="product-step__support">Projects, collaboration and agent traces</p>
+    </div>
+    <div class="product-signals">
+      {signals.map((signal) => (
+        <div class:list={["product-signal", `product-signal--${signal.id}`]}>
+          {signal.id === "projects" ? (
+            <img src={signal.src} alt="" />
+          ) : signal.id === "collab" ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <circle cx="8" cy="8" r="2.4"></circle>
+              <circle cx="16" cy="8" r="2.4"></circle>
+              <path d="M4.5 18c.6-2.4 2.4-3.6 3.5-3.6s2.9 1.2 3.5 3.6M12.5 18c.6-2.4 2.4-3.6 3.5-3.6s2.9 1.2 3.5 3.6" stroke-linecap="round"></path>
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+              <path d="M5 17V7m4 10V11m4 6V9m4 8V5" stroke-linecap="round"></path>
+            </svg>
+          )}
+          <span>{signal.label}</span>
+        </div>
+      ))}
+    </div>
+  </article>
+
+  <div class="product-arrow" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none">
+      <path d="M5 12h12m0 0-5-5m5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+  </div>
+
+  <article class="product-step product-step--hire">
+    <div class="product-step__label">
+      <p class="product-step__meta">03 &mdash; Hire</p>
+      <p class="product-step__support">Ranked builders with why-hire evidence</p>
+    </div>
+    <article class="product-hire deck-card">
+      <header class="product-hire__header">
+        <img src="/landing/builders/aakash.jpg" alt="" />
+        <div>
+          <h3>Aakash K.</h3>
+          <p>Full-stack · DevHacks winner</p>
+        </div>
+      </header>
+
+      <div class="product-hire__why">
+        <p>Why hire</p>
+        <blockquote>
+          Shipped 3 production apps. Public GitHub proof on every project. Won DevHacks SF.
+        </blockquote>
+      </div>
+
+      <div class="product-hire__evidence">
+        <p>Shipped projects</p>
+        <strong>11 projects with public proof links</strong>
+        <div>
+          <span>GraphGuard</span>
+          <span>python</span>
+          <span>go</span>
+        </div>
+      </div>
+
+      <footer class="product-hire__actions">
+        <span class="product-hire__trace">Unlock trace</span>
+        <span class="product-hire__invite">Invite</span>
+      </footer>
+    </article>
+  </article>
+</div>

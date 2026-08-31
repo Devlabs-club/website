@@ -1,0 +1,124 @@
+---
+const eventPhotos = [
+  { src: "/landing/community/devhacks-build.png", alt: "Builders at DevHacks", rotate: "-6deg" },
+  { src: "/landing/community/devhacks-crowd.png", alt: "DevHacks crowd", rotate: "0deg" },
+  { src: "/events/devspace.webp", alt: "Builders at a Devlabs event", rotate: "6deg" },
+];
+
+const sources = [
+  { id: "github", label: "GitHub", src: "/brand/github.svg", x: 11, y: 44 },
+  { id: "linkedin", label: "LinkedIn", src: "/sponsors/companies/linkedin.svg", x: 31, y: 55 },
+  { id: "claude", label: "Claude Code", src: "/brand/claude.png", x: 50, y: 39 },
+  { id: "web", label: "Web proof", globe: true, x: 69, y: 55 },
+  { id: "hackathons", label: "Hackathon wins", src: "/events/devhacks_logo.svg", x: 89, y: 44 },
+];
+---
+
+<div class="solution-visual">
+  <div class="solution-visual__frame">
+    <div class="solution-visual__topline">
+      <p class="solution-visual__label">Proof graph</p>
+      <span>from real builders to ranked matches</span>
+    </div>
+
+    <div class="solution-visual__photos" aria-label="Builders at Devlabs events">
+      {eventPhotos.map((photo) => (
+        <figure class="solution-visual__photo" style={`--photo-rotate: ${photo.rotate}`}>
+          <img src={photo.src} alt={photo.alt} loading="lazy" />
+        </figure>
+      ))}
+    </div>
+
+    <div class="solution-visual__graph" aria-hidden="true">
+      <svg class="solution-visual__svg" viewBox="0 0 760 420" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="solution-path-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="rgba(250, 134, 47, 0.1)" />
+            <stop offset="48%" stop-color="rgba(250, 134, 47, 0.54)" />
+            <stop offset="100%" stop-color="rgba(250, 134, 47, 0.18)" />
+          </linearGradient>
+          <filter id="solution-path-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <path d="M 380 18 C 380 46, 380 56, 380 76" stroke="url(#solution-path-gradient)" stroke-width="2" stroke-linecap="round" fill="none" />
+        <circle cx="380" cy="78" r="4" fill="#fa862f" opacity="0.75" />
+
+        <path
+          d="M 380 78 C 292 96, 86 112, 84 168"
+          stroke="rgba(250, 134, 47, 0.28)"
+          stroke-width="1.7"
+          stroke-dasharray="4 7"
+          stroke-linecap="round"
+          fill="none"
+        />
+        <path d="M 380 78 C 316 114, 238 136, 236 214" stroke="rgba(250, 134, 47, 0.26)" stroke-width="1.7" stroke-dasharray="4 7" fill="none" stroke-linecap="round" />
+        <path d="M 380 78 C 380 118, 380 126, 380 150" stroke="rgba(250, 134, 47, 0.3)" stroke-width="1.7" stroke-dasharray="4 7" fill="none" stroke-linecap="round" />
+        <path d="M 380 78 C 444 114, 522 136, 524 214" stroke="rgba(250, 134, 47, 0.26)" stroke-width="1.7" stroke-dasharray="4 7" fill="none" stroke-linecap="round" />
+        <path d="M 380 78 C 468 96, 674 112, 676 168" stroke="rgba(250, 134, 47, 0.28)" stroke-width="1.7" stroke-dasharray="4 7" fill="none" stroke-linecap="round" />
+
+        <path d="M 84 214 C 122 286, 282 282, 350 304" stroke="url(#solution-path-gradient)" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#solution-path-glow)" opacity="0.86" />
+        <path d="M 236 260 C 260 292, 308 300, 350 306" stroke="url(#solution-path-gradient)" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#solution-path-glow)" opacity="0.8" />
+        <path d="M 380 196 L 380 290" stroke="url(#solution-path-gradient)" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#solution-path-glow)" opacity="0.86" />
+        <path d="M 524 260 C 500 292, 452 300, 410 306" stroke="url(#solution-path-gradient)" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#solution-path-glow)" opacity="0.8" />
+        <path d="M 676 214 C 638 286, 478 282, 410 304" stroke="url(#solution-path-gradient)" stroke-width="2.2" fill="none" stroke-linecap="round" filter="url(#solution-path-glow)" opacity="0.86" />
+
+        <path d="M 380 348 C 380 376, 380 388, 380 408" stroke="#fa862f" stroke-width="2.4" fill="none" stroke-linecap="round" />
+        <path
+          d="M 380 408 L 373 397 M 380 408 L 387 397"
+          stroke="#fa862f"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          fill="none"
+        />
+      </svg>
+
+      <div class="solution-visual__sources">
+        {sources.map((source) => (
+          <div class="solution-visual__source" style={`--source-x: ${source.x}%; --source-y: ${source.y}%`}>
+            <div class:list={["solution-visual__source-icon", `solution-visual__source-icon--${source.id}`]}>
+              {source.globe ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M3 12h18M12 3c2.8 3.2 2.8 14.8 0 18M12 3c-2.8 3.2-2.8 14.8 0 18"></path>
+                </svg>
+              ) : (
+                <img src={source.src} alt="" loading="lazy" />
+              )}
+            </div>
+            <span>{source.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <div class="solution-visual__hub">
+        <img src="/logo.svg" alt="" />
+      </div>
+    </div>
+
+    <aside class="solution-visual__profile" aria-label="Builder profile preview">
+      <p class="solution-visual__profile-label">Builder profile</p>
+      <div class="solution-visual__profile-header">
+        <div class="solution-visual__avatar">AK</div>
+        <div>
+          <p class="solution-visual__name">Aakash K.</p>
+          <p class="solution-visual__role">Full-stack · DevHacks winner</p>
+        </div>
+      </div>
+      <div class="solution-visual__signals">
+        <span>3 shipped projects</span>
+        <span>Hackathon MVP</span>
+        <span>Open source</span>
+      </div>
+      <div class="solution-visual__match">
+        <span>Match score</span>
+        <strong>94%</strong>
+      </div>
+    </aside>
+  </div>
+</div>

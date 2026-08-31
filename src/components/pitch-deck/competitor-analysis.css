@@ -1,0 +1,160 @@
+#pitchDeck .competitor-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .competitor-analysis {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 40px 64px 44px;
+}
+
+#pitchDeck .competitor-analysis__header {
+  flex-shrink: 0;
+  margin-bottom: 56px;
+}
+
+#pitchDeck .competitor-analysis__top {
+  margin-bottom: 22px;
+}
+
+#pitchDeck .competitor-analysis__header h1 {
+  margin: 0;
+  max-width: none;
+  color: #130a07;
+  font-size: 56px;
+  white-space: nowrap;
+}
+
+#pitchDeck .competitor-matrix {
+  --label-w: 300px;
+  position: relative;
+  display: grid;
+  flex: 1;
+  grid-template-columns: var(--label-w) repeat(5, minmax(0, 1fr));
+  grid-template-rows: 108px repeat(6, minmax(0, 1fr));
+  min-height: 0;
+}
+
+#pitchDeck .competitor-matrix__highlight {
+  position: absolute;
+  top: 0;
+  bottom: 4px;
+  left: calc(var(--label-w) + 10px);
+  width: calc((100% - var(--label-w)) / 5 - 20px);
+  pointer-events: none;
+}
+
+#pitchDeck .competitor-matrix__corner,
+#pitchDeck .competitor-matrix__logo,
+#pitchDeck .competitor-matrix__factor,
+#pitchDeck .competitor-matrix__mark {
+  position: relative;
+  z-index: 1;
+}
+
+#pitchDeck .competitor-matrix__factor,
+#pitchDeck .competitor-matrix__mark {
+  border-bottom: 1px solid rgba(20, 14, 10, 0.08);
+}
+
+#pitchDeck .competitor-matrix__factor {
+  display: flex;
+  align-items: center;
+  padding-right: 24px;
+  color: rgba(16, 11, 9, 0.72);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .competitor-matrix__logo {
+  display: grid;
+  place-items: center;
+}
+
+#pitchDeck .competitor-matrix__logo span {
+  display: grid;
+  place-items: center;
+}
+
+#pitchDeck .competitor-matrix__logo img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+#pitchDeck .competitor-matrix__logo--linkedin img {
+  width: 44px;
+  height: 44px;
+}
+
+#pitchDeck .competitor-matrix__logo--wellfound img {
+  width: 104px;
+  height: auto;
+}
+
+#pitchDeck .competitor-matrix__logo--juicebox img {
+  width: 108px;
+  height: auto;
+}
+
+#pitchDeck .competitor-matrix__logo--rightfit img {
+  width: 52px;
+  height: auto;
+}
+
+#pitchDeck .competitor-matrix__logo--devlabs img {
+  width: 48px;
+  height: 48px;
+  filter: brightness(0) invert(1);
+}
+
+#pitchDeck .competitor-matrix__mark.is-featured {
+  border-bottom-color: rgba(255, 255, 255, 0.18);
+}
+
+#pitchDeck .competitor-matrix__mark.is-featured i {
+  background: rgba(255, 255, 255, 0.96);
+  color: #e8741f;
+  box-shadow: 0 6px 16px rgba(16, 11, 9, 0.08);
+}
+
+#pitchDeck .competitor-matrix__mark {
+  display: grid;
+  place-items: center;
+}
+
+#pitchDeck .competitor-matrix__mark i {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #8fbf4a;
+  color: #14320a;
+}
+
+#pitchDeck .competitor-matrix__mark i svg {
+  width: 14px;
+  height: 14px;
+}
+
+#pitchDeck .competitor-matrix__mark b {
+  color: rgba(16, 11, 9, 0.28);
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+}

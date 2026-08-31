@@ -1,0 +1,34 @@
+---
+const hire = {
+  name: "Prasanna Moorthy",
+  avatar: "/landing/builders/prasanna.jpg",
+  title: "Research Engineer",
+  company: "Supermemory",
+  source: "Hired through DevHouse",
+  score: 94,
+  why: "Joined from a DevLabs event — not a cold application. Now shipping research engineering in production.",
+};
+---
+
+<div class="sol-thread">
+  <p class="sol-ask">
+    <span class="sol-ask__mark" aria-hidden="true">✦</span>
+    <span class="sol-ask__text">Find me a cracked App dev with expertise in stripe integration</span>
+  </p>
+
+  <div class="sol-thread__rule" aria-hidden="true"></div>
+
+  <article class="sol-answer">
+    <img src={hire.avatar} alt="" />
+    <div class="sol-answer__body">
+      <p class="sol-answer__source">{hire.source}</p>
+      <h2>{hire.name}</h2>
+      <p class="sol-answer__role">{hire.title} · {hire.company}</p>
+      <p class="sol-answer__why">{hire.why}</p>
+    </div>
+    <p class="sol-answer__fit">
+      <span>fit</span>
+      <strong>{hire.score}%</strong>
+    </p>
+  </article>
+</div>

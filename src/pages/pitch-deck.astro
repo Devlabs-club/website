@@ -1,0 +1,32 @@
+---
+export const prerender = true;
+
+import Layout from "../layouts/Layout.astro";
+import PitchDeck from "../components/pitch-deck/PitchDeck.astro";
+---
+
+<Layout
+  title="DevLabs Pitch Deck"
+  description="2026 plan intro — DevLabs pitch deck."
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  skipSmoothScroll
+>
+  <PitchDeck />
+</Layout>
+
+<style is:global>
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    background: #1a100c !important;
+  }
+
+  main {
+    height: 100%;
+    padding: 0;
+  }
+</style>

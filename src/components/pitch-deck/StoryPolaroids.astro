@@ -1,0 +1,38 @@
+---
+interface Photo {
+  src: string;
+  alt: string;
+}
+
+interface Props {
+  photos: Photo[];
+}
+
+const { photos } = Astro.props;
+
+const slots = [
+  { style: "left: 5.0%; top: 14px; --r: -1deg; --s: 0.82;" },
+  { style: "left: 14.9%; top: 62px; --r: -13deg; --s: 1.02;" },
+  { style: "left: 25.0%; top: 56px; --r: -4deg; --s: 1;" },
+  { style: "left: 34.7%; top: 22px; --r: 8deg; --s: 1.04;" },
+  { style: "left: 44.7%; top: 0; --r: -1deg; --s: 1.02;" },
+  { style: "left: 54.8%; top: 62px; --r: -13deg; --s: 1.02;" },
+  { style: "left: 64.9%; top: 56px; --r: -4deg; --s: 1;" },
+  { style: "left: 74.6%; top: 22px; --r: 8deg; --s: 1.04;" },
+  { style: "left: 84.7%; top: 0; --r: -1deg; --s: 1.02;" },
+  { style: "left: 94.6%; top: 62px; --r: -13deg; --s: 1.02;" },
+];
+---
+
+<div class="story-polaroids">
+  <div class="story-photos">
+    {slots.map((slot, index) => {
+      const photo = photos[index] ?? photos[index % photos.length];
+      return (
+        <figure class="story-polaroid" style={slot.style}>
+          <img src={photo.src} alt={photo.alt} loading="eager" decoding="async" />
+        </figure>
+      );
+    })}
+  </div>
+</div>

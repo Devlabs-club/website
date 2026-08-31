@@ -1,0 +1,21 @@
+---
+interface Props {
+  lines: string[];
+}
+
+const { lines } = Astro.props;
+---
+
+<div class="flex items-center gap-[34px]">
+  <div class="grid h-[82px] w-[82px] shrink-0 place-items-center rounded-[18px] bg-white shadow-[0_16px_30px_rgba(250,134,47,0.12)]">
+    <slot />
+  </div>
+  <p class="m-0 text-[37px] font-normal leading-[1.03] tracking-[-0.04em] text-white">
+    {lines.map((line, index) => (
+      <>
+        {line}
+        {index < lines.length - 1 && <br />}
+      </>
+    ))}
+  </p>
+</div>

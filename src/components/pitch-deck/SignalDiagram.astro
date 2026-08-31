@@ -1,0 +1,70 @@
+---
+const nodes = [
+  { label: "DevHacks", kind: "event", left: 17.58, top: 32.87, w: 3.03, h: 5.42, icon: "code" },
+  { label: "DevHouse", kind: "event", left: 5.66, top: 33.92, w: 3.03, h: 5.42, icon: "house" },
+  { label: "Build nights", kind: "event", left: 11.91, top: 47.2, w: 3.03, h: 5.42, icon: "zap" },
+  { label: "GitHub", kind: "signal", left: 4.1, top: 55.59, w: 3.03, h: 5.42, icon: "github" },
+  { label: "Shipped projects", kind: "signal", left: 17.58, top: 61.89, w: 3.22, h: 5.42, icon: "rocket" },
+  { label: "Collaboration", kind: "signal", left: 8.98, top: 73.78, w: 3.03, h: 5.42, icon: "users" },
+  { label: "Agent traces", kind: "signal", left: 24.41, top: 73.78, w: 3.03, h: 5.42, icon: "activity" },
+];
+---
+
+<div class="signal-overlay">
+  {nodes.map((node) => (
+    <div
+      class:list={["signal-pin", `signal-pin--${node.kind}`]}
+      style={`left: ${node.left}%; top: ${node.top}%; width: ${node.w}%; height: ${node.h}%`}
+    >
+      <span class="signal-pin__icon" aria-hidden="true">
+        {node.icon === "code" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16 18 6-6-6-6M8 6l-6 6 6 6"></path>
+          </svg>
+        )}
+        {node.icon === "house" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"></path>
+          </svg>
+        )}
+        {node.icon === "zap" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"></path>
+          </svg>
+        )}
+        {node.icon === "github" && (
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
+          </svg>
+        )}
+        {node.icon === "rocket" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15s3 1 4 3-4 3-4 3-3-1-4-3 4-3 4-3zM5 16l-2 5 5-2M14.5 4.5C18 3 21 3 21 3s0 3-1.5 6.5C18 13 14 16 12 16s-6-3-7.5-6.5C3 6 3 3 3 3s3 0 6.5 1.5C12 6 14.5 4.5 14.5 4.5z"></path>
+          </svg>
+        )}
+        {node.icon === "users" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="9" cy="8" r="3"></circle>
+            <path stroke-linecap="round" d="M3 19c.6-2.8 2.6-4 6-4s5.4 1.2 6 4M17 8a2.5 2.5 0 1 1 0 5M21 19c-.4-2-1.7-3.2-4-3.5"></path>
+          </svg>
+        )}
+        {node.icon === "activity" && (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l3-8 5 16 3-8h4"></path>
+          </svg>
+        )}
+      </span>
+      <span class="signal-pin__label">{node.label}</span>
+    </div>
+  ))}
+
+  <div class="signal-proof">
+    <img src="/logo.svg" alt="" />
+    <p>Devlabs Proof Layer</p>
+    <span>What they shipped.<br />How they built.<br />How they worked.</span>
+  </div>
+
+  <div class="signal-ribbon">
+    <p>Proof-backed builders</p>
+  </div>
+</div>

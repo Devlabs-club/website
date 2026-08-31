@@ -1,0 +1,79 @@
+---
+const featured = {
+  company: "supermemory",
+  logo: "/sponsors/supermemory.png",
+  quote: "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
+  author: "Dhravya Shah",
+  role: "Founder, Supermemory",
+  avatar: "/team/dhravya.png",
+};
+
+const sponsors = [
+  {
+    company: "DeepMind",
+    logo: "/sponsors/deepmind.png",
+    quote: "The energy was electric and I've never seen a crowd like this before.",
+    author: "Paige Bailey",
+    role: "Lead DevRel, Google DeepMind",
+    avatar: "/team/paige.png",
+  },
+  {
+    company: "Browser Use",
+    logo: "/sponsors/browser-use.png",
+    quote: "This is one of the best hackathons we've sponsored.",
+    author: "Saurav Panda",
+    role: "Founding Engineer, Browser Use",
+    avatar: "/team/saurav.png",
+  },
+];
+---
+
+<section class="testimonials deck-slide-layout">
+  <header class="testimonials__header deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Testimonials</p>
+  </header>
+
+  <div class="testimonials__intro">
+    <h1>Don&rsquo;t take our word for it</h1>
+    <p>Founders and sponsors see the builder signal before the first intro.</p>
+  </div>
+
+  <div class="testimonials__board">
+    <article class="testimonial-card testimonial-card--featured deck-card deck-card--orange">
+      <div class="testimonial-card__brand">
+        <img src={featured.logo} alt={featured.company} loading="lazy" />
+      </div>
+      <span class="testimonial-card__mark" aria-hidden="true">&ldquo;</span>
+      <p>{featured.quote}</p>
+      <footer>
+        <img src={featured.avatar} alt={featured.author} loading="lazy" />
+        <div>
+          <strong>{featured.author}</strong>
+          <span>{featured.role}</span>
+        </div>
+      </footer>
+    </article>
+
+    <div class="testimonials__stack">
+      {sponsors.map((item) => (
+        <article class="testimonial-card deck-card">
+          <div class="testimonial-card__brand">
+            <img src={item.logo} alt={item.company} loading="lazy" />
+          </div>
+          <p>{item.quote}</p>
+          <footer>
+            <img src={item.avatar} alt={item.author} loading="lazy" />
+            <div>
+              <strong>{item.author}</strong>
+              <span>{item.role}</span>
+            </div>
+          </footer>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,435 @@
+#pitchDeck .solution-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .solution-layout {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  padding: 44px 64px 46px;
+  gap: 22px;
+}
+
+#pitchDeck .solution-body {
+  display: grid;
+  grid-template-columns: minmax(0, 430px) minmax(0, 1fr);
+  gap: 64px;
+  min-height: 0;
+  align-items: stretch;
+}
+
+#pitchDeck .solution-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 0;
+  padding-top: 112px;
+  padding-right: 8px;
+}
+
+#pitchDeck .solution-slide .solution-title {
+  margin: 0;
+  max-width: 410px;
+  font-size: 62px;
+  color: #100b09;
+}
+
+#pitchDeck .solution-title em {
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  color: #fa862f;
+}
+
+#pitchDeck .solution-slide .solution-lead {
+  margin: 24px 0 0;
+  max-width: 400px;
+  font-size: 19px;
+  font-weight: 300;
+  line-height: 1.46;
+  letter-spacing: -0.02em;
+  color: rgba(16, 11, 9, 0.58);
+}
+
+#pitchDeck .solution-slide .solution-lead strong {
+  font-weight: 600;
+  color: #100b09;
+}
+
+#pitchDeck .solution-points {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 46px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .solution-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  max-width: 410px;
+}
+
+#pitchDeck .solution-point span {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(250, 134, 47, 0.1);
+  color: #fa862f;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .solution-slide .solution-point p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.32;
+  letter-spacing: -0.02em;
+  color: rgba(16, 11, 9, 0.64);
+  text-transform: lowercase;
+}
+
+/* ── Solution visual funnel ── */
+
+#pitchDeck .solution-visual {
+  display: flex;
+  min-height: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+#pitchDeck .solution-visual__frame {
+  position: relative;
+  display: flex;
+  width: min(100%, 840px);
+  height: 100%;
+  max-height: 700px;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 30px 24px;
+  overflow: hidden;
+  border-radius: 30px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background:
+    radial-gradient(ellipse 58% 44% at 50% 46%, rgba(255, 255, 255, 0.94) 0%, rgba(255, 249, 243, 0.54) 45%, transparent 72%),
+    radial-gradient(ellipse 66% 50% at 50% 34%, rgba(250, 134, 47, 0.1) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 251, 247, 0.72) 100%);
+  box-shadow:
+    0 26px 74px rgba(58, 30, 14, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+#pitchDeck .solution-visual__frame::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(250, 134, 47, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(250, 134, 47, 0.06) 1px, transparent 1px);
+  background-size: 58px 58px;
+  opacity: 0.42;
+  mask-image: radial-gradient(ellipse 76% 70% at 50% 48%, #000 0%, transparent 78%);
+  pointer-events: none;
+}
+
+#pitchDeck .solution-visual__topline {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+#pitchDeck .solution-visual__label {
+  margin: 0;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .solution-visual__topline span {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-visual__photos {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+#pitchDeck .solution-visual__photo {
+  position: relative;
+  width: 146px;
+  height: 98px;
+  margin: 0;
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(250, 134, 47, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 34px rgba(57, 31, 16, 0.1);
+  transform: rotate(var(--photo-rotate, 0deg));
+}
+
+#pitchDeck .solution-visual__photo:nth-child(2) {
+  width: 164px;
+  height: 108px;
+  z-index: 2;
+}
+
+#pitchDeck .solution-visual__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+#pitchDeck .solution-visual__graph {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+#pitchDeck .solution-visual__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#pitchDeck .solution-visual__sources {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+#pitchDeck .solution-visual__source {
+  position: absolute;
+  left: var(--source-x);
+  top: var(--source-y);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+}
+
+#pitchDeck .solution-visual__source-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 18px;
+  border: 1px solid rgba(250, 134, 47, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 16px 34px rgba(32, 18, 8, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+#pitchDeck .solution-visual__source-icon img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+#pitchDeck .solution-visual__source-icon--linkedin img {
+  width: 26px;
+  height: 26px;
+}
+
+#pitchDeck .solution-visual__source-icon--github img {
+  filter: invert(1);
+}
+
+#pitchDeck .solution-visual__source-icon--claude img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+}
+
+#pitchDeck .solution-visual__source-icon--hackathons img {
+  width: 31px;
+  height: 31px;
+}
+
+#pitchDeck .solution-visual__source-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #fa862f;
+}
+
+#pitchDeck .solution-visual__source span {
+  color: rgba(22, 11, 7, 0.52);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-visual__hub {
+  position: absolute;
+  left: 50%;
+  top: 72%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  border-radius: 30px;
+  border: 1px solid rgba(250, 134, 47, 0.28);
+  background: linear-gradient(145deg, #ffffff 0%, #fff4e9 52%, #ffd0a5 100%);
+  box-shadow:
+    0 0 0 8px rgba(250, 134, 47, 0.08),
+    0 24px 48px rgba(250, 134, 47, 0.18);
+  transform: translate(-50%, -50%);
+}
+
+#pitchDeck .solution-visual__hub img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+#pitchDeck .solution-visual__profile {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  max-width: 620px;
+  flex-shrink: 0;
+  margin-top: 8px;
+  padding: 17px 20px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 252, 249, 0.91) 100%);
+  box-shadow:
+    0 18px 46px rgba(21, 14, 8, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.94);
+}
+
+#pitchDeck .solution-visual__profile::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #fa862f 0%, #ffb56e 100%);
+  opacity: 0.75;
+}
+
+#pitchDeck .solution-visual__profile-label {
+  margin: 0 0 10px;
+  color: #fa862f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .solution-visual__profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#pitchDeck .solution-visual__avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #ffd4ad, #fa862f);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#pitchDeck .solution-visual__name {
+  margin: 0;
+  color: #100b09;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .solution-visual__role {
+  margin: 2px 0 0;
+  color: rgba(16, 11, 9, 0.52);
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-visual__signals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+#pitchDeck .solution-visual__signals span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(250, 134, 47, 0.1);
+  color: #c45a12;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+#pitchDeck .solution-visual__match {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(250, 134, 47, 0.12);
+  color: rgba(16, 11, 9, 0.58);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#pitchDeck .solution-visual__match strong {
+  color: #fa862f;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}

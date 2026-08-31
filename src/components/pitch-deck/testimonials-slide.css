@@ -1,0 +1,192 @@
+#pitchDeck .testimonials-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: transparent;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .testimonials {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  height: 100%;
+  min-height: 0;
+  padding: 44px 64px 48px;
+}
+
+#pitchDeck .testimonials__intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 48px;
+  align-items: end;
+  margin-top: 28px;
+}
+
+#pitchDeck .testimonials__intro h1 {
+  margin: 0;
+  max-width: 560px;
+  color: #130a07;
+  font-size: 52px;
+}
+
+#pitchDeck .testimonials__intro p {
+  margin: 0;
+  color: rgba(22, 11, 7, 0.54);
+  font-size: 19px;
+  font-weight: 300;
+  line-height: 1.38;
+  letter-spacing: -0.028em;
+  text-transform: lowercase;
+}
+
+#pitchDeck .testimonials__board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+  margin-top: 28px;
+}
+
+#pitchDeck .testimonials__stack {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 18px;
+  min-height: 0;
+}
+
+#pitchDeck .testimonial-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 24px 20px;
+}
+
+#pitchDeck .testimonial-card--featured {
+  position: relative;
+  justify-content: space-between;
+  padding: 28px 32px 26px;
+}
+
+#pitchDeck .testimonial-card__brand {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(20, 14, 10, 0.07);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+#pitchDeck .testimonial-card--featured .testimonial-card__brand {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+#pitchDeck .testimonial-card__brand img {
+  display: block;
+  max-width: 150px;
+  max-height: 24px;
+  object-fit: contain;
+  filter: grayscale(1) brightness(0.08);
+}
+
+#pitchDeck .testimonial-card--featured .testimonial-card__brand img {
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+#pitchDeck .testimonial-card__mark {
+  position: absolute;
+  right: 28px;
+  top: 8px;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 220px;
+  font-weight: 700;
+  line-height: 0.75;
+  pointer-events: none;
+}
+
+#pitchDeck .testimonial-card p {
+  position: relative;
+  z-index: 2;
+  margin: 16px 0 0;
+  color: rgba(16, 11, 9, 0.88);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.28;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .testimonial-card--featured p {
+  margin: 28px 0 auto;
+  max-width: 92%;
+  color: rgba(255, 255, 255, 0.98);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: -0.045em;
+}
+
+#pitchDeck .testimonial-card footer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(16, 11, 9, 0.08);
+}
+
+#pitchDeck .testimonial-card--featured footer {
+  margin-top: 28px;
+  border-top-color: rgba(255, 255, 255, 0.22);
+}
+
+#pitchDeck .testimonial-card footer img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid rgba(250, 134, 47, 0.34);
+  object-fit: cover;
+}
+
+#pitchDeck .testimonial-card--featured footer img {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+#pitchDeck .testimonial-card footer strong {
+  display: block;
+  color: rgba(16, 11, 9, 0.92);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+#pitchDeck .testimonial-card--featured footer strong {
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 17px;
+}
+
+#pitchDeck .testimonial-card footer span {
+  display: block;
+  margin-top: 3px;
+  color: rgba(16, 11, 9, 0.54);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+#pitchDeck .testimonial-card--featured footer span {
+  color: rgba(255, 255, 255, 0.72);
+}

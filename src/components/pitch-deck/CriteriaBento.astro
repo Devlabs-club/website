@@ -1,0 +1,129 @@
+---
+interface Criterion {
+  label: string;
+  detail: string;
+}
+
+interface Props {
+  criteria: Criterion[];
+}
+
+const { criteria } = Astro.props;
+
+const matches = [
+  { name: "Prasanna Moorthy", role: "Research Engineer", fit: 94, accent: true },
+  { name: "Aakash K", role: "Full-stack", fit: 81, accent: false },
+];
+
+const sources = [
+  { name: "GitHub", src: "/brand/github.svg", angle: -18 },
+  { name: "LinkedIn", src: "/socials/linkedin.svg", angle: 48 },
+  { name: "Claude", src: "/brand/claude.png", angle: 118 },
+  { name: "Codex", src: "/brand/chatgpt.svg", angle: 188 },
+  { name: "Web", src: "", angle: 268 },
+];
+
+const polar = (angle: number, radius: number) => {
+  const rad = (angle * Math.PI) / 180;
+  return {
+    x: 50 + Math.cos(rad) * radius,
+    y: 50 + Math.sin(rad) * radius,
+  };
+};
+---
+
+<div class="criteria-bento">
+  <article class="bento-card bento-card--traces">
+    <div class="bento-card__copy">
+      <p class="bento-card__tag">Feature 01</p>
+      <h3>Agent traces</h3>
+      <p>We see how they reasoned, recovered, tested, and shipped — not just the finished repo.</p>
+    </div>
+
+    <div class="trace-stack" aria-hidden="true">
+      <article class="trace-window trace-window--back"></article>
+      <article class="trace-window trace-window--mid"></article>
+      <article class="trace-window trace-window--front">
+        <div class="trace-window__chrome">
+          <i></i><i></i><i></i>
+        </div>
+        <p class="trace-window__ask">Which model do they reach for?</p>
+        <h4>Claude → Codex</h4>
+        <p>Explored the system, then switched agents to ship the first working version.</p>
+        <div class="trace-window__steps">
+          <span>14 calls</span>
+          <span>tests passed</span>
+          <span>retried twice</span>
+        </div>
+      </article>
+    </div>
+  </article>
+
+  <article class="bento-card bento-card--match">
+    <p class="bento-card__tag">Output</p>
+    <h3>Ranked matches</h3>
+    <ul class="match-list">
+      {matches.map((match) => (
+        <li class:list={["match-row", match.accent && "is-accent"]}>
+          <span class="match-row__name">{match.name}</span>
+          <span class="match-row__role">{match.role}</span>
+          <b>{match.fit}%</b>
+          <i style={`--fit:${match.fit}%`}></i>
+        </li>
+      ))}
+    </ul>
+  </article>
+
+  <article class="bento-card bento-card--criteria">
+    <p class="bento-card__tag">Proof signals</p>
+    <ul class="signal-table">
+      {criteria.map((item) => (
+        <li>
+          <strong>{item.label}</strong>
+          <span>{item.detail}</span>
+        </li>
+      ))}
+    </ul>
+  </article>
+
+  <article class="bento-card bento-card--sources">
+    <div class="bento-card__copy">
+      <p class="bento-card__tag">Feature 02</p>
+      <h3>More source signal</h3>
+      <p>LinkedIn, GitHub, Claude, Codex, and the open web resolve into one proof-backed profile.</p>
+    </div>
+
+    <div class="source-orbit" aria-hidden="true">
+      <svg class="source-orbit__lines" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        {sources.map((source) => {
+          const point = polar(source.angle, 36);
+          return <line x1="50" y1="50" x2={point.x.toFixed(1)} y2={point.y.toFixed(1)}></line>;
+        })}
+        <circle cx="50" cy="50" r="36"></circle>
+      </svg>
+
+      <div class="source-orbit__core">
+        <img src="/logo.svg" alt="" />
+      </div>
+
+      {sources.map((source) => {
+        const point = polar(source.angle, 36);
+        return (
+          <div
+            class:list={["source-node", `source-node--${source.name.toLowerCase()}`]}
+            style={`left:${point.x}%; top:${point.y}%`}
+          >
+            {source.src ? (
+              <img src={source.src} alt="" />
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                <circle cx="12" cy="12" r="8"></circle>
+                <path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16"></path>
+              </svg>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  </article>
+</div>

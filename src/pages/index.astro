@@ -490,7 +490,7 @@ const builderTestimonials = [
           Turn your projects, hackathon work, and <span class="whitespace-nowrap">open-source</span> contributions into proof founders can trust.
         </p>
       ) : (
-        <p class="relative z-10 mt-6 max-w-3xl text-[clamp(1.02rem,1.65vw,1.35rem)] font-medium leading-relaxed text-black/58" data-audience-copy="heroSubcopy">
+        <p class="relative z-10 mt-4 max-w-[18.5rem] text-[0.8rem] font-medium leading-[1.45] text-black/52 sm:mt-6 sm:max-w-3xl sm:text-[clamp(1.02rem,1.65vw,1.35rem)] sm:leading-relaxed sm:text-black/58" data-audience-copy="heroSubcopy">
           Tell us who you need and find backed builders from our hackathons, hackerhouses and other events.
         </p>
       )}
@@ -547,10 +547,10 @@ const builderTestimonials = [
           />
           <div class="absolute inset-0 bg-white/5"></div>
 
-          <span class="selection-dot hero-editor-control left-7 top-7"></span>
-          <span class="selection-dot hero-editor-control right-7 top-7"></span>
-          <span class="selection-dot hero-editor-control bottom-7 left-7"></span>
-          <span class="selection-dot hero-editor-control bottom-7 right-7"></span>
+          <span class="selection-dot hero-editor-control left-7 top-7 max-sm:hidden"></span>
+          <span class="selection-dot hero-editor-control right-7 top-7 max-sm:hidden"></span>
+          <span class="selection-dot hero-editor-control bottom-7 left-7 max-sm:hidden"></span>
+          <span class="selection-dot hero-editor-control bottom-7 right-7 max-sm:hidden"></span>
 
           <div class="hero-builder-card relative z-10 w-full max-w-[22.5rem] border-2 border-black bg-white p-3 text-left shadow-[0_14px_24px_rgba(0,0,0,0.06)] min-[400px]:max-w-[26rem] min-[400px]:p-3.5 sm:max-w-[min(88%,880px)] sm:p-4 lg:max-w-[920px] lg:p-5">
             <div class="mb-2.5 inline-flex items-center gap-2 border border-[#ff7417]/60 bg-[#fff5ef] px-2.5 py-1.5 text-sm font-semibold text-[#bf4f08]">
@@ -607,7 +607,7 @@ const builderTestimonials = [
             </div>
 
 
-            <div class="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2">
+            <div class="mt-2.5 hidden flex-wrap gap-1.5 sm:mt-3 sm:flex sm:gap-2">
               {["App dev", "Shipped projects", "Hackathon finalist", "Available this week"].map((signal) => (
                 <span class="hero-signal-chip border border-[#ff7417]/35 bg-[#fff5ef] px-2 py-1 text-[0.7rem] font-semibold text-[#bf4f08] sm:px-2.5 sm:text-xs">
                   {signal}
@@ -623,10 +623,10 @@ const builderTestimonials = [
           </div>
         </div>
 
-        <span class="corner-square hero-editor-control -left-2 -top-2"></span>
-        <span class="corner-square hero-editor-control -right-2 -top-2"></span>
-        <span class="corner-square hero-editor-control -bottom-2 -left-2"></span>
-        <span class="corner-square hero-editor-control -bottom-2 -right-2"></span>
+        <span class="corner-square hero-editor-control -left-2 -top-2 max-sm:hidden"></span>
+        <span class="corner-square hero-editor-control -right-2 -top-2 max-sm:hidden"></span>
+        <span class="corner-square hero-editor-control -bottom-2 -left-2 max-sm:hidden"></span>
+        <span class="corner-square hero-editor-control -bottom-2 -right-2 max-sm:hidden"></span>
       </div>
       )}
     </section>
@@ -684,7 +684,7 @@ const builderTestimonials = [
           </div>
         </div>
 
-        <div data-fluid-panel class="mx-auto mt-24 max-w-[22rem] text-center sm:mt-28 sm:max-w-5xl">
+        <div data-fluid-panel class="problem-headline mx-auto mt-24 max-w-[22rem] text-center sm:mt-28 sm:max-w-5xl">
           <h2 class="text-[clamp(2rem,9.8vw,6.4rem)] font-black leading-[0.96] tracking-[-0.04em] text-black sm:leading-[0.93]">
             <span data-audience-copy="problemLineOne">Hiring</span>
             <br class="sm:hidden" />
@@ -2676,7 +2676,31 @@ const builderTestimonials = [
 
   @media (max-width: 639px) {
     .hero-section {
-      padding: 4rem 1.25rem 5rem !important;
+      padding: 4rem 0.75rem 2.5rem !important;
+    }
+
+    .hero-section:not(.builder-hero) [data-hero-headline] {
+      max-width: none !important;
+      width: 100%;
+    }
+
+    .hero-section:not(.builder-hero) [data-hero-headline] h1 {
+      font-size: clamp(1.95rem, 9.8vw, 2.45rem) !important;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-section + .ruler-section {
+      padding-left: 0.75rem !important;
+      padding-right: 0.75rem !important;
+    }
+
+    .problem-headline {
+      max-width: none !important;
+      width: 100%;
+    }
+
+    .problem-headline h2 {
+      font-size: clamp(2.55rem, 13.8vw, 3.45rem) !important;
     }
 
     .hero-section.builder-hero {
@@ -2721,17 +2745,24 @@ const builderTestimonials = [
       gap: 0.65rem !important;
     }
 
-    .hero-start-cta,
-    .hero-book-call-cta {
-      min-width: 9.75rem !important;
-      height: 3.05rem !important;
-      padding-inline: 1.65rem !important;
+    .hero-section:not(.builder-hero) .hero-start-cta,
+    .hero-section:not(.builder-hero) .hero-book-call-cta {
+      min-width: 0 !important;
+      height: 2.4rem !important;
+      padding-inline: 1.1rem !important;
+      font-size: 0.78rem !important;
+      gap: 0.35rem !important;
+    }
+
+    .hero-section:not(.builder-hero) .hero-book-call-cta svg {
+      width: 0.8rem;
+      height: 0.8rem;
     }
 
     [data-hero-card] > div {
       min-height: 0 !important;
       border-radius: 20px !important;
-      padding: 1.1rem 0.85rem !important;
+      padding: 1.15rem 0.85rem !important;
     }
 
     [data-audience="builders"] [data-hero-card] > div {
@@ -2757,20 +2788,10 @@ const builderTestimonials = [
       bottom: -1.2rem;
     }
 
-    [data-hero-card] .selection-dot.left-7 {
-      left: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.right-7 {
-      right: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.top-7 {
-      top: 1.1rem !important;
-    }
-
-    [data-hero-card] .selection-dot.bottom-7 {
-      bottom: 1.1rem !important;
+    .hero-editor-control,
+    .hero-showcase-frame .selection-dot,
+    [data-hero-card] .corner-square {
+      display: none !important;
     }
 
     .metrics-section {
@@ -3134,30 +3155,10 @@ const builderTestimonials = [
     animation: hero-result-in var(--hero-search-cycle) ease-in-out infinite;
   }
 
-  .hero-builder-card :global(.hero-result-card-two) {
-    animation-delay: 0.18s;
-  }
-
-  .hero-signal-chip:nth-child(1) {
-    animation-delay: 0.28s;
-  }
-
-  .hero-signal-chip:nth-child(2) {
-    animation-delay: 0.38s;
-  }
-
-  .hero-signal-chip:nth-child(3) {
-    animation-delay: 0.48s;
-  }
-
-  .hero-signal-chip:nth-child(4) {
-    animation-delay: 0.58s;
-  }
-
   .hero-search-cursor {
     position: absolute;
-    left: 74%;
-    top: -12%;
+    left: 76%;
+    top: -11%;
     z-index: 20;
     display: block;
     width: 2.1rem;
@@ -3307,14 +3308,14 @@ const builderTestimonials = [
 
   @keyframes hero-result-in {
     0%,
-    68% {
+    61% {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
       transform: translateY(12px);
     }
-    76%,
-    90% {
+    68%,
+    88% {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
@@ -3331,8 +3332,7 @@ const builderTestimonials = [
 
   @media (max-width: 639px) {
     .hero-search-cursor {
-      width: 1.7rem;
-      height: 1.7rem;
+      display: none;
     }
 
     .hero-loading-row {

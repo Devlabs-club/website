@@ -1,0 +1,107 @@
+---
+const plans = [
+  {
+    eyebrow: "Get started",
+    title: "Explore the talent pool",
+    description: "Before you commit. No credit card required.",
+    price: "Forever free",
+    note: "Start with real builder signal",
+    cta: "Try for free",
+    featured: false,
+    included: [
+      { text: "3 job roles per month", active: true },
+      { text: "5 builder profiles per role", active: true },
+      { text: "GitHub, LinkedIn & project portfolios", active: true },
+      { text: "Agent traces from Claude Code, Codex & more", active: false },
+      { text: "Builder outreach & introductions", active: false },
+    ],
+  },
+  {
+    eyebrow: "Most popular",
+    title: "Growth",
+    description: "For startups actively hiring. More profiles, full signal, no gatekeeping.",
+    price: "$20/mo",
+    note: "Billed monthly · cancel anytime",
+    cta: "Get started",
+    featured: true,
+    included: [
+      { text: "5 job roles per month", active: true },
+      { text: "20 builder profiles per role", active: true },
+      { text: "GitHub, LinkedIn & project portfolios", active: true },
+      { text: "Full agent traces — Claude Code, Codex & more", active: true },
+      { text: "Builder outreach & introductions", active: true },
+    ],
+  },
+  {
+    eyebrow: "End-to-end hiring",
+    title: "Custom",
+    description: "DevLabs manages the entire process — from search to signed offer.",
+    price: "$499 deposit",
+    note: "Success-based pricing on hire",
+    cta: "Start with deposit",
+    featured: false,
+    included: [
+      { text: "Everything in Growth", active: true },
+      { text: "Warm introductions to matched builders", active: true },
+      { text: "End-to-end hiring support by DevLabs", active: true },
+      { text: "Unlimited roles & profiles", active: true },
+      { text: "Dedicated DevLabs point of contact", active: true },
+    ],
+  },
+];
+---
+
+<section class="pricing-slide__content deck-slide-layout">
+  <header class="pricing-slide__header deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Pricing</p>
+  </header>
+
+  <div class="pricing-slide__intro">
+    <h1>A bad early hire costs more than money</h1>
+    <p>Simple pricing for proving who can build before you spend months screening.</p>
+  </div>
+
+  <div class="pricing-grid">
+    {plans.map((plan) => (
+      <article class:list={["pricing-card", plan.featured && "pricing-card--featured"]}>
+        {plan.featured && <div class="pricing-card__ribbon">Most popular</div>}
+        <div class="pricing-card__body">
+          {!plan.featured && <p class="pricing-card__eyebrow">{plan.eyebrow}</p>}
+          <h2>{plan.title}</h2>
+          <p class="pricing-card__description">{plan.description}</p>
+
+          <div class="pricing-card__price">
+            <strong>{plan.price}</strong>
+            <span>{plan.note}</span>
+          </div>
+
+          <div class="pricing-card__features">
+            <ul>
+              {plan.included.map((item) => (
+                <li class:list={[!item.active && "pricing-card__feature--muted"]}>
+                  <span class="pricing-card__check" aria-hidden="true">&#10003;</span>
+                  <em>{item.text}</em>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            class:list={[
+              "pricing-card__cta",
+              plan.featured ? "pricing-card__cta--primary" : "pricing-card__cta--secondary",
+            ]}
+          >
+            <span class="pricing-card__cta-label">{plan.cta}</span>
+            <span class="pricing-card__cta-arrow" aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

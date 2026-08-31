@@ -1,0 +1,99 @@
+---
+const steps = [
+  {
+    n: "01",
+    title: "Watch them build",
+    support: "Hackathons, hacker houses and build nights",
+    body: "We meet builders before they enter the application pile.",
+  },
+  {
+    n: "02",
+    title: "Capture the proof",
+    support: "Code, projects, speed, collaboration and agent traces",
+    body: "We turn what they build and how they work into a proof-backed profile.",
+  },
+  {
+    n: "03",
+    title: "Match them to startups",
+    support: "Ranked builders with clear why-hire evidence",
+    body: "Founders get a small shortlist of builders who have already demonstrated the required skills.",
+  },
+];
+
+const signals = [
+  "Event performance",
+  "Projects shipped",
+  "Code quality",
+  "Collaboration",
+  "Agent traces",
+];
+
+const shortlist = [
+  { role: "Founding backend", proof: "Shipped production APIs under a weekend deadline." },
+  { role: "Founding full-stack", proof: "Owned the product path from sketch to live demo." },
+];
+---
+
+<section class="solution-flow">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> The solution</p>
+  </header>
+
+  <div class="solution-flow__intro">
+    <h1>We turn real-world building into hiring signal</h1>
+    <p>
+      Devlabs hosts hackathons, hacker houses and build nights where we see how builders actually think, collaborate and ship.
+    </p>
+  </div>
+
+  <div class="solution-flow__track">
+    <article class="solution-col">
+      <p class="solution-col__n">{steps[0].n}</p>
+      <h2>{steps[0].title}</h2>
+      <p class="solution-col__support">{steps[0].support}</p>
+      <p class="solution-col__body">{steps[0].body}</p>
+      <figure class="solution-col__photo">
+        <img src="/landing/community/devhacks-build.png" alt="Builders working together at a Devlabs event" />
+      </figure>
+    </article>
+
+    <article class="solution-col solution-col--proof">
+      <p class="solution-col__n">{steps[1].n}</p>
+      <h2>{steps[1].title}</h2>
+      <p class="solution-col__support">{steps[1].support}</p>
+      <p class="solution-col__body">{steps[1].body}</p>
+      <div class="solution-proof">
+        <p>Proof profile</p>
+        <ul>
+          {signals.map((signal) => (
+            <li>{signal}</li>
+          ))}
+        </ul>
+      </div>
+    </article>
+
+    <article class="solution-col">
+      <p class="solution-col__n">{steps[2].n}</p>
+      <h2>{steps[2].title}</h2>
+      <p class="solution-col__support">{steps[2].support}</p>
+      <p class="solution-col__body">{steps[2].body}</p>
+      <div class="solution-shortlist">
+        {shortlist.map((item, index) => (
+          <div class="solution-shortlist__row">
+            <b>0{index + 1}</b>
+            <div>
+              <strong>{item.role}</strong>
+              <span>{item.proof}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </article>
+  </div>
+
+  <p class="solution-flow__bottom">From the event, to the proof, to the hire.</p>
+</section>

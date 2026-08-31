@@ -1,0 +1,20 @@
+---
+import Icon from "./PitchDeckIcon.astro";
+
+interface Props {
+  className: string;
+  label: string;
+  icon: "laptop" | "apple" | "android";
+}
+
+const { className, label, icon } = Astro.props;
+---
+
+<div class:list={["absolute bottom-0 w-[172px]", className]}>
+  <p class="absolute -top-[68px] left-1/2 m-0 -translate-x-1/2 text-[48px] font-bold tracking-[-0.06em] text-[#fa862f]">
+    {label}
+  </p>
+  <div class="relative h-full rounded-t-[12px] bg-[linear-gradient(180deg,#fff6ef_0%,#ffc48a_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.86)]">
+    <Icon kind={icon} className="absolute bottom-[25px] left-1/2 h-[36px] w-[36px] -translate-x-1/2 text-white" />
+  </div>
+</div>

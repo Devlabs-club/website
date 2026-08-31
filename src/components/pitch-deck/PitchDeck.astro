@@ -1,0 +1,381 @@
+---
+import "./deck-shared.css";
+import "./cover.css";
+import "./problem-slide.css";
+import "./story-slide.css";
+import "./product-slide.css";
+import "./builder-criteria-slide.css";
+import "./testimonials-slide.css";
+import "./competitor-analysis.css";
+import "./pricing-slide.css";
+import "./competitive-advantage.css";
+import "./product-proof.css";
+import "./team-slide.css";
+import "./pitch-deck-typography.css";
+import BuilderCriteria from "./BuilderCriteria.astro";
+import TestimonialsSlide from "./TestimonialsSlide.astro";
+import CompetitorAnalysis from "./CompetitorAnalysis.astro";
+import PricingSlide from "./PricingSlide.astro";
+import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
+import StoryPolaroids from "./StoryPolaroids.astro";
+import ProductProof from "./ProductProof.astro";
+import TeamSlide from "./TeamSlide.astro";
+import CoverSlide from "./CoverSlide.astro";
+
+const slides = [
+  "The Future of hiring",
+  "The problem",
+  "Our story",
+  "The product",
+  "What we look for",
+  "Testimonials",
+  "Competitor analysis",
+  "Pricing",
+  "Competitive advantage",
+  "The team",
+];
+
+const storyPhotos = [
+  { src: "/landing/community/devhacks-crowd.png", alt: "DevHacks crowd" },
+  { src: "/landing/community/devhacks-build.png", alt: "Builders at DevHacks" },
+  { src: "/landing/community/devspace-talk.png", alt: "DevSpace talk" },
+  { src: "/landing/community/devhouse-circle.png", alt: "DevHouse community" },
+  { src: "/events/devhacks.jpg", alt: "DevHacks event" },
+  { src: "/events/DevHacks3.jpg", alt: "DevHacks builders" },
+  { src: "/events/DevHacks6.jpg", alt: "DevHacks demo day" },
+  { src: "/events/devhouse-sf.jpg", alt: "DevHouse SF" },
+  { src: "/events/devhouse.png", alt: "DevHouse hangout" },
+];
+
+const storyStats = [
+  { value: "2000+", label: "vetted builders in our talent pool" },
+  { value: "20", label: "events across AZ & SF" },
+  { value: "4", label: "companies hired from us" },
+  { value: "100K", label: "invested in events till now" },
+];
+
+const storySponsors = [
+  { name: "Browser Use", src: "/sponsors/browser-use.png" },
+  { name: "Dodo Payments", src: "/sponsors/momentum/dodo_payments.svg" },
+  { name: "Stripe", src: "/sponsors/momentum/stripe.png" },
+  { name: "DeepMind", src: "/sponsors/deepmind.png" },
+  { name: "smallest.ai", src: "/sponsors/momentum/smallest_ai.png" },
+  { name: "Composio", src: "/sponsors/momentum/composio.png" },
+  { name: "TinyFish", src: "/sponsors/momentum/tinyfish.png" },
+  { name: "supermemory", src: "/sponsors/supermemory.png" },
+  { name: "omi", src: "/sponsors/omi.png" },
+];
+
+const problemQuotePool = [
+  {
+    quote: "A great resume doesn't always equal a great startup hire.",
+    name: "Candace Nelson",
+    role: "Founder",
+    width: 348,
+  },
+  {
+    quote: "The volume is high, but the signal is very low.",
+    name: "Dineke Mulder",
+    role: "Talent leader",
+    width: 292,
+  },
+  {
+    quote: "We care more about proof of work than credentials.",
+    name: "Tony Chen",
+    role: "Founder, KleePay",
+    width: 324,
+  },
+  {
+    quote: "We were literally getting 2,000+ resumes for a single role.",
+    name: "Wouter Durville",
+    role: "Co-founder, TestGorilla",
+    width: 372,
+  },
+  {
+    quote: "Conventional resume screens miss extraordinary people.",
+    name: "Eric Glyman",
+    role: "Co-founder & CEO, Ramp",
+    width: 356,
+  },
+  {
+    quote: "Top talent doesn't cold apply.",
+    name: "Tim He",
+    role: "Startup founder",
+    width: 248,
+  },
+];
+
+const problemBottomRowLeadQuote = {
+  quote:
+    "Top talent doesn't cold apply — the best builders are already shipping, and you have to meet them where they build.",
+  name: "Tim He",
+  role: "Startup founder",
+  width: 432,
+};
+
+const repeatProblemQuotes = (quotes: typeof problemQuotePool, count: number) =>
+  Array.from({ length: count }, (_, index) => quotes[index % quotes.length]!);
+
+const problemQuoteRows = [
+  repeatProblemQuotes(problemQuotePool, 7),
+  (() => {
+    const row = repeatProblemQuotes([...problemQuotePool].reverse(), 7);
+    row[0] = problemBottomRowLeadQuote;
+    return row;
+  })(),
+];
+
+---
+
+<div
+  id="pitchDeck"
+  class="relative h-full min-h-[100vh] w-full isolate overflow-hidden bg-[#1a100c] text-[#fa862f] antialiased"
+>
+  <div
+    id="deckFit"
+    class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+    style="top: calc(50% - 18px)"
+  >
+    <div id="deckScale" class="relative origin-top-left" style="width: 1600px; height: 900px">
+      <section class="pitch-slide cover-slide" data-slide="1" aria-label={slides[0]}>
+        <CoverSlide />
+      </section>
+
+      <section class="pitch-slide problem-slide hidden" data-slide="2" aria-label={slides[1]}>
+        <div class="problem-bg" aria-hidden="true">
+          <div class="problem-bg__base"></div>
+          <div class="problem-bg__signal-lens"></div>
+          <div class="problem-bg__scan-lines"></div>
+          <div class="problem-bg__inbox-stack">
+            <span class="problem-bg__doc problem-bg__doc--back"></span>
+            <span class="problem-bg__doc problem-bg__doc--mid"></span>
+            <span class="problem-bg__doc problem-bg__doc--front"></span>
+          </div>
+          <div class="problem-bg__stack-fade"></div>
+          <div class="problem-bg__grain"></div>
+          <div class="problem-bg__fade"></div>
+        </div>
+
+        <div class="problem-layout">
+          <header class="problem-header">
+            <div class="cover-brand deck-brand-lockup">
+              <img src="/logo.svg" alt="" />
+              <span>Devlabs</span>
+            </div>
+            <p class="problem-meta"><i></i> The problem</p>
+          </header>
+
+          <div class="problem-main">
+            <div class="problem-copy">
+              <h1 class="problem-headline">
+                Finding the right technical talent is hard for early-stage startups.
+              </h1>
+              <p class="problem-subtitle">
+                Too many applications. Too little proof. And the best builders rarely cold apply.
+              </p>
+            </div>
+          </div>
+
+          <div class="problem-quotes-stack">
+            {problemQuoteRows.map((row, rowIndex) => (
+              <div class:list={["problem-quotes-track", rowIndex === 1 && "problem-quotes-track--stagger"]}>
+                <div class="problem-quotes-row" style={`--row-lead-width: ${row[0]?.width ?? 280}px`}>
+                  {row.map((item, cardIndex) => (
+                    <article
+                      class:list={[
+                        "problem-quote",
+                        cardIndex % 2 === 0 ? "problem-quote--white" : "problem-quote--orange",
+                      ]}
+                      style={`--quote-width: ${item.width}px`}
+                    >
+                      <span class="problem-quote__mark" aria-hidden="true">&ldquo;</span>
+                      <blockquote class="problem-quote__text">{item.quote}</blockquote>
+                      <footer class="problem-quote__author">
+                        <strong>{item.name}</strong>
+                        <span>{item.role}</span>
+                      </footer>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="pitch-slide story-slide hidden" data-slide="3" aria-label={slides[2]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+
+        <div class="story-content">
+          <header class="story-header">
+            <p class="story-meta"><i></i> Our story</p>
+          </header>
+
+          <StoryPolaroids photos={storyPhotos} />
+
+          <div class="story-main">
+            <h1 class="story-lead">
+              We built the <em class="deck-accent">community</em> before the hiring platform.
+            </h1>
+            <div class="story-stats">
+              {storyStats.map((stat) => (
+                <article class="story-stat">
+                  <p class="story-stat__value">{stat.value}</p>
+                  <p class="story-stat__label">{stat.label}</p>
+                </article>
+              ))}
+            </div>
+            <p class="story-subtitle">Then startups started hiring our builders.</p>
+          </div>
+
+          <footer class="story-sponsors">
+            <p class="story-supported">supported by</p>
+            <div class="story-logos">
+              {storySponsors.map((sponsor) => (
+                <img src={sponsor.src} alt={sponsor.name} loading="lazy" />
+              ))}
+            </div>
+          </footer>
+        </div>
+      </section>
+
+      <section class="pitch-slide product-proof-slide hidden" data-slide="4" aria-label={slides[3]}>
+        <ProductProof />
+      </section>
+
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="5" aria-label={slides[4]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <BuilderCriteria />
+      </section>
+
+      <section class="pitch-slide testimonials-slide hidden" data-slide="6" aria-label={slides[5]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <TestimonialsSlide />
+      </section>
+
+      <section class="pitch-slide competitor-slide hidden" data-slide="7" aria-label={slides[6]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <CompetitorAnalysis />
+      </section>
+
+      <section class="pitch-slide pricing-slide hidden" data-slide="8" aria-label={slides[7]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <PricingSlide />
+      </section>
+
+      <section class="pitch-slide advantage-slide hidden" data-slide="9" aria-label={slides[8]}>
+        <CompetitiveAdvantage />
+      </section>
+
+      <section class="pitch-slide team-slide hidden" data-slide="10" aria-label={slides[9]}>
+        <TeamSlide />
+      </section>
+    </div>
+  </div>
+
+  <button class="absolute inset-y-0 left-0 z-20 w-[18%] cursor-pointer border-0 bg-transparent" type="button" aria-label="Previous slide" data-prev></button>
+  <button class="absolute inset-y-0 right-0 z-20 w-[18%] cursor-pointer border-0 bg-transparent" type="button" aria-label="Next slide" data-next></button>
+
+  <nav class="absolute bottom-[18px] left-1/2 z-30 -translate-x-1/2" aria-label="Slides">
+    <div class="flex gap-2">
+      {slides.map((_, index) => (
+        <button
+          class:list={["h-[9px] rounded-full border-0 bg-[#fa862f]/30 p-0 transition-all", index === 0 ? "w-[22px] bg-[#fa862f]" : "w-[9px]"]}
+          type="button"
+          aria-label={`Go to slide ${index + 1}`}
+          data-dot={index + 1}
+        />
+      ))}
+    </div>
+  </nav>
+  <p class="absolute bottom-4 right-6 z-30 m-0 text-[12px] font-semibold uppercase tracking-[0.16em] text-white/35 max-[900px]:hidden">
+    Arrow keys to present
+  </p>
+</div>
+
+<script is:inline>
+  const slideWidth = 1600;
+  const slideHeight = 900;
+  const slides = Array.from(document.querySelectorAll(".pitch-slide"));
+  const dots = Array.from(document.querySelectorAll("[data-dot]"));
+  const fit = document.getElementById("deckFit");
+  const scaleEl = document.getElementById("deckScale");
+  let index = 0;
+
+  const setScale = () => {
+    if (!fit || !scaleEl) return;
+    const scale = Math.min((window.innerWidth - 56) / slideWidth, (window.innerHeight - 92) / slideHeight);
+    fit.style.width = `${slideWidth * scale}px`;
+    fit.style.height = `${slideHeight * scale}px`;
+    scaleEl.style.transform = `scale(${scale})`;
+  };
+
+  const go = (next) => {
+    index = ((next % slides.length) + slides.length) % slides.length;
+    slides.forEach((slide, i) => slide.classList.toggle("hidden", i !== index));
+    dots.forEach((dot, i) => {
+      dot.classList.toggle("w-[22px]", i === index);
+      dot.classList.toggle("w-[9px]", i !== index);
+      dot.classList.toggle("bg-[#fa862f]", i === index);
+      dot.classList.toggle("bg-[#fa862f]/30", i !== index);
+    });
+    const hash = `#${index + 1}`;
+    if (window.location.hash !== hash) window.history.replaceState(null, "", hash);
+  };
+
+  const syncFromHash = () => {
+    const fromHash = Number.parseInt(window.location.hash.replace("#", ""), 10);
+    if (fromHash >= 1 && fromHash <= slides.length) go(fromHash - 1);
+  };
+
+  document.querySelector("[data-prev]")?.addEventListener("click", () => go(index - 1));
+  document.querySelector("[data-next]")?.addEventListener("click", () => go(index + 1));
+  dots.forEach((dot, i) => dot.addEventListener("click", () => go(i)));
+  window.addEventListener("resize", setScale);
+  window.addEventListener("hashchange", syncFromHash);
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowRight" || event.key === " " || event.key === "PageDown") {
+      event.preventDefault();
+      go(index + 1);
+    } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault();
+      go(index - 1);
+    } else if (event.key === "Home") {
+      go(0);
+    } else if (event.key === "End") {
+      go(slides.length - 1);
+    }
+  });
+  setScale();
+  syncFromHash();
+</script>

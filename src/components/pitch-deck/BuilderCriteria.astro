@@ -1,0 +1,145 @@
+---
+const sources = [
+  { name: "GitHub", src: "/brand/github.svg", angle: 198 },
+  { name: "LinkedIn", src: "/socials/linkedin.svg", angle: 232 },
+  { name: "Claude", src: "/brand/claude.png", angle: 270 },
+  { name: "Codex", src: "/brand/chatgpt.svg", angle: 308 },
+  { name: "Web", src: "", angle: 342 },
+];
+
+const polar = (angle: number, radius: number) => {
+  const rad = (angle * Math.PI) / 180;
+  return {
+    x: 50 + Math.cos(rad) * radius,
+    y: 50 + Math.sin(rad) * radius,
+  };
+};
+
+const f = (value: number) => value.toFixed(2);
+
+const circuitPath = (name: string, x: number, y: number) => {
+  const startY = y + 5.2;
+
+  if (name === "GitHub") {
+    return `M ${f(x)} ${f(startY)} H ${f(x + 7)} V 50 H 41.2`;
+  }
+
+  if (name === "LinkedIn") {
+    return `M ${f(x)} ${f(startY)} V 30 H 43.2 V 41.8`;
+  }
+
+  if (name === "Claude") {
+    return `M ${f(x)} ${f(startY)} V 22.5 H 53.6 V 41.2`;
+  }
+
+  if (name === "Codex") {
+    return `M ${f(x)} ${f(startY)} V 30 H 56.8 V 41.8`;
+  }
+
+  return `M ${f(x)} ${f(startY)} H ${f(x - 7)} V 50 H 58.8`;
+};
+
+const traceCards = [
+  {
+    prompt: "Which model did they reach for?",
+    title: "Claude into Codex",
+    detail: "Explored the system, then shipped the working path.",
+  },
+  {
+    prompt: "What kind of builder are they?",
+    title: "The Architect",
+    detail: "Plans first, codifies decisions, and keeps scope tight.",
+  },
+  {
+    prompt: "When do they move fastest?",
+    title: "Night builder",
+    detail: "Most commits land after the room gets quiet.",
+  },
+];
+---
+
+<section class="builder-criteria">
+  <header class="builder-criteria__header deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> What we look for</p>
+  </header>
+
+  <div class="builder-criteria__intro">
+    <h1 class="builder-criteria__title">
+      We already know
+      <em>if you can ship</em>
+    </h1>
+  </div>
+
+  <div class="look-cards">
+    <article class="look-card look-card--traces deck-card">
+      <h2>Agent traces</h2>
+      <p>Agent traces show how builders reason, debug, test and ship, not just their final code.</p>
+
+      <div class="trace-peek-deck" aria-hidden="true">
+        {traceCards.map((card, index) => (
+          <article class:list={["trace-peek-card", `trace-peek-card--${index + 1}`]}>
+            <div class="trace-peek-card__top">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="trace-peek-card__body">
+              <p>{card.prompt}</p>
+              <h3>{card.title}</h3>
+              <span>{card.detail}</span>
+            </div>
+          </article>
+        ))}
+      </div>
+    </article>
+
+    <article class="look-card deck-card deck-card--orange">
+      <h2>2,000+ verified builders</h2>
+      <p>Sourced through hackathons, hacker houses and build nights, not cold applications.</p>
+    </article>
+
+    <article class="look-card look-card--proof deck-card">
+      <div class="look-card__copy">
+        <h2>Backed by proof</h2>
+        <p>Every recommendation explains what they shipped, how they worked and why they fit the role. We pull in data from all the sources for a builder.</p>
+      </div>
+
+      <div class="proof-orbit" aria-hidden="true">
+        <svg class="proof-orbit__lines" viewBox="0 0 100 100">
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="22"></circle>
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="31"></circle>
+          <circle class="proof-orbit__ripple" cx="50" cy="50" r="40"></circle>
+          {sources.map((source) => {
+            const point = polar(source.angle, 36);
+            return <path d={circuitPath(source.name, point.x, point.y)}></path>;
+          })}
+        </svg>
+        <div class="proof-orbit__core">
+          <img src="/logo.svg" alt="" />
+        </div>
+        {sources.map((source) => {
+          const point = polar(source.angle, 36);
+          return (
+            <span
+              class:list={["proof-node", `proof-node--${source.name.toLowerCase()}`]}
+              style={`left:${point.x}%; top:${point.y}%`}
+            >
+              {source.src ? (
+                <img src={source.src} alt="" />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <circle cx="12" cy="12" r="8"></circle>
+                  <path d="M3 12h18M12 4a14 14 0 0 1 0 16M12 4a14 14 0 0 0 0 16"></path>
+                </svg>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    </article>
+  </div>
+</section>

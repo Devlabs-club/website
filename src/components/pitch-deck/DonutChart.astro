@@ -1,0 +1,31 @@
+---
+const radius = 118;
+const circumference = 2 * Math.PI * radius;
+const filled = 0.76;
+---
+
+<svg class="h-[360px] w-[360px]" viewBox="0 0 300 300" aria-hidden="true">
+  <circle cx="150" cy="150" r={radius} fill="none" stroke="#ffe3cc" stroke-width="44"></circle>
+  <circle
+    cx="150"
+    cy="150"
+    r={radius}
+    fill="none"
+    stroke="#fa862f"
+    stroke-width="44"
+    stroke-dasharray={`${circumference * filled} ${circumference * (1 - filled)}`}
+    transform="rotate(-82 150 150)"
+  >
+  </circle>
+  <text
+    x="150"
+    y="164"
+    text-anchor="middle"
+    font-size="58"
+    font-weight="700"
+    fill="#fa862f"
+    font-family="Manrope, system-ui, sans-serif"
+  >
+    +6K
+  </text>
+</svg>

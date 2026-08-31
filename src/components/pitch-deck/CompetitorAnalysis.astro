@@ -1,0 +1,70 @@
+---
+const companies = [
+  { name: "Devlabs", logo: "/logo.svg", modifier: "devlabs", featured: true },
+  { name: "LinkedIn", logo: "/sponsors/companies/linkedin.svg", modifier: "linkedin" },
+  { name: "Wellfound", logo: "/pitch-deck/logos/wellfound.svg", modifier: "wellfound" },
+  { name: "Juicebox", logo: "/pitch-deck/logos/juicebox.svg", modifier: "juicebox" },
+  { name: "Rightfit", logo: "/pitch-deck/logos/rightfit.svg", modifier: "rightfit" },
+];
+
+const features = [
+  { label: "Builder community + events", marks: [true, false, false, false, false] },
+  { label: "Creates new proof", marks: [true, false, false, false, false] },
+  { label: "AI coding traces", marks: [true, false, false, false, false] },
+  { label: "Ranked matches with evidence", marks: [true, false, false, false, false] },
+  { label: "Why-hire proof per profile", marks: [true, false, false, false, true] },
+  { label: "Built for early teams", marks: [true, false, true, false, true] },
+];
+---
+
+<section class="competitor-analysis">
+  <header class="competitor-analysis__header">
+    <div class="competitor-analysis__top deck-slide-header">
+      <div class="competitor-analysis__brand deck-brand-lockup">
+        <img src="/logo.svg" alt="" />
+        <span>Devlabs</span>
+      </div>
+      <p class="deck-slide-meta"><i></i> Competitor analysis</p>
+    </div>
+    <h1>Why we&rsquo;re better than</h1>
+  </header>
+
+  <div class="competitor-matrix" role="table" aria-label="Competitor analysis">
+    <div class="competitor-matrix__highlight deck-card deck-card--orange" aria-hidden="true"></div>
+
+    <div class="competitor-matrix__corner" role="columnheader"></div>
+    {companies.map((company) => (
+      <div
+        class:list={[
+          "competitor-matrix__logo",
+          `competitor-matrix__logo--${company.modifier}`,
+          company.featured && "is-featured",
+        ]}
+        role="columnheader"
+      >
+        <span>
+          <img src={company.logo} alt={company.name} />
+        </span>
+      </div>
+    ))}
+
+    {features.map((feature) => (
+      <>
+        <div class="competitor-matrix__factor" role="rowheader">{feature.label}</div>
+        {feature.marks.map((hasIt, index) => (
+          <div class:list={["competitor-matrix__mark", hasIt ? "is-yes" : "is-no", index === 0 && "is-featured"]} role="cell">
+            {hasIt ? (
+              <i aria-label="Yes">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M3.5 8.2 6.4 11.2 12.5 4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+              </i>
+            ) : (
+              <b aria-label="No">×</b>
+            )}
+          </div>
+        ))}
+      </>
+    ))}
+  </div>
+</section>
