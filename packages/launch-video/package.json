@@ -1,0 +1,27 @@
+{
+  "name": "@devlabs/launch-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts LaunchVideo out/devlabs-launch.mp4 --codec=h264",
+    "render:preview": "remotion render src/index.ts LaunchVideo out/devlabs-launch-preview.mp4 --codec=h264 --scale=0.5",
+    "still": "remotion still src/index.ts LaunchVideo out/still.png --frame=60"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.487",
+    "@remotion/cli": "4.0.487",
+    "@remotion/google-fonts": "4.0.487",
+    "@remotion/media-utils": "4.0.487",
+    "@remotion/renderer": "4.0.487",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.487"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.3",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}
