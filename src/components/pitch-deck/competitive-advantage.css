@@ -163,10 +163,25 @@
   letter-spacing: -0.02em;
 }
 
+#pitchDeck .advantage-logos-wrap {
+  flex-shrink: 0;
+  min-width: 430px;
+}
+
+#pitchDeck .advantage-logos-wrap p {
+  margin: 0 0 12px;
+  color: rgba(19, 10, 7, 0.42);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
 #pitchDeck .advantage-logos {
   display: flex;
-  flex-shrink: 0;
   align-items: center;
+  justify-content: flex-end;
   gap: 20px;
 }
 

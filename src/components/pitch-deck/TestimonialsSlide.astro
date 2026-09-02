@@ -2,6 +2,7 @@
 const featured = {
   company: "supermemory",
   logo: "/sponsors/supermemory.png",
+  label: "Hire outcome",
   quote: "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
   author: "Dhravya Shah",
   role: "Founder, Supermemory",
@@ -12,6 +13,7 @@ const sponsors = [
   {
     company: "DeepMind",
     logo: "/sponsors/deepmind.png",
+    label: "Event sponsor feedback",
     quote: "The energy was electric and I've never seen a crowd like this before.",
     author: "Paige Bailey",
     role: "Lead DevRel, Google DeepMind",
@@ -20,6 +22,7 @@ const sponsors = [
   {
     company: "Browser Use",
     logo: "/sponsors/browser-use.png",
+    label: "Event sponsor feedback",
     quote: "This is one of the best hackathons we've sponsored.",
     author: "Saurav Panda",
     role: "Founding Engineer, Browser Use",
@@ -39,7 +42,7 @@ const sponsors = [
 
   <div class="testimonials__intro">
     <h1>Don&rsquo;t take our word for it</h1>
-    <p>Founders and sponsors see the builder signal before the first intro.</p>
+    <p>Hire outcomes are separate from event sponsor feedback.</p>
   </div>
 
   <div class="testimonials__board">
@@ -47,6 +50,7 @@ const sponsors = [
       <div class="testimonial-card__brand">
         <img src={featured.logo} alt={featured.company} loading="lazy" />
       </div>
+      <span class="testimonial-card__label">{featured.label}</span>
       <span class="testimonial-card__mark" aria-hidden="true">&ldquo;</span>
       <p>{featured.quote}</p>
       <footer>
@@ -64,6 +68,7 @@ const sponsors = [
           <div class="testimonial-card__brand">
             <img src={item.logo} alt={item.company} loading="lazy" />
           </div>
+          <span class="testimonial-card__label">{item.label}</span>
           <p>{item.quote}</p>
           <footer>
             <img src={item.avatar} alt={item.author} loading="lazy" />

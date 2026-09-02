@@ -2,31 +2,31 @@
 const featured = [
   {
     n: "01",
-    title: "Event-led sourcing",
-    body: "Hackathons, hacker houses and build nights—not cold applications.",
+    title: "Signal is created live",
+    body: "Hackathons, hacker houses and build nights show who can build before anyone opens a role.",
   },
   {
     n: "02",
     title: "Proof before profiles",
-    body: "We watch them code, collaborate and ship before we recommend.",
+    body: "Founders see shipped work, collaboration style and why-hire evidence before the first intro.",
   },
 ];
 
 const rest = [
   {
     n: "03",
-    title: "Proof-backed signals",
-    body: "We observe how builders code, collaborate and ship before recommending them.",
+    title: "Vs. job boards",
+    body: "LinkedIn and Wellfound help search existing profiles. Devlabs adds observed proof from builders already shipping.",
   },
   {
     n: "04",
-    title: "Curated shortlists",
-    body: "Founders receive a small, ranked shortlist with clear why-hire evidence, not hundreds of resumes.",
+    title: "Vs. recruiters",
+    body: "Recruiters expand the funnel. Devlabs narrows it to a ranked shortlist with specific evidence for the role.",
   },
   {
     n: "05",
-    title: "Existing builder network",
-    body: "2,000+ vetted builders across 20 events",
+    title: "Vs. AI sourcing tools",
+    body: "AI tools summarize public data. Devlabs combines public proof with fresh signal from community events.",
   },
 ];
 
@@ -56,7 +56,7 @@ const partners = [
   </header>
 
   <div class="advantage__intro">
-    <h1>How we are better</h1>
+    <h1>Why Devlabs wins early hiring</h1>
     <p>Competitors search for talent. Devlabs creates the signal that identifies it.</p>
   </div>
 
@@ -89,10 +89,13 @@ const partners = [
         </div>
       ))}
     </div>
-    <div class="advantage-logos">
-      {partners.map((partner) => (
-        <img src={partner.src} alt={partner.name} />
-      ))}
+    <div class="advantage-logos-wrap">
+      <p>event partners</p>
+      <div class="advantage-logos">
+        {partners.map((partner) => (
+          <img src={partner.src} alt={partner.name} />
+        ))}
+      </div>
     </div>
   </div>
 </section>

@@ -270,13 +270,14 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: stretch;
+  justify-content: center;
   gap: 12px;
-  width: max-content;
-  margin-left: calc(var(--row-lead-width, 280px) / -2);
+  width: 100%;
+  margin-left: 0;
 }
 
 #pitchDeck .problem-quotes-track--stagger .problem-quotes-row {
-  margin-left: calc(var(--row-lead-width, 280px) / -2 + 168px);
+  margin-left: 0;
 }
 
 #pitchDeck .problem-quote {
