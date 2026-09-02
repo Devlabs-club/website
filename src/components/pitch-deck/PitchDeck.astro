@@ -6,7 +6,6 @@ import "./story-slide.css";
 import "./product-slide.css";
 import "./builder-criteria-slide.css";
 import "./testimonials-slide.css";
-import "./competitor-analysis.css";
 import "./pricing-slide.css";
 import "./competitive-advantage.css";
 import "./product-proof.css";
@@ -14,7 +13,6 @@ import "./team-slide.css";
 import "./pitch-deck-typography.css";
 import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
-import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
 import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
@@ -23,15 +21,14 @@ import TeamSlide from "./TeamSlide.astro";
 import CoverSlide from "./CoverSlide.astro";
 
 const slides = [
-  "The Future of hiring",
+  "Proof-backed hiring",
   "The problem",
   "Our story",
   "The product",
   "What we look for",
   "Testimonials",
-  "Competitor analysis",
-  "Pricing",
   "Competitive advantage",
+  "Ask, pricing, ICP",
   "The team",
 ];
 
@@ -51,7 +48,7 @@ const storyStats = [
   { value: "2000+", label: "vetted builders in our talent pool" },
   { value: "20", label: "events across AZ & SF" },
   { value: "4", label: "companies hired from us" },
-  { value: "100K", label: "invested in events till now" },
+  { value: "$100K", label: "community investment in events" },
 ];
 
 const storySponsors = [
@@ -67,12 +64,6 @@ const storySponsors = [
 ];
 
 const problemQuotePool = [
-  {
-    quote: "A great resume doesn't always equal a great startup hire.",
-    name: "Candace Nelson",
-    role: "Founder",
-    width: 348,
-  },
   {
     quote: "The volume is high, but the signal is very low.",
     name: "Dineke Mulder",
@@ -98,10 +89,10 @@ const problemQuotePool = [
     width: 356,
   },
   {
-    quote: "Top talent doesn't cold apply.",
-    name: "Tim He",
-    role: "Startup founder",
-    width: 248,
+    quote: "A great resume doesn't always equal a great startup hire.",
+    name: "Candace Nelson",
+    role: "Founder",
+    width: 348,
   },
 ];
 
@@ -113,16 +104,9 @@ const problemBottomRowLeadQuote = {
   width: 432,
 };
 
-const repeatProblemQuotes = (quotes: typeof problemQuotePool, count: number) =>
-  Array.from({ length: count }, (_, index) => quotes[index % quotes.length]!);
-
 const problemQuoteRows = [
-  repeatProblemQuotes(problemQuotePool, 7),
-  (() => {
-    const row = repeatProblemQuotes([...problemQuotePool].reverse(), 7);
-    row[0] = problemBottomRowLeadQuote;
-    return row;
-  })(),
+  problemQuotePool.slice(0, 3),
+  [problemBottomRowLeadQuote, ...problemQuotePool.slice(3)],
 ];
 
 ---
@@ -235,7 +219,7 @@ const problemQuoteRows = [
           </div>
 
           <footer class="story-sponsors">
-            <p class="story-supported">supported by</p>
+            <p class="story-supported">event sponsors + supporters</p>
             <div class="story-logos">
               {storySponsors.map((sponsor) => (
                 <img src={sponsor.src} alt={sponsor.name} loading="lazy" />
@@ -271,15 +255,8 @@ const problemQuoteRows = [
         <TestimonialsSlide />
       </section>
 
-      <section class="pitch-slide competitor-slide hidden" data-slide="7" aria-label={slides[6]}>
-        <div class="deck-bg" aria-hidden="true">
-          <div class="deck-bg__base"></div>
-          <div class="deck-bg__lens"></div>
-          <div class="deck-bg__scan-lines"></div>
-          <div class="deck-bg__grain"></div>
-          <div class="deck-bg__fade"></div>
-        </div>
-        <CompetitorAnalysis />
+      <section class="pitch-slide advantage-slide hidden" data-slide="7" aria-label={slides[6]}>
+        <CompetitiveAdvantage />
       </section>
 
       <section class="pitch-slide pricing-slide hidden" data-slide="8" aria-label={slides[7]}>
@@ -293,11 +270,7 @@ const problemQuoteRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide advantage-slide hidden" data-slide="9" aria-label={slides[8]}>
-        <CompetitiveAdvantage />
-      </section>
-
-      <section class="pitch-slide team-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide team-slide hidden" data-slide="9" aria-label={slides[8]}>
         <TeamSlide />
       </section>
     </div>

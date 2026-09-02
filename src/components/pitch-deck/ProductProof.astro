@@ -100,7 +100,10 @@ const matches = [
           <div class="product-card__top">
             <img src={match.photo} alt="" />
             <div>
-              <p class="product-card__kicker">Ranked recommendation</p>
+              <div class="product-card__labels">
+                <p class="product-card__kicker">Ranked recommendation</p>
+                <span class="product-card__example">Illustrative match</span>
+              </div>
               <h2>{match.name}</h2>
               <p class="product-card__role">{match.role}</p>
               {match.intern && (

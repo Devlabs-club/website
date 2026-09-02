@@ -316,3 +316,197 @@
 #pitchDeck .pricing-card--featured .pricing-card__cta--primary {
   margin-top: 18px;
 }
+
+#pitchDeck .ask-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 18px;
+  min-height: 0;
+  margin-top: 30px;
+}
+
+#pitchDeck .ask-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 24px 28px;
+}
+
+#pitchDeck .ask-card__eyebrow {
+  margin: 0 0 18px;
+  color: #fa862f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .ask-card--ask .ask-card__eyebrow {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+#pitchDeck .ask-card h2 {
+  margin: 0;
+  color: #130a07;
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1.06;
+}
+
+#pitchDeck .ask-card--ask h2 {
+  color: #fff;
+  font-size: 46px;
+}
+
+#pitchDeck .ask-card--ask > p {
+  max-width: 600px;
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+}
+
+#pitchDeck .ask-card--icp ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: auto 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .ask-card--icp li {
+  padding: 14px 15px;
+  border: 1px solid rgba(250, 134, 47, 0.24);
+  background: #fff3e6;
+  color: rgba(19, 10, 7, 0.76);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+}
+
+#pitchDeck .ask-card--ask {
+  justify-content: space-between;
+}
+
+#pitchDeck .ask-placeholder {
+  margin-top: 28px;
+  padding: 18px 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fffaf5;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+
+#pitchDeck .ask-card--steps {
+  grid-row: span 2;
+}
+
+#pitchDeck .ask-steps {
+  display: grid;
+  gap: 16px;
+  margin-top: 2px;
+}
+
+#pitchDeck .ask-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 16px;
+  padding: 18px 0;
+  border-top: 1px solid rgba(20, 14, 10, 0.08);
+}
+
+#pitchDeck .ask-step:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+#pitchDeck .ask-step b {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 999px;
+  background: #fa862f;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+#pitchDeck .ask-step h3 {
+  margin: 0;
+  color: #130a07;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+#pitchDeck .ask-step p {
+  margin: 8px 0 0;
+  color: rgba(19, 10, 7, 0.64);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.32;
+}
+
+#pitchDeck .pricing-notes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: auto;
+}
+
+#pitchDeck .pricing-notes div {
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid rgba(250, 134, 47, 0.26);
+  background: #fff3e6;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+
+#pitchDeck .pricing-notes span,
+#pitchDeck .pricing-notes em {
+  display: block;
+}
+
+#pitchDeck .pricing-notes span {
+  color: rgba(19, 10, 7, 0.46);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .pricing-notes strong {
+  display: block;
+  margin-top: 12px;
+  color: #fa862f;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+#pitchDeck .pricing-notes em {
+  margin-top: 10px;
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
