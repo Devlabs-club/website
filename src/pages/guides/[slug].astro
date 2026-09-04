@@ -1,0 +1,54 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import SeoPageShell from "../../components/seo/SeoPageShell.astro";
+import GuideArticle from "../../components/seo/GuideArticle.astro";
+import { articleSchema, breadcrumbSchema, organizationSchema, seoKeywords, websiteSchema } from "../../lib/seo";
+import { seoGuides } from "../../lib/seoGuides";
+
+export function getStaticPaths() {
+  return seoGuides.map((guide) => ({
+    params: { slug: guide.slug },
+    props: { guide },
+  }));
+}
+
+const { guide } = Astro.props;
+const path = `/guides/${guide.slug}`;
+const renderedTitle = guide.title
+  .replace("DevLabs", '<span class="font-extrabold">DevLabs</span>')
+  .replace(
+    "That's Not the Problem We're Solving.",
+    '<span class="font-extrabold">That&apos;s Not the Problem We&apos;re Solving.</span>',
+  );
+---
+
+<Layout
+  title={`${guide.title} | DevLabs`}
+  description={guide.description}
+  keywords={seoKeywords}
+  canonicalPath={path}
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  structuredData={[
+    organizationSchema,
+    websiteSchema,
+    articleSchema({ ...guide, path }),
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Guides", path: "/guides/resumes-are-not-enough-for-hiring-engineers" },
+      { name: guide.title, path },
+    ]),
+  ]}
+>
+  <SeoPageShell
+    eyebrow="Hiring guide"
+    title={renderedTitle}
+    intro={guide.description}
+  >
+    <GuideArticle guide={guide} />
+  </SeoPageShell>
+</Layout>

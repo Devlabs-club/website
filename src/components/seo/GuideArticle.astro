@@ -1,0 +1,33 @@
+---
+import type { SeoGuide } from "../../lib/seoGuides";
+
+interface Props {
+  guide: SeoGuide;
+}
+
+const { guide } = Astro.props;
+---
+
+<article class="relative mx-auto max-w-4xl px-6 py-10 sm:px-8 lg:px-10">
+  <p class="text-sm font-semibold uppercase tracking-[0.22em] text-[#ff7417]">{guide.datePublished}</p>
+  <p class="mt-5 text-xl leading-relaxed text-black/66">{guide.hero}</p>
+  <div class="mt-10 grid gap-10">
+    {guide.sections.map((section) => (
+      <section class="border-t border-black/10 pt-8">
+        <h2 class="text-3xl font-normal tracking-[-0.02em] text-black">{section.heading}</h2>
+        <div class="mt-5 grid gap-4">
+          {section.body.map((paragraph) => (
+            <p class="text-[1.02rem] leading-8 text-black/66">{paragraph}</p>
+          ))}
+        </div>
+      </section>
+    ))}
+  </div>
+  <nav class="mt-12 flex flex-wrap gap-3" aria-label="Related pages">
+    {guide.related.map((link) => (
+      <a href={link.href} class="rounded-full border border-black/12 bg-white px-4 py-2 text-sm font-semibold text-black/68 transition hover:border-[#ff7417] hover:text-[#ff7417]">
+        {link.label}
+      </a>
+    ))}
+  </nav>
+</article>

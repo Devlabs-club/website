@@ -1,0 +1,47 @@
+---
+import LandingAsciiStars from "../landing/LandingAsciiStars.astro";
+import LandingMarketingNav from "../landing/LandingMarketingNav.astro";
+import LandingMarketingStyles from "../landing/LandingMarketingStyles.astro";
+import NewFooter from "../NewFooter.astro";
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  intro: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  eyebrow,
+  title,
+  intro,
+  ctaLabel = "Start hiring",
+  ctaHref = "/auth/signup?redirect=%2Fauth%2Fselect-role%3Fredirect%3D%252Ffounder%252Fhome",
+} = Astro.props;
+---
+
+<LandingMarketingStyles />
+<main class="landing-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#050505]">
+  <LandingMarketingNav />
+  <section class="hero-section ruler-section relative mx-auto w-full max-w-7xl overflow-hidden px-6 pb-14 pt-10 sm:px-8 lg:px-10">
+    <LandingAsciiStars />
+    <div class="ruler-rails" aria-hidden="true"></div>
+    <div class="relative z-10 mx-auto max-w-5xl text-center">
+      <p class="text-[0.72rem] font-extrabold uppercase tracking-[0.24em] text-black/40">{eyebrow}</p>
+      <h1 class="mt-6 text-[clamp(2.25rem,7.2vw,5.4rem)] font-normal leading-[1.08] tracking-[-0.035em] text-black" set:html={title} />
+      <p class="mx-auto mt-6 max-w-3xl text-[clamp(1.02rem,1.65vw,1.28rem)] leading-relaxed text-black/58">{intro}</p>
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <a href={ctaHref} class="inline-flex h-14 items-center justify-center rounded-full border-2 border-[#1f2422] bg-[#2f3432] px-8 text-sm font-semibold text-white shadow-[0_16px_36px_rgba(5,5,5,0.12)] transition hover:-translate-y-0.5 hover:border-[#ff7417] hover:bg-[#ff7417]">
+          {ctaLabel}
+        </a>
+        <a href="/compare/devlabs-vs-juicebox" class="inline-flex h-14 items-center justify-center rounded-full border border-black/12 bg-white px-8 text-sm font-semibold text-black transition hover:-translate-y-0.5 hover:text-[#ff7417]">
+          Compare options
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <slot />
+  <NewFooter />
+</main>

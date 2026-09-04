@@ -6,6 +6,6 @@ import BuilderEmailStart from '../../components/builder/BuilderEmailStart.astro'
 const signedToken = Astro.url.searchParams.get('t') || '';
 ---
 
-<AppLayout title="Talk to DevLabs · Messages">
+<AppLayout title="Talk to DevLabs · Messages" robots="noindex, nofollow">
   <BuilderEmailStart signedToken={signedToken} />
 </AppLayout>

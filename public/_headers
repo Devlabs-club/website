@@ -1,0 +1,17 @@
+/auth/*
+  X-Robots-Tag: noindex, nofollow
+
+/admin/*
+  X-Robots-Tag: noindex, nofollow
+
+/api/*
+  X-Robots-Tag: noindex, nofollow
+
+/founder/*
+  X-Robots-Tag: noindex, nofollow
+
+/builder/home
+  X-Robots-Tag: noindex, nofollow
+
+/builder/start
+  X-Robots-Tag: noindex, nofollow

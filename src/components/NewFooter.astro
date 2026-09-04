@@ -7,7 +7,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
 <div class:list={[isMomentum && "footer-wrapper-momentum"]}>
 <footer
   class:list={[
-    "footer-below-cta w-full bg-transparent text-white pt-24 pb-10 overflow-hidden relative font-manrope z-10",
+    "footer-below-cta w-full bg-[#fbf6f3] text-[#100b09] pt-24 pb-10 overflow-hidden relative font-manrope z-10",
     isMomentum && "footer-momentum",
   ]}
 >
@@ -24,8 +24,8 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             <img src="/logo.png" alt="Devlabs Logo" class="h-8 w-auto" />
             <span class="text-2xl font-medium tracking-tight">Devlabs</span>
           </div>
-          <p class="text-gray-400 text-lg max-w-xs leading-relaxed font-light">
-            a home for ambitious inventors, builders, and creatives.
+          <p class="text-[#5f6875] text-lg max-w-xs leading-relaxed font-light">
+            proof-of-work hiring for startup engineering teams.
           </p>
         </div>
 
@@ -36,7 +36,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             href="https://twitter.com/devlabs_club"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-white hover:text-gray-300 transition-colors"
+            class="text-[#100b09] hover:text-[#ff7417] transition-colors"
           >
             <svg
               class="w-6 h-6"
@@ -54,7 +54,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             href="https://www.linkedin.com/company/devlabsclub/"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-white hover:text-gray-300 transition-colors"
+            class="opacity-90 transition-opacity hover:opacity-100"
           >
             <img src="/socials/linkedin.svg" alt="LinkedIn" class="w-6 h-6" />
           </a>
@@ -63,7 +63,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             href="https://www.instagram.com/devlabs.asu/"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-white hover:text-gray-300 transition-colors"
+            class="opacity-90 transition-opacity hover:opacity-100"
           >
             <img src="/socials/instagram.svg" alt="Instagram" class="w-6 h-6" />
           </a>
@@ -72,7 +72,7 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
             href="https://discord.gg/4XPKg2nWcj"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-white hover:text-gray-300 transition-colors"
+            class="opacity-90 transition-opacity hover:opacity-100"
           >
             <img src="/socials/discord.svg" alt="Discord" class="w-7 h-7" />
           </a>
@@ -89,33 +89,34 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
       </div>
 
       <!-- Right Column (Navigation) -->
-      <div class="flex flex-col gap-3 text-left md:text-right mt-12 md:mt-0">
-        <a
-          href="/"
-          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
-          >main</a
-        >
-        <a
-          href="/about"
-          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
-          >about us</a
-        >
-        <a
-          href="/dashboard"
-          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
-          >join our newsletter</a
-        >
+      <div class="mt-12 grid gap-10 text-left sm:grid-cols-2 md:mt-0 md:text-right lg:grid-cols-3">
+        <div class="flex flex-col gap-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#ff7417]">
+            hire
+          </p>
+          <a href="/" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">startup engineers</a>
+          <a href="/hire/founding-engineers" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">founding engineers</a>
+          <a href="/hire/software-engineers" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">software engineers</a>
+          <a href="/hire/ai-engineers" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">ai engineers</a>
+        </div>
 
-        <a
-          href="/sponsor"
-          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
-          >sponsor us</a
-        >
-        <a
-          href="/sponsor#testimonials"
-          class="text-gray-300 hover:text-white transition-colors text-lg font-light"
-          >contact us</a
-        >
+        <div class="flex flex-col gap-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#ff7417]">
+            compare
+          </p>
+          <a href="/alternatives/juicebox" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">juicebox alternative</a>
+          <a href="/compare/devlabs-vs-juicebox" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">devlabs vs juicebox</a>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[#ff7417]">
+            guides
+          </p>
+          <a href="/guides/why-we-still-run-hackathons" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">why we still run hackathons</a>
+          <a href="/guides/ai-changed-coding-technical-hiring-has-to-change" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">ai changed coding</a>
+          <a href="/guides/resumes-are-not-enough-for-hiring-engineers" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">resumes are not enough</a>
+          <a href="/guides/juicebox-finding-people-not-our-problem" class="text-[#6b7280] hover:text-[#100b09] transition-colors text-lg font-light">juicebox and signal</a>
+        </div>
       </div>
     </div>
     <!-- Big Clipped Text - Full Width -->
@@ -128,12 +129,19 @@ const isMomentum = Astro.url.pathname === "/momentum" || Astro.url.pathname === 
     </div>
 
     <!-- Copyright (Mobile) -->
-    <div class="block md:hidden text-center text-gray-500 text-sm pb-8">
+    <div class="block md:hidden text-center text-[#7b8290] text-sm pb-8">
       © 2026 - made with love and care for viewers like you
     </div>
   </div>
 
   <style>
+    .footer-below-cta {
+      background-image:
+        linear-gradient(rgba(16, 11, 9, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 11, 9, 0.035) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
     .clipped-text {
       font-family: "Times New Roman", Times, serif;
       font-style: italic;

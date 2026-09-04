@@ -7,19 +7,27 @@ interface Props {
   description?: string;
   ogImage?: string;
   ogImageAlt?: string;
+  canonicalPath?: string;
+  robots?: string;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title, description, ogImage, ogImageAlt } = Astro.props;
+const { title, description, ogImage, ogImageAlt, canonicalPath, robots, structuredData } = Astro.props;
 const metaDescription =
   description ?? "DevLabs OS — the proof-of-work hiring platform for founders and builders.";
 const siteOrigin = Astro.site ? new URL(Astro.site).origin : Astro.url.origin;
-const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : Astro.url.href;
+const canonicalUrl = Astro.site ? new URL(canonicalPath ?? Astro.url.pathname, Astro.site).href : Astro.url.href;
 const ogImageUrl = ogImage
   ? ogImage.startsWith("http")
     ? ogImage
     : `${siteOrigin}${ogImage.startsWith("/") ? ogImage : `/${ogImage}`}`
   : undefined;
 const metaOgImageAlt = ogImageAlt ?? title;
+const structuredDataItems = Array.isArray(structuredData)
+  ? structuredData
+  : structuredData
+    ? [structuredData]
+    : [];
 ---
 
 <!doctype html>
@@ -27,10 +35,12 @@ const metaOgImageAlt = ogImageAlt ?? title;
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={metaDescription} />
+    {robots ? <meta name="robots" content={robots} /> : null}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    <link rel="canonical" href={canonicalUrl} />
     {ogImageUrl ? (
       <>
         <meta property="og:image" content={ogImageUrl} />
@@ -48,6 +58,9 @@ const metaOgImageAlt = ogImageAlt ?? title;
       </>
     ) : null}
     <Analytics />
+    {structuredDataItems.map((item) => (
+      <script type="application/ld+json" set:html={JSON.stringify(item)} />
+    ))}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /founder/
+Disallow: /builder/home
+Disallow: /builder/start
+
+Sitemap: https://www.devlabs.club/sitemap.xml

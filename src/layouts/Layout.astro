@@ -11,6 +11,9 @@ interface Props {
   ogImage?: string;
   ogImageAlt?: string;
   keywords?: string;
+  canonicalPath?: string;
+  robots?: string;
+  structuredData?: Record<string, unknown> | Record<string, unknown>[];
   hideNavbar?: boolean;
   hideFooter?: boolean;
   skipPageLoader?: boolean;
@@ -24,6 +27,9 @@ const {
   ogImage,
   ogImageAlt,
   keywords,
+  canonicalPath,
+  robots,
+  structuredData,
   hideNavbar = false,
   hideFooter = false,
   skipPageLoader = false,
@@ -38,15 +44,15 @@ const siteOrigin = Astro.site
   ? new URL(Astro.site).origin
   : Astro.url.origin;
 const canonicalUrl = Astro.site
-  ? new URL(Astro.url.pathname, Astro.site).href
+  ? new URL(canonicalPath ?? Astro.url.pathname, Astro.site).href
   : Astro.url.href;
 const defaultDescription =
-  "We are the home for builders, founders and vc's to build the future together. Devlabs will be the launchpad for the next generation of student startups.";
+  "DevLabs helps startup founders hire proven software engineers using project evidence, GitHub signal, work trials, and founder-reviewed proof of work.";
 const defaultOgImage = `${siteOrigin}/og.png`;
 const defaultOgImageAlt =
-  "Devlabs - The home for builders, founders and vc's to build the future together.";
+  "DevLabs - proof-of-work hiring for startup engineering teams.";
 const defaultKeywords =
-  "Devlabs, Arizona, startup, events, community, founders, makers, hackers, dreamers, builder, innovation, Arizona State University, DevHacks, DevSpace, DevHouse, startup incubator, early-stage startups, tech startup mentorship, VC connections, startup funding support, founder networking, student tech skills, software engineering training, startup accelerator, tech incubator, entrepreneurship support, startup ecosystem, seed stage startups, venture capital access, build your startup, tech founder support, coding bootcamp for students, startup mentorship program, startup growth support, innovation hub";
+  "DevLabs, startup hiring platform, hire software engineers, hire founding engineers, AI engineers, proof of work hiring, technical recruiting, startup talent, vetted developers, engineering hiring";
 
 const ogImageUrl = ogImage
   ? ogImage.startsWith("http")
@@ -56,6 +62,11 @@ const ogImageUrl = ogImage
 const metaDescription = description ?? defaultDescription;
 const metaOgImageAlt = ogImageAlt ?? defaultOgImageAlt;
 const metaKeywords = keywords ?? defaultKeywords;
+const structuredDataItems = Array.isArray(structuredData)
+  ? structuredData
+  : structuredData
+    ? [structuredData]
+    : [];
 ---
 
 <!doctype html>
@@ -63,6 +74,7 @@ const metaKeywords = keywords ?? defaultKeywords;
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content={metaDescription} />
+    {robots ? <meta name="robots" content={robots} /> : null}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <meta name="generator" content={Astro.generator} />
@@ -83,10 +95,14 @@ const metaKeywords = keywords ?? defaultKeywords;
     <meta name="twitter:image" content={ogImageUrl} />
 
     <title>{title}</title>
+    <link rel="canonical" href={canonicalUrl} />
     <link rel="icon" href="/logo.png" type="image/png" />
     <Analytics />
 
     <meta name="keywords" content={metaKeywords} />
+    {structuredDataItems.map((item) => (
+      <script type="application/ld+json" set:html={JSON.stringify(item)} />
+    ))}
 
     <slot name="head" />
 

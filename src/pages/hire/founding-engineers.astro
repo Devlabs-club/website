@@ -1,0 +1,60 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import SeoPageShell from "../../components/seo/SeoPageShell.astro";
+import HirePageContent from "../../components/seo/HirePageContent.astro";
+import { breadcrumbSchema, organizationSchema, seoKeywords, websiteSchema } from "../../lib/seo";
+
+const title = "Hire Founding Engineers for Startups | DevLabs";
+const description =
+  "Find founding engineers with real startup signal — shipped projects, GitHub, hackathons, product ownership, and experience building from zero.";
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords={seoKeywords}
+  canonicalPath="/hire/founding-engineers"
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  structuredData={[
+    organizationSchema,
+    websiteSchema,
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Hire founding engineers", path: "/hire/founding-engineers" },
+    ]),
+  ]}
+>
+  <SeoPageShell
+    eyebrow="Founding engineers"
+    title={'Find your first <span class="font-extrabold">cracked engineer.</span>'}
+    intro={"Your first engineer probably isn't going to have a perfect job description. You need someone who can figure things out, talk to users, make technical calls, and keep shipping when the roadmap changes on Tuesday. That's the kind of builder we look for."}
+  >
+    <HirePageContent
+      role="founding engineers"
+      panelTitle="What you actually get to see"
+      proof={[
+        "Things they've shipped, not just things they list on a resume.",
+        "GitHub, side projects, demos, and startup work.",
+        "How much of the work they actually owned.",
+        "Signal from hackathons, DevHouse, founders, and people they've built with.",
+      ]}
+      sections={[
+        {
+          title: "Founding engineers are different",
+          body: "A good SWE at a big company and a good founding engineer are not always the same person. Early teams need someone comfortable without tickets, specs, or six layers of review. Someone who can go from \"we should probably build this\" to something users can try. We care a lot about that.",
+          bullets: ["End-to-end ownership", "Product instinct", "Speed without being reckless", "Comfort with ambiguity"],
+        },
+        {
+          title: "We care more about the work than the pedigree",
+          body: "Someone can have a FAANG internship and still be a bad startup hire. Someone else can have a messy GitHub, three weird side projects, and exactly the kind of ownership you need. We try to figure out the second part.",
+          bullets: ["Projects and code", "Hackathons and hacker houses", "Startup work", "People who have actually built with them"],
+        },
+      ]}
+    />
+  </SeoPageShell>
+</Layout>

@@ -5,6 +5,6 @@ import AuthSignupPage from "../../components/auth/AuthSignupPage.tsx";
 const redirect = Astro.url.searchParams.get("redirect") || "";
 ---
 
-<AppLayout title="Sign up · DevLabs">
+<AppLayout title="Sign up · DevLabs" robots="noindex, nofollow">
   <AuthSignupPage redirect={redirect} client:load />
 </AppLayout>

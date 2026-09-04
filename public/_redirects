@@ -1,0 +1,4 @@
+/hire-now / 301
+/login /auth/login 301
+/apply /builders 301
+/clientform /hire/software-engineers 301

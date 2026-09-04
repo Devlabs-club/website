@@ -1,0 +1,813 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import LandingAsciiStars from "../../components/landing/LandingAsciiStars.astro";
+import LandingMarketingNav from "../../components/landing/LandingMarketingNav.astro";
+import LandingMarketingStyles from "../../components/landing/LandingMarketingStyles.astro";
+import NewFooter from "../../components/NewFooter.astro";
+import { breadcrumbSchema, organizationSchema, seoKeywords, websiteSchema } from "../../lib/seo";
+
+const title = "Hire Software Engineers for Startups | DevLabs";
+const description =
+  "Find software engineers through real work: projects, GitHub, hackathons, startup experience, and evidence of what they actually built.";
+
+const shortlistSteps = [
+  {
+    eyebrow: "01",
+    title: "Tell us the role",
+    body: "Share the product area, stack, seniority, timeline, and the kind of builder you need.",
+  },
+  {
+    eyebrow: "02",
+    title: "We pull from real builder signal",
+    body: "DevLabs looks across hackathons, hacker houses, projects, GitHub work, and agent traces.",
+  },
+  {
+    eyebrow: "03",
+    title: "You get a small list worth calling",
+    body: "Instead of another feed to sort, you get candidates with evidence you can inspect.",
+  },
+];
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords={seoKeywords}
+  canonicalPath="/hire/software-engineers"
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  structuredData={[
+    organizationSchema,
+    websiteSchema,
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Hire software engineers", path: "/hire/software-engineers" },
+    ]),
+  ]}
+>
+  <LandingMarketingStyles />
+  <main class="software-page min-h-screen overflow-x-hidden bg-[#fbf6f3] text-[#100b09]">
+    <LandingMarketingNav />
+
+    <section class="software-hero ruler-section relative mx-auto w-full max-w-7xl overflow-hidden px-6 pb-16 pt-10 sm:px-8 lg:px-10">
+      <LandingAsciiStars />
+      <div class="ruler-rails" aria-hidden="true"></div>
+      <div class="software-hero__stack relative z-10">
+        <div class="software-visual" aria-label="DevLabs software engineer signal">
+          <div class="software-visual__photo">
+            <img src="/landing/community/devhacks-crowd.png" alt="DevLabs builders and founders at an event" />
+          </div>
+          <div class="software-visual__card software-visual__card--one">
+            <span>01</span>
+            <strong>Shipped project</strong>
+            <p>Open the demo before the interview.</p>
+          </div>
+          <div class="software-visual__card software-visual__card--two">
+            <span>02</span>
+            <strong>Real ownership</strong>
+            <p>Ask what broke and what they fixed.</p>
+          </div>
+        </div>
+
+        <div class="software-hero__content">
+          <h1><span class="software-hero__nowrap">Stop screening resumes.</span> <span>Look at the work.</span></h1>
+          <div class="software-hero__copy">
+            <p>There are a lot of good engineers who are terrible at making themselves look good on paper.</p>
+            <p>And there are a lot of people who are very good at looking good on paper.</p>
+            <p>We built DevLabs because founders should be able to see the difference.</p>
+          </div>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="/auth/signup?redirect=%2Fauth%2Fselect-role%3Fredirect%3D%252Ffounder%252Fhome" class="software-button software-button--dark">Start hiring</a>
+            <a href="/compare/devlabs-vs-juicebox" class="software-button software-button--light">Compare options</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="software-proof mx-auto max-w-7xl px-6 py-16 sm:px-8 lg:px-10">
+      <header class="software-how__header">
+        <div>
+          <p class="software-how__eyebrow">
+            <span aria-hidden="true"><span></span></span>
+            How DevLabs is different
+          </p>
+          <h2>We screen for evidence, not profile polish.</h2>
+        </div>
+        <a href="/auth/signup?redirect=%2Fauth%2Fselect-role%3Fredirect%3D%252Ffounder%252Fhome" class="software-how__cta">
+          Start hiring
+          <span aria-hidden="true">→</span>
+        </a>
+      </header>
+
+      <div class="software-how__grid">
+        <article class="software-how-card">
+          <div class="software-how-card__visual software-how-card__visual--role">
+            <div class="software-role-card">
+              <p>Founder brief</p>
+              <strong>Need a full-stack engineer who can ship an MVP in 3 weeks.</strong>
+            </div>
+            <span aria-hidden="true">↓</span>
+            <div class="software-role-card software-role-card--orange">
+              <p>DevLabs search</p>
+              <strong>Match by shipped work, stack, and startup pace.</strong>
+            </div>
+          </div>
+          <div class="software-how-card__body">
+            <h3><span>1</span>Tell us what needs to get built</h3>
+            <p>Instead of throwing keywords into a giant database, describe the product problem, stack, stage, and timeline.</p>
+          </div>
+        </article>
+
+        <article class="software-how-card">
+          <div class="software-how-card__visual software-how-card__visual--signal">
+            <div class="software-signal-grid" aria-hidden="true"></div>
+            <div class="software-signal-stack">
+              <div>
+                <img src="/landing/community/devhacks-build.png" alt="" />
+                <span>hackathon work</span>
+              </div>
+              <div>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 2C6.48 2 2 6.58 2 12.26c0 4.52 2.87 8.35 6.84 9.71.5.1.68-.22.68-.48 0-.24-.01-.87-.01-1.7-2.78.62-3.37-1.37-3.37-1.37-.45-1.18-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1 .07 1.53 1.06 1.53 1.06.89 1.56 2.34 1.11 2.91.85.09-.66.35-1.11.63-1.37-2.22-.26-4.55-1.14-4.55-5.07 0-1.12.39-2.03 1.03-2.75-.1-.26-.45-1.3.1-2.71 0 0 .84-.27 2.75 1.05A9.3 9.3 0 0 1 12 6.84c.85 0 1.71.12 2.51.35 1.9-1.32 2.74-1.05 2.74-1.05.55 1.41.2 2.45.1 2.71.64.72 1.03 1.63 1.03 2.75 0 3.94-2.34 4.8-4.57 5.06.36.32.68.95.68 1.92 0 1.38-.01 2.49-.01 2.83 0 .26.18.58.69.48A10.03 10.03 0 0 0 22 12.26C22 6.58 17.52 2 12 2Z"
+                  />
+                </svg>
+                <span>github</span>
+              </div>
+              <div>
+                <img src="/brand/claude.png" alt="" />
+                <span>agent traces</span>
+              </div>
+              <div>
+                <img src="/screen.png" alt="" />
+                <span>shipped product</span>
+              </div>
+            </div>
+          </div>
+          <div class="software-how-card__body">
+            <h3><span>2</span>See the proof behind each builder</h3>
+            <p>We use projects, GitHub, hackathons, hacker houses, and Claude Code or Codex traces to show how someone actually builds.</p>
+          </div>
+        </article>
+
+        <article class="software-how-card">
+          <div class="software-how-card__visual software-how-card__visual--shortlist">
+            <div class="software-shortlist-card">
+              <p>Shortlist</p>
+              <strong>5 engineers worth a real conversation</strong>
+              <span>not 500 profiles to sort</span>
+            </div>
+          </div>
+          <div class="software-how-card__body">
+            <h3><span>3</span>Interview from context</h3>
+            <p>Your first call starts with what they shipped, what decisions they made, and where they fit your team.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="software-compare mx-auto max-w-7xl px-6 pb-20 sm:px-8 lg:px-10">
+      <div class="software-compare__panel">
+        <div class="software-section-heading">
+          <p class="software-kicker software-kicker--orange">Built for small teams</p>
+          <h2>Five strong candidates are more useful than 500 search results.</h2>
+          <p>Early-stage hiring breaks when founders spend all week filtering. The job is to find the few people with enough proof, speed, and taste to be worth a serious conversation.</p>
+        </div>
+        <div class="software-shortlist">
+          {shortlistSteps.map((step) => (
+            <article>
+              <span>{step.eyebrow}</span>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <NewFooter />
+  </main>
+
+  <style>
+    .software-page {
+      background-image:
+        linear-gradient(rgba(16, 11, 9, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 11, 9, 0.035) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .software-hero {
+      min-height: 860px;
+    }
+
+    .software-hero__stack {
+      display: grid;
+      gap: 48px;
+    }
+
+    .software-hero__content {
+      max-width: 820px;
+    }
+
+    .software-kicker {
+      margin-bottom: 22px;
+      color: rgba(16, 11, 9, 0.5);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+    }
+
+    .software-kicker--orange {
+      color: #ff7417;
+    }
+
+    .software-hero h1 {
+      max-width: 1180px;
+      font-size: 5.1rem;
+      font-weight: 500;
+      letter-spacing: 0;
+      line-height: 0.94;
+    }
+
+    .software-hero__nowrap {
+      white-space: nowrap;
+    }
+
+    .software-hero h1 span {
+      display: block;
+      font-weight: 850;
+    }
+
+    .software-hero__copy {
+      margin-top: 30px;
+      max-width: 670px;
+      color: rgba(16, 11, 9, 0.78);
+      font-size: 1.22rem;
+      line-height: 1.55;
+    }
+
+    .software-hero__copy p + p {
+      margin-top: 8px;
+    }
+
+    .software-button {
+      display: inline-flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0 30px;
+      font-size: 0.95rem;
+      font-weight: 750;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .software-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .software-button--dark {
+      background: #202722;
+      color: #fff;
+      box-shadow: 0 14px 28px rgba(16, 11, 9, 0.18);
+    }
+
+    .software-button--light {
+      border: 1px solid rgba(16, 11, 9, 0.13);
+      background: rgba(255, 255, 255, 0.78);
+      color: #100b09;
+    }
+
+    .software-visual {
+      position: relative;
+      min-height: 520px;
+    }
+
+    .software-visual__photo {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #100b09;
+      box-shadow: 0 34px 70px rgba(16, 11, 9, 0.18);
+      clip-path: polygon(0 0, calc(100% - 46px) 0, 100% 46px, 100% 100%, 46px 100%, 0 calc(100% - 46px));
+    }
+
+    .software-visual__photo img {
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
+    }
+
+    .software-visual__photo::after {
+      position: absolute;
+      inset: 0;
+      content: "";
+      background: linear-gradient(180deg, rgba(16, 11, 9, 0.04), rgba(16, 11, 9, 0.48));
+    }
+
+    .software-visual__card {
+      position: absolute;
+      width: 250px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(16, 11, 9, 0.92);
+      color: #fff;
+      padding: 22px;
+      box-shadow: 0 26px 50px rgba(16, 11, 9, 0.22);
+      clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+    }
+
+    .software-visual__card span {
+      display: block;
+      margin-bottom: 26px;
+      color: #ff7417;
+      font-size: 0.75rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+    }
+
+    .software-visual__card strong {
+      display: block;
+      font-size: 1.25rem;
+      letter-spacing: 0;
+    }
+
+    .software-visual__card p {
+      margin-top: 10px;
+      color: rgba(255, 255, 255, 0.72);
+      line-height: 1.45;
+    }
+
+    .software-visual__card--one {
+      left: 34px;
+      top: 34px;
+    }
+
+    .software-visual__card--two {
+      bottom: 34px;
+      right: 34px;
+    }
+
+    .software-section-heading h2 {
+      max-width: 780px;
+      font-size: 3rem;
+      font-weight: 720;
+      letter-spacing: 0;
+      line-height: 1.04;
+    }
+
+    .software-section-heading {
+      max-width: 860px;
+    }
+
+    .software-section-heading p:not(.software-kicker) {
+      margin-top: 18px;
+      max-width: 700px;
+      color: rgba(16, 11, 9, 0.7);
+      font-size: 1.08rem;
+      line-height: 1.6;
+    }
+
+    .software-compare__panel .software-section-heading p:not(.software-kicker) {
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    .software-how__header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 52px;
+    }
+
+    .software-how__eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #819399;
+      font-size: 1rem;
+    }
+
+    .software-how__eyebrow > span {
+      display: grid;
+      height: 18px;
+      width: 18px;
+      place-items: center;
+      border: 1px solid #c5d0d3;
+      border-radius: 4px;
+    }
+
+    .software-how__eyebrow > span span {
+      height: 6px;
+      width: 6px;
+      border-radius: 2px;
+      background: #9aabad;
+    }
+
+    .software-how__header h2 {
+      margin-top: 14px;
+      max-width: 760px;
+      color: #16343c;
+      font-size: 3.15rem;
+      font-weight: 650;
+      letter-spacing: 0;
+      line-height: 1.08;
+    }
+
+    .software-how__cta {
+      display: inline-flex;
+      min-height: 54px;
+      align-items: center;
+      gap: 12px;
+      border-radius: 999px;
+      background: #ff7417;
+      color: #fff;
+      padding: 0 28px;
+      font-size: 1rem;
+      font-weight: 650;
+      white-space: nowrap;
+      transition: background 180ms ease, transform 180ms ease;
+    }
+
+    .software-how__cta:hover {
+      background: #e9630d;
+      transform: translateY(-2px);
+    }
+
+    .software-how__grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      align-items: stretch;
+      gap: 22px;
+    }
+
+    .software-how-card {
+      display: grid;
+      grid-template-rows: 16rem 1fr;
+      height: 100%;
+      overflow: hidden;
+      border: 1px solid #e4e4de;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 20px 52px rgba(40, 30, 16, 0.06);
+    }
+
+    .software-how-card__visual {
+      position: relative;
+      display: flex;
+      min-height: 16rem;
+      height: 16rem;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 26px 28px;
+    }
+
+    .software-how-card__visual--role {
+      flex-direction: column;
+      background:
+        radial-gradient(ellipse at 50% 78%, rgba(255, 186, 92, 0.42), transparent 58%),
+        linear-gradient(180deg, #fff8ee 0%, #ffe9c8 100%);
+    }
+
+    .software-how-card__visual--role > span {
+      margin: 10px 0;
+      color: #c9b49a;
+      font-size: 1.2rem;
+    }
+
+    .software-role-card {
+      width: min(100%, 320px);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 18px;
+      background: #fff;
+      padding: 14px 16px;
+      box-shadow: 0 10px 28px rgba(40, 30, 16, 0.08);
+    }
+
+    .software-role-card p {
+      color: #9aa8ac;
+      font-size: 0.78rem;
+      font-weight: 650;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .software-role-card strong {
+      display: block;
+      margin-top: 8px;
+      color: #16343c;
+      font-size: 0.98rem;
+      font-weight: 650;
+      line-height: 1.4;
+    }
+
+    .software-role-card--orange {
+      background: #fff1e4;
+    }
+
+    .software-role-card--orange strong {
+      color: #c45a12;
+    }
+
+    .software-how-card__visual--signal {
+      background: #f6f3ec;
+    }
+
+    .software-signal-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(120, 110, 96, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 110, 96, 0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse at center, #000 40%, transparent 78%);
+    }
+
+    .software-signal-stack {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      width: min(100%, 320px);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .software-signal-stack div {
+      display: grid;
+      min-height: 95px;
+      place-items: center;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 18px;
+      background: #fff;
+      padding: 12px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(40, 30, 16, 0.06);
+    }
+
+    .software-signal-stack img,
+    .software-signal-stack svg {
+      height: 38px;
+      width: 38px;
+      border-radius: 10px;
+      object-fit: cover;
+    }
+
+    .software-signal-stack svg {
+      color: #1c211f;
+    }
+
+    .software-signal-stack span {
+      margin-top: 10px;
+      color: #6d7e84;
+      font-size: 0.78rem;
+      font-weight: 650;
+      text-transform: lowercase;
+    }
+
+    .software-how-card__visual--shortlist {
+      background:
+        radial-gradient(ellipse at 50% 80%, rgba(255, 168, 120, 0.28), transparent 56%),
+        linear-gradient(180deg, #f7f1ea 0%, #f3e4d8 100%);
+    }
+
+    .software-shortlist-card {
+      width: min(100%, 320px);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 18px;
+      background: #fff;
+      padding: 18px;
+      box-shadow: 0 14px 32px rgba(40, 30, 16, 0.08);
+    }
+
+    .software-shortlist-card p {
+      color: #9aa8ac;
+      font-size: 0.8rem;
+      font-weight: 650;
+    }
+
+    .software-shortlist-card strong {
+      display: block;
+      margin-top: 12px;
+      border-radius: 14px;
+      background: #fff1e4;
+      padding: 16px;
+      color: #c45a12;
+      font-size: 1.05rem;
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .software-shortlist-card span {
+      display: block;
+      margin-top: 12px;
+      color: #6d7e84;
+      font-size: 0.9rem;
+    }
+
+    .software-how-card__body {
+      display: flex;
+      flex-direction: column;
+      padding: 24px 30px 30px;
+    }
+
+    .software-how-card__body h3 {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      color: #16343c;
+      font-size: 1.25rem;
+      font-weight: 650;
+      letter-spacing: 0;
+      line-height: 1.18;
+    }
+
+    .software-how-card__body h3 span {
+      color: #9aa8ac;
+      font-weight: 400;
+    }
+
+    .software-how-card__body p {
+      margin-top: 10px;
+      max-width: 390px;
+      color: #6d7e84;
+      font-size: 0.96rem;
+      line-height: 1.5;
+    }
+
+    .software-compare__panel {
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 14% 0%, rgba(255, 116, 23, 0.34), transparent 34%),
+        #100b09;
+      color: #fff;
+      padding: 56px;
+      clip-path: polygon(0 0, calc(100% - 36px) 0, 100% 36px, 100% 100%, 36px 100%, 0 calc(100% - 36px));
+    }
+
+    .software-shortlist {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      margin-top: 42px;
+      border-top: 1px solid rgba(255, 255, 255, 0.13);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+    }
+
+    .software-shortlist article {
+      min-height: 260px;
+      padding: 30px;
+      border-right: 1px solid rgba(255, 255, 255, 0.13);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+    }
+
+    .software-shortlist article:last-child {
+      border-right: 0;
+    }
+
+    .software-shortlist span {
+      display: block;
+      margin-bottom: 72px;
+      color: #ff7417;
+      font-size: 0.78rem;
+      font-weight: 900;
+      letter-spacing: 0.18em;
+    }
+
+    .software-shortlist h3 {
+      color: #fff;
+      font-size: 1.45rem;
+      font-weight: 760;
+      letter-spacing: 0;
+      line-height: 1.12;
+    }
+
+    .software-shortlist p {
+      margin-top: 16px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 900px) {
+      .software-hero {
+        min-height: auto;
+      }
+
+      .software-hero h1 {
+        font-size: 3.45rem;
+      }
+
+      .software-visual {
+        min-height: 480px;
+      }
+
+      .software-visual__photo {
+        inset: 0;
+      }
+
+      .software-how__grid,
+      .software-shortlist {
+        grid-template-columns: 1fr;
+      }
+
+      .software-how__header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .software-shortlist article,
+      .software-shortlist article:last-child {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+      }
+
+      .software-shortlist article:last-child {
+        border-bottom: 0;
+      }
+
+      .software-section-heading h2 {
+        font-size: 2.45rem;
+      }
+
+      .software-how__header h2 {
+        font-size: 2.45rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .software-hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .software-hero__copy {
+        font-size: 1.05rem;
+      }
+
+      .software-visual {
+        min-height: 520px;
+      }
+
+      .software-visual__photo {
+        inset: 0;
+        height: 360px;
+      }
+
+      .software-visual__card {
+        width: min(245px, calc(100vw - 48px));
+      }
+
+      .software-visual__card--one {
+        left: 10px;
+        top: 248px;
+      }
+
+      .software-visual__card--two {
+        bottom: 0;
+        right: 10px;
+      }
+
+      .software-compare__panel {
+        padding: 42px 24px;
+      }
+
+      .software-section-heading h2 {
+        font-size: 2rem;
+      }
+
+      .software-how__header h2 {
+        font-size: 2rem;
+      }
+
+      .software-how-card__visual {
+        height: 15rem;
+        min-height: 15rem;
+        padding: 30px 22px;
+      }
+
+      .software-how-card {
+        grid-template-rows: 15rem 1fr;
+        min-height: 0;
+      }
+
+      .software-how-card__body {
+        padding: 24px 24px 30px;
+      }
+
+      .software-shortlist article {
+        min-height: auto;
+        padding: 24px;
+      }
+
+      .software-shortlist span {
+        margin-bottom: 36px;
+      }
+
+    }
+  </style>
+</Layout>

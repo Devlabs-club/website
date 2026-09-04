@@ -11,6 +11,7 @@ import BuilderCommunityImpact from "../components/landing/BuilderCommunityImpact
 import BuilderLandingClose from "../components/landing/BuilderLandingClose.astro";
 import HeroBuilderRecommendationCard from "../components/landing/HeroBuilderRecommendationCard.astro";
 import { tryForFreeHref } from "../lib/productCta";
+import { organizationSchema, seoKeywords, websiteSchema } from "../lib/seo";
 
 const bookCallHref = "https://cal.com/geekydan/15min?overlayCalendar=true";
 const ctaHref = tryForFreeHref;
@@ -19,7 +20,10 @@ const { audience = "founders" } = Astro.props as { audience?: Audience };
 const isBuilders = audience === "builders";
 const pageTitle = isBuilders
   ? "DevLabs - Get hired for what you build"
-  : "DevLabs - Hire builders who can actually ship";
+  : "Hire Startup Engineers Who Can Ship | DevLabs";
+const pageDescription = isBuilders
+  ? "Build a proof-backed DevLabs profile from your projects, GitHub, hackathon work, and startup experience so founders can hire you for what you build."
+  : "DevLabs helps early-stage founders find software engineers through real proof of work — projects, GitHub, hackathons, agent traces, and people we've actually seen build.";
 
 const navLinks = [
   { label: "Sponsor", href: "/sponsor" },
@@ -382,6 +386,10 @@ const builderTestimonials = [
 
 <Layout
   title={pageTitle}
+  description={pageDescription}
+  keywords={seoKeywords}
+  canonicalPath={isBuilders ? "/builders" : "/"}
+  structuredData={[organizationSchema, websiteSchema]}
   hideNavbar
   hideFooter
   skipPageLoader
@@ -478,9 +486,9 @@ const builderTestimonials = [
           </h1>
         ) : (
         <h1 class="text-[clamp(1.65rem,5.2vw,4.15rem)] font-normal leading-[1.18] tracking-[-0.035em] text-black">
-          <span class="whitespace-nowrap">Hire <span class="relative inline-block font-extrabold">builders</span> who can</span>
+          <span>Hire engineers who can</span>
           <br />
-          actually <span class="relative inline-block font-extrabold">ship</span>
+          actually <span class="relative inline-block font-extrabold">ship.</span>
         </h1>
         )}
       </div>
@@ -491,7 +499,7 @@ const builderTestimonials = [
         </p>
       ) : (
         <p class="relative z-10 mt-4 max-w-[18.5rem] text-[0.8rem] font-medium leading-[1.45] text-black/52 sm:mt-6 sm:max-w-3xl sm:text-[clamp(1.02rem,1.65vw,1.35rem)] sm:leading-relaxed sm:text-black/58" data-audience-copy="heroSubcopy">
-          Tell us who you need and find backed builders from our hackathons, hackerhouses and other events.
+          Resumes tell you where someone worked. We show you how they build. Find founding, full-stack, AI, and product-minded engineers through projects, GitHub, hackathons, agent traces, and real work.
         </p>
       )}
 
@@ -1467,7 +1475,7 @@ const builderTestimonials = [
       heroLineThree: "actually",
       heroStrongTwo: "ship",
       heroSubcopy:
-        "Tell us who you need and find backed builders from our hackathons, hackerhouses and other events.",
+        "Tell us who you need and find builders from our hackathons, hackerhouses and other events.",
       primaryCta: "Try for Free",
       secondaryCta: "Book a Call",
       heroTrustLine: "",

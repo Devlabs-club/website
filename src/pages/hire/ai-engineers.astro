@@ -1,0 +1,60 @@
+---
+export const prerender = true;
+
+import Layout from "../../layouts/Layout.astro";
+import SeoPageShell from "../../components/seo/SeoPageShell.astro";
+import HirePageContent from "../../components/seo/HirePageContent.astro";
+import { breadcrumbSchema, organizationSchema, seoKeywords, websiteSchema } from "../../lib/seo";
+
+const title = "Hire AI Engineers for Startups | DevLabs";
+const description =
+  "Find AI engineers who have actually shipped agents, RAG systems, LLM products, evals, infrastructure, and real AI features.";
+---
+
+<Layout
+  title={title}
+  description={description}
+  keywords={seoKeywords}
+  canonicalPath="/hire/ai-engineers"
+  hideNavbar
+  hideFooter
+  skipPageLoader
+  skipParallax
+  structuredData={[
+    organizationSchema,
+    websiteSchema,
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "Hire AI engineers", path: "/hire/ai-engineers" },
+    ]),
+  ]}
+>
+  <SeoPageShell
+    eyebrow="AI engineers"
+    title={'Hire AI engineers who have built <span class="font-extrabold">more than a demo.</span>'}
+    intro={"Almost everyone has an \"AI project\" now. The useful question is what happened after the demo worked. Did they deal with bad outputs? Retrieval breaking? Latency? Cost? Evals? Users doing things nobody expected? That's the signal we care about."}
+  >
+    <HirePageContent
+      role="AI engineers"
+      panelTitle="What we look for"
+      proof={[
+        "Agents, RAG, evals, workflows, and LLM products.",
+        "GitHub, demos, writeups, and shipped systems.",
+        "Evidence they understand the product around the model.",
+        "Builders who can move across AI + full-stack when needed.",
+      ]}
+      sections={[
+        {
+          title: "We're not trying to find model researchers for everyone",
+          body: "A lot of startups saying they need an \"AI engineer\" actually need a very strong product engineer who knows how to build with models. That is a different profile from someone doing deep model research. DevLabs is strongest on the product side.",
+          bullets: ["LLM products", "Agents", "Retrieval", "Evals", "AI + full-stack systems"],
+        },
+        {
+          title: "We want to know what they actually did",
+          body: "Putting \"LangChain\" on a resume is not much of a signal. Show us the system. What did you own? What broke? How did you evaluate it? What would you rebuild now? That tells us a lot more.",
+          bullets: ["Product ownership", "Technical judgment", "Ability to debug AI systems", "Ability to actually ship"],
+        },
+      ]}
+    />
+  </SeoPageShell>
+</Layout>
