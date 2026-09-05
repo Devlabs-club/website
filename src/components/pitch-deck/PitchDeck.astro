@@ -66,63 +66,19 @@ const storySponsors = [
   { name: "omi", src: "/sponsors/omi.png" },
 ];
 
-const problemQuotePool = [
+const problemShotRows = [
   {
-    quote: "A great resume doesn't always equal a great startup hire.",
-    name: "Candace Nelson",
-    role: "Founder",
-    width: 348,
+    pos: "top",
+    shots: ["broken-process", "manager-perspective", "resume-hiring", "hiring-sucks"],
   },
   {
-    quote: "The volume is high, but the signal is very low.",
-    name: "Dineke Mulder",
-    role: "Talent leader",
-    width: 292,
+    pos: "mid",
+    shots: ["job-market", "secret-sauce", "early-hires-fail", "bottleneck"],
   },
   {
-    quote: "We care more about proof of work than credentials.",
-    name: "Tony Chen",
-    role: "Founder, KleePay",
-    width: 324,
+    pos: "bot",
+    shots: ["resume-hiring", "hiring-sucks", "broken-process", "manager-perspective"],
   },
-  {
-    quote: "We were literally getting 2,000+ resumes for a single role.",
-    name: "Wouter Durville",
-    role: "Co-founder, TestGorilla",
-    width: 372,
-  },
-  {
-    quote: "Conventional resume screens miss extraordinary people.",
-    name: "Eric Glyman",
-    role: "Co-founder & CEO, Ramp",
-    width: 356,
-  },
-  {
-    quote: "Top talent doesn't cold apply.",
-    name: "Tim He",
-    role: "Startup founder",
-    width: 248,
-  },
-];
-
-const problemBottomRowLeadQuote = {
-  quote:
-    "Top talent doesn't cold apply — the best builders are already shipping, and you have to meet them where they build.",
-  name: "Tim He",
-  role: "Startup founder",
-  width: 432,
-};
-
-const repeatProblemQuotes = (quotes: typeof problemQuotePool, count: number) =>
-  Array.from({ length: count }, (_, index) => quotes[index % quotes.length]!);
-
-const problemQuoteRows = [
-  repeatProblemQuotes(problemQuotePool, 7),
-  (() => {
-    const row = repeatProblemQuotes([...problemQuotePool].reverse(), 7);
-    row[0] = problemBottomRowLeadQuote;
-    return row;
-  })(),
 ];
 
 ---
@@ -168,7 +124,8 @@ const problemQuoteRows = [
           <div class="problem-main">
             <div class="problem-copy">
               <h1 class="problem-headline">
-                Finding the right technical talent is hard for early-stage startups.
+                Finding the right technical talent is
+                <em class="deck-accent">hard</em> for early-stage startups.
               </h1>
               <p class="problem-subtitle">
                 Too many applications. Too little proof. And the best builders rarely cold apply.
@@ -176,30 +133,16 @@ const problemQuoteRows = [
             </div>
           </div>
 
-          <div class="problem-quotes-stack">
-            {problemQuoteRows.map((row, rowIndex) => (
-              <div class:list={["problem-quotes-track", rowIndex === 1 && "problem-quotes-track--stagger"]}>
-                <div class="problem-quotes-row" style={`--row-lead-width: ${row[0]?.width ?? 280}px`}>
-                  {row.map((item, cardIndex) => (
-                    <article
-                      class:list={[
-                        "problem-quote",
-                        cardIndex % 2 === 0 ? "problem-quote--white" : "problem-quote--orange",
-                      ]}
-                      style={`--quote-width: ${item.width}px`}
-                    >
-                      <span class="problem-quote__mark" aria-hidden="true">&ldquo;</span>
-                      <blockquote class="problem-quote__text">{item.quote}</blockquote>
-                      <footer class="problem-quote__author">
-                        <strong>{item.name}</strong>
-                        <span>{item.role}</span>
-                      </footer>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+        </div>
+
+        <div class="problem-shots" aria-hidden="true">
+          {problemShotRows.map((row, rowIndex) => (
+            <div class={`problem-shots__row problem-shots__row--${row.pos}`}>
+              {row.shots.map((shot) => (
+                <img src={`/pitch-deck/complaints/${shot}.png`} alt="" loading="eager" />
+              ))}
+            </div>
+          ))}
         </div>
       </section>
 
