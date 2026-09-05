@@ -54,94 +54,14 @@
   mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 52%, transparent 74%);
 }
 
-#pitchDeck .problem-bg__inbox-stack {
-  inset: auto;
-  top: 288px;
-  left: 50%;
-  right: auto;
-  width: 214px;
-  height: 260px;
-  overflow: visible;
-  transform: translateX(-50%) rotate(8deg);
-  transform-origin: 50% 92%;
-}
 
-#pitchDeck .problem-bg__stack-fade {
-  inset: auto;
-  top: 250px;
-  left: 50%;
-  right: auto;
-  width: 720px;
-  height: 420px;
-  transform: translateX(-50%);
-  background:
-    radial-gradient(ellipse 46% 62% at 50% 54%, rgba(250, 248, 244, 0.56) 0%, rgba(250, 248, 244, 0.34) 42%, rgba(250, 248, 244, 0.08) 68%, transparent 82%),
-    linear-gradient(180deg, transparent 0%, rgba(250, 248, 244, 0.16) 50%, rgba(250, 248, 244, 0.34) 100%);
-  mask-image:
-    radial-gradient(ellipse 50% 62% at 50% 54%, #000 0%, rgba(0, 0, 0, 0.78) 44%, rgba(0, 0, 0, 0.28) 70%, transparent 88%),
-    linear-gradient(180deg, transparent 0%, #000 28%, #000 82%, transparent 100%);
-  mask-composite: intersect;
-}
 
-#pitchDeck .problem-bg__doc {
-  position: absolute;
-  inset: 0;
-  display: block;
-  border: 1.5px solid rgba(250, 134, 47, 0.38);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 244, 232, 0.78) 100%);
-  box-shadow:
-    0 22px 48px rgba(250, 134, 47, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  transform-origin: 50% 92%;
-  mask-image: linear-gradient(180deg, #000 0%, #000 48%, rgba(0, 0, 0, 0.62) 68%, rgba(0, 0, 0, 0.18) 86%, transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 48%, rgba(0, 0, 0, 0.62) 68%, rgba(0, 0, 0, 0.18) 86%, transparent 100%);
-}
 
-#pitchDeck .problem-bg__doc::before,
-#pitchDeck .problem-bg__doc::after {
-  content: "";
-  position: absolute;
-  left: 16px;
-  height: 5px;
-  border-radius: 999px;
-  background: rgba(250, 134, 47, 0.28);
-}
 
-#pitchDeck .problem-bg__doc::before {
-  top: 18px;
-  right: 24px;
-  box-shadow:
-    0 14px 0 rgba(250, 134, 47, 0.18),
-    0 28px 0 rgba(250, 134, 47, 0.12),
-    0 42px 0 rgba(22, 11, 7, 0.08);
-}
 
-#pitchDeck .problem-bg__doc::after {
-  top: 30px;
-  right: 40px;
-  width: 58%;
-  opacity: 0.85;
-}
 
-#pitchDeck .problem-bg__doc--back {
-  z-index: 1;
-  transform: translate(-44px, -23px) rotate(-18deg);
-  opacity: 0.58;
-}
 
-#pitchDeck .problem-bg__doc--mid {
-  z-index: 2;
-  transform: translate(-19px, 6px) rotate(-8deg);
-  opacity: 0.76;
-}
 
-#pitchDeck .problem-bg__doc--front {
-  z-index: 3;
-  transform: translate(10px, 36px) rotate(6deg);
-  opacity: 0.84;
-}
 
 #pitchDeck .problem-bg__grain {
   opacity: 0.18;

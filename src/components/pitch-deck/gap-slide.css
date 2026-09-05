@@ -1,0 +1,266 @@
+/* ── Option C · The gap ──
+   A true comparison: four rows, each pairing what the page states against the
+   question it is standing in for. Rows align across a centre rule, so the
+   contrast is legible before a word is read. Left: what the page states, struck
+   out. Right: the same founder's real question typed into Devlabs — built from
+   the product slide's own search chassis (1.5px rule, white fill, 10px chamfer
+   on the go button) so this reads as a preview of the product rather than a
+   diagram. The questions a resume cannot answer are the product's input. */
+
+#pitchDeck .gap-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #faf8f4;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+/* ── shell ── */
+
+#pitchDeck .gap {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+  padding: 40px 64px 40px;
+}
+
+#pitchDeck .gap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#pitchDeck .gap-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .gap-meta i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fa862f;
+  box-shadow: 0 0 20px rgba(250, 134, 47, 0.42);
+}
+
+#pitchDeck .gap-slide .gap-title {
+  max-width: 1240px;
+  margin: 24px 0 0;
+  color: #130a07;
+  font-size: 54px;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.058em;
+  text-transform: none;
+}
+
+/* ── the comparison ── */
+
+#pitchDeck .gap-table {
+  display: grid;
+  grid-template-columns: 1fr 72px 1fr;
+  align-self: center;
+  width: 100%;
+  margin: 26px 0 0;
+}
+
+#pitchDeck .gap-col {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+#pitchDeck .gap-col__head {
+  margin: 0 0 6px;
+  padding-bottom: 16px;
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .gap-col__head--live {
+  color: #c45e12;
+}
+
+#pitchDeck .gap-cell {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 78px;
+  margin: 0;
+  border-top: 1px solid rgba(19, 10, 7, 0.16);
+}
+
+#pitchDeck .gap-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+}
+
+#pitchDeck .gap-mark svg {
+  display: block;
+  width: 30px;
+  height: 30px;
+}
+
+#pitchDeck .gap-mark path {
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pitchDeck .gap-mark--no path {
+  stroke: rgba(19, 10, 7, 0.3);
+}
+
+#pitchDeck .gap-mark--yes path {
+  stroke: #ef7317;
+  stroke-width: 3.2;
+}
+
+/* left: inert, muted — what you're handed */
+#pitchDeck .gap-cell--page .gap-cell__text {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 26px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  text-decoration: line-through;
+  text-decoration-color: rgba(19, 10, 7, 0.42);
+  text-decoration-thickness: 2px;
+}
+
+/* right: live, full ink, marked in orange — what you're actually after */
+/* ── the product's own search, carrying the real question ── */
+
+#pitchDeck .gap-search {
+  margin-top: 10px;
+}
+
+#pitchDeck .gap-search__bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 86px;
+  padding: 0 16px 0 24px;
+  border: 1.5px solid rgba(20, 14, 10, 0.22);
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(21, 14, 8, 0.07);
+}
+
+#pitchDeck .gap-search__bar > svg {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: #130a07;
+}
+
+#pitchDeck .gap-search__bar p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: #130a07;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.034em;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+/* a typed cursor — the founder is mid-thought, not browsing */
+#pitchDeck .gap-search__caret {
+  display: block;
+  width: 2px;
+  height: 30px;
+  flex: 1 0 2px;
+  max-width: 2px;
+  margin-right: auto;
+  background: #ef7317;
+}
+
+#pitchDeck .gap-search__go {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1.5px solid rgba(20, 14, 10, 0.2);
+  background: #fff;
+  color: #ef7317;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+}
+
+#pitchDeck .gap-search__go svg {
+  width: 22px;
+  height: 22px;
+  color: inherit;
+}
+
+/* the rest of what a founder actually wants to know, as suggestions */
+#pitchDeck .gap-suggest {
+  border: 1.5px solid rgba(20, 14, 10, 0.16);
+  border-top: 0;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+#pitchDeck .gap-suggest__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 19px 24px;
+  border-top: 1px solid rgba(20, 14, 10, 0.1);
+  color: rgba(19, 10, 7, 0.66);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.028em;
+  line-height: 1.2;
+}
+
+#pitchDeck .gap-suggest__row:first-child {
+  border-top: 0;
+}
+
+#pitchDeck .gap-suggest__row svg {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  color: rgba(19, 10, 7, 0.3);
+}
+
+/* ── closer ── */
+
+#pitchDeck .gap-closer {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(19, 10, 7, 0.28);
+}
+
+#pitchDeck .gap-closer p {
+  margin: 0;
+  color: rgba(19, 10, 7, 0.6);
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}

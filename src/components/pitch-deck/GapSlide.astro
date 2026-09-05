@@ -1,0 +1,101 @@
+---
+// Left: what the page states, crossed out. Right: the same founder's real
+// question, typed into Devlabs — the questions a resume cannot answer are
+// exactly the ones the product takes as input.
+const struck = [
+  "Arizona State University",
+  "ex-Amazon",
+  "Software Engineer II",
+  "2 yrs 4 mo",
+];
+
+const query = "Can they ship a payments flow?";
+const alsoAsking = [
+  "Have they shipped to production?",
+  "Do they finish what they start?",
+  "How fast do they actually move?",
+];
+---
+
+<div class="deck-bg" aria-hidden="true">
+  <div class="deck-bg__base"></div>
+  <div class="deck-bg__lens"></div>
+  <div class="deck-bg__scan-lines"></div>
+  <div class="deck-bg__grain"></div>
+  <div class="deck-bg__fade"></div>
+</div>
+
+<div class="gap">
+  <header class="gap-header">
+    <div class="cover-brand deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="gap-meta"><i></i> The gap</p>
+  </header>
+
+  <h1 class="gap-title">
+    A resume measures four things.
+    <br />
+    <em class="deck-accent">None of them is the question you&rsquo;re asking.</em>
+  </h1>
+
+  <div class="gap-table">
+    <div class="gap-col">
+      <p class="gap-col__head">Stop reading</p>
+      {
+        struck.map((item) => (
+          <div class="gap-cell gap-cell--page">
+            <span class="gap-mark gap-mark--no" aria-hidden="true">
+              <svg viewBox="0 0 28 28" fill="none">
+                <path d="M9 9 L19 19 M19 9 L9 19" />
+              </svg>
+            </span>
+            <span class="gap-cell__text">{item}</span>
+          </div>
+        ))
+      }
+    </div>
+
+    <div aria-hidden="true"></div>
+
+    <div class="gap-col">
+      <p class="gap-col__head gap-col__head--live">Start asking</p>
+
+      <div class="gap-search">
+        <div class="gap-search__bar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <p>{query}</p>
+          <span class="gap-search__caret" aria-hidden="true"></span>
+          <span class="gap-search__go" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M5 12h14"></path>
+              <path d="m12 5 7 7-7 7"></path>
+            </svg>
+          </span>
+        </div>
+
+        <div class="gap-suggest">
+          {
+            alsoAsking.map((q) => (
+              <p class="gap-suggest__row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <span>{q}</span>
+              </p>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="gap-closer">
+    <p>Four proxies for the answer. <em class="deck-accent">None of them is the answer.</em></p>
+  </footer>
+</div>
