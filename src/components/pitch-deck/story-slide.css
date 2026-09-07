@@ -50,10 +50,11 @@
 
 #pitchDeck .story-lead {
   margin: 0;
-  max-width: 1080px;
-  font-size: 58px;
+  max-width: 1000px;
+  font-size: 54px;
   color: #100b09;
   text-align: center;
+  text-wrap: balance;
 }
 
 #pitchDeck .story-lead .deck-accent {
@@ -219,10 +220,14 @@
   z-index: 3;
   overflow: hidden;
   flex-shrink: 0;
-  margin: 0 64px 48px;
-  padding: 24px 40px 26px;
+  margin: 0 64px 44px;
+  padding: 30px 48px 34px;
   border-radius: 0;
-  background: #fa862f;
+  /* The nine sponsor files are white-on-transparent artwork with real colour in
+     three of them (DeepMind blue, smallest.ai teal, Dodo green). On the orange
+     bar they had to be knocked to flat white and the colour was lost. A dark
+     ground renders every one exactly as its designer drew it. */
+  background: linear-gradient(180deg, #241a14 0%, #1a100c 100%);
   clip-path: polygon(
     0 0,
     100% 0,
@@ -235,13 +240,13 @@
 #pitchDeck .story-slide .story-supported {
   position: relative;
   z-index: 2;
-  margin: 0 0 18px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.16em;
+  margin: 0 0 24px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   text-align: center;
-  color: rgba(255, 250, 244, 0.78);
+  color: rgba(255, 250, 244, 0.55);
 }
 
 #pitchDeck .story-logos {
@@ -250,43 +255,22 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 18px;
 }
 
+/* Every mark knocked to solid white. `screen` left some logos washed out and
+   others carrying their own colour against the orange; one filter gives the
+   whole row equal weight. */
 #pitchDeck .story-logos img {
   display: block;
   flex: 0 1 auto;
-  max-height: 32px;
+  /* nine marks across 1376px of bar — capped so the row never clips */
+  max-height: 38px;
   width: auto;
   max-width: 148px;
   object-fit: contain;
   opacity: 1;
   filter: none;
-  mix-blend-mode: screen;
-}
-
-#pitchDeck .story-logos img[alt="Dodo Payments"] {
-  max-height: 30px;
   mix-blend-mode: normal;
 }
 
-#pitchDeck .story-logos img[alt="Stripe"] {
-  max-height: 32px;
-}
-
-#pitchDeck .story-logos img[alt="DeepMind"] {
-  max-height: 32px;
-  filter: grayscale(1) brightness(6);
-}
-
-#pitchDeck .story-logos img[alt="smallest.ai"] {
-  max-height: 28px;
-}
-
-#pitchDeck .story-logos img[alt="Composio"] {
-  max-height: 30px;
-}
-
-#pitchDeck .story-logos img[alt="omi"] {
-  max-height: 32px;
-}
