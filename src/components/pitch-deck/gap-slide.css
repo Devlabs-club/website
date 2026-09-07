@@ -19,6 +19,74 @@
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
 
+
+/* ── the dissolve ──
+   Slide 5's Agent Wrapped treatment, driven by a gradient instead of a photo:
+   a luminance ramp is crushed with contrast(16) while a 4x4 Bayer matrix rides
+   over it in `overlay`, which turns the smooth ramp into an ordered dither.
+   Orange then goes on in `lighten`, so the surviving dark pixels take the ink
+   and the rest stays paper. Sits under the struck column — the data the page
+   gave you, coming apart. */
+
+#pitchDeck .gap-jitter {
+  position: absolute;
+  z-index: 1;
+  bottom: 100px;
+  left: 64px;
+  width: 660px;
+  height: 178px;
+  overflow: hidden;
+  /* multiplies against the page rather than isolating: the dither's white
+     falls away to paper and only the inked pixels survive */
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+#pitchDeck .gap-jitter__dither {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: contrast(16);
+}
+
+/* the ramp being dithered — solid at the floor, gone by the top */
+#pitchDeck .gap-jitter__ramp {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #ebebeb 20%,
+    #c0c0c0 44%,
+    #909090 66%,
+    #6a6a6a 86%,
+    #4e4e4e 100%
+  );
+}
+
+#pitchDeck .gap-jitter__bayer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  font-style: normal;
+  pointer-events: none;
+  image-rendering: pixelated;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23080808'/%3E%3Crect x='1' width='1' height='1' fill='%23888888'/%3E%3Crect x='2' width='1' height='1' fill='%23282828'/%3E%3Crect x='3' width='1' height='1' fill='%23a8a8a8'/%3E%3Crect y='1' width='1' height='1' fill='%23c8c8c8'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23484848'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23e8e8e8'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23686868'/%3E%3Crect y='2' width='1' height='1' fill='%23383838'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23b8b8b8'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23181818'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23989898'/%3E%3Crect y='3' width='1' height='1' fill='%23f8f8f8'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%23787878'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23d8d8d8'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23585858'/%3E%3C/svg%3E");
+  background-size: 16px 16px;
+}
+
+#pitchDeck .gap-jitter__ink {
+  position: absolute;
+  inset: 0;
+  display: block;
+  font-style: normal;
+  pointer-events: none;
+  background: #fa862f;
+  mix-blend-mode: lighten;
+}
+
 /* ── shell ── */
 
 #pitchDeck .gap {
@@ -72,9 +140,11 @@
 /* ── the comparison ── */
 
 #pitchDeck .gap-table {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: 1fr 72px 1fr;
-  align-self: center;
+  align-self: start;
   width: 100%;
   margin: 26px 0 0;
 }
@@ -104,7 +174,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  min-height: 78px;
+  min-height: 70px;
   margin: 0;
   border-top: 1px solid rgba(19, 10, 7, 0.16);
 }
