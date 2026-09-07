@@ -4,6 +4,7 @@ import "./cover.css";
 import "./problem-slide.css";
 import "./gap-slide.css";
 import "./story-slide.css";
+import "./story-alt.css";
 import "./product-slide.css";
 import "./builder-criteria-slide.css";
 import "./testimonials-slide.css";
@@ -19,6 +20,7 @@ import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
 import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
+import StoryAlt from "./StoryAlt.astro";
 import ProductProof from "./ProductProof.astro";
 import TeamSlide from "./TeamSlide.astro";
 import CoverSlide from "./CoverSlide.astro";
@@ -28,7 +30,8 @@ const slides = [
   "The Future of hiring",
   "The problem",
   "The gap",
-  "Our story",
+  "Our story — v1",
+  "Our story — v2",
   "The product",
   "What we look for",
   "Testimonials",
@@ -66,6 +69,23 @@ const storySponsors = [
   { name: "Composio", src: "/sponsors/momentum/composio.png" },
   { name: "TinyFish", src: "/sponsors/momentum/tinyfish.png" },
   { name: "supermemory", src: "/sponsors/supermemory.png" },
+  { name: "omi", src: "/sponsors/omi.png" },
+];
+
+
+// Light-tile set for the alternate story slide. Stripe, TinyFish, Dodo and
+// supermemory are the vendors' own dark/colour files; Browser Use, Composio and
+// omi publish only white artwork, so their repo PNGs are inverted in CSS to the
+// black marks those brands actually use.
+const storySponsorsColor = [
+  { name: "Browser Use", src: "/sponsors/browser-use.png" },
+  { name: "Dodo Payments", src: "/sponsors/color/dodo-payments.svg" },
+  { name: "Stripe", src: "/sponsors/color/stripe.svg" },
+  { name: "DeepMind", src: "/sponsors/deepmind.png" },
+  { name: "smallest.ai", src: "/sponsors/momentum/smallest_ai.png" },
+  { name: "Composio", src: "/sponsors/momentum/composio.png" },
+  { name: "TinyFish", src: "/sponsors/color/tinyfish.svg" },
+  { name: "supermemory", src: "/sponsors/color/supermemory.png" },
   { name: "omi", src: "/sponsors/omi.png" },
 ];
 
@@ -182,18 +202,22 @@ const problemShotRows = [
             <p class="story-supported">supported by</p>
             <div class="story-logos">
               {storySponsors.map((sponsor) => (
-                <img src={sponsor.src} alt={sponsor.name} loading="lazy" />
+                <img src={sponsor.src} alt={sponsor.name} loading="eager" />
               ))}
             </div>
           </footer>
         </div>
       </section>
 
-      <section class="pitch-slide product-proof-slide hidden" data-slide="5" aria-label={slides[4]}>
+      <section class="pitch-slide story-alt-slide hidden" data-slide="5" aria-label={slides[4]}>
+        <StoryAlt stats={storyStats} sponsors={storySponsorsColor} photos={storyPhotos} />
+      </section>
+
+      <section class="pitch-slide product-proof-slide hidden" data-slide="6" aria-label={slides[5]}>
         <ProductProof />
       </section>
 
-      <section class="pitch-slide builder-criteria-slide hidden" data-slide="6" aria-label={slides[5]}>
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="7" aria-label={slides[6]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -204,7 +228,7 @@ const problemShotRows = [
         <BuilderCriteria />
       </section>
 
-      <section class="pitch-slide testimonials-slide hidden" data-slide="7" aria-label={slides[6]}>
+      <section class="pitch-slide testimonials-slide hidden" data-slide="8" aria-label={slides[7]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -215,7 +239,7 @@ const problemShotRows = [
         <TestimonialsSlide />
       </section>
 
-      <section class="pitch-slide competitor-slide hidden" data-slide="8" aria-label={slides[7]}>
+      <section class="pitch-slide competitor-slide hidden" data-slide="9" aria-label={slides[8]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -226,7 +250,7 @@ const problemShotRows = [
         <CompetitorAnalysis />
       </section>
 
-      <section class="pitch-slide pricing-slide hidden" data-slide="9" aria-label={slides[8]}>
+      <section class="pitch-slide pricing-slide hidden" data-slide="10" aria-label={slides[9]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -237,11 +261,11 @@ const problemShotRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide advantage-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide advantage-slide hidden" data-slide="11" aria-label={slides[10]}>
         <CompetitiveAdvantage />
       </section>
 
-      <section class="pitch-slide team-slide hidden" data-slide="11" aria-label={slides[10]}>
+      <section class="pitch-slide team-slide hidden" data-slide="12" aria-label={slides[11]}>
         <TeamSlide />
       </section>
     </div>

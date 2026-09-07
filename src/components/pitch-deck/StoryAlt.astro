@@ -1,0 +1,77 @@
+---
+interface Stat { value: string; label: string }
+interface Sponsor { name: string; src: string }
+interface Photo { src: string; alt: string }
+interface Props { stats: Stat[]; sponsors: Sponsor[]; photos: Photo[] }
+const { stats, sponsors, photos } = Astro.props;
+
+// Hung down the right edge instead of across the top. Indexed rather than
+// sliced so the stack can pick the strongest five: the DevHacks group shot
+// (photos[4]) takes the middle slot, and every frame is unique.
+//   crowd · build · DevHacks group · DevHouse circle · DevHouse SF
+const strip = [photos[0], photos[1], photos[4], photos[3], photos[7]];
+---
+
+<div class="deck-bg" aria-hidden="true">
+  <div class="deck-bg__base"></div>
+  <div class="deck-bg__lens"></div>
+  <div class="deck-bg__scan-lines"></div>
+  <div class="deck-bg__grain"></div>
+  <div class="deck-bg__fade"></div>
+</div>
+
+<div class="salt">
+  <header class="salt-header">
+    <div class="cover-brand deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="salt-meta"><i></i> Our story</p>
+  </header>
+
+  <h1 class="salt-lead">
+    We built the <em class="deck-accent">community</em> first.
+    <br />
+    The hiring platform came out of it.
+  </h1>
+
+  <div class="salt-body">
+    <div class="salt-stats">
+      {
+        stats.map((stat) => (
+          <article class="salt-stat">
+            <p class="salt-stat__value">{stat.value}</p>
+            <p class="salt-stat__label">{stat.label}</p>
+          </article>
+        ))
+      }
+    </div>
+
+    <section class="salt-sponsors">
+      <p class="salt-sponsors__head">Supported by</p>
+      <div class="salt-grid">
+        {
+          sponsors.map((sponsor) => (
+            <span class="salt-tile">
+              <img src={sponsor.src} alt={sponsor.name} loading="eager" />
+            </span>
+          ))
+        }
+      </div>
+    </section>
+
+    <div class="salt-strip" aria-hidden="true">
+      {
+        strip.map((photo, i) => (
+          <figure class={`salt-photo salt-photo--${i + 1}`}>
+            <img src={photo.src} alt="" loading="lazy" />
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+
+  <footer class="salt-closer">
+    <p>Then startups started hiring our builders.</p>
+  </footer>
+</div>
