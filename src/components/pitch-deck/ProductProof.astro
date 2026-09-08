@@ -1,69 +1,57 @@
 ---
-const query = "I want to hire full stack developers with experience in stripe integration";
+// Three steps, each with its statement on the left and what the founder
+// actually sees on the right. Names are fictional and avatars are initials —
+// no real builder's name or photograph appears.
+// The real "1. Basics" step from the founder flow. `ghost: true` renders as
+// placeholder text, matching an unfilled field in the product.
+const basics = [
+  { label: "Title", value: "Platform Reliability Engineer" },
+  { label: "Job type", value: "Full-time, contract", ghost: true },
+  { label: "Location", value: "Tempe, AZ" },
+  { label: "Salary", value: "200k" },
+];
 
-const matches = [
+// The real result card. Names are fictional and avatars are initials rather
+// than photographs, so no builder's identity appears in the deck.
+const results = [
   {
-    name: "Aakash K.",
-    photo: "/landing/builders/aakash.jpg",
-    role: "Full-stack · 5+ hackathon winner",
-    intern: { company: "Tesla", logo: "/pitch-deck/logos/tesla.svg" },
-    why: "Owned checkout end to end and shipped Stripe Connect in production, not a tutorial repo.",
-    repo: "stripe-connect",
-    tweet: "Shipped Stripe Connect onboarding in a weekend",
-    wrapped: [
-      {
-        prompt: "Which archetype?",
-        title: "The Architect",
-        detail: "Plans the billing model first, then writes the path that compounds.",
-        art: "/wrapped/story-office-glitch.jpg",
-      },
-      {
-        prompt: "Which model?",
-        title: "Claude into Codex",
-        detail: "Explores the system in Claude, then ships the webhook in Codex.",
-        art: "/wrapped/story-code-field.jpg",
-      },
-      {
-        prompt: "When do they ship?",
-        title: "Night owl",
-        detail: "Most payment commits land after the room gets quiet.",
-        art: "/wrapped/story-green-halftone.jpg",
-      },
-    ],
+    initials: "MR",
+    name: "Maya R.",
+    badge: "Strong Match",
+    bio: "Full-stack engineer shipping payments infrastructure in production.",
+    meta: "Greater Phoenix Area · Available now",
+    prev: "Prev. intern · Tesla",
+    tags: [],
+    fit: "96",
+    spark: [30, 55, 40, 72, 48, 85, 62, 95, 55, 80, 68, 92],
+    lead: true,
   },
-  {
-    name: "Abhinav R.",
-    photo: "/landing/builders/abhinav.jpg",
-    role: "Full-stack",
-    intern: { company: "Waymo", logo: "/pitch-deck/logos/waymo.png" },
-    why: "Has shipped subscription billing and webhook recovery on a real product, not a resume keyword.",
-    repo: "stripe-hooks",
-    tweet: "Webhook retries are the whole Stripe job",
-    wrapped: [
-      {
-        prompt: "Which archetype?",
-        title: "Velocity Machine",
-        detail: "Jumps into the failing webhook and ships the recovery path.",
-        art: "/wrapped/story-red-glitch.jpg",
-      },
-      {
-        prompt: "How do they steer?",
-        title: "Stops and redirects",
-        detail: "Cuts the agent when it touches the wrong billing file.",
-        art: "/wrapped/story-soft-mesh.jpg",
-      },
-      {
-        prompt: "Longest agent run?",
-        title: "3h 12m",
-        detail: "One session chased dunning retries until he stepped in.",
-        art: "/wrapped/story-red-abstract.jpg",
-      },
-    ],
-  },
+];
+
+// the rest of the shortlist, collapsed
+const rest = [
+  { initials: "DP", name: "Dev P.", role: "Payments", fit: "93" },
+  { initials: "IS", name: "Isha S.", role: "Full-stack", fit: "91" },
+];
+
+const sources = ["GitHub", "LinkedIn", "Resume", "Repos"];
+
+const steps = [
+  { n: "01", title: "Describe the role", body: "Plain language. Not a boolean search string." },
+  { n: "02", title: "Get your top five builders", body: "Ranked on work they shipped, not keywords they listed." },
+  { n: "03", title: "Open one — the proof is attached", body: "Repos, agent traces and event record, on every card." },
 ];
 ---
 
-<section class="product-proof">
+<div class="deck-bg" aria-hidden="true">
+  <div class="deck-bg__base"></div>
+  <div class="deck-bg__lens"></div>
+  <div class="deck-bg__scan-lines"></div>
+  <div class="deck-bg__grain"></div>
+  <div class="deck-bg__fade"></div>
+</div>
+
+<section class="pflow">
   <header class="deck-slide-header">
     <div class="deck-brand-lockup">
       <img src="/logo.svg" alt="" />
@@ -72,99 +60,186 @@ const matches = [
     <p class="deck-slide-meta"><i></i> The product</p>
   </header>
 
-  <div class="product-proof__intro">
-    <h1>Describe the role.<br />Get builders with proof attached</h1>
-    <p>Every recommendation explains what the builder shipped,<br />how they worked and why they fit the role.</p>
-  </div>
-
-  <div class="product-demo">
-    <div class="product-search">
-      <div class="product-search__bar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="m21 21-4.3-4.3"></path>
-        </svg>
-        <p>{query}</p>
-        <span class="product-search__go" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M5 12h14"></path>
-            <path d="m12 5 7 7-7 7"></path>
-          </svg>
-        </span>
+  <div class="pflow-rows">
+    <!-- 01 · the query -->
+    <div class="pflow-row">
+      <div class="pflow-step">
+        <p class="pflow-step__n">{steps[0].n}</p>
+        <h2 class="pflow-step__title">{steps[0].title}</h2>
+        <p class="pflow-step__body">{steps[0].body}</p>
+      </div>
+      <div class="pflow-art">
+        <div class="pflow-form">
+          <div class="pflow-form__head">
+            <p>1. Basics</p>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <path d="m6 15 6-6 6 6"></path>
+            </svg>
+          </div>
+          <div class="pflow-form__grid">
+            {
+              basics.map((f) => (
+                <label class="pflow-field">
+                  <span class="pflow-field__label">{f.label}</span>
+                  <span class:list={["pflow-field__input", f.ghost && "pflow-field__input--ghost"]}>
+                    {f.value}
+                  </span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="product-results">
-      {matches.map((match) => (
-        <article class="product-card">
-          <div class="product-card__top">
-            <img src={match.photo} alt="" />
-            <div>
-              <p class="product-card__kicker">Ranked recommendation</p>
-              <h2>{match.name}</h2>
-              <p class="product-card__role">{match.role}</p>
-              {match.intern && (
-                <p class="product-card__intern">
-                  <img src={match.intern.logo} alt="" />
-                  prev intern @ {match.intern.company}
-                </p>
-              )}
-            </div>
-            <p class="product-card__badge">Strong match</p>
-          </div>
-
-          <div class="product-why">
-            <p class="product-why__label">Why hire</p>
-            <p class="product-why__text">{match.why}</p>
-          </div>
-
-          <div class="product-wrapped">
-            <p class="product-wrapped__label">Agent Wrapped</p>
-            <div class="product-wrapped__row">
-              {match.wrapped.map((card, cardIndex) => (
-                <article class:list={["product-wrap-card", `product-wrap-card--${cardIndex + 1}`]}>
-                  <div class="product-wrap-card__art">
-                    <div class="product-wrap-card__dither">
-                      <img src={card.art} alt="" />
-                      <i class="product-wrap-card__bayer"></i>
-                    </div>
-                    <i class="product-wrap-card__ink"></i>
-                    <i class="product-wrap-card__fade"></i>
-                    <div class="product-wrap-card__dots" aria-hidden="true">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
+    <!-- 02 · the shortlist -->
+    <div class="pflow-row">
+      <div class="pflow-step">
+        <p class="pflow-step__n">{steps[1].n}</p>
+        <h2 class="pflow-step__title">{steps[1].title}</h2>
+        <p class="pflow-step__body">{steps[1].body}</p>
+      </div>
+      <div class="pflow-art">
+        <div class="pflow-results">
+          {
+            results.map((b) => (
+              <article class:list={["pcard", b.lead && "pcard--lead"]}>
+                <div class="pcard__top">
+                  <span class="pflow-avatar">{b.initials}</span>
+                  <div class="pcard__id">
+                    <p class="pcard__name">
+                      {b.name}
+                      <span class="pcard__badge">{b.badge}</span>
+                    </p>
+                    <p class="pcard__bio">{b.bio}</p>
+                    <p class="pcard__meta">{b.meta}</p>
+                    <p class="pcard__prev">
+                      <img src="/pitch-deck/logos/tesla.svg" alt="" />
+                      {b.prev}
+                      <span class="pcard__spark" aria-hidden="true">
+                        {b.spark.map((h) => <i style={`height: ${h}%`}></i>)}
+                      </span>
+                      <span class="pcard__spark-label">ship cadence · 12w</span>
+                    </p>
                   </div>
-                  <div class="product-wrap-card__body">
-                    <p>{card.prompt}</p>
-                    <h3>{card.title}</h3>
-                    <span>{card.detail}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  <span class="pcard__fit">
+                    <svg viewBox="0 0 44 44" aria-hidden="true">
+                      <circle class="pcard__ring-bg" cx="22" cy="22" r="19" />
+                      <circle
+                        class="pcard__ring-fg"
+                        cx="22"
+                        cy="22"
+                        r="19"
+                        style={`stroke-dasharray: ${(Number(b.fit) / 100) * 119.4} 119.4`}
+                      />
+                    </svg>
+                    <span class="pcard__fit-num">{b.fit}<em>%</em></span>
+                  </span>
+                </div>
+
+                {b.tags.length > 0 && (
+                  <ul class="pcard__tags">
+                    {b.tags.map((t, i) => <li class:list={[i === 0 && "pcard__tags--lead"]}>{t}</li>)}
+                  </ul>
+                )}
+
+                <div class="pcard__foot">
+                  <span class="pcard__icons">
+                    <img src="/socials/linkedin.svg" alt="" />
+                    <img src="/brand/github.svg" alt="" />
+                  </span>
+                  <span class="pcard__link">Full profile</span>
+                  <span class="pcard__trace">Trace</span>
+                  <span class="pcard__actions">
+                    <em>Pass</em>
+                    <strong>Invite</strong>
+                  </span>
+                </div>
+              </article>
+            ))
+          }
+          {
+            rest.map((b) => (
+              <div class="prow">
+                <span class="pflow-avatar prow__av">{b.initials}</span>
+                <span class="prow__name">{b.name}</span>
+                <span class="prow__role">{b.role}</span>
+                <span class="prow__fit">{b.fit}%</span>
+              </div>
+            ))
+          }
+          <p class="pflow-more">+ 2 more in the shortlist</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 · the proof -->
+    <div class="pflow-row">
+      <div class="pflow-step">
+        <p class="pflow-step__n">{steps[2].n}</p>
+        <h2 class="pflow-step__title">{steps[2].title}</h2>
+        <p class="pflow-step__body">{steps[2].body}</p>
+      </div>
+      <div class="pflow-art">
+        <article class="pmodal">
+          <div class="pmodal__bar">
+            <p>Builder profile</p>
+            <span aria-hidden="true">&times;</span>
           </div>
 
-          <div class="product-card__foot">
-            <p class="product-pills">
-              <span class="product-pill">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
-                </svg>
-                <em>{match.repo}</em>
-              </span>
-              <span class="product-pill">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path>
-                </svg>
-                <em>{match.tweet}</em>
-              </span>
-            </p>
-            <button type="button" class="product-invite">Invite</button>
+          <div class="pmodal__body">
+            <div class="pmodal__id">
+              <span class="pflow-avatar pflow-avatar--lg">MR</span>
+              <p class="pmodal__name">Maya R.</p>
+              <p class="pmodal__role">Full-stack engineer · payments</p>
+              <p class="pmodal__loc">Greater Phoenix Area</p>
+              <div class="pmodal__links">
+                <span>GitHub</span><span>LinkedIn</span><span>Resume</span>
+              </div>
+            </div>
+
+            <div class="ptrace-panel">
+              <div class="ptrace-panel__head">
+                <span class="ptrace-panel__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 4.5 13.9 9.6 19 11.5 13.9 13.4 12 18.5 10.1 13.4 5 11.5 10.1 9.6Z" />
+                  </svg>
+                </span>
+                <span class="ptrace-panel__label">
+                  <em>Agent trace</em>
+                  <i>Preview from resume, LinkedIn &amp; projects</i>
+                </span>
+                <span class="ptrace-panel__btn">Preview</span>
+              </div>
+
+              <p class="ptrace-panel__h">How they ship</p>
+
+              <div class="pmatch">
+                <div class="pmatch__top">
+                  <span class="pmatch__label">Role match</span>
+                  <span class="pmatch__num">96<em>%</em></span>
+                </div>
+                <p class="pmatch__verdict">Strong payments overlap</p>
+                <span class="pmatch__bar" aria-hidden="true"><i style="width: 96%"></i></span>
+              </div>
+
+              <ul class="psrc">
+                {sources.map((c) => <li>{c}</li>)}
+              </ul>
+
+              <p class="ptrace-panel__body">
+                Owned checkout end to end and shipped Stripe Connect in production — not a
+                tutorial repo.
+              </p>
+
+              <ul class="ppills">
+                <li>96% match</li>
+                <li>8 projects reviewed</li>
+              </ul>
+            </div>
           </div>
         </article>
-      ))}
+      </div>
     </div>
   </div>
 </section>

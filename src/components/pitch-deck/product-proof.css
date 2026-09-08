@@ -1,3 +1,11 @@
+/* ── The product ──
+   Three steps down the slide: the statement on the left, what the founder
+   actually sees on the right. Numbering is real here — it is a sequence, so
+   01/02/03 encodes something true rather than decorating. Everything is static
+   so it survives PDF export; the interaction is implied by the caret in the
+   query and by the shortlist narrowing to the one card that opens beneath it.
+   Names are fictional and avatars are initials: no real builder appears. */
+
 #pitchDeck .product-proof-slide {
   position: absolute;
   inset: 0;
@@ -10,430 +18,747 @@
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
 
-#pitchDeck .product-proof-slide.hidden {
-  display: none;
-}
-
-#pitchDeck .product-proof {
+#pitchDeck .pflow {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   height: 100%;
   min-height: 0;
-  padding: 32px 48px 32px;
+  padding: 40px 64px 40px;
 }
 
-#pitchDeck .product-proof__intro {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  gap: 40px;
-  align-items: end;
-  margin: 32px 0 36px;
-}
 
-#pitchDeck .product-proof-slide .product-proof__intro h1 {
-  margin: 0;
-  max-width: 860px;
-  color: #130a07;
-  font-size: 40px;
-  line-height: 1.12;
-}
+/* ── the three steps ── */
 
-#pitchDeck .product-proof__intro p {
-  margin: 0;
-  max-width: none;
-  justify-self: end;
-  text-align: right;
-  color: #130a07;
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-
-#pitchDeck .product-demo {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
-  min-height: 0;
-}
-
-#pitchDeck .product-search {
+#pitchDeck .pflow-rows {
   position: relative;
-}
-
-#pitchDeck .product-search__bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 72px;
-  padding: 0 14px 0 20px;
-  border: 1.5px solid rgba(20, 14, 10, 0.16);
-  background: #fff;
-}
-
-#pitchDeck .product-search__bar svg {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-  color: #130a07;
-}
-
-#pitchDeck .product-search__bar p {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  color: #130a07;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  line-height: 1.3;
-  white-space: nowrap;
-}
-
-#pitchDeck .product-search__go {
+  z-index: 1;
   display: grid;
-  width: 48px;
-  height: 48px;
-  flex-shrink: 0;
-  place-items: center;
-  background: #fff;
-  color: #fa862f;
-  border: 1.5px solid rgba(20, 14, 10, 0.16);
-}
-
-#pitchDeck .product-search__go svg {
-  width: 20px;
-  height: 20px;
-  color: inherit;
-}
-
-#pitchDeck .product-results {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  min-height: 0;
-}
-
-#pitchDeck .product-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  padding: 18px 20px 16px;
-  border: 1.5px solid rgba(20, 14, 10, 0.14);
-  background: #fff;
-  box-shadow: 0 18px 40px rgba(19, 10, 7, 0.06);
-}
-
-#pitchDeck .product-card__top {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-}
-
-#pitchDeck .product-card__top > img {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  background: #fff3e6;
-}
-
-#pitchDeck .product-card__kicker {
-  margin: 0;
-  color: #fa862f;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-#pitchDeck .product-card h2 {
-  margin: 4px 0 2px;
-  color: #130a07;
-  font-size: 26px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
-}
-
-#pitchDeck .product-card__role {
-  margin: 0;
-  color: rgba(19, 10, 7, 0.56);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-#pitchDeck .product-card__badge {
-  margin: 0;
-  padding: 7px 10px;
-  background: #fa862f;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-#pitchDeck .product-why {
-  margin-top: 12px;
-  padding: 12px 14px 10px;
-  background: #fff3e6;
-}
-
-#pitchDeck .product-why__text {
-  margin: 6px 0 0;
-  color: #130a07;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 1.28;
-  letter-spacing: -0.025em;
-}
-
-#pitchDeck .product-wrapped {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  margin-top: 14px;
-}
-
-#pitchDeck .product-wrapped__label,
-#pitchDeck .product-why__label,
-#pitchDeck .product-card__kicker {
-  margin: 0;
-  color: #fa862f;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-#pitchDeck .product-wrapped__row {
-  display: grid;
-  flex: 1;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  min-height: 0;
-  margin-top: 10px;
-}
-
-#pitchDeck .product-wrap-card {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border: 1.5px solid rgba(250, 134, 47, 0.55);
-  border-radius: 10px;
-  background: #fffdf9;
-  box-shadow: 0 10px 22px rgba(21, 10, 4, 0.06);
-}
-
-#pitchDeck .product-wrap-card__art {
-  position: relative;
-  isolation: isolate;
-  height: 46%;
-  min-height: 96px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #faf8f4;
-}
-
-#pitchDeck .product-wrap-card__dither {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  filter: contrast(16) brightness(1);
-  mix-blend-mode: multiply;
-}
-
-#pitchDeck .product-wrap-card__dither img {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 25%;
-  height: 25%;
-  object-fit: cover;
-  object-position: center 42%;
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  transform: scale(4);
-  transform-origin: 0 0;
-  filter: grayscale(1) contrast(1.1) brightness(1);
-}
-
-#pitchDeck .product-wrap-card__bayer,
-#pitchDeck .product-wrap-card__ink,
-#pitchDeck .product-wrap-card__fade {
-  display: block;
-  font-style: normal;
-}
-
-#pitchDeck .product-wrap-card__bayer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  image-rendering: pixelated;
-  mix-blend-mode: overlay;
-  opacity: 1;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' shape-rendering='crispEdges'%3E%3Crect width='1' height='1' fill='%23080808'/%3E%3Crect x='1' width='1' height='1' fill='%23888888'/%3E%3Crect x='2' width='1' height='1' fill='%23282828'/%3E%3Crect x='3' width='1' height='1' fill='%23a8a8a8'/%3E%3Crect y='1' width='1' height='1' fill='%23c8c8c8'/%3E%3Crect x='1' y='1' width='1' height='1' fill='%23484848'/%3E%3Crect x='2' y='1' width='1' height='1' fill='%23e8e8e8'/%3E%3Crect x='3' y='1' width='1' height='1' fill='%23686868'/%3E%3Crect y='2' width='1' height='1' fill='%23383838'/%3E%3Crect x='1' y='2' width='1' height='1' fill='%23b8b8b8'/%3E%3Crect x='2' y='2' width='1' height='1' fill='%23181818'/%3E%3Crect x='3' y='2' width='1' height='1' fill='%23989898'/%3E%3Crect y='3' width='1' height='1' fill='%23f8f8f8'/%3E%3Crect x='1' y='3' width='1' height='1' fill='%23787878'/%3E%3Crect x='2' y='3' width='1' height='1' fill='%23d8d8d8'/%3E%3Crect x='3' y='3' width='1' height='1' fill='%23585858'/%3E%3C/svg%3E");
-  background-size: 16px 16px;
-}
-
-#pitchDeck .product-wrap-card__ink {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: #fa862f;
-  mix-blend-mode: lighten;
-}
-
-#pitchDeck .product-wrap-card__fade {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent 48%, #fffdf9 100%);
-}
-
-#pitchDeck .product-wrap-card__dots {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  z-index: 3;
-  display: flex;
-  gap: 5px;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-#pitchDeck .product-wrap-card__dots span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #fffdf9;
-  box-shadow: 0 0 0 1px rgba(250, 134, 47, 0.18);
-}
-
-#pitchDeck .product-wrap-card__body {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  padding: 12px 12px 11px;
-}
-
-#pitchDeck .product-wrap-card__body p {
-  margin: 0 0 6px;
-  color: #fa862f;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-#pitchDeck .product-wrap-card__body h3 {
-  margin: 0;
-  color: #130a07;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
-}
-
-#pitchDeck .product-wrap-card__body span {
-  display: block;
-  margin-top: 8px;
-  color: rgba(19, 10, 7, 0.64);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.28;
-}
-
-#pitchDeck .product-card__intern {
-  display: inline-flex;
-  align-items: center;
+  align-self: center;
+  grid-template-rows: repeat(3, auto);
   gap: 6px;
-  margin: 6px 0 0;
-  color: #130a07;
+  width: 100%;
+  margin-top: 0;
+}
+
+#pitchDeck .pflow-row {
+  display: grid;
+  grid-template-columns: 470px 1fr;
+  align-items: center;
+  gap: 52px;
+  padding: 4px 0;
+  border-top: 1px solid rgba(19, 10, 7, 0.16);
+}
+
+#pitchDeck .pflow-row:last-child {
+  border-bottom: 1px solid rgba(19, 10, 7, 0.16);
+}
+
+#pitchDeck .pflow-step__n {
+  margin: 0 0 10px;
+  color: #ef7317;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-#pitchDeck .product-card__intern img {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
+#pitchDeck .product-proof-slide .pflow-step__title {
+  margin: 0;
+  color: #130a07;
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.14;
+  letter-spacing: -0.04em;
+  text-transform: none;
 }
 
-#pitchDeck .product-card__foot {
+#pitchDeck .pflow-step__body {
+  margin: 9px 0 0;
+  color: rgba(22, 11, 7, 0.5);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: -0.014em;
+  line-height: 1.4;
+}
+
+/* ── 01 · the role form ──
+   A faithful reduction of the product's "1. Basics" step: same header, same
+   two-column field grid, same soft-filled inputs. Rounded rather than chamfered
+   because this is a replica of the real UI, not a deck card — fidelity to the
+   product wins over the deck's corner language here. Six of the eight fields
+   are shown; the full set will not read at this size. */
+
+#pitchDeck .pflow-form {
+  padding: 12px 18px 14px;
+  border: 1px solid rgba(19, 10, 7, 0.14);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 16px 36px rgba(21, 14, 8, 0.06);
+}
+
+#pitchDeck .pflow-form__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 14px;
+  margin-bottom: 10px;
 }
 
-#pitchDeck .product-pills {
+#pitchDeck .pflow-form__head p {
+  margin: 0;
+  color: #130a07;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+  line-height: 1;
+}
+
+#pitchDeck .pflow-form__head svg {
+  width: 18px;
+  height: 18px;
+  color: #ef7317;
+}
+
+#pitchDeck .pflow-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 18px;
+}
+
+#pitchDeck .pflow-field {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#pitchDeck .pflow-field__label {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: -0.008em;
+  line-height: 1;
+}
+
+#pitchDeck .pflow-field__input {
+  overflow: hidden;
+  padding: 7px 12px;
+  border: 1px solid rgba(19, 10, 7, 0.1);
+  border-radius: 9px;
+  background: #fffcf8;
+  color: #130a07;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.016em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* an unfilled field, as it appears in the product */
+#pitchDeck .pflow-field__input--ghost {
+  color: rgba(22, 11, 7, 0.34);
+  font-weight: 400;
+}
+
+/* ── 02 · the result cards ──
+   A reduction of the real recommendation card: avatar, name with match badge,
+   one-line bio, location and availability, previous-company chip, skill tags,
+   and the action row. Rounded like the product rather than chamfered like the
+   deck, for the same reason as the form above. */
+
+#pitchDeck .pflow-avatar {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(19, 10, 7, 0.08);
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+#pitchDeck .pcard--lead .pflow-avatar {
+  background: #ef7317;
+  color: #fff;
+}
+
+#pitchDeck .pflow-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#pitchDeck .pcard {
+  padding: 10px 14px 9px;
+  border: 1px solid rgba(19, 10, 7, 0.13);
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 10px 26px rgba(21, 14, 8, 0.05);
+}
+
+#pitchDeck .pcard--lead {
+  border-color: rgba(250, 134, 47, 0.5);
+  background: linear-gradient(180deg, #fff 0%, #fff8f1 100%);
+}
+
+#pitchDeck .pcard__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+#pitchDeck .pcard__id {
   flex: 1;
   min-width: 0;
-  gap: 8px;
-  margin: 0;
 }
 
-#pitchDeck .product-pill {
-  display: inline-flex;
+#pitchDeck .pcard__name {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  min-width: 0;
-  max-width: 52%;
-  padding: 7px 11px;
-  overflow: hidden;
-  border: 1px solid rgba(20, 14, 10, 0.12);
-  border-radius: 999px;
-  background: #fffdf9;
+  gap: 10px;
+  margin: 0;
   color: #130a07;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  line-height: 1.1;
+}
+
+#pitchDeck .pcard__badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(250, 134, 47, 0.14);
+  color: #c45e12;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.2;
+  letter-spacing: -0.006em;
 }
 
-#pitchDeck .product-pill em {
-  min-width: 0;
+#pitchDeck .pcard__bio {
+  margin: 4px 0 0;
   overflow: hidden;
-  font-style: normal;
+  color: rgba(19, 10, 7, 0.74);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.014em;
+  line-height: 1.25;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-#pitchDeck .product-pill svg {
-  width: 13px;
-  height: 13px;
-  flex-shrink: 0;
-  color: #130a07;
+#pitchDeck .pcard__meta {
+  margin: 3px 0 0;
+  color: rgba(22, 11, 7, 0.4);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
-#pitchDeck .product-invite {
+#pitchDeck .pcard__prev {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 5px 0 0;
+  color: rgba(19, 10, 7, 0.66);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#pitchDeck .pcard__prev img {
+  display: block;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+/* a fit ring rather than a bare number — the product does not draw this yet */
+#pitchDeck .pcard__fit {
+  position: relative;
+  display: grid;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
-  min-height: 42px;
-  padding: 0 18px;
-  border: 0;
-  background: #fa862f;
-  color: #fff;
-  font: inherit;
+  place-items: center;
+}
+
+#pitchDeck .pcard__fit svg {
+  position: absolute;
+  inset: 0;
+  width: 52px;
+  height: 52px;
+  transform: rotate(-90deg);
+}
+
+#pitchDeck .pcard__ring-bg {
+  fill: none;
+  stroke: rgba(19, 10, 7, 0.1);
+  stroke-width: 4;
+}
+
+#pitchDeck .pcard__ring-fg {
+  fill: none;
+  stroke: #ef7317;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+#pitchDeck .pcard__fit-num {
+  color: #130a07;
   font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
-#pitchDeck .product-search__bar,
-#pitchDeck .product-search__go,
-#pitchDeck .product-card,
-#pitchDeck .product-why,
-#pitchDeck .product-card__badge,
-#pitchDeck .product-invite,
-#pitchDeck .product-card__top > img {
-  border-radius: 0;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+#pitchDeck .pcard__fit-num em {
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.5;
+}
+
+/* ship cadence, twelve weeks — the kind of signal the card should carry */
+#pitchDeck .pcard__spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(19, 10, 7, 0.12);
+}
+
+#pitchDeck .pcard__spark i {
+  display: block;
+  width: 4px;
+  border-radius: 1px;
+  background: rgba(250, 134, 47, 0.55);
+}
+
+#pitchDeck .pcard--lead .pcard__spark i {
+  background: #ef7317;
+}
+
+#pitchDeck .pcard__spark-label {
+  color: rgba(22, 11, 7, 0.36);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+#pitchDeck .pcard__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 7px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .pcard__tags li {
+  padding: 5px 11px;
+  border: 1px solid rgba(19, 10, 7, 0.14);
+  border-radius: 999px;
+  color: rgba(19, 10, 7, 0.66);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#pitchDeck .pcard__tags li.pcard__tags--lead {
+  border-color: rgba(250, 134, 47, 0.4);
+  background: rgba(250, 134, 47, 0.1);
+  color: #c45e12;
+}
+
+#pitchDeck .pcard__foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(19, 10, 7, 0.1);
+}
+
+#pitchDeck .pcard__icons {
+  display: flex;
+  gap: 6px;
+}
+
+/* one is white artwork and the other is full colour, so both are knocked to a
+   single muted ink rather than patched individually */
+#pitchDeck .pcard__icons img {
+  display: block;
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border: 1px solid rgba(19, 10, 7, 0.13);
+  border-radius: 7px;
+  object-fit: contain;
+  filter: brightness(0);
+  opacity: 0.45;
+}
+
+#pitchDeck .pcard__link {
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+#pitchDeck .pcard__trace {
+  color: #ef7317;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#pitchDeck .pcard__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+#pitchDeck .pcard__actions em {
+  padding: 6px 16px;
+  border: 1px solid rgba(19, 10, 7, 0.16);
+  border-radius: 8px;
+  color: rgba(19, 10, 7, 0.7);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+#pitchDeck .pcard__actions strong {
+  padding: 7px 18px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f79441 0%, #ec7a1c 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#pitchDeck .prow {
+  display: grid;
+  grid-template-columns: 30px 1fr 130px 50px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 6px 9px;
+  border: 1px solid rgba(19, 10, 7, 0.12);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+#pitchDeck .prow__av {
+  width: 30px;
+  height: 30px;
+  font-size: 11px;
+}
+
+#pitchDeck .prow__name {
+  color: #130a07;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+}
+
+#pitchDeck .prow__role {
+  color: rgba(22, 11, 7, 0.44);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+#pitchDeck .prow__fit {
+  color: #c45e12;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#pitchDeck .pflow-more {
+  margin: 2px 0 0;
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* ── 03 · the builder profile ──
+   The real modal, laid out in two columns so the Agent Trace panel — the thing
+   that actually differentiates the product — gets the room it needs inside a
+   third of a slide. Identity and links on the left, the trace on the right. */
+
+#pitchDeck .pmodal {
+  overflow: hidden;
+  border: 1px solid rgba(19, 10, 7, 0.14);
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(21, 14, 8, 0.09);
+}
+
+#pitchDeck .pmodal__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(19, 10, 7, 0.1);
+}
+
+#pitchDeck .pmodal__bar p {
+  margin: 0;
+  color: #130a07;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .pmodal__bar span {
+  color: rgba(22, 11, 7, 0.4);
+  font-size: 17px;
+  line-height: 1;
+}
+
+#pitchDeck .pmodal__body {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 18px;
+  padding: 12px 16px 13px;
+}
+
+#pitchDeck .pmodal__id .pflow-avatar--lg {
+  width: 42px;
+  height: 42px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+#pitchDeck .pmodal__name {
+  margin: 0;
+  color: #130a07;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+}
+
+#pitchDeck .pmodal__role {
+  margin: 4px 0 0;
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+#pitchDeck .pmodal__loc {
+  margin: 2px 0 0;
+  color: rgba(22, 11, 7, 0.38);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+#pitchDeck .pmodal__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+#pitchDeck .pmodal__links span {
+  padding: 5px 10px;
+  border: 1px solid rgba(19, 10, 7, 0.15);
+  border-radius: 999px;
+  color: rgba(19, 10, 7, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* ── the agent trace panel ── */
+
+#pitchDeck .ptrace-panel {
+  padding: 10px 13px 11px;
+  border: 1px solid rgba(250, 134, 47, 0.34);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff9f3 0%, #fef4ea 100%);
+}
+
+#pitchDeck .ptrace-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+#pitchDeck .ptrace-panel__icon {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #fa862f 0%, #ec7a1c 100%);
+}
+
+#pitchDeck .ptrace-panel__icon svg {
+  width: 16px;
+  height: 16px;
+  fill: #fff;
+}
+
+#pitchDeck .ptrace-panel__label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+#pitchDeck .ptrace-panel__label em {
+  color: #c45e12;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .ptrace-panel__label i {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+#pitchDeck .ptrace-panel__btn {
+  padding: 5px 12px;
+  border: 1px solid rgba(19, 10, 7, 0.14);
+  border-radius: 999px;
+  background: #fff;
+  color: rgba(19, 10, 7, 0.68);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#pitchDeck .ptrace-panel__h {
+  margin: 9px 0 0;
+  color: #130a07;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.024em;
+  line-height: 1;
+}
+
+#pitchDeck .pmatch {
+  margin-top: 8px;
+  padding: 9px 12px 11px;
+  border-radius: 9px;
+  background: #fff;
+}
+
+#pitchDeck .pmatch__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+#pitchDeck .pmatch__label {
+  color: rgba(22, 11, 7, 0.42);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .pmatch__num {
+  color: #130a07;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+#pitchDeck .pmatch__num em {
+  font-size: 12px;
+  font-style: normal;
+  opacity: 0.5;
+}
+
+#pitchDeck .pmatch__verdict {
+  margin: 3px 0 7px;
+  color: #130a07;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+#pitchDeck .pmatch__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(19, 10, 7, 0.09);
+}
+
+#pitchDeck .pmatch__bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fa862f 0%, #ec7a1c 100%);
+}
+
+#pitchDeck .psrc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 9px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .psrc li {
+  padding: 4px 9px;
+  border: 1px solid rgba(19, 10, 7, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(19, 10, 7, 0.6);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#pitchDeck .ptrace-panel__body {
+  margin: 9px 0 0;
+  color: rgba(19, 10, 7, 0.76);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.012em;
+  line-height: 1.35;
+}
+
+#pitchDeck .ppills {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .ppills li {
+  padding: 5px 11px;
+  border: 1px solid rgba(250, 134, 47, 0.45);
+  border-radius: 999px;
+  color: #c45e12;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
 }
