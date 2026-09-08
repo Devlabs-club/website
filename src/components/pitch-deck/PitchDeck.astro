@@ -5,6 +5,7 @@ import "./problem-slide.css";
 import "./gap-slide.css";
 import "./story-slide.css";
 import "./story-alt.css";
+import "./bridge-slide.css";
 import "./product-slide.css";
 import "./builder-criteria-slide.css";
 import "./testimonials-slide.css";
@@ -21,6 +22,7 @@ import PricingSlide from "./PricingSlide.astro";
 import CompetitiveAdvantage from "./CompetitiveAdvantage.astro";
 import StoryPolaroids from "./StoryPolaroids.astro";
 import StoryAlt from "./StoryAlt.astro";
+import BridgeSlide from "./BridgeSlide.astro";
 import ProductProof from "./ProductProof.astro";
 import TeamSlide from "./TeamSlide.astro";
 import CoverSlide from "./CoverSlide.astro";
@@ -32,6 +34,7 @@ const slides = [
   "The gap",
   "Our story — v1",
   "Our story — v2",
+  "The solution",
   "The product",
   "What we look for",
   "Testimonials",
@@ -213,11 +216,15 @@ const problemShotRows = [
         <StoryAlt stats={storyStats} sponsors={storySponsorsColor} photos={storyPhotos} />
       </section>
 
-      <section class="pitch-slide product-proof-slide hidden" data-slide="6" aria-label={slides[5]}>
+      <section class="pitch-slide bridge-slide hidden" data-slide="6" aria-label={slides[5]}>
+        <BridgeSlide />
+      </section>
+
+      <section class="pitch-slide product-proof-slide hidden" data-slide="7" aria-label={slides[6]}>
         <ProductProof />
       </section>
 
-      <section class="pitch-slide builder-criteria-slide hidden" data-slide="7" aria-label={slides[6]}>
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="8" aria-label={slides[7]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -228,7 +235,7 @@ const problemShotRows = [
         <BuilderCriteria />
       </section>
 
-      <section class="pitch-slide testimonials-slide hidden" data-slide="8" aria-label={slides[7]}>
+      <section class="pitch-slide testimonials-slide hidden" data-slide="9" aria-label={slides[8]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -239,7 +246,7 @@ const problemShotRows = [
         <TestimonialsSlide />
       </section>
 
-      <section class="pitch-slide competitor-slide hidden" data-slide="9" aria-label={slides[8]}>
+      <section class="pitch-slide competitor-slide hidden" data-slide="10" aria-label={slides[9]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -250,7 +257,7 @@ const problemShotRows = [
         <CompetitorAnalysis />
       </section>
 
-      <section class="pitch-slide pricing-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide pricing-slide hidden" data-slide="11" aria-label={slides[10]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -261,11 +268,11 @@ const problemShotRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide advantage-slide hidden" data-slide="11" aria-label={slides[10]}>
+      <section class="pitch-slide advantage-slide hidden" data-slide="12" aria-label={slides[11]}>
         <CompetitiveAdvantage />
       </section>
 
-      <section class="pitch-slide team-slide hidden" data-slide="12" aria-label={slides[11]}>
+      <section class="pitch-slide team-slide hidden" data-slide="13" aria-label={slides[12]}>
         <TeamSlide />
       </section>
     </div>

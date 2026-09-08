@@ -1,0 +1,264 @@
+/* ── The solution ──
+   The sentence leads, and the section beneath it does the connecting. Two slabs
+   whose chamfers cut on the same diagonal and nest into each other, each
+   listing what its side brings in that side's own language — a want on the
+   left, the thing already happening on the right. The deck's corner-cut becomes
+   structural rather than decorative: the two literally fit, so no arrows or
+   connectors are needed to say so. */
+
+#pitchDeck .bridge-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #faf8f4;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .bridge-strokes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 1600px;
+  height: 900px;
+  pointer-events: none;
+}
+
+#pitchDeck .bridge-stroke {
+  fill: none;
+  stroke: rgba(250, 134, 47, 0.085);
+  stroke-width: 34;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pitchDeck .bridge-stroke--b {
+  stroke: rgba(250, 134, 47, 0.11);
+  stroke-width: 30;
+}
+
+
+#pitchDeck .bridge {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+  padding: 40px 64px 44px;
+}
+
+#pitchDeck .bridge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#pitchDeck .bridge-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .bridge-meta i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fa862f;
+  box-shadow: 0 0 20px rgba(250, 134, 47, 0.42);
+}
+
+/* ── the sentence, which is the slide ── */
+
+#pitchDeck .bridge-slide .bridge-title {
+  align-self: center;
+  max-width: 1420px;
+  margin: 0;
+  color: #130a07;
+  font-size: 66px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.058em;
+  text-transform: none;
+  text-wrap: balance;
+}
+
+#pitchDeck .bridge-title__mark {
+  display: inline-block;
+  width: 60px;
+  height: 60px;
+  margin: 0 3px -10px 5px;
+  object-fit: contain;
+  vertical-align: baseline;
+}
+
+/* The two nouns the slabs below pick up, marked in the line itself. A marker
+   band inset from the line box — same pen metaphor as the gap slide — rather
+   than an underline, so it reads as something a person highlighted. */
+#pitchDeck .bridge-key {
+  display: inline;
+  padding: 0 8px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  background: linear-gradient(
+    180deg,
+    transparent 15%,
+    rgba(250, 134, 47, 0.7) 15%,
+    rgba(250, 134, 47, 0.7) 87%,
+    transparent 87%
+  );
+  white-space: nowrap;
+}
+
+/* ── the joint ── */
+
+#pitchDeck .bridge-joint {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 222px;
+  margin-top: 30px;
+}
+
+#pitchDeck .bridge-slab {
+  --cut: 84px;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+/* the two edges are cut on the same diagonal and overlapped, so one slab's
+   notch is exactly the other's point — they read as machined to fit */
+#pitchDeck .bridge-slab--left {
+  padding: 0 106px 0 44px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - var(--cut)) 100%, 0 100%);
+  border: 1px solid rgba(19, 10, 7, 0.18);
+  border-right: 0;
+  /* runs diagonally into the joint, so the two grounds gradate toward each
+     other rather than meeting as two flat blocks */
+  background: linear-gradient(118deg, #ffffff 0%, #fffaf2 48%, #fdeddc 100%);
+  box-shadow: 0 16px 38px rgba(21, 14, 8, 0.06);
+}
+
+#pitchDeck .bridge-slab--right {
+  margin-left: calc(var(--cut) * -1);
+  padding: 0 44px 0 106px;
+  align-items: flex-end;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% 100%, 0 100%);
+  background: linear-gradient(118deg, #ffa257 0%, #f77d1f 44%, #d95c04 100%);
+  box-shadow: 0 20px 46px rgba(213, 100, 18, 0.24);
+  text-align: right;
+}
+
+#pitchDeck .bridge-slab__label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .bridge-slab--left .bridge-slab__label {
+  color: #c45e12;
+}
+
+#pitchDeck .bridge-slab--right .bridge-slab__label {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+#pitchDeck .bridge-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .bridge-slab--right .bridge-tags {
+  justify-content: flex-end;
+}
+
+#pitchDeck .bridge-tags li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 18px 10px 14px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 9px), calc(100% - 9px) 100%, 0 100%);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.026em;
+  line-height: 1;
+}
+
+#pitchDeck .bridge-tags svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+#pitchDeck .bridge-tags path {
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pitchDeck .bridge-slab--left .bridge-tags li {
+  border: 1px solid rgba(19, 10, 7, 0.2);
+  background: rgba(255, 255, 255, 0.86);
+  color: #130a07;
+}
+
+#pitchDeck .bridge-slab--left .bridge-tags path {
+  stroke: #ef7317;
+}
+
+#pitchDeck .bridge-slab--right .bridge-tags li {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+#pitchDeck .bridge-slab--right .bridge-tags path {
+  stroke: rgba(255, 255, 255, 0.92);
+}
+
+/* the mark sits on the seam, where the two actually meet */
+#pitchDeck .bridge-joint__mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  width: 80px;
+  height: 80px;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #faf8f4;
+  box-shadow: 0 10px 26px rgba(21, 14, 8, 0.16);
+}
+
+#pitchDeck .bridge-joint__mark img {
+  display: block;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
