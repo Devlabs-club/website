@@ -1,0 +1,143 @@
+---
+import { loadPublicManagedRolePreview } from '@/lib/talent/managedRoleService';
+
+export const prerender = false;
+
+const token = Astro.params.token || '';
+const preview = await loadPublicManagedRolePreview(token);
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{preview ? `${preview.role.roleTitle} shortlist · DevLabs` : 'Shortlist unavailable · DevLabs'}</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; background: #f8f5f1; color: #111; }
+      main { min-height: 100vh; padding: clamp(24px, 5vw, 56px); box-sizing: border-box; }
+      .shell { max-width: 1040px; margin: 0 auto; }
+      .top { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; border-bottom: 1px solid rgba(0,0,0,.1); padding-bottom: 28px; }
+      .eyebrow { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: #a44e0b; font-weight: 800; }
+      h1 { margin: 0; font-size: clamp(36px, 7vw, 72px); line-height: .94; letter-spacing: -.045em; max-width: 780px; }
+      .summary { margin: 18px 0 0; max-width: 720px; font-size: 18px; line-height: 1.6; color: rgba(0,0,0,.62); }
+      .cta { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 999px; padding: 0 20px; background: #111; color: white; text-decoration: none; font-weight: 800; white-space: nowrap; }
+      .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .pill { border: 1px solid rgba(0,0,0,.1); border-radius: 999px; padding: 7px 10px; background: white; font-size: 13px; font-weight: 700; color: rgba(0,0,0,.6); }
+      .card { margin-top: 36px; border: 1px solid rgba(0,0,0,.1); background: white; border-radius: 8px; padding: clamp(20px, 4vw, 32px); box-shadow: 0 18px 50px rgba(0,0,0,.06); }
+      .builderHead { display: grid; grid-template-columns: 72px 1fr; gap: 18px; align-items: center; }
+      .avatar { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: #f1ece6; display: grid; place-items: center; font-size: 28px; font-weight: 900; }
+      h2 { margin: 0; font-size: clamp(28px, 4vw, 44px); line-height: 1; letter-spacing: -.035em; }
+      .muted { color: rgba(0,0,0,.58); line-height: 1.55; }
+      .section { margin-top: 28px; }
+      .section h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: rgba(0,0,0,.45); }
+      .skills { display: flex; flex-wrap: wrap; gap: 8px; }
+      .skill { background: #fff5ef; color: #a44e0b; border-radius: 999px; padding: 7px 10px; font-size: 13px; font-weight: 800; }
+      .projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+      .project { border: 1px solid rgba(0,0,0,.1); background: #fffcfa; border-radius: 8px; padding: 16px; }
+      .project strong { display: block; margin-bottom: 8px; }
+      .links { display: flex; flex-wrap: wrap; gap: 10px; }
+      .links a { color: #bf4f08; font-weight: 800; text-decoration: none; }
+      .locked { margin-top: 18px; padding: 16px; border-radius: 8px; background: #111; color: white; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+      .empty { max-width: 560px; margin: 18vh auto 0; text-align: center; border: 1px solid rgba(0,0,0,.1); background: white; border-radius: 8px; padding: 32px; }
+      @media (max-width: 720px) {
+        .top { display: block; }
+        .cta { margin-top: 20px; width: 100%; box-sizing: border-box; }
+        .builderHead { grid-template-columns: 1fr; }
+        .locked { display: block; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      {preview ? (
+        <div class="shell">
+          <div class="top">
+            <div>
+              <p class="eyebrow">DevLabs Search Sprint Preview</p>
+              <h1>{preview.role.roleTitle} builders for {preview.role.company}</h1>
+              <p class="summary">
+                One builder is visible before signup because they consented to be shared for this company and role.
+                Additional matches are available after the founder engages with DevLabs.
+              </p>
+              <div class="meta">
+                {preview.role.fundingStage ? <span class="pill">{preview.role.fundingStage}</span> : null}
+                {preview.role.location ? <span class="pill">{preview.role.location}</span> : null}
+                {preview.role.skillsNeeded.slice(0, 5).map((skill: string) => <span class="pill">{skill}</span>)}
+              </div>
+            </div>
+            <a class="cta" href={preview.claimPath}>Request introductions</a>
+          </div>
+
+          <section class="card">
+            <div class="builderHead">
+              {preview.builder.avatarUrl ? <img class="avatar" src={preview.builder.avatarUrl} alt={preview.builder.name} /> : <div class="avatar">{preview.builder.name.slice(0, 1)}</div>}
+              <div>
+                <h2>{preview.builder.name}</h2>
+                <p class="muted">{preview.builder.headline || preview.builder.bio || 'DevLabs builder'}</p>
+                {preview.builder.location ? <p class="muted">{preview.builder.location}</p> : null}
+              </div>
+            </div>
+
+            {preview.builder.fitReason ? (
+              <div class="section">
+                <h3>Why this builder fits</h3>
+                <p class="muted">{preview.builder.fitReason}</p>
+              </div>
+            ) : null}
+
+            <div class="section">
+              <h3>Skills</h3>
+              <div class="skills">
+                {[...preview.builder.skills, ...preview.builder.rolePreference].slice(0, 12).map((skill: string) => <span class="skill">{skill}</span>)}
+              </div>
+            </div>
+
+            {preview.builder.founderHighlights.length ? (
+              <div class="section">
+                <h3>Signals</h3>
+                {preview.builder.founderHighlights.map((item: any) => <p class="muted"><strong>{item.title}</strong>: {item.detail}</p>)}
+              </div>
+            ) : null}
+
+            {preview.builder.projects.length ? (
+              <div class="section">
+                <h3>Proof projects</h3>
+                <div class="projects">
+                  {preview.builder.projects.map((project: any) => (
+                    <div class="project">
+                      <strong>{project.projectName}</strong>
+                      {project.description ? <p class="muted">{project.description}</p> : null}
+                      {project.builderContribution ? <p class="muted">{project.builderContribution}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div class="section">
+              <h3>Public links</h3>
+              <div class="links">
+                {Object.entries(preview.builder.links).map(([key, href]) => <a href={href as string} target="_blank" rel="noreferrer">{key}</a>)}
+              </div>
+            </div>
+          </section>
+
+          {preview.lockedCount > 0 ? (
+            <div class="locked">
+              <strong>{preview.lockedCount} more matched builder{preview.lockedCount === 1 ? '' : 's'} in the shortlist.</strong>
+              <a class="cta" href={preview.claimPath}>Claim shortlist</a>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div class="empty">
+          <p class="eyebrow">Shortlist unavailable</p>
+          <h1>This preview is not active.</h1>
+          <p class="summary">The link may have expired, been claimed, or no consented builder is available for public preview.</p>
+        </div>
+      )}
+    </main>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import ManagedRolesAdminPage from '@/components/admin/managed-roles/ManagedRolesAdminPage';
+import { getAuthenticatedUser } from '@/lib/momentumRequestAuth';
+
+export const prerender = false;
+
+const auth = await getAuthenticatedUser(Astro.request);
+if (!auth.user || auth.user.role !== 'admin') {
+  return Astro.redirect('/404');
+}
+---
+
+<Layout title="Managed Roles · DevLabs" hideNavbar hideFooter skipPageLoader skipParallax>
+  <meta slot="head" name="robots" content="noindex, nofollow" />
+  <ManagedRolesAdminPage client:load />
+</Layout>

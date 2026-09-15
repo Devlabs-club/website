@@ -485,6 +485,10 @@ const AdminDashboard: React.FC = () => {
   }
 
   const sectionTitles: Record<AdminSection, { title: string; subtitle: string }> = {
+    managedRoles: {
+      title: 'Managed Roles',
+      subtitle: 'Open the focused workspace for prebuilt founder shortlists.',
+    },
     applications: {
       title: 'Applications',
       subtitle: 'Review candidate submissions, flag profiles, and inspect resumes.',
@@ -513,6 +517,12 @@ const AdminDashboard: React.FC = () => {
       <BlurFade delay={0.02}>
         {adminSection === 'events' ? (
           <EventAdminPanel />
+        ) : adminSection === 'managedRoles' ? (
+          <AdminEmptyState
+            title="Managed roles live on their own page"
+            description="Create founder roles, run matching, record builder consent, and draft outreach."
+            action={<a href="/admin/managed-roles" className={adminPrimaryButtonClass()}>Open managed roles</a>}
+          />
         ) : adminSection === 'invite' ? (
           <AdminInvitePanel />
         ) : (

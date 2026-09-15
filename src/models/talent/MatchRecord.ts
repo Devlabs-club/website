@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { MANAGED_ROLE_MATCH_REVIEW_STATUSES } from '@/lib/talent/managedRoleConstants';
 
 const MatchRecordSchema = new mongoose.Schema(
   {
@@ -48,6 +49,19 @@ const MatchRecordSchema = new mongoose.Schema(
       index: true,
     },
     pipelineNextStep: { type: String, default: null },
+    reviewStatus: {
+      type: String,
+      enum: MANAGED_ROLE_MATCH_REVIEW_STATUSES,
+      default: 'needs_review',
+      index: true,
+    },
+    teamReviewNote: { type: String, default: null },
+    founderFacingFitReason: { type: String, default: null },
+    builderConsentId: { type: mongoose.Schema.Types.ObjectId, ref: 'BuilderShareConsent', default: null, index: true },
+    approvedByUserId: { type: String, default: null },
+    approvedAt: { type: Date, default: null },
+    rejectedByUserId: { type: String, default: null },
+    rejectedAt: { type: Date, default: null },
     trialProject: {
       title: { type: String, default: null },
       goal: { type: String, default: null },

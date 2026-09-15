@@ -1,11 +1,17 @@
 import React from 'react';
-import { CalendarDays, ClipboardList, LogOut, Search, Shield, UserPlus } from 'lucide-react';
+import { BriefcaseBusiness, CalendarDays, ClipboardList, LogOut, Search, Shield, UserPlus } from 'lucide-react';
 import { Sidebar, SidebarBody } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 
-export type AdminSection = 'applications' | 'search' | 'events' | 'invite';
+export type AdminSection = 'applications' | 'search' | 'events' | 'invite' | 'managedRoles';
 
 const navItems: Array<{ key: AdminSection; label: string; icon: React.ReactNode; description: string }> = [
+  {
+    key: 'managedRoles',
+    label: 'Managed Roles',
+    icon: <BriefcaseBusiness className="w-5 h-5" />,
+    description: 'Founder shortlists',
+  },
   {
     key: 'applications',
     label: 'Applications',
