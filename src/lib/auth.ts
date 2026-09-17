@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import type { IUser } from '../models/user.tsx';
 import type { AuthUser } from './adminMongo';
 import { ensureLocalEnvLoaded } from './loadEnv';
+import { isValidEmailFormat } from './signupEmail';
 import { readEnv, type RuntimeEnv } from './workosEnv';
 
 ensureLocalEnvLoaded();
@@ -76,8 +77,7 @@ export function extractTokenFromCookies(cookies: string): string | null {
 
 // Validate email format (aligned with User schema — supports modern TLDs)
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
-  return emailRegex.test(email.trim());
+  return isValidEmailFormat(email);
 }
 
 // Validate password strength
