@@ -1,15 +1,13 @@
 import type { APIRoute } from 'astro';
 import { connectAdminDB } from '../../../lib/mongodb.ts';
 import User from '../../../models/user.tsx';
-import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
+import { generateToken, isValidPassword } from '../../../lib/auth.ts';
 import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
 import { notifyOps, opsPersonFrom } from '../../../lib/opsTelegram';
+import { evaluateSignupEmail } from '../../../lib/signupEmailDeliverability.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    // Connect to admin database
-    await connectAdminDB();
-
     const body = await request.json();
     const { name, email, password, role } = body;
 
@@ -27,19 +25,23 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Validate email format
-    if (!isValidEmail(email)) {
+    // Format + disposable/throwaway domains + MX. Login stays format-only so
+    // existing accounts can still sign in.
+    const signupEmail = await evaluateSignupEmail(email);
+    if (!signupEmail.ok) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Please provide a valid email address' 
+        JSON.stringify({
+          success: false,
+          message: signupEmail.message,
         }),
-        { 
+        {
           status: 400,
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         }
       );
     }
+
+    const normalizedEmail = signupEmail.email;
 
     // Validate password strength
     const passwordValidation = isValidPassword(password);
@@ -56,8 +58,9 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    await connectAdminDB();
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return new Response(
         JSON.stringify({ 
@@ -74,7 +77,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Create new user
     const newUser = new User({
       name: name.trim(),
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password,
       role: role === 'founder' ? 'founder' : 'user'
     });

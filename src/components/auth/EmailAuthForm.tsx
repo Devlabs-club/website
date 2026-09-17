@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/components/auth_manager";
 import { resolvePostAuthDestination } from "@/lib/authDestination";
+import { evaluateSignupEmailSync, isValidEmailFormat } from "@/lib/signupEmail";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -27,14 +28,19 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const emailValid = /^\S+@\S+\.\S+$/.test(email.trim());
+  const emailCheck = evaluateSignupEmailSync(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     if (!showPassword) {
-      if (!emailValid) {
+      if (mode === "signup") {
+        if (!emailCheck.ok) {
+          setError(emailCheck.message);
+          return;
+        }
+      } else if (!isValidEmailFormat(email.trim())) {
         setError("Enter a valid email to continue.");
         return;
       }
@@ -45,6 +51,14 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
+    }
+
+    if (mode === "signup") {
+      const latest = evaluateSignupEmailSync(email);
+      if (!latest.ok) {
+        setError(latest.message);
+        return;
+      }
     }
 
     setLoading(true);
