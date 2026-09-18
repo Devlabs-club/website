@@ -42,12 +42,29 @@
   margin-top: 0;
 }
 
+/* the rail turns three statements into one flow */
+#pitchDeck .pflow-rail {
+  position: absolute;
+  top: 34px;
+  bottom: 74px;
+  left: 19px;
+  z-index: 0;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 134, 47, 0.15) 0%,
+    rgba(250, 134, 47, 0.55) 14%,
+    rgba(250, 134, 47, 0.55) 86%,
+    rgba(250, 134, 47, 0.15) 100%
+  );
+}
+
 #pitchDeck .pflow-row {
   display: grid;
   grid-template-columns: 470px 1fr;
   align-items: center;
   gap: 52px;
-  padding: 4px 0;
+  padding: 3px 0;
   border-top: 1px solid rgba(19, 10, 7, 0.16);
 }
 
@@ -55,12 +72,31 @@
   border-bottom: 1px solid rgba(19, 10, 7, 0.16);
 }
 
+#pitchDeck .pflow-step {
+  position: relative;
+  z-index: 1;
+  padding-left: 58px;
+}
+
 #pitchDeck .pflow-step__n {
-  margin: 0 0 10px;
-  color: #ef7317;
-  font-size: 13px;
+  position: absolute;
+  top: 2px;
+  left: 0;
+  margin: 0;
+}
+
+#pitchDeck .pflow-step__n span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1.5px solid rgba(250, 134, 47, 0.55);
+  border-radius: 50%;
+  background: #fdf3e9;
+  color: #c45e12;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.02em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -154,6 +190,14 @@
   letter-spacing: -0.016em;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+/* the two fields the whole slide hangs on */
+#pitchDeck .pflow-field__input--key {
+  border-color: rgba(250, 134, 47, 0.5);
+  background: rgba(250, 134, 47, 0.1);
+  color: #a94e08;
+  font-weight: 600;
 }
 
 /* an unfilled field, as it appears in the product */
@@ -527,8 +571,8 @@
 
 #pitchDeck .pmodal__body {
   display: grid;
-  grid-template-columns: 210px 1fr;
-  gap: 18px;
+  grid-template-columns: 168px 312px 1fr;
+  gap: 16px;
   padding: 12px 16px 13px;
 }
 
@@ -648,17 +692,17 @@
 }
 
 #pitchDeck .ptrace-panel__h {
-  margin: 9px 0 0;
+  margin: 7px 0 0;
   color: #130a07;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: -0.024em;
   line-height: 1;
 }
 
 #pitchDeck .pmatch {
-  margin-top: 8px;
-  padding: 9px 12px 11px;
+  margin-top: 6px;
+  padding: 8px 12px 10px;
   border-radius: 9px;
   background: #fff;
 }
@@ -679,7 +723,7 @@
 
 #pitchDeck .pmatch__num {
   color: #130a07;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -695,7 +739,7 @@
 #pitchDeck .pmatch__verdict {
   margin: 3px 0 7px;
   color: #130a07;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -720,7 +764,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
-  margin: 9px 0 0;
+  margin: 7px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -737,9 +781,9 @@
 }
 
 #pitchDeck .ptrace-panel__body {
-  margin: 9px 0 0;
+  margin: 7px 0 0;
   color: rgba(19, 10, 7, 0.76);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
   letter-spacing: -0.012em;
   line-height: 1.35;
@@ -748,17 +792,198 @@
 #pitchDeck .ppills {
   display: flex;
   gap: 6px;
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   padding: 0;
   list-style: none;
 }
 
 #pitchDeck .ppills li {
-  padding: 5px 11px;
+  padding: 4px 10px;
   border: 1px solid rgba(250, 134, 47, 0.45);
   border-radius: 999px;
   color: #c45e12;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  line-height: 1;
+}
+
+/* ── the thread ──
+   The same two words the role was described with reappear in the match and
+   again in the trace. Marking them in all three is what makes the slide read
+   as one continuous flow rather than three unrelated screenshots. */
+#pitchDeck .pcard__bio b,
+#pitchDeck .pmatch__verdict b,
+#pitchDeck .ptrace-panel__body b {
+  padding: 0 3px;
+  border-radius: 3px;
+  background: rgba(250, 134, 47, 0.2);
+  color: #a94e08;
+  font-weight: 600;
+}
+
+/* ── agent signals ──
+   The third column of the profile: which agents they actually reach for, when
+   they ship, and what they point the agents at. Illustrative figures for the
+   mock — this is the read a resume cannot give you, so it earns its own column
+   rather than being folded into the trace narrative. */
+
+#pitchDeck .psig {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 18px;
+  border-left: 1px solid rgba(19, 10, 7, 0.1);
+}
+
+#pitchDeck .psig__label {
+  margin: 0;
+  color: #c45e12;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .psig__tools {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .psig__tools li {
+  display: grid;
+  grid-template-columns: 66px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+}
+
+#pitchDeck .psig__tool-name {
+  color: rgba(19, 10, 7, 0.78);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+#pitchDeck .psig__tool-bar {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(19, 10, 7, 0.09);
+}
+
+#pitchDeck .psig__tool-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fa862f 0%, #ec7a1c 100%);
+}
+
+#pitchDeck .psig__tool-pct {
+  color: #130a07;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#pitchDeck .psig__arch {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 12px;
+  border: 1px solid rgba(250, 134, 47, 0.34);
+  border-radius: 10px;
+  background: rgba(250, 134, 47, 0.09);
+}
+
+#pitchDeck .psig__arch-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+}
+
+#pitchDeck .psig__arch-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: #ef7317;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#pitchDeck .psig__arch-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+#pitchDeck .psig__arch-text strong {
+  color: #130a07;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+#pitchDeck .psig__arch-text em {
+  color: rgba(22, 11, 7, 0.55);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+}
+
+#pitchDeck .psig__row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+#pitchDeck .psig__k {
+  margin: 0;
+  color: rgba(22, 11, 7, 0.44);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .psig__v {
+  margin: 0;
+  color: rgba(19, 10, 7, 0.8);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+}
+
+#pitchDeck .psig__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .psig__chips li {
+  padding: 5px 12px;
+  border: 1px solid rgba(19, 10, 7, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(19, 10, 7, 0.72);
+  font-size: 13.5px;
+  font-weight: 500;
   line-height: 1;
 }

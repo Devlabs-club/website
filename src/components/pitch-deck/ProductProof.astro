@@ -5,9 +5,9 @@
 // The real "1. Basics" step from the founder flow. `ghost: true` renders as
 // placeholder text, matching an unfilled field in the product.
 const basics = [
-  { label: "Title", value: "Platform Reliability Engineer" },
+  { label: "Title", value: "Payments Engineer", key: true },
   { label: "Job type", value: "Full-time, contract", ghost: true },
-  { label: "Location", value: "Tempe, AZ" },
+  { label: "Must have", value: "Stripe, webhooks", key: true },
   { label: "Salary", value: "200k" },
 ];
 
@@ -18,7 +18,7 @@ const results = [
     initials: "MR",
     name: "Maya R.",
     badge: "Strong Match",
-    bio: "Full-stack engineer shipping payments infrastructure in production.",
+    bio: "Ships <b>payments</b> infrastructure in production — <b>Stripe</b> Connect, webhooks.",
     meta: "Greater Phoenix Area · Available now",
     prev: "Prev. intern · Tesla",
     tags: [],
@@ -35,6 +35,13 @@ const rest = [
 ];
 
 const sources = ["GitHub", "LinkedIn", "Resume", "Repos"];
+
+// Agent-trace signals. Illustrative figures for the mock, not measured data.
+const tools = [
+  { name: "Claude", pct: 52 },
+  { name: "Codex", pct: 31 },
+  { name: "Cursor", pct: 17 },
+];
 
 const steps = [
   { n: "01", title: "Describe the role", body: "Plain language. Not a boolean search string." },
@@ -61,10 +68,11 @@ const steps = [
   </header>
 
   <div class="pflow-rows">
+    <span class="pflow-rail" aria-hidden="true"></span>
     <!-- 01 · the query -->
     <div class="pflow-row">
       <div class="pflow-step">
-        <p class="pflow-step__n">{steps[0].n}</p>
+        <p class="pflow-step__n"><span>{steps[0].n}</span></p>
         <h2 class="pflow-step__title">{steps[0].title}</h2>
         <p class="pflow-step__body">{steps[0].body}</p>
       </div>
@@ -81,7 +89,13 @@ const steps = [
               basics.map((f) => (
                 <label class="pflow-field">
                   <span class="pflow-field__label">{f.label}</span>
-                  <span class:list={["pflow-field__input", f.ghost && "pflow-field__input--ghost"]}>
+                  <span
+                    class:list={[
+                      "pflow-field__input",
+                      f.ghost && "pflow-field__input--ghost",
+                      f.key && "pflow-field__input--key",
+                    ]}
+                  >
                     {f.value}
                   </span>
                 </label>
@@ -95,7 +109,7 @@ const steps = [
     <!-- 02 · the shortlist -->
     <div class="pflow-row">
       <div class="pflow-step">
-        <p class="pflow-step__n">{steps[1].n}</p>
+        <p class="pflow-step__n"><span>{steps[1].n}</span></p>
         <h2 class="pflow-step__title">{steps[1].title}</h2>
         <p class="pflow-step__body">{steps[1].body}</p>
       </div>
@@ -111,7 +125,7 @@ const steps = [
                       {b.name}
                       <span class="pcard__badge">{b.badge}</span>
                     </p>
-                    <p class="pcard__bio">{b.bio}</p>
+                    <p class="pcard__bio" set:html={b.bio}></p>
                     <p class="pcard__meta">{b.meta}</p>
                     <p class="pcard__prev">
                       <img src="/pitch-deck/logos/tesla.svg" alt="" />
@@ -176,7 +190,7 @@ const steps = [
     <!-- 03 · the proof -->
     <div class="pflow-row">
       <div class="pflow-step">
-        <p class="pflow-step__n">{steps[2].n}</p>
+        <p class="pflow-step__n"><span>{steps[2].n}</span></p>
         <h2 class="pflow-step__title">{steps[2].title}</h2>
         <p class="pflow-step__body">{steps[2].body}</p>
       </div>
@@ -198,6 +212,48 @@ const steps = [
               </div>
             </div>
 
+            <aside class="psig">
+              <p class="psig__label">Agent signals</p>
+
+              <ul class="psig__tools">
+                {
+                  tools.map((t) => (
+                    <li>
+                      <span class="psig__tool-name">{t.name}</span>
+                      <span class="psig__tool-bar" aria-hidden="true">
+                        <i style={`width: ${t.pct}%`}></i>
+                      </span>
+                      <span class="psig__tool-pct">{t.pct}%</span>
+                    </li>
+                  ))
+                }
+              </ul>
+
+              <div class="psig__arch">
+                <span class="psig__arch-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" />
+                  </svg>
+                </span>
+                <span class="psig__arch-text">
+                  <strong>Night owl</strong>
+                  <em>Peak commits 11pm &ndash; 2am</em>
+                </span>
+              </div>
+
+              <div class="psig__row">
+                <p class="psig__k">Strongest on</p>
+                <ul class="psig__chips">
+                  <li>infra</li>
+                  <li>full-stack</li>
+                </ul>
+              </div>
+
+              <div class="psig__row">
+                <p class="psig__k">Agents used for</p>
+                <p class="psig__v">Refactors, tests and migrations</p>
+              </div>
+            </aside>
             <div class="ptrace-panel">
               <div class="ptrace-panel__head">
                 <span class="ptrace-panel__icon" aria-hidden="true">
@@ -219,7 +275,7 @@ const steps = [
                   <span class="pmatch__label">Role match</span>
                   <span class="pmatch__num">96<em>%</em></span>
                 </div>
-                <p class="pmatch__verdict">Strong payments overlap</p>
+                <p class="pmatch__verdict">Strong <b>payments</b> overlap</p>
                 <span class="pmatch__bar" aria-hidden="true"><i style="width: 96%"></i></span>
               </div>
 
@@ -228,8 +284,8 @@ const steps = [
               </ul>
 
               <p class="ptrace-panel__body">
-                Owned checkout end to end and shipped Stripe Connect in production — not a
-                tutorial repo.
+                Owned checkout end to end and shipped <b>Stripe</b> Connect in production —
+                not a tutorial repo.
               </p>
 
               <ul class="ppills">
@@ -237,6 +293,7 @@ const steps = [
                 <li>8 projects reviewed</li>
               </ul>
             </div>
+
           </div>
         </article>
       </div>
