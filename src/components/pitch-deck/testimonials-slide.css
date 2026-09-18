@@ -298,3 +298,52 @@
   font-weight: 500;
   opacity: 0.68;
 }
+
+/* ── the closer ──
+   A sixth quote spanning all five columns. Bled to the same edges as the row
+   above it, so the two read as one block rather than a band and a footer. */
+
+#pitchDeck .t-closer {
+  display: flex;
+  flex-shrink: 0;
+  height: 158px;
+  align-items: center;
+  gap: 30px;
+  margin: 0 -58px;
+  padding: 0 58px;
+  background: #130a07;
+  color: #fff;
+}
+
+#pitchDeck .t-closer__logo {
+  display: block;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  object-fit: contain;
+  /* logo.png is a true alpha PNG, so it takes a filter cleanly */
+  filter: brightness(0) invert(1);
+  opacity: 0.92;
+}
+
+#pitchDeck .t-closer__line {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  color: #fff;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1.24;
+  text-transform: none;
+}
+
+/* the point always starts its own line — left to wrap it splits mid-phrase
+   whenever the lead's length changes */
+#pitchDeck .t-closer__line em {
+  display: block;
+  color: #fa862f;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+}

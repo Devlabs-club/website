@@ -14,7 +14,10 @@ const testimonials = [
     tone: "orange",
     company: "pretorin",
     logo: "/brand/pretorin.png",
-    quote: "Placeholder — needs Isaac's words. Two or three short sentences is the ceiling at this width.",
+    // from the Devlabs Effect story 1 — his words, tightened to fit and with
+    // the company name dropped since the wordmark sits directly above it
+    quote:
+      "The work here is ambiguous and the scope shifts weekly. That's usually where early-career engineers struggle. Ours didn't.",
     author: "Isaac Faber",
     role: "Founder",
     photo: "/pitch-deck/testimonials/aligned/p1.png",
@@ -45,7 +48,10 @@ const testimonials = [
     // the supplied file had its wordmark set in white on white, so only the
     // leaf survived — the name is set alongside the mark instead
     mark: "/brand/sapling-crm.png",
-    quote: "Placeholder — needs Alex's words. Short quotes read better here than trimmed long ones.",
+    // from the Devlabs Effect story 4 — the headline off his card, plus what
+    // the post says actually happened
+    quote:
+      "Proof of work got me a founding engineer. He had just graduated — one work trial, then a full-time offer.",
     author: "Alex Russo",
     role: "Founder",
     photo: "/pitch-deck/testimonials/aligned/p4.png",
@@ -60,6 +66,13 @@ const testimonials = [
     photo: "/pitch-deck/testimonials/aligned/p5.png",
   },
 ];
+
+// not a sixth testimonial — the band under the row is our own closing line,
+// so it carries the Devlabs mark instead of a face and an attribution
+const closer = {
+  lead: "Founders meet builders in person, then trust the work enough to skip the hiring chaos.",
+  accent: "That is the loop we built Devlabs for.",
+};
 
 const initials = (name: string) =>
   name
@@ -80,7 +93,7 @@ const initials = (name: string) =>
   </header>
 
   <div class="testimonials__intro">
-    <h1>Meet the teams <em>we staffed</em></h1>
+    <h1>Don&rsquo;t take our <em>word for it</em></h1>
     <p>Founders and sponsors who have hired out of the Devlabs pool.</p>
   </div>
 
@@ -120,4 +133,11 @@ const initials = (name: string) =>
       ))
     }
   </div>
+
+  <aside class="t-closer">
+    <img class="t-closer__logo" src="/logo.png" alt="" loading="eager" />
+    <p class="t-closer__line">
+      {closer.lead} <em>{closer.accent}</em>
+    </p>
+  </aside>
 </section>
