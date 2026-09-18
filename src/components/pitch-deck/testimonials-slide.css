@@ -11,182 +11,290 @@
 }
 
 #pitchDeck .testimonials {
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  display: flex;
   height: 100%;
   min-height: 0;
-  padding: 44px 64px 48px;
+  flex-direction: column;
+  padding: 40px 58px 0;
+}
+
+#pitchDeck .testimonials__header {
+  flex-shrink: 0;
 }
 
 #pitchDeck .testimonials__intro {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  display: flex;
+  flex-shrink: 0;
+  align-items: baseline;
+  justify-content: space-between;
   gap: 48px;
-  align-items: end;
-  margin-top: 28px;
+  margin-top: 14px;
 }
 
-#pitchDeck .testimonials__intro h1 {
+#pitchDeck .testimonials-slide .testimonials__intro h1 {
   margin: 0;
-  max-width: 560px;
   color: #130a07;
   font-size: 52px;
+  font-weight: 500;
+  letter-spacing: -0.062em;
+  line-height: 1.06;
+  text-transform: none;
+}
+
+#pitchDeck .testimonials-slide .testimonials__intro h1 em {
+  color: #fa862f;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
 }
 
 #pitchDeck .testimonials__intro p {
   margin: 0;
-  color: rgba(22, 11, 7, 0.54);
-  font-size: 19px;
-  font-weight: 300;
-  line-height: 1.38;
-  letter-spacing: -0.028em;
-  text-transform: lowercase;
+  color: rgba(22, 11, 7, 0.5);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  text-align: right;
 }
 
-#pitchDeck .testimonials__board {
+/* ── the band ──
+   Five equal panels, flush against each other and bled to the slide edges. No
+   featured cell and no gaps: every voice gets the same room, and the row reads
+   as one block of people rather than a set of cards on a page. */
+
+#pitchDeck .t-band {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-  gap: 18px;
   min-height: 0;
-  margin-top: 28px;
+  flex: 1;
+  /* cancels the slide's own padding so the row runs edge to edge */
+  margin: 22px -58px 0;
+  gap: 0;
+  grid-template-columns: repeat(5, 1fr);
 }
 
-#pitchDeck .testimonials__stack {
-  display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: 18px;
-  min-height: 0;
-}
-
-#pitchDeck .testimonial-card {
+#pitchDeck .t-panel {
+  position: relative;
   display: flex;
+  overflow: hidden;
+  min-width: 0;
   flex-direction: column;
-  min-height: 0;
-  padding: 22px 24px 20px;
-}
-
-#pitchDeck .testimonial-card--featured {
-  position: relative;
   justify-content: space-between;
-  padding: 28px 32px 26px;
+  padding: 24px 22px 26px;
+  isolation: isolate;
 }
 
-#pitchDeck .testimonial-card__brand {
-  position: relative;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(20, 14, 10, 0.07);
-  background: rgba(255, 255, 255, 0.76);
+#pitchDeck .t-panel {
+  background: #130a07;
+  color: #fff;
 }
 
-#pitchDeck .testimonial-card--featured .testimonial-card__brand {
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.24);
-}
+/* ── the portrait ──
+   The Cartesia treatment, kept inside the orange family: each panel lays down
+   a gradient and a set of horizontal bands, then the cut-out portrait is
+   blended over them in `luminosity` — it keeps its own light and shade but
+   takes every hue from what is behind it, so the subject and the ground are
+   banded by the same stripes. Isolated so the blend cannot reach the slide.  */
 
-#pitchDeck .testimonial-card__brand img {
-  display: block;
-  max-width: 150px;
-  max-height: 24px;
-  object-fit: contain;
-  filter: grayscale(1) brightness(0.08);
-}
-
-#pitchDeck .testimonial-card--featured .testimonial-card__brand img {
-  filter: brightness(0) invert(1);
-  opacity: 0.92;
-}
-
-#pitchDeck .testimonial-card__mark {
+#pitchDeck .t-panel__art {
   position: absolute;
-  right: 28px;
-  top: 8px;
-  z-index: 1;
-  color: rgba(255, 255, 255, 0.2);
-  font-size: 220px;
-  font-weight: 700;
-  line-height: 0.75;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: end center;
+  isolation: isolate;
   pointer-events: none;
 }
 
-#pitchDeck .testimonial-card p {
+#pitchDeck .t-panel__grad,
+#pitchDeck .t-panel__bands {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* five gradients, all in the orange family, so the row has variety without
+   picking up a second accent colour */
+#pitchDeck .t-panel--g1 .t-panel__grad { background: linear-gradient(168deg, #ffb066 0%, #fa862f 44%, #6b3009 100%); }
+#pitchDeck .t-panel--g2 .t-panel__grad { background: linear-gradient(168deg, #fa862f 0%, #b4500c 46%, #180c05 100%); }
+#pitchDeck .t-panel--g3 .t-panel__grad { background: linear-gradient(168deg, #ffc487 0%, #ef7317 44%, #52250a 100%); }
+#pitchDeck .t-panel--g4 .t-panel__grad { background: linear-gradient(168deg, #e8600d 0%, #8f3a09 48%, #130a07 100%); }
+#pitchDeck .t-panel--g5 .t-panel__grad { background: linear-gradient(168deg, #ffa552 0%, #f07714 42%, #3f1c07 100%); }
+
+/* two stripe sets at different periods — a single one reads as a screen door,
+   two beating against each other reads as the streaked scan in the reference */
+#pitchDeck .t-panel__bands {
+  background-image:
+    radial-gradient(112% 46% at 50% 26%, rgba(255, 214, 170, 0.34), rgba(255, 214, 170, 0) 72%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 232, 206, 0) 0px,
+      rgba(255, 232, 206, 0.12) 13px,
+      rgba(255, 232, 206, 0) 26px,
+      rgba(66, 26, 7, 0) 40px,
+      rgba(66, 26, 7, 0.11) 53px,
+      rgba(66, 26, 7, 0) 66px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0) 0px,
+      rgba(255, 255, 255, 0.055) 49px,
+      rgba(255, 255, 255, 0) 98px
+    );
+}
+
+/* the files already carry the framing — same canvas, same eye line, same face
+   size — so they only need pinning to the floor at full width */
+#pitchDeck .t-panel__art img {
+  position: absolute;
+  z-index: 1;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  /* flattened to pure luminance first, or the original skin and clothing hues
+     fight the panel and the duotone goes muddy */
+  filter: grayscale(1) contrast(1.06) brightness(1.04);
+  mix-blend-mode: luminosity;
+}
+
+/* stands in until a headshot lands in the `photo` field */
+#pitchDeck .t-panel__mono {
   position: relative;
-  z-index: 2;
-  margin: 16px 0 0;
-  color: rgba(16, 11, 9, 0.88);
-  font-size: 22px;
-  font-weight: 500;
-  line-height: 1.28;
+  z-index: 1;
+  display: grid;
+  width: 148px;
+  height: 148px;
+  margin-bottom: 86px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(23, 12, 5, 0.12);
+  color: rgba(255, 236, 220, 0.6);
+  font-family: Manrope, system-ui, sans-serif;
+  font-size: 46px;
+  font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1;
+  user-select: none;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 236, 220, 0.3);
 }
 
-#pitchDeck .testimonial-card--featured p {
-  margin: 28px 0 auto;
-  max-width: 92%;
-  color: rgba(255, 255, 255, 0.98);
-  font-size: 36px;
-  font-weight: 600;
-  line-height: 1.16;
-  letter-spacing: -0.045em;
+/* the copy sits over the portrait, fading to the panel's own deep end so the
+   quote stays readable wherever the subject happens to be light */
+#pitchDeck .t-panel__say::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  /* pulled out past the panel's own padding — inset, its edges read as a box
+     sitting on the portrait instead of the panel fading into its own floor */
+  right: -22px;
+  bottom: -26px;
+  left: -22px;
+  height: 260%;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(14, 7, 3, 0) 0%,
+    rgba(14, 7, 3, 0.28) 34%,
+    rgba(14, 7, 3, 0.8) 62%,
+    rgba(14, 7, 3, 0.94) 100%
+  );
 }
 
-#pitchDeck .testimonial-card footer {
+/* ── copy ── */
+
+/* every panel's gradient starts light, so the wordmarks go to one ink rather
+   than arriving in four different brand colours — pretorin is near-black,
+   DeepMind blue, the other two white artwork */
+#pitchDeck .t-panel__logo {
   position: relative;
-  z-index: 2;
+  z-index: 1;
+  display: block;
+  width: auto;
+  height: 26px;
+  max-width: 84%;
+  object-fit: contain;
+  object-position: left center;
+  filter: brightness(0);
+  opacity: 0.84;
+}
+
+/* an icon-only mark, locked up with the name at the wordmarks' optical weight */
+#pitchDeck .t-panel__lockup {
+  position: relative;
+  z-index: 1;
   display: flex;
+  height: 26px;
   align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(16, 11, 9, 0.08);
+  margin: 0;
+  gap: 9px;
 }
 
-#pitchDeck .testimonial-card--featured footer {
-  margin-top: 28px;
-  border-top-color: rgba(255, 255, 255, 0.22);
-}
-
-#pitchDeck .testimonial-card footer img {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: 2px solid rgba(250, 134, 47, 0.34);
-  object-fit: cover;
-}
-
-#pitchDeck .testimonial-card--featured footer img {
-  width: 52px;
-  height: 52px;
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-#pitchDeck .testimonial-card footer strong {
+#pitchDeck .t-panel__lockup img {
   display: block;
-  color: rgba(16, 11, 9, 0.92);
-  font-size: 15px;
+  width: auto;
+  height: 26px;
+  filter: brightness(0);
+  opacity: 0.84;
+}
+
+#pitchDeck .t-panel__lockup span {
+  color: rgba(23, 12, 5, 0.84);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.034em;
+  line-height: 1.1;
+}
+
+/* stands in where a company has neither a wordmark nor a mark */
+#pitchDeck .t-panel__co {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  height: 26px;
+  align-items: center;
+  margin: 0;
+  color: rgba(23, 12, 5, 0.84);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.034em;
+  line-height: 1.1;
+}
+
+#pitchDeck .t-panel__say {
+  position: relative;
+  z-index: 1;
+}
+
+#pitchDeck .t-panel__quote {
+  margin: 0;
+  color: inherit;
+  font-size: 19px;
   font-weight: 600;
-  line-height: 1.15;
+  letter-spacing: -0.032em;
+  line-height: 1.3;
+  text-transform: none;
 }
 
-#pitchDeck .testimonial-card--featured footer strong {
-  color: rgba(255, 255, 255, 0.96);
-  font-size: 17px;
+#pitchDeck .t-panel__id {
+  margin: 14px 0 0;
+  padding-top: 13px;
+  font-size: 14px;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
 }
 
-#pitchDeck .testimonial-card footer span {
+#pitchDeck .t-panel__id { border-top: 1px solid rgba(255, 255, 255, 0.3); }
+
+#pitchDeck .t-panel__id strong {
   display: block;
-  margin-top: 3px;
-  color: rgba(16, 11, 9, 0.54);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.2;
+  color: inherit;
+  font-weight: 700;
 }
 
-#pitchDeck .testimonial-card--featured footer span {
-  color: rgba(255, 255, 255, 0.72);
+#pitchDeck .t-panel__id span {
+  display: block;
+  margin-top: 2px;
+  font-weight: 500;
+  opacity: 0.68;
 }

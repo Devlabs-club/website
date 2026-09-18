@@ -1,31 +1,73 @@
 ---
-const featured = {
-  company: "supermemory",
-  logo: "/sponsors/supermemory.png",
-  quote: "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you dont see in any hackathon.",
-  author: "Dhravya Shah",
-  role: "Founder, Supermemory",
-  avatar: "/team/dhravya.png",
-};
-
-const sponsors = [
+// Portraits are pre-aligned: each one is composited onto identical 640x1000
+// geometry with its eye line at the same height and its face scaled to the
+// same size, so the heads line up across the row. Regenerate with the script
+// in scripts/align-testimonial-portraits.py if you swap a photo.
+// `logo` is a full wordmark. `mark` is an icon only, and gets the company
+// name set beside it. With neither, the name alone stands in.
+// Template only — replace `quote`, `author`, `role`, `company` with the real
+// words. Drop a headshot path into `photo` and it fills the panel behind the
+// copy, duotoned into that panel's colour; until then each panel shows a
+// monogram. Every panel is the same size on purpose — no featured card.
+const testimonials = [
   {
-    company: "DeepMind",
+    tone: "orange",
+    company: "pretorin",
+    logo: "/brand/pretorin.png",
+    quote: "Placeholder — needs Isaac's words. Two or three short sentences is the ceiling at this width.",
+    author: "Isaac Faber",
+    role: "Founder",
+    photo: "/pitch-deck/testimonials/aligned/p1.png",
+  },
+  {
+    tone: "dark",
+    company: "Google DeepMind",
     logo: "/sponsors/deepmind.png",
     quote: "The energy was electric and I've never seen a crowd like this before.",
     author: "Paige Bailey",
-    role: "Lead DevRel, Google DeepMind",
-    avatar: "/team/paige.png",
+    role: "Lead DevRel",
+    photo: "/pitch-deck/testimonials/aligned/p2.png",
   },
   {
+    tone: "orange",
+    company: "Supermemory",
+    logo: "/sponsors/supermemory.png",
+    quote:
+      "I ended up hiring from the Devhouse. I'm super satisfied and this is the kind of talent you don't see in any hackathon.",
+    author: "Dhravya Shah",
+    role: "Founder",
+    photo: "/pitch-deck/testimonials/aligned/p3.png",
+  },
+  {
+    tone: "dark",
+    company: "Sapling CRM",
+    logo: "",
+    // the supplied file had its wordmark set in white on white, so only the
+    // leaf survived — the name is set alongside the mark instead
+    mark: "/brand/sapling-crm.png",
+    quote: "Placeholder — needs Alex's words. Short quotes read better here than trimmed long ones.",
+    author: "Alex Russo",
+    role: "Founder",
+    photo: "/pitch-deck/testimonials/aligned/p4.png",
+  },
+  {
+    tone: "orange",
     company: "Browser Use",
     logo: "/sponsors/browser-use.png",
     quote: "This is one of the best hackathons we've sponsored.",
     author: "Saurav Panda",
-    role: "Founding Engineer, Browser Use",
-    avatar: "/team/saurav.png",
+    role: "Ex-Founding Engineer",
+    photo: "/pitch-deck/testimonials/aligned/p5.png",
   },
 ];
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("");
 ---
 
 <section class="testimonials deck-slide-layout">
@@ -38,42 +80,44 @@ const sponsors = [
   </header>
 
   <div class="testimonials__intro">
-    <h1>Don&rsquo;t take our word for it</h1>
-    <p>Founders and sponsors see the builder signal before the first intro.</p>
+    <h1>Meet the teams <em>we staffed</em></h1>
+    <p>Founders and sponsors who have hired out of the Devlabs pool.</p>
   </div>
 
-  <div class="testimonials__board">
-    <article class="testimonial-card testimonial-card--featured deck-card deck-card--orange">
-      <div class="testimonial-card__brand">
-        <img src={featured.logo} alt={featured.company} loading="lazy" />
-      </div>
-      <span class="testimonial-card__mark" aria-hidden="true">&ldquo;</span>
-      <p>{featured.quote}</p>
-      <footer>
-        <img src={featured.avatar} alt={featured.author} loading="lazy" />
-        <div>
-          <strong>{featured.author}</strong>
-          <span>{featured.role}</span>
-        </div>
-      </footer>
-    </article>
-
-    <div class="testimonials__stack">
-      {sponsors.map((item) => (
-        <article class="testimonial-card deck-card">
-          <div class="testimonial-card__brand">
-            <img src={item.logo} alt={item.company} loading="lazy" />
+  <div class="t-band">
+    {
+      testimonials.map((t, i) => (
+        <article class:list={["t-panel", `t-panel--${t.tone}`, `t-panel--g${i + 1}`]}>
+          <div class="t-panel__art" aria-hidden="true">
+            <span class="t-panel__grad"></span>
+            <span class="t-panel__bands"></span>
+            {t.photo ? (
+              <img src={t.photo} alt="" loading="eager" />
+            ) : (
+              <span class="t-panel__mono">{initials(t.author)}</span>
+            )}
           </div>
-          <p>{item.quote}</p>
-          <footer>
-            <img src={item.avatar} alt={item.author} loading="lazy" />
-            <div>
-              <strong>{item.author}</strong>
-              <span>{item.role}</span>
-            </div>
-          </footer>
+
+          {t.logo ? (
+            <img class="t-panel__logo" src={t.logo} alt={t.company} loading="eager" />
+          ) : t.mark ? (
+            <p class="t-panel__lockup">
+              <img src={t.mark} alt="" loading="eager" />
+              <span>{t.company}</span>
+            </p>
+          ) : (
+            <p class="t-panel__co">{t.company}</p>
+          )}
+
+          <div class="t-panel__say">
+            <p class="t-panel__quote">&ldquo;{t.quote}&rdquo;</p>
+            <p class="t-panel__id">
+              <strong>{t.author}</strong>
+              <span>{t.role}</span>
+            </p>
+          </div>
         </article>
-      ))}
-    </div>
+      ))
+    }
   </div>
 </section>
