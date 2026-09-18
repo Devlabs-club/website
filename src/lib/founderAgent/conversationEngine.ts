@@ -40,7 +40,7 @@ function listLen(value: unknown): number {
   return Array.isArray(value) ? value.filter(Boolean).length : 0;
 }
 
-function companyProductSnippet(company: any, founderProfile: any): string | null {
+export function companyProductSnippet(company: any, founderProfile: any): string | null {
   const meta = company?.metadata || {};
   const candidates = [
     meta.whatTheyBuild,
@@ -57,8 +57,29 @@ function companyProductSnippet(company: any, founderProfile: any): string | null
   return null;
 }
 
-function hasRealDescription(job: any, productSnippet: string | null): boolean {
+const CONCRETE_PRODUCT_DETAIL =
+  /\b(users?|customers?|founders?|startups?|students|developers|hiring|marketplace|saas|dashboard|chat|inbox|agent|assistant|api|mobile|ios|android|payments?|checkout|onboarding|workflow|automation|interface|website|platform|feature|app that|helps? (people|users|founders|teams)|for (founders|startups|developers|students))\b/i;
+
+const VAGUE_PRODUCT_OWNERSHIP =
+  /\b((the\s+)?(whole|entire|overall|broader|full)\s+product|product\s+in\s+general|across\s+(the\s+)?product|fully\s+on\s+(the\s+)?product|work(ing)?\s+(fully\s+)?on\s+(the\s+)?product|own(s|ing)?\s+(the\s+)?(whole\s+|entire\s+|full\s+)?product)\b/i;
+
+/**
+ * "I want a builder to work fully on the product" is ownership, not a product brief.
+ * Only treat that as known when enrichment already says what the product is.
+ */
+export function isVagueProductOwnership(text: string): boolean {
+  const lower = clean(text).toLowerCase();
+  if (!lower || !/\bproduct\b/.test(lower)) return false;
+  if (CONCRETE_PRODUCT_DETAIL.test(lower)) return false;
+  if (VAGUE_PRODUCT_OWNERSHIP.test(lower)) return true;
+  return lower.length < 120 && /\b(work(ing)?|own(s|ing)?|focus(ed)?|fully)\b/.test(lower);
+}
+
+export function hasRealDescription(job: any, productSnippet: string | null): boolean {
   const description = clean(job?.description || job?.builderWillDo);
+  if (isVagueProductOwnership(description)) {
+    return Boolean(productSnippet && productSnippet.length > 40);
+  }
   if (description.length > 40) return true;
   // Enrichment already tells us what the company builds — treat as known if role is
   // clearly "build the product" and we have a product snippet.
@@ -134,6 +155,15 @@ export function buildConversationAgenda(params: {
     }
   } else {
     gaps.push('description');
+    if (!productSnippet) {
+      guidance.push(
+        'Product is unknown. If the founder says they want someone on "the product" or "the whole product", ask what the company actually builds and who it is for. Persist that with update_company_info (productSummary) and edit_job description. Do NOT call search_talent until the product is known.'
+      );
+    } else if (isVagueProductOwnership(description)) {
+      guidance.push(
+        'Ownership is still vague (work on the product). Ask a sharper question about the first surface or feature they will own.'
+      );
+    }
   }
 
   if (skillsAreBloated(job)) {
@@ -198,6 +228,7 @@ export function buildConversationAgenda(params: {
     visaConfirmed,
     equityConfirmed,
     descriptionKnown,
+    descriptionIsVague: isVagueProductOwnership(description),
   });
 
   return {
@@ -221,6 +252,7 @@ function pickNextQuestionHint(params: {
   visaConfirmed: boolean;
   equityConfirmed: boolean;
   descriptionKnown: boolean;
+  descriptionIsVague: boolean;
 }): string | null {
   const role = params.title || 'this role';
   const company = params.companyLabel || 'your company';
@@ -233,7 +265,10 @@ function pickNextQuestionHint(params: {
       if (params.productSnippet) {
         return `We know ${company} builds: "${params.productSnippet.slice(0, 120)}". Ask what this ${role} will own first — a specific feature, or the broader product.`;
       }
-      return `Ask what the ${role} will actually build and own at ${company}.`;
+      if (params.descriptionIsVague) {
+        return `The founder said they want someone on the product, but we do not know the product. Ask what ${company} actually builds and who it is for. Persist with update_company_info (productSummary) and edit_job description. Do NOT search yet.`;
+      }
+      return `Ask what ${company} builds and what the ${role} will actually own day to day. If they say "the product", you still need to know what the product is. Do not search until that is known.`;
     case 'skills_core':
       return `Ask for the 3–6 must-have technologies for ${role}. If they dump a long list, propose a distilled must/nice split.`;
     case 'experience':
@@ -266,6 +301,10 @@ export function buildFallbackOpener(agenda: ConversationAgenda): string {
     return `Hey! Based on what ${company} is building (${snippet}), what should this ${title} own first, a specific feature or the broader product?`;
   }
   if (agenda.gaps[0] === 'description' && !product) {
+    const existing = clean(agenda.knownFacts.descriptionPreview);
+    if (existing && isVagueProductOwnership(existing)) {
+      return `Hey! I've got the ${title} brief started. What does ${company} actually build, and who is it for? I need that before I can find the right builder.`;
+    }
     return `Hey! I've got the ${title} brief started for ${company}. What will this person actually build and own first?`;
   }
   if (product && agenda.doNotAsk.includes('what_will_they_build')) {

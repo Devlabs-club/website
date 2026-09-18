@@ -312,17 +312,15 @@ const RecommendationsSearchStatus: React.FC<{ updating?: boolean }> = ({ updatin
 function inferChatThinkingSteps(message: string): string[] {
   const text = message.toLowerCase();
   if (
-    /\b(search|find|shortlist|match|look for|show me|give me|start the search|yes)\b/.test(text) ||
+    /\b(search|find|shortlist|match|look for|show me builders|give me builders|start the search)\b/.test(text) ||
     /\b(who (doesn't|does not|dont|don't)|without|no (asu|on[- ]?campus)|only (people|builders|candidates)|filter|narrow)\b/.test(
       text
     )
   ) {
     return [
       "Reading the role brief…",
-      "Scanning builder proof-of-work…",
-      "Matching must-have skills…",
-      "Ranking shipped projects…",
-      "Building your shortlist…",
+      "Figuring out whether to search…",
+      "Checking the current constraints…",
     ];
   }
   if (/\b(remove|exclude|pass on|drop|hide|keep only)\b/.test(text)) {
@@ -610,8 +608,6 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
     setMessage("");
     const steps = inferChatThinkingSteps(nextMessage);
     setThinkingSteps(steps);
-    const likelySearch = steps.some((step) => /shortlist|Matching|Ranking shipped|Scanning builder/i.test(step));
-    if (likelySearch) setSearching(true);
     setChatSending(true);
     setChat((prev) => [...prev, { role: "founder", content: nextMessage }]);
 
@@ -620,20 +616,10 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
         setThinkingSteps((prev) => appendThinkingStep(prev, "Talking to the hiring agent…"));
       }, 1400),
       window.setTimeout(() => {
-        setThinkingSteps((prev) =>
-          appendThinkingStep(
-            prev,
-            likelySearch ? "Looking across DevLabs builders…" : "Applying changes to the role…"
-          )
-        );
+        setThinkingSteps((prev) => appendThinkingStep(prev, "Applying changes to the role…"));
       }, 3200),
       window.setTimeout(() => {
-        setThinkingSteps((prev) =>
-          appendThinkingStep(
-            prev,
-            likelySearch ? "Scoring proof against this role…" : "Preparing a clear reply…"
-          )
-        );
+        setThinkingSteps((prev) => appendThinkingStep(prev, "Preparing a clear reply…"));
       }, 5200),
     ];
 
@@ -653,20 +639,15 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
           setThinkingSteps((prev) => appendThinkingStep(prev, "Refreshing your recommendations…"));
         }
         appendAssistantMessages(data.message || "Updated.");
-        // When the agent searches or mutates the shortlist, refresh the builders
-        // pane. Stay on chat if we're already in the conversation view.
+        // Only refresh the builders pane when a search actually ran or the shortlist changed.
         if (data.searchRan || data.shortlistChanged) {
           revealRecommendations();
           void loadRecommendations();
-        } else if (likelySearch) {
-          setSearching(false);
         }
       } else {
-        if (likelySearch) setSearching(false);
         setChat((prev) => [...prev, { role: "assistant", content: data.error || "I could not update that." }]);
       }
     } catch {
-      if (likelySearch) setSearching(false);
       setChat((prev) => [...prev, { role: "assistant", content: "Network error. Please try again." }]);
     } finally {
       for (const timer of progressTimers) window.clearTimeout(timer);
@@ -1451,7 +1432,7 @@ const FounderRoleWorkspaceInner: React.FC<{ roleId: string }> = ({ roleId }) => 
   ) : null;
 
   if (job && rightPane === "chat") {
-    const rightPaneSearching = chatSending || searching;
+    const rightPaneSearching = searching;
     const rightPaneUpdating = searching && buckets.recommended.length > 0;
     return (
       <div className="min-h-screen bg-white text-foreground">

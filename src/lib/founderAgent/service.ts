@@ -37,7 +37,10 @@ import { shapeJobForTalentPool } from '@/lib/founderAgent/jobShaping';
 import {
   buildConversationAgenda,
   buildFallbackOpener,
+  companyProductSnippet,
   compactFounderContext,
+  hasRealDescription,
+  isVagueProductOwnership,
   looksLikeSkillDump,
 } from '@/lib/founderAgent/conversationEngine';
 import { compileSearchPlan, getPlanRetrievalTerms } from '@/lib/talent/searchPlan';
@@ -129,6 +132,7 @@ Personalization (critical):
 - Context JSON includes conversationAgenda, founderProfile, and company enrichment. Follow agenda.nextQuestionHint and agenda.doNotAsk.
 - Lead with the company/product by name when you know it. Never ask generic questions that ignore enrichment.
 - If agenda.doNotAsk includes what_will_they_build, do NOT ask what they will build. Use product context and move to the next gap.
+- If conversationAgenda.productSnippet is null, you do NOT know the product. "Work on the product" / "the whole product" is not a brief. Ask what the company builds and who it is for, persist with update_company_info (productSummary) and edit_job description, and do NOT call search_talent yet.
 - If the founder pastes a long skills dump (or skillsAreBloated), distill to 3–6 must-have technologies and put the rest in niceToHaveSkills via edit_job. Confirm that split. Never store 15+ skills as must-haves.
 
 Rules:
@@ -136,7 +140,7 @@ Rules:
 - Use chat history and company/job context before asking.
 - One chat session maps to one role/job. Do not mix role context across sessions.
 - Be proactive: finish a strong brief, then search. Stop over-asking once the brief is solid.
-- Treat founder phrases like "build a chat interface" or "the product in general" as description. If they say broader product, write description from company enrichment.
+- Treat founder phrases like "build a chat interface" as description. If they say broader product AND company enrichment exists, write description from that enrichment. If enrichment is missing, ask what the product is. Never search on title + seniority alone.
 - Default policy before confirmation: visa sponsorship Yes, equity No. Confirm BOTH once. Parse multi-intent replies in one turn (e.g. "yes I'll pay 120k", "no visa", "yes equity").
 - Once visaConfirmed or equityConfirmed is true in context, NEVER re-ask that topic.
 - Use create_job / edit_job as the structured contract. Auto-fill responsibilities from company + role when missing.
@@ -943,12 +947,12 @@ function inferBuilderWillDoFromFounderText(text: string, company: any): string |
   if (!cleaned) return null;
   const lower = cleaned.toLowerCase();
 
-  if (/\b(whole|entire|overall|broader|general)\s+product\b|\bproduct\s+in\s+general\b|\bacross\s+the\s+product\b|\bfull\s+product\b/.test(lower)) {
+  if (isVagueProductOwnership(cleaned)) {
     return buildCompanyProductDescription(company);
   }
 
   const hasBuildIntent = /\b(build|building|create|creating|make|making|ship|shipping|develop|developing|implement|implementing|work on|working on)\b/.test(lower);
-  const hasProductArtifact = /\b(interface|dashboard|feature|product|app|website|platform|agent|assistant|chat|messaging|inbox|workflow|automation|portal|api|backend|frontend)\b/.test(lower);
+  const hasProductArtifact = /\b(interface|dashboard|feature|app|website|platform|agent|assistant|chat|messaging|inbox|workflow|automation|portal|api|backend|frontend)\b/.test(lower);
   if (!hasBuildIntent && !hasProductArtifact) return null;
   if (/^(fullstack|full-stack|frontend|front-end|backend|back-end|developer|engineer|builder)\b/i.test(cleaned) && cleaned.split(/\s+/).length <= 4) {
     return null;
@@ -969,6 +973,9 @@ function inferBuilderWillDoFromMessages(messages: any[], company: any): string |
 function createJobMissingMessage(missing: string[]) {
   if (missing.includes('role/title')) {
     return 'What role/title should I use for this builder?';
+  }
+  if (missing.includes('what the product is')) {
+    return 'What does the company actually build, and who is it for? I need that before I can search.';
   }
   if (missing.includes('what the builder will ship')) {
     return 'Is this builder focused on a specific feature, or the broader product? If it is product-wide, I can use the company context.';
@@ -1488,13 +1495,18 @@ async function appendMessage(params: {
 /**
  * A role brief is "thin" (usually pre-created from the 3-question quick intake) until it
  * has a real description, at least two skills, and at least one preference. We must not
- * auto-run the builder search on a thin brief, e.g. when the founder only edits the title.
+ * auto-run the builder search on a thin brief, e.g. when the founder only edits the title
+ * or says "work on the product" without saying what the product is.
  */
-function isJobBriefThin(job: any): boolean {
-  const description = String(job?.description || job?.builderWillDo || '').trim();
+function isJobBriefThin(job: any, productSnippet: string | null = null): boolean {
+  const snippet =
+    productSnippet ||
+    cleanString(job?.startupSummary) ||
+    cleanString(job?.productSummary) ||
+    null;
   const skills = Array.isArray(job?.skillsNeeded) ? job.skillsNeeded : [];
   const preferences = Array.isArray(job?.searchRequirements) ? job.searchRequirements : [];
-  const hasDescription = description.length > 40;
+  const hasDescription = hasRealDescription(job, snippet && snippet.length > 20 ? snippet : null);
   const hasPreferences = preferences.length > 0;
   return !hasDescription || skills.length < 2 || !hasPreferences;
 }
@@ -2153,9 +2165,15 @@ async function toolCreateJob(identity: FounderIdentity, session: any, args: Reco
       .lean();
     description = inferBuilderWillDoFromMessages([...recentFounderMessages].reverse(), company);
   }
+  const productKnown = Boolean(companyProductSnippet(company, null));
+  const productGap = !description
+    ? 'what the builder will ship'
+    : isVagueProductOwnership(description) && !productKnown
+      ? 'what the product is'
+      : null;
   const missing = [
     title ? null : 'role/title',
-    description ? null : 'what the builder will ship',
+    productGap,
     skills.length ? null : 'skills',
     companyName ? null : 'company',
   ].filter(Boolean) as string[];
@@ -2476,7 +2494,14 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
   // Only auto-rerun the search when the brief is already solid. On a thin/pre-created
   // role (e.g. the founder just changed the title), persist the edit but keep gathering
   // detail instead of dumping match results before we've asked the real questions.
-  if (isJobBriefThin(job)) {
+  const companyProfile = await getCompany(identity);
+  const productSnippet = companyProductSnippet(companyProfile, null) || cleanString(job.startupSummary) || null;
+  if (isJobBriefThin(job, productSnippet)) {
+    const thinMessage = !hasRealDescription(job, productSnippet)
+      ? (productSnippet
+          ? 'Updated the role. I still need a clearer picture of what they will own day to day before I search.'
+          : 'Updated the role. I do not know the product yet, so I have not searched. What does the company build, and who is it for?')
+      : 'Updated the role. Keep gathering the brief (description, then experience and preferences) before searching.';
     // Still refilter an existing shortlist when visa flips to No (Diya-class bug).
     if (fields.visa === 'No' || (fields.visaConfirmed && opportunityDoesNotSponsor(job))) {
       const refresh = (await toolRefreshShortlist(
@@ -2494,7 +2519,7 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
         refresh,
         message: refresh.shortlistChanged
           ? `${refresh.message || 'Filtered the pool.'} Keep gathering the brief before a full search.`
-          : 'Updated the role. Keep gathering the brief (description, then experience and preferences) before searching.',
+          : thinMessage,
       };
     }
     return {
@@ -2502,7 +2527,7 @@ async function toolEditJob(identity: FounderIdentity, args: Record<string, unkno
       updatedFields: Object.keys(fields),
       search: { skipped: true, reason: 'Role brief is still thin; gather more detail before searching.' },
       searchSkippedThin: true,
-      message: 'Updated the role. Keep gathering the brief (description, then experience and preferences) before searching.',
+      message: thinMessage,
     };
   }
 
@@ -2600,6 +2625,22 @@ async function toolSearchTalent(identity: FounderIdentity, args: Record<string, 
     }
   }
   if (confirmationPersisted) await job.save();
+
+  const company = await getCompany(identity);
+  const founderProfile = await getFounderProfileDoc(identity);
+  const productSnippet = companyProductSnippet(company, founderProfile) || cleanString(job.startupSummary) || null;
+  if (isJobBriefThin(job, productSnippet)) {
+    return {
+      needsFollowup: true,
+      searchSkippedThin: true,
+      job: serializeJob(job),
+      message: !hasRealDescription(job, productSnippet)
+        ? (productSnippet
+            ? 'I still need a clearer picture of what this person will own day to day before I search.'
+            : 'I do not know the product yet. What does the company build, and who is it for?')
+        : 'Need a bit more of the brief (skills or preferences) before I search.',
+    };
+  }
 
   const compensationMissing = missingCompensationFields(job);
   if (compensationMissing.length) {
@@ -2925,13 +2966,12 @@ export async function runFounderAgentChat(params: {
   });
   const roleReadiness = currentJob
     ? (() => {
-        const description = String(currentJob.description || currentJob.builderWillDo || '').trim();
         const skills = Array.isArray(currentJob.skillsNeeded) ? currentJob.skillsNeeded : [];
         const niceToHaves = Array.isArray(currentJob.niceToHaveSkills) ? currentJob.niceToHaveSkills : [];
         const preferences = Array.isArray(currentJob.searchRequirements) ? currentJob.searchRequirements : [];
-        const hasDescription = description.length > 40 || Boolean(conversationAgenda.productSnippet);
+        const hasDescription = hasRealDescription(currentJob, conversationAgenda.productSnippet);
         const hasPreferences = preferences.length > 0;
-        const isThin = isJobBriefThin(currentJob);
+        const isThin = isJobBriefThin(currentJob, conversationAgenda.productSnippet);
         return {
           hasDescription,
           hasPreferences,
@@ -2940,7 +2980,7 @@ export async function runFounderAgentChat(params: {
           skillsBloated: skills.length > 12,
           isThin,
           guidance: isThin
-            ? 'This role is still thin (likely pre-created from quick intake). Follow conversationAgenda.nextQuestionHint. Persist each answer with edit_job.'
+            ? 'This role is still thin (likely pre-created from quick intake). Follow conversationAgenda.nextQuestionHint. Persist each answer with edit_job. Do not search until the product is known.'
             : 'This role has a solid brief. Once the founder is ready, run search_talent.',
         };
       })()
@@ -2961,9 +3001,10 @@ export async function runFounderAgentChat(params: {
     session: serializeSession(session),
     conversationSignals: {
       builderWillDo: inferredBuilderWillDo,
-      guidance: inferredBuilderWillDo
-        ? 'The founder has already described what the builder should work on. Reuse this instead of asking what they will do.'
-        : conversationAgenda.nextQuestionHint,
+      guidance:
+        inferredBuilderWillDo && !isVagueProductOwnership(inferredBuilderWillDo)
+          ? 'The founder has already described what the builder should work on. Reuse this instead of asking what they will do.'
+          : conversationAgenda.nextQuestionHint,
     },
   };
 
@@ -3091,15 +3132,19 @@ export async function runFounderAgentChat(params: {
   // results — used by the UI to switch to the builders pane.
   const searchRan = toolCalls.some((tool) => {
     const result = tool.result as any;
-    if (!result || result.error || result.needsFollowup) return false;
+    if (!result || result.error || result.needsFollowup || result.searchSkippedThin) return false;
     return Boolean(result.search) && result.search.skipped !== true;
   });
   const shortlistChanged = toolCalls.some((tool) => {
     const result = tool.result as any;
-    if (!result || result.error) return false;
+    if (!result || result.error || result.needsFollowup || result.searchSkippedThin) return false;
+    if (result.shortlistChanged === true) return true;
+    if (tool.name === 'search_talent') {
+      return Boolean(result.search) && result.search.skipped !== true;
+    }
     return (
-      result.shortlistChanged === true ||
-      ['remove_builders', 'keep_builders', 'exclude_builders', 'refresh_shortlist', 'search_talent'].includes(tool.name)
+      ['remove_builders', 'keep_builders', 'exclude_builders', 'refresh_shortlist'].includes(tool.name) &&
+      result.shortlistChanged !== false
     );
   });
   const searchNeedsFollowup = toolCalls.some((tool) => (tool.result as any)?.needsFollowup);

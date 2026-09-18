@@ -199,6 +199,7 @@ export const FounderOnboardingFlow: React.FC = () => {
   const [direction, setDirection] = useState(1);
   const [linkedin, setLinkedin] = useState("");
   const [linkedinBusy, setLinkedinBusy] = useState(false);
+  const [skipBusy, setSkipBusy] = useState(false);
 
   const [profile, setProfile] = useState<ProfileState>(EMPTY_PROFILE);
   const [profileLoading, setProfileLoading] = useState(stepFromLocation() !== "linkedin");
@@ -453,11 +454,30 @@ export const FounderOnboardingFlow: React.FC = () => {
     }
   };
 
-  const skipLinkedIn = () => {
+  const skipLinkedIn = async () => {
     clearDraftCache();
     setProfile(EMPTY_PROFILE);
     setExperiences([]);
-    goTo("profile");
+    setSelectedExperienceIndex(null);
+    setCompany(EMPTY_COMPANY);
+    setError("");
+    setSkipBusy(true);
+    try {
+      const res = await fetch("/api/founder/onboarding-complete", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        setError(typeof data.error === "string" ? data.error : "Could not skip onboarding. Please try again.");
+        return;
+      }
+      window.location.href = data.next || "/founder/home";
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSkipBusy(false);
+    }
   };
 
   const goBackToLinkedIn = () => {
@@ -694,7 +714,7 @@ export const FounderOnboardingFlow: React.FC = () => {
 
                 <button
                   type="submit"
-                  disabled={linkedinBusy || !linkedin.trim()}
+                  disabled={linkedinBusy || skipBusy || !linkedin.trim()}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#0A66C2] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 >
                   {linkedinBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Linkedin className="h-5 w-5" />}
@@ -703,10 +723,12 @@ export const FounderOnboardingFlow: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={skipLinkedIn}
-                  className="block w-full text-center text-sm text-black/45 underline-offset-4 hover:text-[#050505] hover:underline"
+                  onClick={() => void skipLinkedIn()}
+                  disabled={linkedinBusy || skipBusy}
+                  className="flex w-full items-center justify-center gap-2 text-center text-sm text-black/45 underline-offset-4 hover:text-[#050505] hover:underline disabled:opacity-60"
                 >
-                  Skip for now
+                  {skipBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {skipBusy ? "Skipping…" : "Skip for now"}
                 </button>
               </form>
             </motion.div>
