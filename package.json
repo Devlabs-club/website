@@ -18,6 +18,7 @@
     "builder:claim:email": "node scripts/send-builder-claim-email.mjs",
     "talent:index:backfill": "tsx scripts/backfill-talent-search-index.ts",
     "talent:apply:linkedin-raw": "bun scripts/apply-linkedin-raw-archive.mjs",
+    "secrets:check": "node --test scripts/check-no-hardcoded-secrets.test.mjs && node scripts/check-no-hardcoded-secrets.mjs",
     "deploy:dev": "rm -rf .context/deploy-devlabs-os && git worktree prune && git fetch origin devlabs-os && git worktree add --detach .context/deploy-devlabs-os origin/devlabs-os && cd .context/deploy-devlabs-os && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-os && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7",
     "deploy:prod": "rm -rf .context/deploy-main && git worktree prune && git fetch origin main && git worktree add --detach .context/deploy-main origin/main && cd .context/deploy-main && vercel link --yes --scope devlabs-projects-897ae3e7 --project devlabs-website && vercel deploy --prod --yes --scope devlabs-projects-897ae3e7"
   },

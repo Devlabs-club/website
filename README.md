@@ -28,6 +28,13 @@ These variables must be present on the Vercel `devlabs-website` **Production**
 environment for the product flows and integrations to work. Store only encrypted
 values in Vercel; do not commit secret values.
 
+MongoDB connection strings (`MONGODB_URI`, `ADMIN_MONGO_URI`,
+`MOMENTUM_MONGODB_URI`) belong in Vercel / a gitignored `.env`, never in
+source, scripts, or docs. `npm run secrets:check` rejects credentialed
+`mongodb+srv://` URIs in tracked files. If a URI is committed, rotate the
+Atlas database user password immediately — deleting the file does not revoke
+access. See https://www.mongodb.com/docs/atlas/security-add-mongodb-users/
+
 - `MONGODB_URI`
 - `ADMIN_MONGO_URI`
 - `JWT_SECRET`
