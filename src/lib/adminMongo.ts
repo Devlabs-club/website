@@ -13,6 +13,7 @@ export type AuthUser = {
   phone?: string | null;
   oauthProvider?: string | null;
   oauthId?: string | null;
+  emailVerified?: boolean;
   createdAt?: Date;
 };
 
@@ -80,6 +81,7 @@ function toAuthUser(doc: Document | null): AuthUser | null {
     phone: (doc.phone as string | null | undefined) ?? null,
     oauthProvider: doc.oauthProvider as string | null | undefined,
     oauthId: doc.oauthId as string | null | undefined,
+    emailVerified: doc.emailVerified === true,
     createdAt: doc.createdAt as Date | undefined,
   };
 }
@@ -124,32 +126,44 @@ export async function findApplicationResumeUrl(
   return doc?.resumeUrl ? String(doc.resumeUrl) : null;
 }
 
-export async function upsertUserFromOAuth(
+export async function upsertUserFromWorkOS(
   input: {
     email: string;
     name: string;
-    oauthId: string;
-    provider?: 'google';
+    workosUserId: string;
+    emailVerified: boolean;
+    provider?: 'google' | null;
     avatarUrl?: string | null;
   },
   runtime?: RuntimeEnv
 ): Promise<AuthUser & { isNew?: boolean }> {
   const users = await usersCollection(runtime);
   const email = input.email.toLowerCase();
-  const provider = input.provider ?? 'google';
+  const provider = input.provider ?? null;
   const existing = await users.findOne({ email });
+  const now = new Date();
 
   if (existing) {
     const update: Document = {
       name: input.name,
-      updatedAt: new Date(),
+      updatedAt: now,
+      oauthId: input.workosUserId,
     };
     if (input.avatarUrl && !existing.avatarUrl) {
       update.avatarUrl = input.avatarUrl;
     }
-    if (!existing.oauthProvider) {
+    if (provider && !existing.oauthProvider) {
       update.oauthProvider = provider;
-      update.oauthId = input.oauthId;
+    }
+    if (input.emailVerified) {
+      update.emailVerified = true;
+      update.emailVerifiedAt = existing.emailVerifiedAt || now;
+      update.emailVerificationTokenHash = null;
+      update.emailVerificationExpiresAt = null;
+      update.emailVerificationSentAt = null;
+      update.emailVerificationNext = null;
+    } else if (existing.emailVerified !== true) {
+      update.emailVerified = false;
     }
     await users.updateOne({ _id: existing._id }, { $set: update });
     const updated = await users.findOne({ _id: existing._id });
@@ -160,7 +174,6 @@ export async function upsertUserFromOAuth(
 
   const randomPassword = crypto.randomUUID();
   const hashedPassword = await bcrypt.hash(randomPassword, 12);
-  const now = new Date();
   const insert = {
     name: input.name,
     email,
@@ -170,7 +183,9 @@ export async function upsertUserFromOAuth(
     onboardingStatus: null,
     avatarUrl: input.avatarUrl ?? null,
     oauthProvider: provider,
-    oauthId: input.oauthId,
+    oauthId: input.workosUserId,
+    emailVerified: input.emailVerified,
+    emailVerifiedAt: input.emailVerified ? now : null,
     createdAt: now,
     updatedAt: now,
   };
@@ -178,6 +193,29 @@ export async function upsertUserFromOAuth(
   const user = toAuthUser({ _id: result.insertedId, ...insert });
   if (!user) throw new Error('Failed to load user after insert');
   return { ...user, isNew: true };
+}
+
+export async function upsertUserFromOAuth(
+  input: {
+    email: string;
+    name: string;
+    oauthId: string;
+    provider?: 'google';
+    avatarUrl?: string | null;
+  },
+  runtime?: RuntimeEnv
+): Promise<AuthUser & { isNew?: boolean }> {
+  return upsertUserFromWorkOS(
+    {
+      email: input.email,
+      name: input.name,
+      workosUserId: input.oauthId,
+      emailVerified: true,
+      provider: input.provider ?? 'google',
+      avatarUrl: input.avatarUrl,
+    },
+    runtime
+  );
 }
 
 /**

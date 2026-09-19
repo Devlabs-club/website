@@ -18,8 +18,15 @@ interface AuthContextType {
   loading: boolean;
   authError: string | null;
   refreshAuth: () => Promise<void>;
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; message: string; user?: User }>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; message: string; user?: User; needsVerification?: boolean }>;
+  register: (
+    name: string,
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; message: string; user?: User; needsVerification?: boolean }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
@@ -89,7 +96,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          redirect: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') : null,
+        }),
       });
 
       const data = await response.json();
@@ -98,9 +109,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(data.user);
         writeCachedAuthUser(data.user);
         return { success: true, message: 'Login successful', user: data.user };
-      } else {
-        return { success: false, message: data.message || 'Login failed' };
       }
+        return {
+          success: false,
+          message: data.message || 'Login failed',
+          needsVerification: Boolean(data.needsVerification),
+        };
     } catch (error) {
       console.error('Login failed:', error);
       return { success: false, message: 'Network error occurred' };
@@ -115,18 +129,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          redirect: typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') : null,
+        }),
       });
 
       const data = await response.json();
+
+      if (data.needsVerification) {
+        setUser(null);
+        clearCachedAuthUser();
+        return {
+          success: true,
+          needsVerification: true,
+          message: data.message || 'Check your email to verify this account.',
+        };
+      }
 
       if (data.success) {
         setUser(data.user);
         writeCachedAuthUser(data.user);
         return { success: true, message: 'Registration successful', user: data.user };
-      } else {
-        return { success: false, message: data.message || 'Registration failed' };
       }
+      return { success: false, message: data.message || 'Registration failed' };
     } catch (error) {
       console.error('Registration failed:', error);
       return { success: false, message: 'Network error occurred' };

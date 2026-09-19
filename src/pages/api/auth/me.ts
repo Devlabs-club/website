@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { findApplicationResumeUrl, findUserById } from '../../../lib/adminMongo';
 import { verifyToken, extractTokenFromHeader, extractTokenFromCookies } from '../../../lib/auth.ts';
+import { clearAuthTokenCookie } from '../../../lib/authCookie.ts';
+import { isAccountEmailVerified } from '../../../lib/emailVerification';
 import { runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
 export const GET: APIRoute = async ({ request, locals }) => {
@@ -52,6 +54,23 @@ export const GET: APIRoute = async ({ request, locals }) => {
         {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    if (!isAccountEmailVerified(user)) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          needsVerification: true,
+          message: 'Verify your email before continuing.',
+        }),
+        {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': clearAuthTokenCookie(),
+          },
         }
       );
     }

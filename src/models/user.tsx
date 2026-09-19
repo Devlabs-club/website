@@ -17,6 +17,12 @@ export interface IUser {
   oauthId?: string; // OAuth provider user ID
   avatarUrl?: string | null;
   phone?: string | null;
+  emailVerified?: boolean;
+  emailVerifiedAt?: Date | null;
+  emailVerificationTokenHash?: string | null;
+  emailVerificationExpiresAt?: Date | null;
+  emailVerificationSentAt?: Date | null;
+  emailVerificationNext?: string | null;
   coolestThing?: string;
   hackathonStory?: string;
   additionalInfo?: string;
@@ -85,6 +91,32 @@ const userSchema = new mongoose.Schema({
     default: null,
   },
   oauthId: {
+    type: String,
+    default: null,
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null,
+  },
+  emailVerificationTokenHash: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  emailVerificationExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  emailVerificationSentAt: {
+    type: Date,
+    default: null,
+  },
+  emailVerificationNext: {
     type: String,
     default: null,
   },

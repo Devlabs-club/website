@@ -1,37 +1,17 @@
 import type { APIRoute } from 'astro';
 import { generateToken } from '../../../../lib/auth.ts';
-import { upsertUserFromOAuth } from '../../../../lib/adminMongo';
 import { sanitizePostAuthRedirect } from '../../../../lib/oauthRedirect';
-import { resolvePostAuthDestination } from '../../../../lib/authDestination';
 import { notifyOps, opsPersonFrom } from '../../../../lib/opsTelegram';
+import {
+  buildAuthTokenCookie,
+  buildWorkOSSessionCookie,
+} from '../../../../lib/authCookie.ts';
+import {
+  destinationForUser,
+  nameFromWorkOSUser,
+  upsertAppUserFromWorkOS,
+} from '../../../../lib/workosAuth';
 import { createWorkOS, getWorkOSConfig, runtimeEnvFromLocals } from '../../../../lib/workosEnv';
-
-function nameFromWorkOSUser(workosUser: {
-  firstName?: string | null;
-  lastName?: string | null;
-  email: string;
-}) {
-  const full = `${workosUser.firstName || ''} ${workosUser.lastName || ''}`.trim();
-  if (full) return full;
-
-  const localPart = workosUser.email.split('@')[0] || 'user';
-  return localPart
-    .replace(/[._-]+/g, ' ')
-    .replace(/\b\w/g, (ch) => ch.toUpperCase())
-    .trim() || 'DevLabs User';
-}
-
-function authCookieFlags(): string {
-  const secure = import.meta.env.PROD ? '; Secure' : '';
-  return `HttpOnly; Path=/; Max-Age=604800; SameSite=Lax${secure}`;
-}
-
-function destinationForRole(
-  user: { accountType?: string | null; role?: string | null },
-  redirectUrl: string
-) {
-  return resolvePostAuthDestination(user, redirectUrl);
-}
 
 export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
   const runtime = runtimeEnvFromLocals(locals);
@@ -57,7 +37,6 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
       }
     }
 
-    // WorkOS/the provider can redirect back with an error instead of a code — surface it.
     const oauthError = url.searchParams.get('error');
     const oauthErrorDescription = url.searchParams.get('error_description');
     if (oauthError || oauthErrorDescription) {
@@ -99,33 +78,23 @@ export const GET: APIRoute = async ({ request, redirect, url, locals }) => {
       return redirect(`/login?error=oauth_user_fetch_failed${redirectParamStr}`);
     }
 
-    const user = await upsertUserFromOAuth(
-      {
-        email: workosUser.email,
-        name: nameFromWorkOSUser(workosUser),
-        oauthId: workosUser.id,
-        provider: 'google',
-      },
-      runtime
-    );
+    const user = await upsertAppUserFromWorkOS(workosUser, runtime, 'google');
 
     if (user.isNew) {
       notifyOps({
         event: 'account_created',
-        title: `New account created ${opsPersonFrom(user.name, user.email)}`,
+        title: `New account created ${opsPersonFrom(user.name || nameFromWorkOSUser(workosUser), user.email)}`,
       });
     }
 
     const token = generateToken(user, runtime);
-    // Assigned founders/builders skip role selection. Claim links go straight through.
-    // Only unscoped accounts land on /auth/select-role.
-    const destination = destinationForRole(user, redirectUrl);
+    const destination = destinationForUser(user, redirectUrl);
 
     const headers = new Headers();
     headers.set('Location', destination);
-    headers.append('Set-Cookie', `auth-token=${token}; ${authCookieFlags()}`);
+    headers.append('Set-Cookie', buildAuthTokenCookie(token));
     if (sealedSession) {
-      headers.append('Set-Cookie', `wos-session=${sealedSession}; ${authCookieFlags()}`);
+      headers.append('Set-Cookie', buildWorkOSSessionCookie(sealedSession));
     }
 
     return new Response(null, { status: 302, headers });

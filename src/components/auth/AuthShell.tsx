@@ -24,8 +24,8 @@ export const AuthShell: React.FC<{ children: React.ReactNode }> = ({ children })
       </div>
 
       {/* Left: form */}
-      <div className="auth-ruler-section relative flex min-h-screen items-center justify-center px-6 py-16 sm:px-12">
-        <div className="relative z-10 w-full max-w-md">{children}</div>
+      <div className="auth-ruler-section relative min-h-[100svh] overflow-y-auto px-6 py-10 pb-24 sm:px-12 sm:py-16">
+        <div className="relative z-10 mx-auto w-full max-w-md">{children}</div>
       </div>
 
       {/* Right: community panel */}

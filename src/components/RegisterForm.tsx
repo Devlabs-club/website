@@ -32,6 +32,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     const result = await register(name, email, password);
 
+    if (result.needsVerification) {
+      const params = new URLSearchParams({ email: email.trim() });
+      window.location.href = `/auth/check-email?${params.toString()}`;
+      return;
+    }
+
     if (result.success) {
       onSuccess?.();
     } else {

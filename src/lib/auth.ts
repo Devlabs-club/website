@@ -82,8 +82,8 @@ export function isValidEmail(email: string): boolean {
 
 // Validate password strength
 export function isValidPassword(password: string): { valid: boolean; message?: string } {
-  if (password.length < 6) {
-    return { valid: false, message: 'Password must be at least 6 characters long' };
+  if (password.length < 8) {
+    return { valid: false, message: 'Password must be at least 8 characters long' };
   }
   
   if (!/(?=.*[a-z])/.test(password)) {
@@ -96,6 +96,10 @@ export function isValidPassword(password: string): { valid: boolean; message?: s
   
   if (!/(?=.*\d)/.test(password)) {
     return { valid: false, message: 'Password must contain at least one number' };
+  }
+
+  if (!/(?=.*[^A-Za-z0-9])/.test(password)) {
+    return { valid: false, message: 'Password must contain at least one symbol' };
   }
   
   return { valid: true };

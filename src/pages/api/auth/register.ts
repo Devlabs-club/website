@@ -1,134 +1,114 @@
 import type { APIRoute } from 'astro';
-import { connectAdminDB } from '../../../lib/mongodb.ts';
-import User from '../../../models/user.tsx';
-import { generateToken, isValidEmail, isValidPassword } from '../../../lib/auth.ts';
-import { buildAuthTokenCookie } from '../../../lib/authCookie.ts';
-import { notifyOps, opsPersonFrom } from '../../../lib/opsTelegram';
+import { isValidPassword } from '../../../lib/auth.ts';
+import { jsonWithCookies } from '../../../lib/authCookie.ts';
+import { signupEmailRejection } from '../../../lib/emailVerification';
+import {
+  createOrUpdateWorkOSPasswordUser,
+  getWorkOSClient,
+  parseWorkOSAuthError,
+  publicAuthUser,
+  upsertAppUserFromWorkOS,
+  verificationRequiredCookies,
+  workosSessionOptions,
+  completeWorkOSAuthentication,
+} from '../../../lib/workosAuth';
+import { runtimeEnvFromLocals } from '../../../lib/workosEnv';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const runtime = runtimeEnvFromLocals(locals);
+
   try {
-    // Connect to admin database
-    await connectAdminDB();
-
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, redirect } = body as {
+      name?: string;
+      email?: string;
+      password?: string;
+      redirect?: string;
+    };
 
-    // Validate input
     if (!name || !email || !password) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Please provide name, email, and password' 
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      return jsonWithCookies({ success: false, message: 'Please provide name, email, and password' }, 400);
     }
 
-    // Validate email format
-    if (!isValidEmail(email)) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Please provide a valid email address' 
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+    const emailError = signupEmailRejection(email);
+    if (emailError) {
+      return jsonWithCookies({ success: false, message: emailError }, 400);
     }
 
-    // Validate password strength
     const passwordValidation = isValidPassword(password);
     if (!passwordValidation.valid) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: passwordValidation.message 
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      return jsonWithCookies({ success: false, message: passwordValidation.message }, 400);
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'User already exists with this email' 
-        }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    const { workos, clientId } = getWorkOSClient(runtime);
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Create new user
-    const newUser = new User({
-      name: name.trim(),
-      email: email.toLowerCase(),
-      password,
-      role: role === 'founder' ? 'founder' : 'user'
-    });
-
-    await newUser.save();
-
-    // Role is often still unset here ("user"); the real "signed up as builder/founder"
-    // alert fires from /api/auth/role after they pick an account type.
-    notifyOps({
-      event: 'account_created',
-      title: `New account created ${opsPersonFrom(newUser.name, newUser.email)}${
-        newUser.role === 'founder' ? ' (founder)' : ''
-      }`,
-    });
-
-    // Generate token
-    const token = generateToken(newUser);
-
-    // Return success response with token
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'User registered successfully',
-        user: {
-          id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          accountType: newUser.accountType ?? null,
-          onboardingStatus: newUser.onboardingStatus ?? null,
-          avatarUrl: newUser.avatarUrl ?? null,
-        },
-        token
-      }),
-      {
-        status: 201,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Set-Cookie': buildAuthTokenCookie(token)
-        }
+    let workosUser;
+    try {
+      workosUser = await createOrUpdateWorkOSPasswordUser({
+        workos,
+        email: normalizedEmail,
+        password,
+        name: name.trim(),
+      });
+    } catch (error) {
+      const parsed = parseWorkOSAuthError(error);
+      if (
+        (error as { code?: string }).code === 'user_already_exists' ||
+        parsed.code === 'email_not_available' ||
+        parsed.code === 'user_already_exists'
+      ) {
+        return jsonWithCookies({ success: false, message: 'User already exists with this email' }, 400);
       }
-    );
+      const message =
+        parsed.code === 'password_strength_error' || parsed.code === 'password_pwned'
+          ? 'Choose a stronger password. Avoid common passwords and include mixed case, a number, and a symbol.'
+          : parsed.message || 'Could not create this account';
+      return jsonWithCookies({ success: false, message }, 400);
+    }
 
+    try {
+      const authenticated = await workos.userManagement.authenticateWithPassword({
+        clientId,
+        email: normalizedEmail,
+        password,
+        session: workosSessionOptions(runtime),
+      });
+      const completed = await completeWorkOSAuthentication({
+        workosUser: authenticated.user,
+        sealedSession: authenticated.sealedSession,
+        runtime,
+        redirect: typeof redirect === 'string' ? redirect : null,
+      });
+      return jsonWithCookies(
+        {
+          success: true,
+          message: 'Registration successful',
+          user: publicAuthUser(completed.user),
+          next: completed.next,
+        },
+        201,
+        completed.cookies
+      );
+    } catch (error) {
+      const parsed = parseWorkOSAuthError(error);
+      if (parsed.code === 'email_verification_required' && parsed.pendingAuthenticationToken) {
+        await upsertAppUserFromWorkOS(workosUser, runtime);
+        return jsonWithCookies(
+          {
+            success: true,
+            needsVerification: true,
+            message: 'Check your email for a verification code before signing in.',
+          },
+          201,
+          verificationRequiredCookies(parsed.pendingAuthenticationToken)
+        );
+      }
+      console.error('WorkOS registration authenticate error:', error);
+      return jsonWithCookies({ success: false, message: parsed.message || 'Could not create this account' }, 400);
+    }
   } catch (error) {
     console.error('Registration error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        message: 'Internal server error' 
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    return jsonWithCookies({ success: false, message: 'Internal server error' }, 500);
   }
 };

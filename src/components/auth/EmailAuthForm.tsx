@@ -42,18 +42,27 @@ export const EmailAuthForm: React.FC<Props> = ({ mode }) => {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
     setLoading(true);
     const name = email.split("@")[0];
+    const trimmedEmail = email.trim();
     const result =
       mode === "signup"
-        ? await register(name, email.trim(), password)
-        : await login(email.trim(), password);
+        ? await register(name, trimmedEmail, password)
+        : await login(trimmedEmail, password);
     setLoading(false);
+
+    if (result.needsVerification) {
+      const params = new URLSearchParams({ email: trimmedEmail });
+      const redirect = redirectParam();
+      if (redirect) params.set("redirect", redirect);
+      window.location.href = `/auth/check-email?${params.toString()}`;
+      return;
+    }
 
     if (result.success) {
       window.location.href = resolvePostAuthDestination(
