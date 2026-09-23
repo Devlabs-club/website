@@ -1,54 +1,73 @@
 ---
-const plans = [
+// Plans mirror src/components/PricingSection.astro. The slide splits the way
+// the decision does — two self-serve tiers grouped on one panel, then the
+// managed plan we want to sell taking the whole right side.
+// stroke icons, 24-grid, drawn to match the linework elsewhere in the deck
+const I = {
+  roles: `<svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="7" width="17" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/></svg>`,
+  profiles: `<svg viewBox="0 0 24 24" fill="none"><circle cx="9.5" cy="9" r="3.2"/><path d="M4 19.5c0-3 2.5-4.8 5.5-4.8s5.5 1.8 5.5 4.8"/><path d="M16 7.4a3 3 0 0 1 0 5.6M17.6 19.5c0-2.2-.9-3.7-2.3-4.5"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none"><path d="M10 13.8a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10.2a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>`,
+  trace: `<svg viewBox="0 0 24 24" fill="none"><path d="m6 8 3.5 3.5L6 15"/><path d="M12.5 16h5.5"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>`,
+  outreach: `<svg viewBox="0 0 24 24" fill="none"><path d="M20.5 4 3.8 10.4l6.4 2.6 2.6 6.4L20.5 4Z"/><path d="m10.2 13-.9 4.6"/></svg>`,
+  ban: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8"/><path d="m6.6 6.6 10.8 10.8"/></svg>`,
+  star: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2.6 14.5 9l6.9.3-5.4 4.3 1.9 6.7L12 16.6l-5.9 3.7 1.9-6.7L2.6 9.3 9.5 9Z"/></svg>`,
+};
+
+const selfServe = [
   {
+    badge: null,
     eyebrow: "Get started",
     title: "Explore the talent pool",
-    description: "Before you commit. No credit card required.",
-    price: "Forever free",
-    note: "Start with real builder signal",
-    cta: "Try for free",
-    featured: false,
-    included: [
-      { text: "3 job roles per month", active: true },
-      { text: "5 builder profiles per role", active: true },
-      { text: "GitHub, LinkedIn & project portfolios", active: true },
-      { text: "Agent traces from Claude Code, Codex & more", active: false },
-      { text: "Builder outreach & introductions", active: false },
+    amount: "Free",
+    unit: "forever",
+    chips: [
+      { label: "3 roles a month", icon: I.roles },
+      { label: "5 profiles per role", icon: I.profiles },
+      { label: "GitHub · LinkedIn", icon: I.link },
     ],
+    missing: "No agent traces or outreach",
+    bestFor: "Seeing the pool before you commit",
   },
   {
-    eyebrow: "Most popular",
+    badge: "Most popular",
+    eyebrow: "Self-serve",
     title: "Growth",
-    description: "For startups actively hiring. More profiles, full signal, no gatekeeping.",
-    price: "$20/mo",
-    note: "Billed monthly · cancel anytime",
-    cta: "Get started",
-    featured: true,
-    included: [
-      { text: "5 job roles per month", active: true },
-      { text: "20 builder profiles per role", active: true },
-      { text: "GitHub, LinkedIn & project portfolios", active: true },
-      { text: "Full agent traces — Claude Code, Codex & more", active: true },
-      { text: "Builder outreach & introductions", active: true },
+    amount: "$20",
+    unit: "per month",
+    chips: [
+      { label: "5 roles a month", icon: I.roles },
+      { label: "20 profiles per role", icon: I.profiles },
+      { label: "Full agent traces", icon: I.trace },
+      { label: "Outreach", icon: I.outreach },
     ],
-  },
-  {
-    eyebrow: "End-to-end hiring",
-    title: "Custom",
-    description: "DevLabs manages the entire process — from search to signed offer.",
-    price: "$499 deposit",
-    note: "Success-based pricing on hire",
-    cta: "Start with deposit",
-    featured: false,
-    included: [
-      { text: "Everything in Growth", active: true },
-      { text: "Warm introductions to matched builders", active: true },
-      { text: "End-to-end hiring support by DevLabs", active: true },
-      { text: "Unlimited roles & profiles", active: true },
-      { text: "Dedicated DevLabs point of contact", active: true },
-    ],
+    missing: null,
+    bestFor: "Founders running their own search · $200/yr saves 17%",
   },
 ];
+
+const managed = {
+  badge: "Fully managed",
+  title: "Custom",
+  amount: "$499",
+  unit: "deposit",
+  sub: "Then success-based — you only pay properly when someone signs.",
+  included: [
+    "Everything in Growth, unlimited",
+    "We run the search end to end",
+    "Warm intros to matched builders",
+    "A dedicated Devlabs point of contact",
+  ],
+};
+
+// the economics, straight from the pricing page — the reason this plan sells
+const deal = [
+  ["Upfront deposit", "$499"],
+  ["On successful hire", "50% of first month’s salary"],
+  ["Deposit on hire", "Credited back in full"],
+  ["If no hire", "Deposit is non-refundable"],
+];
+
+const tick = `<svg viewBox="0 0 16 16" fill="none"><path d="M3.4 8.3 6.3 11.2 12.6 4.7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 ---
 
 <section class="pricing-slide__content deck-slide-layout">
@@ -61,47 +80,103 @@ const plans = [
   </header>
 
   <div class="pricing-slide__intro">
-    <h1>A bad early hire costs more than money</h1>
-    <p>Simple pricing for proving who can build before you spend months screening.</p>
+    <h1>A bad early hire costs <em>more than money</em></h1>
   </div>
 
-  <div class="pricing-grid">
-    {plans.map((plan) => (
-      <article class:list={["pricing-card", plan.featured && "pricing-card--featured"]}>
-        {plan.featured && <div class="pricing-card__ribbon">Most popular</div>}
-        <div class="pricing-card__body">
-          {!plan.featured && <p class="pricing-card__eyebrow">{plan.eyebrow}</p>}
-          <h2>{plan.title}</h2>
-          <p class="pricing-card__description">{plan.description}</p>
+  <div class="pricing-fork">
+    <!-- left: do it yourself -->
+    <section class="pricing-lane">
+      <p class="pricing-lane__label">Find them yourself</p>
 
-          <div class="pricing-card__price">
-            <strong>{plan.price}</strong>
-            <span>{plan.note}</span>
-          </div>
+      <div class="pricing-lane__panel">
+        {
+          selfServe.map((plan) => (
+            <article class="pricing-tier">
+              <div class="pricing-tier__top">
+                <p class="pricing-tier__eyebrow">{plan.eyebrow}</p>
+                {plan.badge && <span class="pricing-badge">{plan.badge}</span>}
+              </div>
+              <h2>{plan.title}</h2>
 
-          <div class="pricing-card__features">
-            <ul>
-              {plan.included.map((item) => (
-                <li class:list={[!item.active && "pricing-card__feature--muted"]}>
-                  <span class="pricing-card__check" aria-hidden="true">&#10003;</span>
-                  <em>{item.text}</em>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <p class="pricing-tier__price">
+                <strong>{plan.amount}</strong>
+                <span>{plan.unit}</span>
+              </p>
 
-          <button
-            type="button"
-            class:list={[
-              "pricing-card__cta",
-              plan.featured ? "pricing-card__cta--primary" : "pricing-card__cta--secondary",
-            ]}
-          >
-            <span class="pricing-card__cta-label">{plan.cta}</span>
-            <span class="pricing-card__cta-arrow" aria-hidden="true">&rarr;</span>
-          </button>
+              <ul class="pricing-chips">
+                {plan.chips.map((chip) => (
+                  <li>
+                    <i aria-hidden="true" set:html={chip.icon} />
+                    {chip.label}
+                  </li>
+                ))}
+                {plan.missing && (
+                  <li class="is-missing">
+                    <i aria-hidden="true" set:html={I.ban} />
+                    {plan.missing}
+                  </li>
+                )}
+              </ul>
+
+              <p class="pricing-tier__for">{plan.bestFor}</p>
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- the fork -->
+    <div class="pricing-or" aria-hidden="true">
+      <span class="pricing-or__line"></span>
+      <span class="pricing-or__word">or</span>
+      <span class="pricing-or__line"></span>
+    </div>
+
+    <!-- right: we run it -->
+    <section class="pricing-lane pricing-lane--managed">
+      <p class="pricing-lane__label">Hand us the whole hire</p>
+
+      <article class="pricing-managed">
+        <div class="pricing-managed__tags">
+          <span class="pricing-badge pricing-badge--rec">
+            <i aria-hidden="true" set:html={I.star} />
+            Recommended
+          </span>
+          <span class="pricing-badge pricing-badge--dark">{managed.badge}</span>
         </div>
+
+        <div class="pricing-managed__head">
+          <h2>{managed.title}</h2>
+          <p class="pricing-managed__price">
+            <strong>{managed.amount}</strong>
+            <span>{managed.unit}</span>
+          </p>
+        </div>
+
+        <p class="pricing-managed__sub">{managed.sub}</p>
+
+        <ul class="pricing-managed__list">
+          {
+            managed.included.map((item) => (
+              <li>
+                <span class="pricing-tick" aria-hidden="true" set:html={tick} />
+                {item}
+              </li>
+            ))
+          }
+        </ul>
+
+        <dl class="pricing-deal">
+          {
+            deal.map(([label, value]) => (
+              <div>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))
+          }
+        </dl>
       </article>
-    ))}
+    </section>
   </div>
 </section>

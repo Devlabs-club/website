@@ -233,12 +233,15 @@
 
 #pitchDeck .pflow-results {
   display: flex;
+  min-height: 0;
+  flex: 1;
   flex-direction: column;
-  gap: 8px;
+  justify-content: center;
+  gap: 14px;
 }
 
 #pitchDeck .pcard {
-  padding: 10px 14px 9px;
+  padding: 14px 16px 13px;
   border: 1px solid rgba(19, 10, 7, 0.13);
   border-radius: 13px;
   background: #fff;
@@ -486,52 +489,6 @@
   color: #fff;
   font-size: 14px;
   font-weight: 600;
-}
-
-#pitchDeck .prow {
-  display: grid;
-  grid-template-columns: 30px 1fr 130px 50px;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 14px 6px 9px;
-  border: 1px solid rgba(19, 10, 7, 0.12);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.8);
-}
-
-#pitchDeck .prow__av {
-  width: 30px;
-  height: 30px;
-  font-size: 11px;
-}
-
-#pitchDeck .prow__name {
-  color: #130a07;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.024em;
-}
-
-#pitchDeck .prow__role {
-  color: rgba(22, 11, 7, 0.44);
-  font-size: 14px;
-  font-weight: 400;
-}
-
-#pitchDeck .prow__fit {
-  color: #c45e12;
-  font-size: 15px;
-  font-weight: 700;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-#pitchDeck .pflow-more {
-  margin: 2px 0 0;
-  color: rgba(22, 11, 7, 0.42);
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
 }
 
 /* ── 03 · the builder profile ──

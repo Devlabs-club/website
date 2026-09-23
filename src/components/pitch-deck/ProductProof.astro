@@ -28,12 +28,6 @@ const results = [
   },
 ];
 
-// the rest of the shortlist, collapsed
-const rest = [
-  { initials: "DP", name: "Dev P.", role: "Payments", fit: "93" },
-  { initials: "IS", name: "Isha S.", role: "Full-stack", fit: "91" },
-];
-
 const sources = ["GitHub", "LinkedIn", "Resume", "Repos"];
 
 // Agent-trace signals. Illustrative figures for the mock, not measured data.
@@ -172,17 +166,6 @@ const steps = [
               </article>
             ))
           }
-          {
-            rest.map((b) => (
-              <div class="prow">
-                <span class="pflow-avatar prow__av">{b.initials}</span>
-                <span class="prow__name">{b.name}</span>
-                <span class="prow__role">{b.role}</span>
-                <span class="prow__fit">{b.fit}%</span>
-              </div>
-            ))
-          }
-          <p class="pflow-more">+ 2 more in the shortlist</p>
         </div>
       </div>
     </div>

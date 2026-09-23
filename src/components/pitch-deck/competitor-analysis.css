@@ -5,156 +5,327 @@
   height: 900px;
   overflow: hidden;
   border-radius: 0;
-  background: transparent;
-  color: #100b09;
+  background:
+    radial-gradient(ellipse 48% 44% at 8% 14%, rgba(250, 134, 47, 0.24) 0%, transparent 66%),
+    radial-gradient(ellipse 52% 50% at 96% 96%, rgba(233, 114, 15, 0.18) 0%, transparent 70%),
+    linear-gradient(158deg, #fffaf2 0%, #fdeddc 50%, #f7dcc2 100%);
+  color: #130a07;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
 
-#pitchDeck .competitor-analysis {
+#pitchDeck .competitor-slide.hidden {
+  display: none;
+}
+
+#pitchDeck .rivals {
   position: relative;
   z-index: 2;
   display: flex;
-  flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 40px 64px 44px;
+  flex-direction: column;
+  padding: 38px 58px 40px;
 }
 
-#pitchDeck .competitor-analysis__header {
-  flex-shrink: 0;
-  margin-bottom: 56px;
-}
-
-#pitchDeck .competitor-analysis__top {
-  margin-bottom: 22px;
-}
-
-#pitchDeck .competitor-analysis__header h1 {
-  margin: 0;
-  max-width: none;
-  color: #130a07;
-  font-size: 56px;
-  white-space: nowrap;
-}
-
-#pitchDeck .competitor-matrix {
-  --label-w: 300px;
-  position: relative;
-  display: grid;
-  flex: 1;
-  grid-template-columns: var(--label-w) repeat(5, minmax(0, 1fr));
-  grid-template-rows: 108px repeat(6, minmax(0, 1fr));
-  min-height: 0;
-}
-
-#pitchDeck .competitor-matrix__highlight {
+#pitchDeck .rivals-bg {
   position: absolute;
-  top: 0;
-  bottom: 4px;
-  left: calc(var(--label-w) + 10px);
-  width: calc((100% - var(--label-w)) / 5 - 20px);
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
   pointer-events: none;
 }
 
-#pitchDeck .competitor-matrix__corner,
-#pitchDeck .competitor-matrix__logo,
-#pitchDeck .competitor-matrix__factor,
-#pitchDeck .competitor-matrix__mark {
+#pitchDeck .rivals-bg svg {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+}
+
+#pitchDeck .rivals-bg path {
+  fill: none;
+  stroke: #fa862f;
+  stroke-width: 46;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.14;
+}
+
+#pitchDeck .rivals-bg path.is-soft {
+  stroke-width: 38;
+  opacity: 0.1;
+}
+
+#pitchDeck .rivals-intro {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-top: 34px;
 }
 
-#pitchDeck .competitor-matrix__factor,
-#pitchDeck .competitor-matrix__mark {
-  border-bottom: 1px solid rgba(20, 14, 10, 0.08);
+#pitchDeck .competitor-slide .rivals-intro h1 {
+  margin: 0;
+  color: #130a07;
+  font-size: 54px;
+  font-weight: 500;
+  letter-spacing: -0.062em;
+  line-height: 1.04;
+  text-transform: none;
 }
 
-#pitchDeck .competitor-matrix__factor {
+#pitchDeck .competitor-slide .rivals-intro h1 em {
+  color: #fa862f;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* ── the matrix ──
+   Rows are what a founder actually weighs; columns are the eight things they
+   could do instead. Rivals earn marks where they deserve them — a board where
+   only our column ticks reads as rigged and costs us the rows we do win. */
+
+#pitchDeck .rivals-table {
+  position: relative;
+  z-index: 2;
   display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  margin-top: 22px;
+  padding: 10px 34px 22px;
+  border: 1.5px solid rgba(20, 14, 10, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 26px 60px rgba(24, 12, 4, 0.09);
+}
+
+#pitchDeck .rivals-row {
+  display: grid;
   align-items: center;
-  padding-right: 24px;
-  color: rgba(16, 11, 9, 0.72);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  grid-template-columns: 330px repeat(8, 1fr);
 }
 
-#pitchDeck .competitor-matrix__logo {
-  display: grid;
-  place-items: center;
+#pitchDeck .rivals-row + .rivals-row {
+  border-top: 1px solid rgba(20, 14, 10, 0.14);
 }
 
-#pitchDeck .competitor-matrix__logo span {
-  display: grid;
-  place-items: center;
+#pitchDeck .rivals-rowlabel {
+  padding: 0 22px 0 8px;
 }
 
-#pitchDeck .competitor-matrix__logo img {
+#pitchDeck .rivals-rowlabel strong {
   display: block;
-  width: 48px;
-  height: 48px;
+  color: #130a07;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.032em;
+  line-height: 1.15;
+}
+
+#pitchDeck .rivals-rowlabel span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(22, 11, 7, 0.5);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.25;
+}
+
+/* ── header ── */
+
+#pitchDeck .rivals-row--head {
+  border-bottom: 1.5px solid rgba(20, 14, 10, 0.2);
+}
+
+#pitchDeck .rivals-col {
+  display: grid;
+  height: 52px;
+  padding: 0 6px;
+  place-items: center;
+  text-align: center;
+}
+
+/* real marks, at one optical height. Square app icons and wide wordmarks
+   cannot share a single rule, so the wide ones are capped on width instead. */
+#pitchDeck .rivals-col__logo {
+  display: block;
+  width: auto;
+  max-width: 92px;
+  height: 28px;
+  margin: 0 auto;
   object-fit: contain;
 }
 
-#pitchDeck .competitor-matrix__logo--linkedin img {
-  width: 44px;
-  height: 44px;
+#pitchDeck .rivals-col__logo.is-wide {
+  height: 18px;
+  max-width: 108px;
 }
 
-#pitchDeck .competitor-matrix__logo--wellfound img {
-  width: 104px;
-  height: auto;
+#pitchDeck .rivals-col__logo.is-ours {
+  height: 38px;
 }
 
-#pitchDeck .competitor-matrix__logo--juicebox img {
-  width: 108px;
-  height: auto;
+/* white artwork — invisible on the panel, so it gets the dark ground it was
+   drawn for rather than being knocked to a flat silhouette */
+#pitchDeck .rivals-col__logo.on-dark {
+  height: 30px;
+  max-width: 116px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #171208;
+  box-sizing: content-box;
 }
 
-#pitchDeck .competitor-matrix__logo--rightfit img {
-  width: 52px;
-  height: auto;
-}
-
-#pitchDeck .competitor-matrix__logo--devlabs img {
-  width: 48px;
-  height: 48px;
-  filter: brightness(0) invert(1);
-}
-
-#pitchDeck .competitor-matrix__mark.is-featured {
-  border-bottom-color: rgba(255, 255, 255, 0.18);
-}
-
-#pitchDeck .competitor-matrix__mark.is-featured i {
-  background: rgba(255, 255, 255, 0.96);
-  color: #e8741f;
-  box-shadow: 0 6px 16px rgba(16, 11, 9, 0.08);
-}
-
-#pitchDeck .competitor-matrix__mark {
-  display: grid;
-  place-items: center;
-}
-
-#pitchDeck .competitor-matrix__mark i {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #8fbf4a;
-  color: #14320a;
-}
-
-#pitchDeck .competitor-matrix__mark i svg {
-  width: 14px;
-  height: 14px;
-}
-
-#pitchDeck .competitor-matrix__mark b {
-  color: rgba(16, 11, 9, 0.28);
-  font-size: 22px;
-  font-weight: 400;
+/* an icon-only mark locked up with its name — the badge alone tells a reader
+   who has not met the company anything */
+#pitchDeck .rivals-col__lockup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #130a07;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
   line-height: 1;
+}
+
+#pitchDeck .rivals-col__lockup img {
+  display: block;
+  width: auto;
+  height: 22px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+/* the one column that is a category rather than a company */
+#pitchDeck .rivals-col__text {
+  display: block;
+  padding: 0 8px;
+  color: rgba(22, 11, 7, 0.72);
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* ── cells ── */
+
+#pitchDeck .rivals-cell {
+  display: grid;
+  height: 92px;
+  place-items: center;
+}
+
+/* a faint band on alternate rows — with eight columns the eye loses the line
+   without one */
+#pitchDeck .rivals-row:nth-of-type(odd) .rivals-cell,
+#pitchDeck .rivals-row:nth-of-type(odd) .rivals-rowlabel {
+  background: rgba(20, 14, 10, 0.022);
+}
+
+#pitchDeck .rivals-row:nth-of-type(odd) .rivals-rowlabel {
+  border-radius: 10px 0 0 10px;
+}
+
+/* our column is tinted the whole way down, so the eye reads it as one thing */
+#pitchDeck .rivals-cell.is-ours {
+  background: rgba(250, 134, 47, 0.12);
+}
+
+#pitchDeck .rivals-row--head .rivals-col.is-ours {
+  height: 66px;
+  background: rgba(250, 134, 47, 0.12);
+  border-radius: 14px 14px 0 0;
+}
+
+/* ── marks ──
+   One disc, three states — filled for yes, tinted with a rule for partly, and
+   faint with a cross for no. Same shape and size throughout, so only the fill
+   and the glyph carry the meaning. */
+
+#pitchDeck .mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+#pitchDeck .mark svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+#pitchDeck .mark--y {
+  background: #ef7317;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(226, 105, 13, 0.3);
+}
+
+#pitchDeck .mark--p {
+  background: rgba(250, 134, 47, 0.17);
+  color: #d9660c;
+}
+
+#pitchDeck .mark--n {
+  background: rgba(20, 14, 10, 0.055);
+  color: rgba(20, 14, 10, 0.3);
+}
+
+/* our own ticks sit a touch heavier, in step with the tinted column */
+#pitchDeck .rivals-cell.is-ours .mark--y {
+  width: 36px;
+  height: 36px;
+  background: #e2690d;
+  box-shadow: 0 6px 16px rgba(197, 92, 18, 0.34);
+}
+
+#pitchDeck .rivals-cell.is-ours .mark--y svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── cost row ── */
+
+#pitchDeck .rivals-row--cost {
+  border-top: 1.5px solid rgba(20, 14, 10, 0.2);
+}
+
+#pitchDeck .rivals-cell--cost {
+  padding: 0 8px;
+  color: rgba(22, 11, 7, 0.62);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  text-align: center;
+}
+
+#pitchDeck .rivals-cell--cost.is-ours {
+  border-radius: 0 0 14px 14px;
+  color: #c45e12;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+#pitchDeck .rivals-foot {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin: 18px 0 0;
+  color: rgba(22, 11, 7, 0.5);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+}
+
+#pitchDeck .rivals-foot em {
+  color: #130a07;
+  font-style: normal;
+  font-weight: 600;
 }

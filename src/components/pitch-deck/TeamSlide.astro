@@ -1,26 +1,38 @@
 ---
+// Last slide, composed centre-out. The portrait tiles use a scooped bottom
+// edge and sit staggered, with a tinted tile offset behind each one.
+// `mission` set with `quoted: true` renders in quote marks, so it reads as
+// something the founder actually said rather than a caption about them.
 const founders = [
   {
     name: "Dhanush Vardhan",
     role: "Co-founder",
     photo: "/pitchdeck-canva/team/dhanush.png",
-    prior: "ex. Google · Cloudflare",
+    logos: [
+      // only the G mark exists in the repo, so this one still needs its name
+      { src: "/pitch-deck/logos/google.svg", name: "Google" },
+      { src: "/pitch-deck/logos/cloudflare-wordmark.png", wordmark: true, alt: "Cloudflare", tall: true },
+    ],
+    mission: "Placeholder — one line, in Dhanush's words, on why he is building this.",
   },
   {
-    name: "Bhoomi Singhani",
+    name: "Bhoomi Sahajsinghani",
     role: "Co-founder",
     photo: "/pitchdeck-canva/team/bhoomi.png",
-    prior: "ex. Twilio",
+    logos: [{ src: "/pitch-deck/logos/twilio-wordmark.png", wordmark: true, alt: "Twilio" }],
+    mission: "Everything I have came from some community. Devlabs is how I give that back.",
+    quoted: true,
   },
 ];
 ---
 
 <section class="team">
-  <svg class="cover-strokes" viewBox="0 0 1600 900" fill="none" aria-hidden="true">
-    <path class="cover-stroke cover-stroke--arc" d="M -170 142 C 78 226 350 112 510 -96" />
-    <path class="cover-stroke cover-stroke--upper" d="M 1428 -116 L 984 188 L 1718 438" />
-    <path class="cover-stroke cover-stroke--lower" d="M 532 930 L 674 702 L 1248 556 L 1484 724 L 1628 980" />
-  </svg>
+  <div class="team-bg" aria-hidden="true">
+    <svg class="team-sweeps" viewBox="0 0 1600 900" fill="none">
+      <path class="team-sweep" d="M -180 286 L 232 34 L 560 232" />
+      <path class="team-sweep team-sweep--soft" d="M 1060 660 L 1400 890 L 1790 720" />
+    </svg>
+  </div>
 
   <header class="deck-slide-header">
     <div class="deck-brand-lockup">
@@ -31,20 +43,43 @@ const founders = [
   </header>
 
   <div class="team__intro">
-    <h1>We lived the problem</h1>
-    <p>Now we are solving it — with the same operator background founders already trust.</p>
+    <h1>We lived the problem. <em>Now we are fixing it.</em></h1>
   </div>
 
   <div class="team-board">
-    {founders.map((founder) => (
-      <article class="team-row deck-card">
-        <img src={founder.photo} alt="" />
-        <div class="team-row__copy">
-          <p>{founder.role}</p>
-          <h2>{founder.name}</h2>
-          <p class="team-row__creds">{founder.prior}</p>
-        </div>
-      </article>
-    ))}
+    {
+      founders.map((f, i) => (
+        <article class:list={["team-card", `team-card--${i + 1}`]}>
+          <div class="team-card__tile">
+            <span class="team-card__shade" aria-hidden="true"></span>
+            <img class="team-card__face" src={f.photo} alt="" loading="eager" />
+          </div>
+
+          <h2>{f.name}</h2>
+          <p class="team-card__role">{f.role}</p>
+          <p class:list={["team-card__mission", f.quoted && "is-quoted"]}>
+            {f.quoted ? <>&ldquo;{f.mission}&rdquo;</> : f.mission}
+          </p>
+
+          <div class="team-card__prior">
+            {f.logos.map((l) =>
+              l.wordmark ? (
+                <img
+                  class:list={["team-wordmark", l.tall && "team-wordmark--tall"]}
+                  src={l.src}
+                  alt={l.alt}
+                  loading="eager"
+                />
+              ) : (
+                <span class="team-logo">
+                  <img src={l.src} alt="" loading="eager" />
+                  {l.name}
+                </span>
+              )
+            )}
+          </div>
+        </article>
+      ))
+    }
   </div>
 </section>

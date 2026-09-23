@@ -6,10 +6,9 @@
   overflow: hidden;
   border-radius: 0;
   background:
-    radial-gradient(ellipse 80% 72% at 72% 26%, rgba(255, 182, 71, 0.42) 0%, rgba(255, 122, 25, 0.22) 38%, transparent 70%),
-    radial-gradient(ellipse 66% 58% at 6% 86%, rgba(111, 33, 5, 0.26) 0%, transparent 64%),
-    linear-gradient(135deg, #ff7a1a 0%, #f45c08 48%, #df4200 100%);
-  color: #fffaf4;
+    radial-gradient(ellipse 50% 54% at 50% 66%, rgba(250, 134, 47, 0.24) 0%, transparent 68%),
+    linear-gradient(168deg, #fffbf5 0%, #fdf0e3 56%, #fae3cd 100%);
+  color: #130a07;
   box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
 }
 
@@ -17,146 +16,219 @@
   display: none;
 }
 
-#pitchDeck .team {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  height: 100%;
-  min-height: 0;
-  padding: 40px 64px 40px;
-  overflow: hidden;
-}
-
-#pitchDeck .team::before {
-  content: "";
+#pitchDeck .team-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%, transparent 100%),
-    radial-gradient(ellipse 42% 48% at 34% 48%, rgba(255, 139, 53, 0.22) 0%, transparent 70%);
 }
 
-#pitchDeck .team .cover-strokes {
-  z-index: 1;
+/* the deck's chevrons, in this slide's own classes — .cover-stroke is shared
+   with the cover and recolouring it there once broke this slide */
+#pitchDeck .team-sweeps {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
 }
 
-#pitchDeck .team .deck-slide-header,
-#pitchDeck .team__intro,
-#pitchDeck .team-board {
+#pitchDeck .team-sweep {
+  fill: none;
+  stroke: #fa862f;
+  stroke-width: 44;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.13;
+}
+
+#pitchDeck .team-sweep--soft {
+  stroke-width: 38;
+  opacity: 0.09;
+}
+
+#pitchDeck .team {
   position: relative;
   z-index: 2;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  padding: 36px 58px 38px;
 }
 
-#pitchDeck .team-slide .deck-brand-lockup.deck-brand-lockup {
-  color: #100b09;
-}
-
-#pitchDeck .team-slide .deck-brand-lockup.deck-brand-lockup img {
-  filter: brightness(0);
-}
-
-#pitchDeck .team-slide .deck-slide-meta {
-  color: rgba(255, 250, 244, 0.72);
-}
-
-#pitchDeck .team-slide .deck-slide-meta i {
-  background: #fffaf4;
-  box-shadow: 0 0 16px rgba(255, 250, 244, 0.4);
-}
+/* ── the line ──
+   Centred — the only centred composition in the deck. Every other slide pins
+   its headline to the top-left; the last one shouldn't. */
 
 #pitchDeck .team__intro {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 48px;
-  margin: 24px 0 28px;
+  flex-shrink: 0;
+  margin-top: 36px;
+  text-align: center;
 }
 
 #pitchDeck .team-slide .team__intro h1 {
-  margin: 0;
-  flex: 0 1 auto;
-  color: #fffaf4;
-  font-size: 48px;
-  font-weight: 400;
+  margin: 0 auto;
+  max-width: 1080px;
+  color: #130a07;
+  font-size: 58px;
+  font-weight: 500;
+  letter-spacing: -0.062em;
+  line-height: 1.04;
+  text-transform: none;
 }
 
-#pitchDeck .team__intro p {
-  margin: 0 0 4px;
-  flex: 0 0 420px;
-  max-width: 420px;
-  text-align: right;
-  color: rgba(255, 250, 244, 0.86);
-  font-size: 22px;
+#pitchDeck .team-slide .team__intro h1 em {
+  color: #fa862f;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
   font-weight: 500;
-  line-height: 1.35;
-  letter-spacing: -0.03em;
 }
+
+/* ── the founders ── */
 
 #pitchDeck .team-board {
   display: grid;
-  grid-template-rows: 1fr 1fr;
-  gap: 16px;
-  width: min(900px, 100%);
   min-height: 0;
+  flex: 1;
+  align-items: start;
+  justify-content: center;
+  margin-top: 46px;
+  gap: 120px;
+  grid-template-columns: repeat(2, 330px);
 }
 
-#pitchDeck .team-row {
-  display: grid;
-  grid-template-columns: 228px minmax(0, 1fr);
-  gap: 28px;
-  align-items: center;
-  min-height: 0;
-  padding: 18px 28px 18px 18px;
-  background: rgba(255, 250, 244, 0.96);
-}
-
-#pitchDeck .team-row > img {
-  display: block;
-  width: 228px;
-  height: 100%;
-  object-fit: cover;
-  object-position: 50% 18%;
-  clip-path: polygon(
-    0 0,
-    100% 0,
-    100% calc(100% - 16px),
-    calc(100% - 16px) 100%,
-    0 100%
-  );
-}
-
-#pitchDeck .team-row__copy {
+#pitchDeck .team-card {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-width: 0;
+  align-items: center;
+  text-align: center;
 }
 
-#pitchDeck .team-row__copy > p:first-child {
-  margin: 0 0 8px;
+/* the second tile rides lower, so the pair reads as a row with rhythm rather
+   than two matching boxes */
+#pitchDeck .team-card--2 {
+  padding-top: 42px;
+}
+
+#pitchDeck .team-card__tile {
+  position: relative;
+  width: 330px;
+  height: 392px;
+}
+
+/* the scooped bottom edge — rounded top corners, then a shallow arc cut up
+   into the base. path() takes absolute units, which is fine on a fixed-size
+   slide. */
+#pitchDeck .team-card__face,
+#pitchDeck .team-card__shade {
+  clip-path: path("M 26 0 L 304 0 Q 330 0 330 26 L 330 392 Q 165 318 0 392 L 0 26 Q 0 0 26 0 Z");
+}
+
+/* a tinted tile offset behind the photo, carrying the colour the photos
+   cannot — they are full-frame shots, not cut-outs on a flat ground */
+#pitchDeck .team-card__shade {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 330px;
+  height: 392px;
+  background: rgba(250, 134, 47, 0.3);
+}
+
+#pitchDeck .team-card--2 .team-card__shade {
+  left: auto;
+  right: 18px;
+  background: rgba(19, 10, 7, 0.14);
+}
+
+#pitchDeck .team-card__face {
+  position: relative;
+  display: block;
+  width: 330px;
+  height: 392px;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+#pitchDeck .team-slide .team-card h2 {
+  margin: 22px 0 0;
+  color: #130a07;
+  font-size: 32px;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+  text-transform: none;
+}
+
+#pitchDeck .team-card__role {
+  margin: 8px 0 0;
   color: #fa862f;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-#pitchDeck .team-row__copy h2 {
-  margin: 0;
-  color: #130a07;
-  font-size: 38px;
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 1.05;
+#pitchDeck .team-card__mission {
+  margin: 14px 0 0;
 }
 
-#pitchDeck .team-row__creds {
-  margin: 14px 0 0;
-  color: #130a07;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+/* a real quote, so it is set as one — slightly darker than a caption would be */
+#pitchDeck .team-card__mission.is-quoted {
+  color: rgba(22, 11, 7, 0.8);
+}
+
+#pitchDeck .team-card__mission {
+  color: rgba(22, 11, 7, 0.66);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  line-height: 1.4;
+}
+
+#pitchDeck .team-card__prior {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  gap: 18px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(20, 14, 10, 0.16);
+}
+
+/* the repo files are icon-only — a bare G, a cloud, Twilio's dots — so each
+   is locked up with its name rather than left to be guessed at */
+#pitchDeck .team-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(19, 10, 7, 0.72);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.026em;
+}
+
+/* full brand colour — on a closing slide the employer marks are doing
+   credibility work, and they carry more of it in their own colours */
+#pitchDeck .team-logo img {
+  display: block;
+  width: auto;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* supplied lockups, so no name is set beside them */
+#pitchDeck .team-wordmark {
+  display: block;
+  width: auto;
+  height: 22px;
+  object-fit: contain;
+}
+
+/* Cloudflare's is a stacked lockup — cloud over wordmark — so matching it to
+   Twilio's height would leave its type half the size */
+#pitchDeck .team-wordmark--tall {
+  height: 38px;
 }

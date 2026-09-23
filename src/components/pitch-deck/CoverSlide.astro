@@ -1,8 +1,26 @@
+---
+// Eight photographs on a 3x3 grid of near-square cells, with the crew shot
+// spanning two columns so the block has a centre. Six are the new set; two
+// DevHacks frames come from the repo.
+const tiles = [
+  { src: "/pitch-deck/cover/builders.jpg", pos: "center" },
+  { src: "/pitch-deck/cover/desk.jpg", pos: "62% center" },
+  { src: "/pitch-deck/cover/speaker.jpg", pos: "58% center" },
+  { src: "/pitch-deck/cover/team.jpg", pos: "center 60%", wide: true },
+  { src: "/pitch-deck/cover/prizes.jpg", pos: "center 58%" },
+  { src: "/pitch-deck/cover/pitch.jpg", pos: "56% center" },
+  { src: "/events/DevHacks3.jpg", pos: "center 40%" },
+  { src: "/events/DevHacks6.jpg", pos: "center" },
+];
+---
+
 <section class="cover">
-  <svg class="cover-strokes" viewBox="0 0 1600 900" fill="none" aria-hidden="true">
-    <path class="cover-stroke cover-stroke--arc" d="M -170 142 C 78 226 350 112 510 -96" />
-    <path class="cover-stroke cover-stroke--upper" d="M 1428 -116 L 984 188 L 1718 438" />
-    <path class="cover-stroke cover-stroke--lower" d="M 532 930 L 674 702 L 1248 556 L 1484 724 L 1628 980" />
+  <!-- background: the deck's chevron sweeps, drawn in the left panel only so
+       they never run under the photo grid. Own classes — the .cover-stroke
+       set belongs to TeamSlide. -->
+  <svg class="cover-sweeps" viewBox="0 0 1600 900" fill="none" aria-hidden="true">
+    <path class="cover-sweep" d="M 700 -70 L 214 252 L 742 556" />
+    <path class="cover-sweep cover-sweep--soft" d="M -150 690 L 236 486 L 664 742 L 792 960" />
   </svg>
 
   <div class="cover-masthead">
@@ -11,5 +29,15 @@
       <span>Devlabs</span>
     </h1>
     <p class="cover-tagline">The Future of Hiring</p>
+  </div>
+
+  <div class="cover-mosaic" aria-hidden="true">
+    {
+      tiles.map((t) => (
+        <figure class:list={["cover-tile", t.wide && "cover-tile--wide"]}>
+          <img src={t.src} alt="" style={`object-position:${t.pos}`} loading="eager" />
+        </figure>
+      ))
+    }
   </div>
 </section>

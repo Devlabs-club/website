@@ -1,70 +1,161 @@
 ---
-const companies = [
-  { name: "Devlabs", logo: "/logo.svg", modifier: "devlabs", featured: true },
-  { name: "LinkedIn", logo: "/sponsors/companies/linkedin.svg", modifier: "linkedin" },
-  { name: "Wellfound", logo: "/pitch-deck/logos/wellfound.svg", modifier: "wellfound" },
-  { name: "Juicebox", logo: "/pitch-deck/logos/juicebox.svg", modifier: "juicebox" },
-  { name: "Rightfit", logo: "/pitch-deck/logos/rightfit.svg", modifier: "rightfit" },
+// Honest matrix: competitors earn marks where they deserve them. Every
+// rival here clears at least one row — a slide where only our column has
+// ticks reads as rigged and costs us the rows we genuinely win.
+// Logos sourced from each company's own site, Sept 2026. "Agencies" is a
+// category, not a company, so it is the one column that stays as type.
+const rivals = [
+  { name: "Devlabs", logo: "/logo.svg", ours: true },
+  // standout.work — YC Spring 2026, 5 people. `npx standout` reads the
+  // developer's own ~/.claude, ~/.codex and Cursor session logs and builds a
+  // profile from them, then makes intros. Verified from the shipped CLI.
+  { name: "Standout", logo: "/pitch-deck/logos/standout.png", wide: true, onDark: true },
+  { name: "BuilderBase", logo: "/pitch-deck/logos/builderbase.svg" },
+  // icon-only mark, so the name is set beside it to be recognisable
+  { name: "Paraform", logo: "/pitch-deck/logos/paraform.svg", label: true },
+  { name: "Recruiting agencies", textOnly: true },
+  { name: "Juicebox", logo: "/pitch-deck/logos/juicebox.svg", wide: true },
+  { name: "Wellfound", logo: "/pitch-deck/logos/wellfound.svg", wide: true },
+  { name: "LinkedIn", logo: "/sponsors/companies/linkedin.svg", wide: true },
 ];
 
-const features = [
-  { label: "Builder community + events", marks: [true, false, false, false, false] },
-  { label: "Creates new proof", marks: [true, false, false, false, false] },
-  { label: "AI coding traces", marks: [true, false, false, false, false] },
-  { label: "Ranked matches with evidence", marks: [true, false, false, false, false] },
-  { label: "Why-hire proof per profile", marks: [true, false, false, false, true] },
-  { label: "Built for early teams", marks: [true, false, true, false, true] },
+// y = yes, p = partly, n = no
+const rows = [
+  {
+    label: "Agent & code traces",
+    sub: "Claude Code, Cursor and GitHub — how they actually build",
+    // BuilderBase pulls repos but reads no agent sessions, so half a mark
+    marks: ["y", "y", "p", "n", "n", "n", "n", "n"],
+  },
+  {
+    label: "Vetted in person",
+    sub: "Seen them build in public — known personally, not screened",
+    // Paraform and agencies interview people, which is screening, not
+    // watching them build; BuilderBase judges submissions without the
+    // relationship, so it keeps a half-mark
+    marks: ["y", "n", "p", "n", "n", "n", "n", "n"],
+  },
+  {
+    label: "Community & events",
+    sub: "Runs its own hackathons and build nights",
+    // BuilderBase sells the software to organisers — it powers events rather
+    // than owning the community that shows up to them
+    marks: ["y", "n", "p", "n", "n", "n", "n", "n"],
+  },
+  {
+    label: "End-to-end hiring",
+    sub: "Sources, screens and closes the offer",
+    marks: ["y", "n", "n", "y", "y", "n", "p", "n"],
+  },
+];
+
+const cost = [
+  "Deposit + on hire",
+  "Undisclosed",
+  "Per event",
+  "% of salary",
+  "% of salary",
+  "Subscription",
+  "Monthly + %",
+  "Free / paid seats",
 ];
 ---
 
-<section class="competitor-analysis">
-  <header class="competitor-analysis__header">
-    <div class="competitor-analysis__top deck-slide-header">
-      <div class="competitor-analysis__brand deck-brand-lockup">
-        <img src="/logo.svg" alt="" />
-        <span>Devlabs</span>
-      </div>
-      <p class="deck-slide-meta"><i></i> Competitor analysis</p>
+<section class="rivals">
+  <div class="rivals-bg" aria-hidden="true">
+    <svg viewBox="0 0 1600 900" fill="none">
+      <path d="M -150 190 L 290 -70 L 720 180" />
+      <path class="is-soft" d="M 950 980 L 1340 730 L 1790 910" />
+    </svg>
+  </div>
+
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
     </div>
-    <h1>Why we&rsquo;re better than</h1>
+    <p class="deck-slide-meta"><i></i> Competition</p>
   </header>
 
-  <div class="competitor-matrix" role="table" aria-label="Competitor analysis">
-    <div class="competitor-matrix__highlight deck-card deck-card--orange" aria-hidden="true"></div>
+  <div class="rivals-intro">
+    <h1>How we are better than <em>our competition</em></h1>
+  </div>
 
-    <div class="competitor-matrix__corner" role="columnheader"></div>
-    {companies.map((company) => (
-      <div
-        class:list={[
-          "competitor-matrix__logo",
-          `competitor-matrix__logo--${company.modifier}`,
-          company.featured && "is-featured",
-        ]}
-        role="columnheader"
-      >
-        <span>
-          <img src={company.logo} alt={company.name} />
-        </span>
-      </div>
-    ))}
-
-    {features.map((feature) => (
-      <>
-        <div class="competitor-matrix__factor" role="rowheader">{feature.label}</div>
-        {feature.marks.map((hasIt, index) => (
-          <div class:list={["competitor-matrix__mark", hasIt ? "is-yes" : "is-no", index === 0 && "is-featured"]} role="cell">
-            {hasIt ? (
-              <i aria-label="Yes">
-                <svg viewBox="0 0 16 16" fill="none">
-                  <path d="M3.5 8.2 6.4 11.2 12.5 4.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                </svg>
-              </i>
+  <div class="rivals-table">
+    <div class="rivals-row rivals-row--head">
+      <div class="rivals-rowlabel"></div>
+      {
+        rivals.map((r) => (
+          <div class:list={["rivals-col", r.ours && "is-ours"]}>
+            {r.textOnly ? (
+              <span class="rivals-col__text">{r.name}</span>
+            ) : r.label ? (
+              <span class="rivals-col__lockup">
+                <img src={r.logo} alt="" loading="eager" />
+                {r.name}
+              </span>
             ) : (
-              <b aria-label="No">×</b>
+              <img
+                class:list={[
+                  "rivals-col__logo",
+                  r.wide && "is-wide",
+                  r.ours && "is-ours",
+                  r.onDark && "on-dark",
+                ]}
+                src={r.logo}
+                alt={r.name}
+                loading="eager"
+              />
             )}
           </div>
-        ))}
-      </>
-    ))}
+        ))
+      }
+    </div>
+
+    {
+      rows.map((row) => (
+        <div class="rivals-row">
+          <div class="rivals-rowlabel">
+            <strong>{row.label}</strong>
+            <span>{row.sub}</span>
+          </div>
+          {row.marks.map((m, i) => (
+            <div class:list={["rivals-cell", i === 0 && "is-ours"]}>
+              <span
+                class:list={["mark", `mark--${m}`]}
+                aria-label={m === "y" ? "Yes" : m === "p" ? "Partly" : "No"}
+              >
+                <svg viewBox="0 0 20 20" fill="none">
+                  {m === "y" && (
+                    <path d="M5.2 10.4 8.4 13.6 14.8 6.8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+                  )}
+                  {m === "p" && <path d="M6 10h8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" />}
+                  {m === "n" && (
+                    <path d="M6.6 6.6l6.8 6.8M13.4 6.6l-6.8 6.8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                  )}
+                </svg>
+              </span>
+            </div>
+          ))}
+        </div>
+      ))
+    }
+
+    <div class="rivals-row rivals-row--cost">
+      <div class="rivals-rowlabel">
+        <strong>How you pay</strong>
+        <span>Five different models, not one number</span>
+      </div>
+      {
+        cost.map((c, i) => (
+          <div class:list={["rivals-cell", "rivals-cell--cost", i === 0 && "is-ours"]}>{c}</div>
+        ))
+      }
+    </div>
   </div>
+
+  <p class="rivals-foot">
+    On a typical engineering hire we come in <em>around 80% below agency fees</em>, and the
+    deposit is credited back when someone signs.
+  </p>
 </section>
