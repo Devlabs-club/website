@@ -10,7 +10,8 @@ const rivals = [
   // developer's own ~/.claude, ~/.codex and Cursor session logs and builds a
   // profile from them, then makes intros. Verified from the shipped CLI.
   { name: "Standout", logo: "/pitch-deck/logos/standout.png", wide: true, onDark: true },
-  { name: "BuilderBase", logo: "/pitch-deck/logos/builderbase.svg" },
+  // icon-only mark, so the name is set beside it to be recognisable
+  { name: "BuilderBase", logo: "/pitch-deck/logos/builderbase.svg", label: true },
   // icon-only mark, so the name is set beside it to be recognisable
   { name: "Paraform", logo: "/pitch-deck/logos/paraform.svg", label: true },
   { name: "Recruiting agencies", textOnly: true },
@@ -25,7 +26,7 @@ const rows = [
     label: "Agent & code traces",
     sub: "Claude Code, Cursor and GitHub — how they actually build",
     // BuilderBase pulls repos but reads no agent sessions, so half a mark
-    marks: ["y", "y", "p", "n", "n", "n", "n", "n"],
+    marks: ["y", "y", "p", "n", "n", "p", "n", "n"],
   },
   {
     label: "Vetted in person",
@@ -33,24 +34,22 @@ const rows = [
     // Paraform and agencies interview people, which is screening, not
     // watching them build; BuilderBase judges submissions without the
     // relationship, so it keeps a half-mark
-    marks: ["y", "n", "p", "n", "n", "n", "n", "n"],
+    marks: ["y", "n", "n", "n", "n", "n", "n", "n"],
   },
   {
     label: "Community & events",
     sub: "Runs its own hackathons and build nights",
-    // BuilderBase sells the software to organisers — it powers events rather
-    // than owning the community that shows up to them
-    marks: ["y", "n", "p", "n", "n", "n", "n", "n"],
+    marks: ["y", "p", "y", "n", "n", "n", "n", "n"],
   },
   {
     label: "End-to-end hiring",
     sub: "Sources, screens and closes the offer",
-    marks: ["y", "n", "n", "y", "y", "n", "p", "n"],
+    marks: ["y", "p", "n", "y", "y", "p", "p", "p"],
   },
 ];
 
 const cost = [
-  "Deposit + on hire",
+  "50% of first month salary",
   "Undisclosed",
   "Per event",
   "% of salary",
@@ -144,7 +143,7 @@ const cost = [
     <div class="rivals-row rivals-row--cost">
       <div class="rivals-rowlabel">
         <strong>How you pay</strong>
-        <span>Five different models, not one number</span>
+        <span>Different models, not one comparable number</span>
       </div>
       {
         cost.map((c, i) => (
@@ -153,9 +152,4 @@ const cost = [
       }
     </div>
   </div>
-
-  <p class="rivals-foot">
-    On a typical engineering hire we come in <em>around 80% below agency fees</em>, and the
-    deposit is credited back when someone signs.
-  </p>
 </section>

@@ -50,7 +50,6 @@ const managed = {
   title: "Custom",
   amount: "$499",
   unit: "deposit",
-  sub: "Then success-based — you only pay properly when someone signs.",
   included: [
     "Everything in Growth, unlimited",
     "We run the search end to end",
@@ -61,10 +60,11 @@ const managed = {
 
 // the economics, straight from the pricing page — the reason this plan sells
 const deal = [
-  ["Upfront deposit", "$499"],
-  ["On successful hire", "50% of first month’s salary"],
-  ["Deposit on hire", "Credited back in full"],
-  ["If no hire", "Deposit is non-refundable"],
+  { label: "Upfront deposit", value: "$499" },
+  // the line that actually sells the plan, so it is set larger than the rest
+  { label: "On successful hire", value: "50% of monthly salary", key: true },
+  { label: "Deposit on hire", value: "Credited back in full" },
+  { label: "If no hire", value: "Deposit is non-refundable" },
 ];
 
 const tick = `<svg viewBox="0 0 16 16" fill="none"><path d="M3.4 8.3 6.3 11.2 12.6 4.7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -153,8 +153,6 @@ const tick = `<svg viewBox="0 0 16 16" fill="none"><path d="M3.4 8.3 6.3 11.2 12
           </p>
         </div>
 
-        <p class="pricing-managed__sub">{managed.sub}</p>
-
         <ul class="pricing-managed__list">
           {
             managed.included.map((item) => (
@@ -168,10 +166,10 @@ const tick = `<svg viewBox="0 0 16 16" fill="none"><path d="M3.4 8.3 6.3 11.2 12
 
         <dl class="pricing-deal">
           {
-            deal.map(([label, value]) => (
-              <div>
-                <dt>{label}</dt>
-                <dd>{value}</dd>
+            deal.map((row) => (
+              <div class:list={[row.key && "is-key"]}>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
               </div>
             ))
           }

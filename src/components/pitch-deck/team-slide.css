@@ -192,9 +192,9 @@
   width: 100%;
   align-items: center;
   justify-content: center;
-  margin-top: 16px;
-  gap: 18px;
-  padding-top: 15px;
+  margin-top: 18px;
+  gap: 22px;
+  padding-top: 17px;
   border-top: 1px solid rgba(20, 14, 10, 0.16);
 }
 
@@ -203,9 +203,9 @@
 #pitchDeck .team-logo {
   display: flex;
   align-items: center;
-  gap: 7px;
-  color: rgba(19, 10, 7, 0.72);
-  font-size: 15px;
+  gap: 9px;
+  color: rgba(19, 10, 7, 0.76);
+  font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.026em;
 }
@@ -223,12 +223,12 @@
 #pitchDeck .team-wordmark {
   display: block;
   width: auto;
-  height: 22px;
+  height: 28px;
   object-fit: contain;
 }
 
 /* Cloudflare's is a stacked lockup — cloud over wordmark — so matching it to
    Twilio's height would leave its type half the size */
 #pitchDeck .team-wordmark--tall {
-  height: 38px;
+  height: 48px;
 }

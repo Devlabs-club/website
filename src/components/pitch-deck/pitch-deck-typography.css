@@ -114,7 +114,9 @@
   text-transform: none;
 }
 
-/* Subtitles & supporting copy — lowercase, regular */
+/* Subtitles & supporting copy. Sentence case: the markup is already written
+   with normal capitalisation, and forcing it lowercase turned proper nouns
+   ("LinkedIn", "GitHub") and sentence starts into stylised copy. */
 #pitchDeck .problem-subtitle,
 #pitchDeck .solution-lead,
 #pitchDeck .product-copy__lead,
@@ -129,7 +131,6 @@
 #pitchDeck .solution-card p,
 #pitchDeck .solution-product__role {
   font-weight: 400;
-  text-transform: lowercase;
 }
 
 #pitchDeck .problem-subtitle em {

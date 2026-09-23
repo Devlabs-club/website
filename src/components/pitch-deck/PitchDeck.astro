@@ -3,7 +3,6 @@ import "./deck-shared.css";
 import "./cover.css";
 import "./problem-slide.css";
 import "./gap-slide.css";
-import "./story-slide.css";
 import "./story-alt.css";
 import "./bridge-slide.css";
 import "./product-slide.css";
@@ -18,7 +17,6 @@ import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
 import CompetitorAnalysis from "./CompetitorAnalysis.astro";
 import PricingSlide from "./PricingSlide.astro";
-import StoryPolaroids from "./StoryPolaroids.astro";
 import StoryAlt from "./StoryAlt.astro";
 import BridgeSlide from "./BridgeSlide.astro";
 import ProductProof from "./ProductProof.astro";
@@ -30,8 +28,7 @@ const slides = [
   "The Future of hiring",
   "The problem",
   "The gap",
-  "Our story — v1",
-  "Our story — v2",
+  "Our story",
   "The solution",
   "The product",
   "What we look for",
@@ -60,17 +57,6 @@ const storyStats = [
   { value: "100K", label: "invested in events till now" },
 ];
 
-const storySponsors = [
-  { name: "Browser Use", src: "/sponsors/browser-use.png" },
-  { name: "Dodo Payments", src: "/sponsors/momentum/dodo_payments.svg" },
-  { name: "Stripe", src: "/sponsors/momentum/stripe.png" },
-  { name: "DeepMind", src: "/sponsors/deepmind.png" },
-  { name: "smallest.ai", src: "/sponsors/momentum/smallest_ai.png" },
-  { name: "Composio", src: "/sponsors/momentum/composio.png" },
-  { name: "TinyFish", src: "/sponsors/momentum/tinyfish.png" },
-  { name: "supermemory", src: "/sponsors/supermemory.png" },
-  { name: "omi", src: "/sponsors/omi.png" },
-];
 
 
 // Light-tile set for the alternate story slide. Stripe, TinyFish, Dodo and
@@ -167,61 +153,19 @@ const problemShotRows = [
         <GapSlide />
       </section>
 
-      <section class="pitch-slide story-slide hidden" data-slide="4" aria-label={slides[3]}>
-        <div class="deck-bg" aria-hidden="true">
-          <div class="deck-bg__base"></div>
-          <div class="deck-bg__lens"></div>
-          <div class="deck-bg__scan-lines"></div>
-          <div class="deck-bg__grain"></div>
-          <div class="deck-bg__fade"></div>
-        </div>
-
-        <div class="story-content">
-          <header class="story-header">
-            <p class="story-meta"><i></i> Our story</p>
-          </header>
-
-          <StoryPolaroids photos={storyPhotos} />
-
-          <div class="story-main">
-            <h1 class="story-lead">
-              We built the <em class="deck-accent">community</em> before the hiring platform.
-            </h1>
-            <div class="story-stats">
-              {storyStats.map((stat) => (
-                <article class="story-stat">
-                  <p class="story-stat__value">{stat.value}</p>
-                  <p class="story-stat__label">{stat.label}</p>
-                </article>
-              ))}
-            </div>
-            <p class="story-subtitle">Then startups started hiring our builders.</p>
-          </div>
-
-          <footer class="story-sponsors">
-            <p class="story-supported">supported by</p>
-            <div class="story-logos">
-              {storySponsors.map((sponsor) => (
-                <img src={sponsor.src} alt={sponsor.name} loading="eager" />
-              ))}
-            </div>
-          </footer>
-        </div>
-      </section>
-
-      <section class="pitch-slide story-alt-slide hidden" data-slide="5" aria-label={slides[4]}>
+      <section class="pitch-slide story-alt-slide hidden" data-slide="4" aria-label={slides[3]}>
         <StoryAlt stats={storyStats} sponsors={storySponsorsColor} photos={storyPhotos} />
       </section>
 
-      <section class="pitch-slide bridge-slide hidden" data-slide="6" aria-label={slides[5]}>
+      <section class="pitch-slide bridge-slide hidden" data-slide="5" aria-label={slides[4]}>
         <BridgeSlide />
       </section>
 
-      <section class="pitch-slide product-proof-slide hidden" data-slide="7" aria-label={slides[6]}>
+      <section class="pitch-slide product-proof-slide hidden" data-slide="6" aria-label={slides[5]}>
         <ProductProof />
       </section>
 
-      <section class="pitch-slide builder-criteria-slide hidden" data-slide="8" aria-label={slides[7]}>
+      <section class="pitch-slide builder-criteria-slide hidden" data-slide="7" aria-label={slides[6]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -232,7 +176,7 @@ const problemShotRows = [
         <BuilderCriteria />
       </section>
 
-      <section class="pitch-slide testimonials-slide hidden" data-slide="9" aria-label={slides[8]}>
+      <section class="pitch-slide testimonials-slide hidden" data-slide="8" aria-label={slides[7]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -243,7 +187,7 @@ const problemShotRows = [
         <TestimonialsSlide />
       </section>
 
-      <section class="pitch-slide competitor-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide competitor-slide hidden" data-slide="9" aria-label={slides[8]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -254,7 +198,7 @@ const problemShotRows = [
         <CompetitorAnalysis />
       </section>
 
-      <section class="pitch-slide pricing-slide hidden" data-slide="11" aria-label={slides[10]}>
+      <section class="pitch-slide pricing-slide hidden" data-slide="10" aria-label={slides[9]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -265,7 +209,7 @@ const problemShotRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide team-slide hidden" data-slide="12" aria-label={slides[11]}>
+      <section class="pitch-slide team-slide hidden" data-slide="11" aria-label={slides[10]}>
         <TeamSlide />
       </section>
     </div>

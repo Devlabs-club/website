@@ -445,6 +445,33 @@
   letter-spacing: -0.02em;
 }
 
+/* the success fee gets its own band — it is the term that sells the plan, so
+   it is lifted off the ledger rather than just set larger */
+#pitchDeck .pricing-deal div.is-key {
+  margin: 4px -12px;
+  padding: 13px 12px;
+  border-top: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow: 0 6px 16px rgba(120, 52, 6, 0.1);
+}
+
+/* no rule between the band and the row under it */
+#pitchDeck .pricing-deal div.is-key + div {
+  border-top: 0;
+}
+
+#pitchDeck .pricing-deal div.is-key dd {
+  font-size: 19.5px;
+  letter-spacing: -0.03em;
+}
+
+#pitchDeck .pricing-deal div.is-key dt {
+  color: rgba(23, 12, 5, 0.8);
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
 #pitchDeck .pricing-deal dd {
   margin: 0;
   color: #170c05;

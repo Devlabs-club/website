@@ -2,14 +2,8 @@
 // Three steps, each with its statement on the left and what the founder
 // actually sees on the right. Names are fictional and avatars are initials —
 // no real builder's name or photograph appears.
-// The real "1. Basics" step from the founder flow. `ghost: true` renders as
-// placeholder text, matching an unfilled field in the product.
-const basics = [
-  { label: "Title", value: "Payments Engineer", key: true },
-  { label: "Job type", value: "Full-time, contract", ghost: true },
-  { label: "Must have", value: "Stripe, webhooks", key: true },
-  { label: "Salary", value: "200k" },
-];
+// The product's own search bar, carrying the role as a founder would type it.
+const query = "Find me a cracked App dev with expertise in stripe integration";
 
 // The real result card. Names are fictional and avatars are initials rather
 // than photographs, so no builder's identity appears in the deck.
@@ -71,30 +65,26 @@ const steps = [
         <p class="pflow-step__body">{steps[0].body}</p>
       </div>
       <div class="pflow-art">
-        <div class="pflow-form">
-          <div class="pflow-form__head">
-            <p>1. Basics</p>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-              <path d="m6 15 6-6 6 6"></path>
+        <div class="pflow-search">
+          <p class="pflow-search__tag">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 2.5 13.7 9 20 10.8 13.7 12.6 12 19 10.3 12.6 4 10.8 10.3 9Z" />
             </svg>
-          </div>
-          <div class="pflow-form__grid">
-            {
-              basics.map((f) => (
-                <label class="pflow-field">
-                  <span class="pflow-field__label">{f.label}</span>
-                  <span
-                    class:list={[
-                      "pflow-field__input",
-                      f.ghost && "pflow-field__input--ghost",
-                      f.key && "pflow-field__input--key",
-                    ]}
-                  >
-                    {f.value}
-                  </span>
-                </label>
-              ))
-            }
+            Builder search
+          </p>
+
+          <div class="pflow-search__bar">
+            <svg class="pflow-search__glass" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <p>{query}</p>
+            <span class="pflow-search__go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </span>
           </div>
         </div>
       </div>

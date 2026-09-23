@@ -91,11 +91,24 @@
   text-transform: none;
 }
 
+/* marker band rather than orange type — the same pen metaphor the solution
+   slide uses on the two nouns it wants picked up */
 #pitchDeck .gap-slide .gap-intro h1 em {
-  color: #fa862f;
+  display: inline;
+  padding: 0 10px;
+  color: #130a07;
   font-family: Manrope, system-ui, sans-serif;
   font-style: normal;
   font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  background: linear-gradient(
+    180deg,
+    transparent 15%,
+    rgba(250, 134, 47, 0.7) 15%,
+    rgba(250, 134, 47, 0.7) 87%,
+    transparent 87%
+  );
 }
 
 #pitchDeck .gap-intro p {
