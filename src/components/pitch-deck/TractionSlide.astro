@@ -1,0 +1,57 @@
+---
+const stats = [
+  { value: "$20K", label: "revenue from hiring fees & sponsorships", key: true },
+  { value: "2,000", label: "builders" },
+  { value: "4,100", label: "projects of proof-of-work data" },
+  { value: "20", label: "events across AZ & SF" },
+  { value: "4", label: "engineers hired by 3 startups in 3 months" },
+];
+
+// YC has no mark in the repo, so it stays as type
+const validators = [
+  { name: "Google", src: "/pitch-deck/logos/google.svg" },
+  { name: "Stripe", src: "/sponsors/color/stripe.svg" },
+  { name: "Browser Use", src: "/sponsors/browser-use.png", invert: true },
+  { name: "YC startups" },
+];
+---
+
+<section class="traction deck-slide-layout">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Traction</p>
+  </header>
+
+  <h1 class="traction-title">Traction</h1>
+
+  <div class="traction-grid">
+    {
+      stats.map((s) => (
+        <div class:list={["traction-stat deck-card", s.key && "deck-card--orange is-key"]}>
+          <strong>{s.value}</strong>
+          <span>{s.label}</span>
+        </div>
+      ))
+    }
+  </div>
+
+  <div class="traction-validated">
+    <p>Validated by</p>
+    <ul>
+      {
+        validators.map((v) =>
+          v.src ? (
+            <li>
+              <img class:list={[v.invert && "is-invert"]} src={v.src} alt={v.name} loading="eager" />
+            </li>
+          ) : (
+            <li class="traction-validated__text">{v.name}</li>
+          ),
+        )
+      }
+    </ul>
+  </div>
+</section>

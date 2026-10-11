@@ -1,0 +1,61 @@
+---
+// Four channels, one card each. VCs are the odd one out — they give Devlabs
+// to their portfolio as a free perk — so that card is the one set in orange.
+// Each card shows its channel; the VC card shows the firms themselves.
+const channels = [
+  { num: "01", title: "Career services", body: "University career services departments", photo: "/pitch-deck/gtm/career-services.jpg" },
+  { num: "02", title: "Co-working spaces", body: "Where early-stage founders already work", photo: "/pitch-deck/gtm/coworking.jpg" },
+  { num: "03", title: "Events", body: "Hackathons and build nights across AZ & SF", photo: "/landing/community/devhacks-crowd.png", focus: "transform: scale(1.6); transform-origin: 45% 100%" },
+  { num: "04", title: "VCs", body: "Free for VCs to offer their portfolio. Startups only pay when they hire.", key: true },
+];
+
+const vcs = [
+  { name: "PHX Angels", src: "/pitch-deck/gtm/phx-angels.png" },
+  { name: "Copper Sky Capital", src: "/pitch-deck/gtm/copper-sky.png", wide: true },
+  { name: "PHX FWD", src: "/pitch-deck/gtm/phx-fwd.png" },
+];
+---
+
+<section class="gtm deck-slide-layout">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> Go to market</p>
+  </header>
+
+  <h1 class="gtm-title">Go to market</h1>
+  <p class="gtm-lede">
+    We reach founders <strong>where they already look for talent</strong>.
+    <strong>Career services</strong> and <strong>co-working spaces</strong> put us in front of
+    early-stage teams, our <strong>events</strong> bring founders and builders into the same room,
+    and <strong>VCs</strong> offer Devlabs to their portfolio as a <strong>free perk</strong>, with startups <strong>paying only when they hire</strong>.
+  </p>
+
+  <ul class="gtm-grid">
+    {
+      channels.map((c) => (
+        <li class:list={["gtm-card deck-card", c.key && "deck-card--orange"]}>
+          {c.photo && (
+            <div class="gtm-card__photo" aria-hidden="true">
+              <img src={c.photo} alt="" loading="eager" style={c.focus} />
+            </div>
+          )}
+          <span class="gtm-card__num">{c.num}</span>
+          {c.key && (
+            <ul class="gtm-vcs">
+              {vcs.map((v) => (
+                <li>
+                  <img class:list={[v.wide && "is-wide"]} src={v.src} alt={v.name} loading="eager" />
+                </li>
+              ))}
+            </ul>
+          )}
+          <h2>{c.title}</h2>
+          <p>{c.body}</p>
+        </li>
+      ))
+    }
+  </ul>
+</section>

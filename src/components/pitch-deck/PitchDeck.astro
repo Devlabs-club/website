@@ -12,6 +12,7 @@ import "./competitor-analysis.css";
 import "./pricing-slide.css";
 import "./product-proof.css";
 import "./team-slide.css";
+import "./gtm-traction-slides.css";
 import "./pitch-deck-typography.css";
 import BuilderCriteria from "./BuilderCriteria.astro";
 import TestimonialsSlide from "./TestimonialsSlide.astro";
@@ -23,6 +24,8 @@ import ProductProof from "./ProductProof.astro";
 import TeamSlide from "./TeamSlide.astro";
 import CoverSlide from "./CoverSlide.astro";
 import GapSlide from "./GapSlide.astro";
+import GtmSlide from "./GtmSlide.astro";
+import TractionSlide from "./TractionSlide.astro";
 
 const slides = [
   "The Future of hiring",
@@ -34,6 +37,8 @@ const slides = [
   "What we look for",
   "Testimonials",
   "Competitor analysis",
+  "Go to market",
+  "Traction",
   "Pricing",
   "The team",
 ];
@@ -198,7 +203,29 @@ const problemShotRows = [
         <CompetitorAnalysis />
       </section>
 
-      <section class="pitch-slide pricing-slide hidden" data-slide="10" aria-label={slides[9]}>
+      <section class="pitch-slide gtm-slide hidden" data-slide="10" aria-label={slides[9]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <GtmSlide />
+      </section>
+
+      <section class="pitch-slide traction-slide hidden" data-slide="11" aria-label={slides[10]}>
+        <div class="deck-bg" aria-hidden="true">
+          <div class="deck-bg__base"></div>
+          <div class="deck-bg__lens"></div>
+          <div class="deck-bg__scan-lines"></div>
+          <div class="deck-bg__grain"></div>
+          <div class="deck-bg__fade"></div>
+        </div>
+        <TractionSlide />
+      </section>
+
+      <section class="pitch-slide pricing-slide hidden" data-slide="12" aria-label={slides[11]}>
         <div class="deck-bg" aria-hidden="true">
           <div class="deck-bg__base"></div>
           <div class="deck-bg__lens"></div>
@@ -209,7 +236,7 @@ const problemShotRows = [
         <PricingSlide />
       </section>
 
-      <section class="pitch-slide team-slide hidden" data-slide="11" aria-label={slides[10]}>
+      <section class="pitch-slide team-slide hidden" data-slide="13" aria-label={slides[12]}>
         <TeamSlide />
       </section>
     </div>
