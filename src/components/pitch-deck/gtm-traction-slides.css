@@ -181,99 +181,218 @@
 
 /* ── Traction ── */
 
+#pitchDeck .traction-lede {
+  flex-shrink: 0;
+  max-width: 1180px;
+  margin: 20px 0 0;
+  color: rgba(22, 11, 7, 0.62);
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.45;
+}
+
+#pitchDeck .traction-lede strong {
+  color: #130a07;
+  font-weight: 650;
+}
+
 #pitchDeck .traction-grid {
   display: grid;
   flex: 1;
   min-height: 0;
-  gap: 22px;
-  margin-top: 44px;
-  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 20px;
+  margin-top: 30px;
+  grid-template-columns: 1.15fr 1fr 1fr;
   grid-template-rows: 1fr 1fr;
 }
 
-#pitchDeck .traction-stat {
+/* the lead number sits on an event photo washed in orange, the same
+   treatment as the VC card on the GTM slide */
+#pitchDeck .traction-lead {
   display: flex;
+  grid-row: span 2;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 26px 30px 28px;
+  padding: 30px 32px 32px;
 }
 
-#pitchDeck .traction-stat.is-key {
-  grid-row: span 2;
+#pitchDeck .traction-lead__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
-#pitchDeck .traction-stat strong {
+#pitchDeck .traction-lead__photo img {
   display: block;
-  color: #130a07;
-  font-size: 68px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#pitchDeck .traction-lead__photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(240, 122, 36, 0.12) 0%,
+    rgba(240, 122, 36, 0.55) 40%,
+    #ee7a25 72%
+  );
+}
+
+#pitchDeck .traction-lead > :not(.traction-lead__photo) {
+  position: relative;
+  z-index: 1;
+}
+
+#pitchDeck .traction-lead::before {
+  z-index: 2;
+}
+
+#pitchDeck .traction-lead strong {
+  display: block;
+  color: #fff;
+  font-size: 140px;
   font-weight: 600;
   letter-spacing: -0.065em;
-  line-height: 1;
+  line-height: 0.95;
 }
 
-#pitchDeck .traction-stat.is-key strong {
-  color: #fff;
-  font-size: 132px;
-}
-
-#pitchDeck .traction-stat span {
+#pitchDeck .traction-lead span {
   display: block;
-  margin-top: 10px;
-  color: rgba(22, 11, 7, 0.6);
-  font-size: 19px;
+  max-width: 360px;
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.94);
+  font-size: 24px;
   font-weight: 500;
   letter-spacing: -0.022em;
   line-height: 1.3;
 }
 
-#pitchDeck .traction-stat.is-key span {
-  max-width: 340px;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 24px;
-}
-
-#pitchDeck .traction-validated {
+#pitchDeck .traction-stat {
   display: flex;
-  align-items: center;
-  gap: 48px;
-  flex-shrink: 0;
-  margin-top: 30px;
+  flex-direction: column;
+  padding: 24px 28px 26px;
 }
 
-#pitchDeck .traction-validated p {
-  margin: 0;
-  color: rgba(22, 11, 7, 0.46);
-  font-size: 14px;
+#pitchDeck .traction-stat strong {
+  display: block;
+  margin-top: auto;
+  color: #130a07;
+  font-size: 64px;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: -0.065em;
+  line-height: 1;
 }
 
-#pitchDeck .traction-validated ul {
+#pitchDeck .traction-stat span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(22, 11, 7, 0.6);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.3;
+}
+
+/* each stat card carries a small piece of real detail above the number */
+
+#pitchDeck .traction-faces {
   display: flex;
   align-items: center;
-  gap: 56px;
+}
+
+#pitchDeck .traction-faces img {
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#pitchDeck .traction-faces img:first-child {
+  margin-left: 0;
+}
+
+#pitchDeck .traction-faces span {
+  margin-left: 10px;
+  color: #c45e12;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .traction-heat {
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(24, 1fr);
+}
+
+#pitchDeck .traction-heat i {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 3px;
+}
+
+#pitchDeck .traction-heat .l0 { background: rgba(20, 14, 10, 0.06); }
+#pitchDeck .traction-heat .l1 { background: rgba(250, 134, 47, 0.22); }
+#pitchDeck .traction-heat .l2 { background: rgba(250, 134, 47, 0.45); }
+#pitchDeck .traction-heat .l3 { background: rgba(250, 134, 47, 0.72); }
+#pitchDeck .traction-heat .l4 { background: #e2690d; }
+
+#pitchDeck .traction-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-#pitchDeck .traction-validated img {
-  display: block;
+#pitchDeck .traction-chips li {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(250, 134, 47, 0.13);
+  color: #c45e12;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .traction-chips li.is-place {
+  background: rgba(20, 14, 10, 0.055);
+  color: rgba(22, 11, 7, 0.62);
+}
+
+#pitchDeck .traction-hire-chip {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 12px;
+  padding: 6px 18px 6px 6px;
+  border: 1px solid rgba(20, 14, 10, 0.08);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(24, 12, 4, 0.06);
+  color: #e2690d;
+}
+
+#pitchDeck .traction-hire-chip__face {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#pitchDeck .traction-hire-chip svg {
+  width: 20px;
+  height: 20px;
+}
+
+#pitchDeck .traction-hire-chip__logo {
   width: auto;
-  max-width: 160px;
-  height: 32px;
-  object-fit: contain;
-}
-
-/* white-only artwork, knocked to black for the light slide */
-#pitchDeck .traction-validated img.is-invert {
-  filter: invert(1);
-}
-
-#pitchDeck .traction-validated__text {
-  color: #130a07;
-  font-size: 24px;
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  height: 18px;
 }

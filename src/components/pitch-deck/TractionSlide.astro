@@ -1,19 +1,21 @@
 ---
-const stats = [
-  { value: "$20K", label: "revenue from hiring fees & sponsorships", key: true },
-  { value: "2,000", label: "builders" },
-  { value: "4,100", label: "projects of proof-of-work data" },
-  { value: "20", label: "events across AZ & SF" },
-  { value: "4", label: "engineers hired by 3 startups in 3 months" },
-];
+// Same build as the GTM slide: bolded lede, then cards. Revenue is the lead
+// number, so it takes the tall orange card with an event photo behind it.
+// The lede says what the numbers mean rather than repeating them.
+const lead = { value: "$30K", label: "revenue from hiring fees & sponsorships", photo: "/events/DevHacks3.jpg" };
 
-// YC has no mark in the repo, so it stays as type
-const validators = [
-  { name: "Google", src: "/pitch-deck/logos/google.svg" },
-  { name: "Stripe", src: "/sponsors/color/stripe.svg" },
-  { name: "Browser Use", src: "/sponsors/browser-use.png", invert: true },
-  { name: "YC startups" },
-];
+// real builders from the pool, shown as a face stack
+const builders = ["prasanna", "aaditi", "abhinav", "aanchal", "pranav", "aakash"];
+
+// proof-of-work grid: an illustrative contribution-style strip, seeded so it
+// renders the same every time
+const cells = Array.from({ length: 3 * 24 }, (_, i) => {
+  const n = Math.sin(i * 12.9898 + 4.1414) * 43758.5453;
+  const r = n - Math.floor(n);
+  return r > 0.82 ? 4 : r > 0.6 ? 3 : r > 0.35 ? 2 : r > 0.15 ? 1 : 0;
+});
+
+const series = ["DevHacks", "DevHouse", "DevSpace"];
 ---
 
 <section class="traction deck-slide-layout">
@@ -26,32 +28,56 @@ const validators = [
   </header>
 
   <h1 class="traction-title">Traction</h1>
+  <p class="traction-lede">
+    Founders and sponsors are <strong>already paying</strong> us.
+    Every event grows a <strong>pool of builders we've seen ship</strong>, and that proof is
+    <strong>turning into hires</strong> — validated by <strong>Google</strong>, <strong>Stripe</strong>,
+    <strong>Browser Use</strong> and <strong>YC startups</strong>.
+  </p>
 
   <div class="traction-grid">
-    {
-      stats.map((s) => (
-        <div class:list={["traction-stat deck-card", s.key && "deck-card--orange is-key"]}>
-          <strong>{s.value}</strong>
-          <span>{s.label}</span>
-        </div>
-      ))
-    }
-  </div>
+    <div class="traction-lead deck-card deck-card--orange">
+      <div class="traction-lead__photo" aria-hidden="true">
+        <img src={lead.photo} alt="" loading="eager" />
+      </div>
+      <strong>{lead.value}</strong>
+      <span>{lead.label}</span>
+    </div>
 
-  <div class="traction-validated">
-    <p>Validated by</p>
-    <ul>
-      {
-        validators.map((v) =>
-          v.src ? (
-            <li>
-              <img class:list={[v.invert && "is-invert"]} src={v.src} alt={v.name} loading="eager" />
-            </li>
-          ) : (
-            <li class="traction-validated__text">{v.name}</li>
-          ),
-        )
-      }
-    </ul>
+    <div class="traction-stat deck-card">
+      <div class="traction-faces" aria-hidden="true">
+        {builders.map((b) => <img src={`/landing/builders/${b}.jpg`} alt="" loading="eager" />)}
+        <span>+1,994</span>
+      </div>
+      <strong>2,000</strong>
+      <span>vetted builders in the talent pool</span>
+    </div>
+
+    <div class="traction-stat deck-card">
+      <div class="traction-heat" aria-hidden="true">
+        {cells.map((c) => <i class={`l${c}`} />)}
+      </div>
+      <strong>4,100</strong>
+      <span>projects of proof-of-work data from GitHub, agent traces and hackathons</span>
+    </div>
+
+    <div class="traction-stat deck-card">
+      <ul class="traction-chips" aria-hidden="true">
+        {series.map((s) => <li>{s}</li>)}
+        <li class="is-place">Arizona · San Francisco</li>
+      </ul>
+      <strong>20</strong>
+      <span>events run across AZ & SF</span>
+    </div>
+
+    <div class="traction-stat deck-card">
+      <div class="traction-hire-chip" aria-hidden="true">
+        <img class="traction-hire-chip__face" src="/landing/builders/prasanna.jpg" alt="" loading="eager" />
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h15M14 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <img class="traction-hire-chip__logo" src="/landing/builders/supermemory.png" alt="" loading="eager" />
+      </div>
+      <strong>4</strong>
+      <span>engineers hired by 3 startups in 3 months</span>
+    </div>
   </div>
 </section>
