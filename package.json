@@ -117,7 +117,7 @@
     "vercel": "^50.17.1"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "overrides": {
     "@xenova/transformers": {
