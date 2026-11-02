@@ -1,0 +1,291 @@
+/* ── Slide 4, version B · Our story ──
+   Same content, different structure: headline across the top, the four numbers
+   stacked down the left, and the sponsor wall given a full quadrant on the
+   right instead of a strip at the floor. Logos sit on individual chamfered
+   tiles in solid ink — on white they carry far more weight than knocked-out
+   white marks on an orange bar, which is the whole point of this version. */
+
+#pitchDeck .story-alt-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #faf8f4;
+  color: #100b09;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .salt {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100%;
+  min-height: 0;
+  padding: 40px 64px 40px;
+}
+
+#pitchDeck .salt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#pitchDeck .salt-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: rgba(22, 11, 7, 0.46);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+#pitchDeck .salt-meta i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fa862f;
+  box-shadow: 0 0 20px rgba(250, 134, 47, 0.42);
+}
+
+#pitchDeck .story-alt-slide .salt-lead {
+  max-width: 1180px;
+  margin: 26px 0 0;
+  color: #130a07;
+  font-size: 54px;
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -0.058em;
+  text-transform: none;
+}
+
+#pitchDeck .salt-body {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 360px 1fr;
+  align-items: center;
+  gap: 56px;
+  /* reserves the lane the absolutely-placed photo stack occupies */
+  padding-right: 250px;
+  margin-top: 6px;
+}
+
+/* ── the numbers, stacked ── */
+
+#pitchDeck .salt-stats {
+  display: flex;
+  flex-direction: column;
+}
+
+#pitchDeck .salt-stat {
+  padding: 20px 0;
+  border-top: 1px solid rgba(19, 10, 7, 0.16);
+}
+
+#pitchDeck .salt-stat:last-child {
+  border-bottom: 1px solid rgba(19, 10, 7, 0.16);
+}
+
+#pitchDeck .story-alt-slide .salt-stat__value {
+  margin: 0;
+  color: #fa862f;
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+#pitchDeck .story-alt-slide .salt-stat__label {
+  margin: 8px 0 0;
+  color: rgba(19, 10, 7, 0.6);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.018em;
+  text-transform: none;
+}
+
+/* ── the sponsor wall ── */
+
+#pitchDeck .salt-sponsors__head {
+  margin: 0 0 18px;
+  color: #c45e12;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+#pitchDeck .salt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+#pitchDeck .salt-tile {
+  --deck-cut: 12px;
+  display: grid;
+  height: 98px;
+  place-items: center;
+  padding: 14px 18px;
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--deck-cut)),
+    calc(100% - var(--deck-cut)) 100%,
+    0 100%
+  );
+  border: 1px solid rgba(19, 10, 7, 0.15);
+  background: linear-gradient(180deg, #ffffff 0%, #fffcf8 100%);
+  box-shadow: 0 12px 28px rgba(21, 14, 8, 0.07);
+}
+
+/* Light tile, real brand artwork: Stripe's #635BFF, TinyFish's orange fish,
+   Dodo's green mark with its dark wordmark, DeepMind's blue, supermemory's
+   near-black. Two filters below cover the files with no dark variant. */
+#pitchDeck .salt-tile img {
+  display: block;
+  max-width: 100%;
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+/* Browser Use, Composio and omi publish only icon-only colour files, but their
+   repo PNGs carry the full wordmark in pure white — no colour to distort, so
+   inverting gives exactly the black marks those brands use on light. */
+#pitchDeck .salt-tile img[alt="Browser Use"],
+#pitchDeck .salt-tile img[alt="Composio"],
+#pitchDeck .salt-tile img[alt="omi"] {
+  filter: invert(1);
+}
+
+/* smallest.ai publishes no dark file anywhere: teal glyph, white wordmark. The
+   wordmark would vanish on white and inverting would turn the teal pink, so it
+   goes to flat black. The only mark here not in its true colours. */
+#pitchDeck .salt-tile img[alt="smallest.ai"] {
+  filter: brightness(0);
+}
+
+/* ── closer ── */
+
+#pitchDeck .salt-closer {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(19, 10, 7, 0.2);
+}
+
+#pitchDeck .salt-closer p {
+  margin: 0;
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* ── the photo string, hung down the right edge ── */
+
+/* Absolute rather than a grid column: inside the row, five frames had to squash
+   to ~70px tall and read as letterboxed strips. Out here the stack runs the
+   slide's full height and bleeds off the bottom, so each frame stays close to
+   square. */
+#pitchDeck .salt-strip {
+  position: absolute;
+  top: 152px;
+  right: -34px;
+  z-index: 1;
+  display: flex;
+  width: 244px;
+  flex-direction: column;
+}
+
+#pitchDeck .salt-photo {
+  margin: 0;
+  padding: 10px 10px 28px;
+  background: #fffdf9;
+  box-shadow: 0 16px 34px rgba(21, 14, 8, 0.16);
+}
+
+/* overlapped so all five fit the run without shrinking */
+#pitchDeck .salt-photo + .salt-photo {
+  margin-top: -50px;
+}
+
+#pitchDeck .salt-photo img {
+  display: block;
+  width: 100%;
+  height: 172px;
+  object-fit: cover;
+}
+
+#pitchDeck .salt-photo--1 { transform: rotate(-4.5deg) translateX(-10px); }
+#pitchDeck .salt-photo--2 { transform: rotate(3deg) translateX(12px); }
+#pitchDeck .salt-photo--3 { transform: rotate(-2deg) translateX(-6px); }
+
+/* ── closer ── */
+
+#pitchDeck .salt-closer {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(19, 10, 7, 0.2);
+}
+
+#pitchDeck .salt-closer p {
+  margin: 0;
+  color: rgba(19, 10, 7, 0.62);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* ── the photo string, hung down the right edge ── */
+
+/* Absolute rather than a grid column: inside the row, five frames had to squash
+   to ~70px tall and read as letterboxed strips. Out here the stack runs the
+   slide's full height and bleeds off the bottom, so each frame stays close to
+   square. */
+#pitchDeck .salt-strip {
+  position: absolute;
+  top: 152px;
+  right: -34px;
+  z-index: 1;
+  display: flex;
+  width: 244px;
+  flex-direction: column;
+}
+
+#pitchDeck .salt-photo {
+  margin: 0;
+  padding: 10px 10px 28px;
+  background: #fffdf9;
+  box-shadow: 0 16px 34px rgba(21, 14, 8, 0.16);
+}
+
+/* overlapped so all five fit the run without shrinking */
+#pitchDeck .salt-photo + .salt-photo {
+  margin-top: -50px;
+}
+
+#pitchDeck .salt-photo img {
+  display: block;
+  width: 100%;
+  height: 172px;
+  object-fit: cover;
+}
+
+#pitchDeck .salt-photo--1 { transform: rotate(-4.5deg) translateX(-10px); }
+#pitchDeck .salt-photo--2 { transform: rotate(3deg) translateX(12px); }
+#pitchDeck .salt-photo--3 { transform: rotate(-2deg) translateX(-6px); }
+
+
+#pitchDeck .salt-photo--4 { transform: rotate(4deg) translateX(9px); }
+#pitchDeck .salt-photo--5 { transform: rotate(-3.5deg) translateX(-8px); }

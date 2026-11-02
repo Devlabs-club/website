@@ -1,0 +1,232 @@
+/* ── The ask ── built like the GTM and Traction slides */
+
+#pitchDeck .ask-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #faf8f4;
+  color: #130a07;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .ask {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: 38px 58px 48px;
+}
+
+#pitchDeck .ask-slide .ask-title {
+  flex-shrink: 0;
+  margin: 34px 0 0;
+  color: #130a07;
+  font-size: 72px;
+  font-weight: 500;
+  letter-spacing: -0.062em;
+  line-height: 1;
+  text-transform: none;
+}
+
+#pitchDeck .ask-lede {
+  flex-shrink: 0;
+  max-width: 1180px;
+  margin: 20px 0 0;
+  color: rgba(22, 11, 7, 0.62);
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.45;
+}
+
+#pitchDeck .ask-lede strong {
+  color: #130a07;
+  font-weight: 650;
+}
+
+/* a plain numbered list — no cards, so the ask reads like a statement */
+#pitchDeck .ask-list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: center;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pitchDeck .ask-list li {
+  display: grid;
+  align-items: baseline;
+  gap: 28px;
+  padding: 26px 0;
+  grid-template-columns: 70px 540px 1fr 150px;
+}
+
+#pitchDeck .ask-list li + li {
+  border-top: 1px solid rgba(20, 14, 10, 0.12);
+}
+
+#pitchDeck .ask-list__num {
+  color: #fa862f;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .ask-list strong {
+  color: #130a07;
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+
+#pitchDeck .ask-list__body {
+  color: rgba(22, 11, 7, 0.6);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.022em;
+  line-height: 1.4;
+}
+
+#pitchDeck .ask-list__amount {
+  color: #e2690d;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  text-align: right;
+}
+
+/* ── How we got to $25K ── */
+
+#pitchDeck .ask-slide .ask-title em {
+  color: #fa862f;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* dark ground — the one slide in the ask that breaks the card layout */
+#pitchDeck .budget-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background: #140c09;
+  color: #fff;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .budget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 38px 58px 48px;
+}
+
+#pitchDeck .budget-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 50% 46% at 50% 44%, rgba(250, 134, 47, 0.26) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 40% at 50% 110%, rgba(250, 134, 47, 0.18) 0%, transparent 70%);
+}
+
+#pitchDeck .budget-slide .deck-brand-lockup.deck-brand-lockup span {
+  color: #fff;
+}
+
+#pitchDeck .budget .deck-slide-meta {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+#pitchDeck .budget-center {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#pitchDeck .budget-eyebrow,
+#pitchDeck .budget-sub {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+#pitchDeck .budget-total {
+  display: block;
+  margin: 6px 0 4px;
+  color: #fa862f;
+  font-size: 220px;
+  font-weight: 600;
+  letter-spacing: -0.07em;
+  line-height: 0.95;
+}
+
+#pitchDeck .budget-split {
+  display: flex;
+  gap: 6px;
+  width: 1200px;
+  margin-top: 64px;
+  text-align: left;
+}
+
+#pitchDeck .budget-split__part {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+#pitchDeck .budget-split__part i {
+  display: block;
+  height: 16px;
+  border-radius: 5px;
+}
+
+#pitchDeck .budget-split__part.s0 i { background: #fa862f; }
+#pitchDeck .budget-split__part.s1 i { background: #ffab6b; }
+#pitchDeck .budget-split__part.s2 i { background: #ffd2ad; }
+#pitchDeck .budget-split__part.s3 i { background: rgba(255, 255, 255, 0.85); }
+
+#pitchDeck .budget-split__part strong {
+  margin-top: 18px;
+  color: #fff;
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+#pitchDeck .budget-split__part span {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+/* what each slice pays for, in small type under its label */
+#pitchDeck .budget-split__part p {
+  max-width: 260px;
+  margin: 10px 0 0;
+  padding-right: 16px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.4;
+}

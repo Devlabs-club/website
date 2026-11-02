@@ -1,0 +1,64 @@
+---
+// Four problems as a stack of overlapping slabs, four depths of the one
+// orange — deepest at the back, palest at the front. Each one covers the bottom of the card above it, so
+// the set reads as a pile of things landing on the founder.
+const problems = [
+  {
+    n: "01",
+    tone: "burnt",
+    title: "No proof of skill",
+    body: "Profiles list what someone claims, not what they have built.",
+  },
+  {
+    n: "02",
+    tone: "deep",
+    title: "Wrong channel",
+    body: "People applying all day on LinkedIn are not the builders you need.",
+  },
+  {
+    n: "03",
+    tone: "mid",
+    title: "No time or experience",
+    body: "Founders hire between everything else, with no recruiting background to lean on.",
+  },
+  {
+    n: "04",
+    tone: "pale",
+    title: "Mismatched expectations",
+    body: "What most people want from a job is not what an early startup offers.",
+  },
+];
+---
+
+<section class="gap">
+  <div class="gap-bg" aria-hidden="true">
+    <svg class="gap-bg__sweeps" viewBox="0 0 1600 900" fill="none">
+      <path d="M -150 210 L 300 -60 L 760 200" />
+      <path class="is-soft" d="M 900 980 L 1300 720 L 1780 900" />
+    </svg>
+  </div>
+
+  <header class="gap-header deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> The gap</p>
+  </header>
+
+  <div class="gap-intro">
+    <h1>Problems <em>early-stage startups</em> face when hiring</h1>
+  </div>
+
+  <div class="gap-stack">
+    {
+      problems.map((p) => (
+        <article class:list={["gap-slab", `gap-slab--${p.tone}`]}>
+          <p class="gap-slab__n">{p.n}</p>
+          <h2>{p.title}</h2>
+          <p class="gap-slab__body">{p.body}</p>
+        </article>
+      ))
+    }
+  </div>
+</section>

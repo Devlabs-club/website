@@ -1,0 +1,85 @@
+---
+// The sentence leads; the section under it does the connecting. Each side lists
+// what it brings in its own words — what a startup is actually looking for
+// against what a builder is already doing — so the match is made by the reader
+// rather than asserted by an arrow.
+// Line icons drawn at the deck's stroke weight rather than pulled from a set,
+// so they sit in the same hand as the cover strokes and the meta dot.
+const wants = [
+  { label: "builder mindset", icon: "M12 3 20 7.5v9L12 21 4 16.5v-9Z M12 12 20 7.5 M12 12 4 7.5 M12 12v9" },
+  { label: "ships fast", icon: "M13.5 3 5 13.5h6L9.5 21 18.5 10h-6Z" },
+  { label: "in it for the long term", icon: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 7.5V12l3.5 2" },
+  { label: "product over payroll", icon: "M12 20S5 15.5 5 10.5A4 4 0 0 1 12 8a4 4 0 0 1 7 2.5C19 15.5 12 20 12 20Z" },
+];
+
+const doing = [
+  { label: "hackathon all-nighters", icon: "M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" },
+  { label: "open-source commits", icon: "M6.5 4.5v10 M6.5 20a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z M17.5 9a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z M17.5 9v2c0 2.5-1.8 3.5-4.5 3.5H8" },
+  { label: "shipping with agents", icon: "M4 5h16v14H4Z M8 10l2.5 2.5L8 15 M13.5 15H17" },
+  { label: "learning beyond class", icon: "M12 6.5C10.5 5 8 4.5 5 5v13c3-.5 5.5 0 7 1.5 1.5-1.5 4-2 7-1.5V5c-3-.5-5.5 0-7 1.5Z M12 6.5v13" },
+];
+---
+
+<div class="deck-bg" aria-hidden="true">
+  <div class="deck-bg__base"></div>
+  <div class="deck-bg__lens"></div>
+  <div class="deck-bg__scan-lines"></div>
+  <div class="deck-bg__grain"></div>
+  <div class="deck-bg__fade"></div>
+</div>
+
+<svg class="bridge-strokes" viewBox="0 0 1600 900" fill="none" aria-hidden="true">
+  <path class="bridge-stroke" d="M -160 300 C 130 402 392 274 546 44" />
+  <path class="bridge-stroke bridge-stroke--b" d="M 1540 210 L 1196 470 L 1780 690" />
+</svg>
+
+<div class="bridge">
+  <header class="bridge-header">
+    <div class="cover-brand deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="bridge-meta"><i></i> The solution</p>
+  </header>
+
+  <h1 class="bridge-title">
+    At <img class="bridge-title__mark" src="/logo.svg" alt="Devlabs" />, we connect
+    <span class="bridge-key">vetted&nbsp;builders</span> with
+    <span class="bridge-key">startups</span> &mdash; based on their
+    <em class="deck-accent">proof of work</em>.
+  </h1>
+
+  <div class="bridge-joint">
+    <div class="bridge-slab bridge-slab--left">
+      <p class="bridge-slab__label">What startups are looking for</p>
+      <ul class="bridge-tags">
+        {
+          wants.map((w) => (
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={w.icon} /></svg>
+              <span>{w.label}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <div class="bridge-slab bridge-slab--right">
+      <p class="bridge-slab__label">What builders are already doing</p>
+      <ul class="bridge-tags">
+        {
+          doing.map((d) => (
+            <li>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={d.icon} /></svg>
+              <span>{d.label}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+
+    <span class="bridge-joint__mark" aria-hidden="true">
+      <img src="/logo.svg" alt="" />
+    </span>
+  </div>
+</div>

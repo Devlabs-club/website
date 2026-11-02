@@ -124,7 +124,6 @@
 #pitchDeck .pricing-card,
 #pitchDeck .advantage-lead__card,
 #pitchDeck .advantage-rest__item,
-#pitchDeck .problem-quote,
 #pitchDeck .product-reveal-shot {
   border-radius: 0;
   clip-path: polygon(
@@ -136,8 +135,7 @@
   );
 }
 
-#pitchDeck .advantage-rest__item,
-#pitchDeck .problem-quote {
+#pitchDeck .advantage-rest__item {
   --deck-cut: 14px;
 }
 

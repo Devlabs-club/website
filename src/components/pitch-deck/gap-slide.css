@@ -1,0 +1,209 @@
+#pitchDeck .gap-slide {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+  overflow: hidden;
+  border-radius: 0;
+  background:
+    radial-gradient(ellipse 48% 44% at 8% 14%, rgba(250, 134, 47, 0.26) 0%, transparent 66%),
+    radial-gradient(ellipse 52% 50% at 96% 96%, rgba(233, 114, 15, 0.2) 0%, transparent 70%),
+    linear-gradient(158deg, #fffaf2 0%, #fdeddc 50%, #f7dcc2 100%);
+  color: #130a07;
+  box-shadow: 0 24px 60px rgba(8, 4, 2, 0.18);
+}
+
+#pitchDeck .gap-slide.hidden {
+  display: none;
+}
+
+#pitchDeck .gap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  padding: 38px 58px 40px;
+}
+
+/* ── ground ── */
+
+#pitchDeck .gap-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#pitchDeck .gap-bg__glow {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background:
+    none;
+}
+
+#pitchDeck .gap-bg__sweeps {
+  position: absolute;
+  inset: 0;
+  width: 1600px;
+  height: 900px;
+}
+
+#pitchDeck .gap-bg__sweeps path {
+  fill: none;
+  stroke: #fa862f;
+  stroke-width: 46;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.16;
+}
+
+#pitchDeck .gap-bg__sweeps path.is-soft {
+  stroke-width: 38;
+  opacity: 0.1;
+}
+
+#pitchDeck .gap-header {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+/* ── the line ── */
+
+#pitchDeck .gap-intro {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-top: 40px;
+}
+
+#pitchDeck .gap-slide .gap-intro h1 {
+  margin: 0;
+  color: #130a07;
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.062em;
+  line-height: 1.04;
+  text-transform: none;
+}
+
+/* marker band rather than orange type — the same pen metaphor the solution
+   slide uses on the two nouns it wants picked up */
+#pitchDeck .gap-slide .gap-intro h1 em {
+  display: inline;
+  padding: 0 10px;
+  color: #130a07;
+  font-family: Manrope, system-ui, sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  background: linear-gradient(
+    180deg,
+    transparent 15%,
+    rgba(250, 134, 47, 0.7) 15%,
+    rgba(250, 134, 47, 0.7) 87%,
+    transparent 87%
+  );
+}
+
+#pitchDeck .gap-intro p {
+  margin: 13px 0 0;
+  color: rgba(22, 11, 7, 0.55);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.024em;
+}
+
+/* ── the stack ──
+   Overlapping slabs, four depths of one orange, deepest at the back. Each one
+   covers the foot of the card above it, so the four read as a pile landing on
+   the founder rather than four equal boxes. */
+
+#pitchDeck .gap-stack {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 1240px;
+  margin-top: 8px;
+}
+
+#pitchDeck .gap-slab {
+  position: relative;
+  padding: 30px 44px 62px;
+  border-radius: 30px;
+  box-shadow: 0 -10px 34px rgba(24, 12, 4, 0.13);
+}
+
+/* each slab rides up over the foot of the one behind it */
+#pitchDeck .gap-slab + .gap-slab {
+  margin-top: -40px;
+}
+
+#pitchDeck .gap-slab:nth-child(1) { z-index: 1; }
+#pitchDeck .gap-slab:nth-child(2) { z-index: 2; }
+#pitchDeck .gap-slab:nth-child(3) { z-index: 3; }
+#pitchDeck .gap-slab:nth-child(4) { z-index: 4; padding-bottom: 34px; }
+
+/* one hue, four depths of it — no black anywhere in the set */
+#pitchDeck .gap-slab--burnt {
+  background: #e2690d;
+  color: #fff;
+}
+
+#pitchDeck .gap-slab--deep {
+  background: #fb9243;
+  color: #29130404;
+  color: #2a1405;
+}
+
+#pitchDeck .gap-slab--mid {
+  background: #fec49a;
+  color: #2a1405;
+}
+
+#pitchDeck .gap-slab--pale {
+  background: #ffe9d8;
+  color: #2a1405;
+}
+
+#pitchDeck .gap-slab__n {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+#pitchDeck .gap-slab--burnt .gap-slab__n { color: #ffcfa4; opacity: 1; }
+
+
+#pitchDeck .gap-slide .gap-slab h2 {
+  margin: 13px 0 0;
+  color: inherit;
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1.06;
+  text-transform: none;
+}
+
+#pitchDeck .gap-slab__body {
+  margin: 11px 0 0;
+  max-width: 760px;
+  color: inherit;
+  font-size: 18.5px;
+  font-weight: 500;
+  letter-spacing: -0.024em;
+  line-height: 1.4;
+  opacity: 0.76;
+}

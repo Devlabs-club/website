@@ -1,0 +1,50 @@
+---
+// The Venture Devils ask, Dec 2026 – May 2027 (6 months, ~26 weeks).
+// Venture Devils caps at $50K; we ask for $25K. Every line below is built up
+// from unit costs so the total can be defended line by line:
+//   Sales & GTM   2 part-time × 10 hrs/wk × 26 wks × $21/hr       = $10,920
+//   Events        2 out-of-state events × ~$3,000                   =  $6,000
+//                 (venue sponsor-hosted; food for ~80 $1.5K, swag
+//                 $0.5K, team travel $1K)
+//   Tech weeks    3 trips × ~$1,200 for 1 person                    =  $3,600
+//                 (flight $300, 3 nights $600, pass $150, local $150)
+//   Product & ops hosting/DB $300 × 6 = $1,800, Sales Navigator 1 seat
+//                 $600, AI/LLM APIs $500, software $600, legal &
+//                 accounting $1,000                                  =  $4,500
+//   Total                                                            = $25,020
+//
+// This slide lists what the money unlocks, each with its share of the $25K;
+// the next slide (BudgetSlide.astro) shows the split as one bar.
+const uses = [
+  { title: "Sales & GTM team", body: "Two part-time hires to run sales and outreach.", amount: "$10.9K" },
+  { title: "Expansion events", body: "Bring our events to Utah and Colorado and their founder networks.", amount: "$6K" },
+  { title: "Founder-led outreach", body: "Founders at tech weeks, meeting startups to win customers.", amount: "$3.6K" },
+  { title: "Tech & infrastructure", body: "Hosting, database and LinkedIn Sales Navigator.", amount: "$4.5K" },
+];
+---
+
+<section class="ask deck-slide-layout">
+  <header class="deck-slide-header">
+    <div class="deck-brand-lockup">
+      <img src="/logo.svg" alt="" />
+      <span>Devlabs</span>
+    </div>
+    <p class="deck-slide-meta"><i></i> The ask</p>
+  </header>
+
+  <h1 class="ask-title">The ask: <em>$25K</em> from Venture Devils</h1>
+  <p class="ask-lede">Six months of funding, <strong>December to May</strong>, to put more founders in front of <strong>proven builders</strong>.</p>
+
+  <ol class="ask-list">
+    {
+      uses.map((u, i) => (
+        <li>
+          <span class="ask-list__num">{String(i + 1).padStart(2, "0")}</span>
+          <strong>{u.title}</strong>
+          <span class="ask-list__body">{u.body}</span>
+          <b class="ask-list__amount">{u.amount}</b>
+        </li>
+      ))
+    }
+  </ol>
+</section>
