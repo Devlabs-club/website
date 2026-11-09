@@ -2,7 +2,14 @@
 // Same build as the GTM slide: bolded lede, then cards. Revenue is the lead
 // number, so it takes the tall orange card with an event photo behind it.
 // The lede says what the numbers mean rather than repeating them.
-const lead = { value: "$30K", label: "revenue from hiring fees & sponsorships", photo: "/events/DevHacks3.jpg" };
+// $50K already in. Four hires at the $5K placement fee is $20K.
+// The rest is event sponsorships. Hiring is the business; sponsors fund the room.
+const lead = {
+  value: "$50K",
+  label: "already in, from events and hires",
+  split: "$20K hiring fees · $30K sponsorships",
+  photo: "/events/DevHacks3.jpg",
+};
 
 // real builders from the pool, shown as a face stack
 const builders = ["prasanna", "aaditi", "abhinav", "aanchal", "pranav", "aakash"];
@@ -42,6 +49,7 @@ const series = ["DevHacks", "DevHouse", "DevSpace"];
       </div>
       <strong>{lead.value}</strong>
       <span>{lead.label}</span>
+      <em class="traction-lead__split">{lead.split}</em>
     </div>
 
     <div class="traction-stat deck-card">
